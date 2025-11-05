@@ -2,5 +2,7 @@ solution/
 out/
 src/ThirdParty/dxc
 src/ThirdParty/DirectXShaderCompiler
+vcpkg_installed/
 bin/*.*
 lib/*.*
+.vs/

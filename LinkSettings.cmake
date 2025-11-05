@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.5)
 
 
 macro(AddReleaseLinkerSettings flags)
@@ -27,7 +27,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES EXECUTABLE_OUTPUT_DIRECTORY_REL
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS_RELEASE ${RELEASE_LINKER_SETTINGS})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES BINARY_DIR ${OUTPUT_DIR})
+#set_target_properties(${PROJECT_NAME} PROPERTIES BINARY_DIR ${OUTPUT_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "vkEngine")

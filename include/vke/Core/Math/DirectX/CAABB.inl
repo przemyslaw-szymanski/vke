@@ -6,19 +6,21 @@ namespace VKE
     {
         void CAABB::CalcMinMax( SMinMax* pOut ) const
         {
-            DirectX::XMVECTOR BoxMax = DirectX::XMVectorAdd( VKE_XMLOADF3( _Native.Center ), VKE_XMLOADF3( _Native.Extents ) );
-            DirectX::XMVECTOR BoxMin = DirectX::XMVectorSubtract( VKE_XMLOADF3( _Native.Center ), VKE_XMLOADF3( _Native.Extents ) );
+            DirectX::XMVECTOR BoxMax =
+                DirectX::XMVectorAdd( VKE_XMLOADF3( _Native.Center ), VKE_XMLOADF3( _Native.Extents ) );
+            DirectX::XMVECTOR BoxMin =
+                DirectX::XMVectorSubtract( VKE_XMLOADF3( _Native.Center ), VKE_XMLOADF3( _Native.Extents ) );
             DirectX::XMStoreFloat3( &pOut->vec3Min._Native, BoxMin );
             DirectX::XMStoreFloat3( &pOut->vec3Max._Native, BoxMax );
         }
 
         void CAABB::CalcCorners( CVector3* pOut ) const
         {
-            DirectX::XMFLOAT3 aCorners[8];
+            DirectX::XMFLOAT3 aCorners[ 8 ];
             _Native.GetCorners( aCorners );
             for( uint32_t i = 0; i < 8; ++i )
             {
-                pOut[i]._Native = aCorners[i];
+                pOut[ i ]._Native = aCorners[ i ];
             }
         }
 
@@ -54,7 +56,8 @@ namespace VKE
 
         INTERSECT_RESULT CAABB::Contains( const CVector3& Vec1, const CVector3& Vec2, const CVector3& Vec3 ) const
         {
-            const DirectX::ContainmentType res = _Native.Contains( VKE_XMVEC3( Vec1 ), VKE_XMVEC3( Vec2 ), VKE_XMVEC3( Vec3 ) );
+            const DirectX::ContainmentType res =
+                _Native.Contains( VKE_XMVEC3( Vec1 ), VKE_XMVEC3( Vec2 ), VKE_XMVEC3( Vec3 ) );
             return ConvertFromNative( res );
         }
 
@@ -88,6 +91,6 @@ namespace VKE
             pOut->_Native.Transform( pOut->_Native, scale, DirectX::XMQuaternionIdentity(), VKE_XMVEC3( Translation ) );
         }
 
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE
 #endif // VKE_USE_DIRECTX_MATH

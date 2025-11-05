@@ -5,19 +5,17 @@ namespace VKE
 {
     namespace Math
     {
-        constexpr CVector3::CVector3( float f ) :
-            _Native{ f, f, f }
+        constexpr CVector3::CVector3( float f ) : _Native{ f, f, f }
         {
-
         }
 
-        constexpr CVector3::CVector3(float x, float y, float z) :
-            _Native{ x, y, z }
-        {}
+        constexpr CVector3::CVector3( float x, float y, float z ) : _Native{ x, y, z }
+        {
+        }
 
-        CVector3::CVector3(const CVector4& Other) :
-            _Native{ Other.x, Other.y, Other.z }
-        {}
+        CVector3::CVector3( const CVector4& Other ) : _Native{ Other.x, Other.y, Other.z }
+        {
+        }
 
         /*CVector3::CVector3(const CVector3& Other) :
             _Native{ Other._Native }
@@ -38,14 +36,16 @@ namespace VKE
         CVector3 CVector3::operator*( const CVector3& Right ) const
         {
             CVector3 Ret;
-            DirectX::XMStoreFloat3( &Ret._Native, DirectX::XMVectorMultiply( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+            DirectX::XMStoreFloat3( &Ret._Native,
+                                    DirectX::XMVectorMultiply( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
             return Ret;
         }
 
         CVector3 CVector3::operator-( const CVector3& Right ) const
         {
             CVector3 Ret;
-            DirectX::XMStoreFloat3( &Ret._Native, DirectX::XMVectorSubtract( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
+            DirectX::XMStoreFloat3( &Ret._Native,
+                                    DirectX::XMVectorSubtract( VKE_XMVEC3( *this ), VKE_XMVEC3( Right ) ) );
             return Ret;
         }
 
@@ -59,7 +59,8 @@ namespace VKE
         CVector3 CVector3::operator-() const
         {
             CVector3 Ret;
-            DirectX::XMStoreFloat3( &Ret._Native, DirectX::XMVectorMultiply( VKE_XMVEC3( *this ), VKE_XMVEC4( CVector4::NEGATIVE_ONE ) ) );
+            DirectX::XMStoreFloat3(
+                &Ret._Native, DirectX::XMVectorMultiply( VKE_XMVEC3( *this ), VKE_XMVEC4( CVector4::NEGATIVE_ONE ) ) );
             return Ret;
         }
 
@@ -165,8 +166,7 @@ namespace VKE
 
         void CVector3::Add( const CVector3& Left, const CVector3& Right, CVector3* pOut )
         {
-            DirectX::XMStoreFloat3( &pOut->_Native,
-                DirectX::XMVectorAdd( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
+            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorAdd( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
         void CVector3::Set( const float x, const float y, const float z, CVector3* pOut )
@@ -189,7 +189,7 @@ namespace VKE
         void CVector3::Sub( const CVector3& Left, const CVector3& Right, CVector3* pOut )
         {
             DirectX::XMStoreFloat3( &pOut->_Native,
-                DirectX::XMVectorSubtract( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
+                                    DirectX::XMVectorSubtract( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
         CVector3 CVector3::Sub( const CVector3& Left, const CVector3& Right )
@@ -202,7 +202,7 @@ namespace VKE
         void CVector3::Mul( const CVector3& Left, const CVector3& Right, CVector3* pOut )
         {
             DirectX::XMStoreFloat3( &pOut->_Native,
-                DirectX::XMVectorMultiply( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
+                                    DirectX::XMVectorMultiply( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
         CVector3 CVector3::Mul( const CVector3& Left, const CVector3& Right )
@@ -215,7 +215,7 @@ namespace VKE
         void CVector3::Div( const CVector3& Left, const CVector3& Right, CVector3* pOut )
         {
             DirectX::XMStoreFloat3( &pOut->_Native,
-                DirectX::XMVectorDivide( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
+                                    DirectX::XMVectorDivide( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
         CVector3 CVector3::Div( const CVector3& Left, const CVector3& Right )
@@ -227,14 +227,14 @@ namespace VKE
 
         void CVector3::Mad( const CVector4& V1, const CVector4& V2, const CVector4& V3, CVector3* pOut )
         {
-            DirectX::XMStoreFloat3( &pOut->_Native,
-                DirectX::XMVectorMultiplyAdd( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ), VKE_XMVEC4( V3 ) ) );
+            DirectX::XMStoreFloat3(
+                &pOut->_Native, DirectX::XMVectorMultiplyAdd( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ), VKE_XMVEC4( V3 ) ) );
         }
 
         void CVector3::Mad( const CVector3& V1, const CVector3& V2, const CVector3& V3, CVector3* pOut )
         {
-            DirectX::XMStoreFloat3( &pOut->_Native,
-                DirectX::XMVectorMultiplyAdd( VKE_XMVEC3( V1 ), VKE_XMVEC3( V2 ), VKE_XMVEC3( V3 ) ) );
+            DirectX::XMStoreFloat3(
+                &pOut->_Native, DirectX::XMVectorMultiplyAdd( VKE_XMVEC3( V1 ), VKE_XMVEC3( V2 ), VKE_XMVEC3( V3 ) ) );
         }
 
         void CVector3::Less( const CVector3& Left, const CVector3& Right, CVector3* pOut )
@@ -244,17 +244,20 @@ namespace VKE
 
         void CVector3::LessOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut )
         {
-            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorLessOrEqual( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
+            DirectX::XMStoreFloat3( &pOut->_Native,
+                                    DirectX::XMVectorLessOrEqual( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
         void CVector3::Greater( const CVector3& Left, const CVector3& Right, CVector3* pOut )
         {
-            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorGreater( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
+            DirectX::XMStoreFloat3( &pOut->_Native,
+                                    DirectX::XMVectorGreater( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
         void CVector3::GreaterOrEquals( const CVector3& Left, const CVector3& Right, CVector3* pOut )
         {
-            DirectX::XMStoreFloat3( &pOut->_Native, DirectX::XMVectorGreaterOrEqual( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
+            DirectX::XMStoreFloat3( &pOut->_Native,
+                                    DirectX::XMVectorGreaterOrEqual( VKE_XMVEC3( Left ), VKE_XMVEC3( Right ) ) );
         }
 
         void CVector3::Cross( const CVector3& V1, const CVector3& V2, CVector3* pOut )
@@ -284,8 +287,8 @@ namespace VKE
             return Length( V1 - V2 );
         }
 
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE
 
 // CVector4
 namespace VKE
@@ -308,23 +311,23 @@ namespace VKE
 #endif
         }
 
-        constexpr CVector4::CVector4( float x, float y, float z, float w ) :
-            _Native{ x, y, z, w }
-        {}
+        constexpr CVector4::CVector4( float x, float y, float z, float w ) : _Native{ x, y, z, w }
+        {
+        }
 
-        constexpr CVector4::CVector4( const CVector4& Other ) :
-            _Native{ Other._Native }
-        {}
+        constexpr CVector4::CVector4( const CVector4& Other ) : _Native{ Other._Native }
+        {
+        }
 
-        constexpr CVector4::CVector4( NativeVector4Ref Other ) :
-            _Native{ Other }
-        {}
+        constexpr CVector4::CVector4( NativeVector4Ref Other ) : _Native{ Other }
+        {
+        }
 
-        constexpr CVector4::CVector4( const CVector3& Other ) :
-            _Native{ Other.x, Other.y, Other.z, 0.0f }
-        {}
+        constexpr CVector4::CVector4( const CVector3& Other ) : _Native{ Other.x, Other.y, Other.z, 0.0f }
+        {
+        }
 
-        bool vke_vectorcall CVector4::operator<(CVector4Ref V) const
+        bool vke_vectorcall CVector4::operator<( CVector4Ref V ) const
         {
             return DirectX::XMVector4Less( _Native, VKE_XMVEC4( V ) );
         }
@@ -451,7 +454,7 @@ namespace VKE
 
         bool CVector4::IsZero() const
         {
-            return this->operator==(ZERO);
+            return this->operator==( ZERO );
         }
 
         void CVector4::ConvertToVector3( CVector3* pOut ) const
@@ -552,7 +555,7 @@ namespace VKE
 
         void CVector4::Less( CVector4Ref Left, CVector4Ref Right, CVector4* pOut )
         {
-            pOut->_Native =DirectX::XMVectorLess( VKE_XMVEC4( Left ), VKE_XMVEC4( Right ) );
+            pOut->_Native = DirectX::XMVectorLess( VKE_XMVEC4( Left ), VKE_XMVEC4( Right ) );
         }
 
         void CVector4::LessOrEquals( CVector4Ref Left, CVector4Ref Right, CVector4* pOut )
@@ -582,10 +585,10 @@ namespace VKE
 
         void CVector4::ConvertToInts( int32_t* pInts ) const
         {
-            pInts[0] = _Native.m128_i32[0];
-            pInts[1] = _Native.m128_i32[1];
-            pInts[2] = _Native.m128_i32[2];
-            pInts[3] = _Native.m128_i32[3];
+            pInts[ 0 ] = _Native.m128_i32[ 0 ];
+            pInts[ 1 ] = _Native.m128_i32[ 1 ];
+            pInts[ 2 ] = _Native.m128_i32[ 2 ];
+            pInts[ 3 ] = _Native.m128_i32[ 3 ];
         }
 
         void CVector4::ConvertToUInts( uint32_t* pInts ) const
@@ -603,13 +606,13 @@ namespace VKE
             pOut->_Native = DirectX::XMVectorSaturate( VKE_XMVEC4( V ) );
         }
 
-        template<uint32_t DivExponent>
+        template< uint32_t DivExponent >
         void CVector4::ConvertUintToFloat( CVector4Ref V, CVector4* pOut )
         {
             pOut->_Native = DirectX::XMConvertVectorUIntToFloat( VKE_XMVEC4( V ), DivExponent );
         }
 
-        template<uint32_t MulExponent>
+        template< uint32_t MulExponent >
         void CVector4::ConvertFloatToUInt( CVector4Ref V, CVector4* pOut )
         {
             pOut->_Native = DirectX::XMConvertVectorFloatToUInt( VKE_XMVEC4( V ), MulExponent );
@@ -635,32 +638,32 @@ namespace VKE
             pOut->_Native = DirectX::XMVectorMin( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
         }
 
-        float CVector4::Length(CVector4Ref V)
+        float CVector4::Length( CVector4Ref V )
         {
             auto Ret = DirectX::XMVector3Length( VKE_XMVEC4( V ) );
             return DirectX::XMVectorGetX( Ret );
         }
 
-        float CVector4::Distance(CVector4Ref V1, CVector4Ref V2)
+        float CVector4::Distance( CVector4Ref V1, CVector4Ref V2 )
         {
-            const auto v = DirectX::XMVectorSubtract( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
-            auto Ret = DirectX::XMVector3Length( v );
+            const auto v   = DirectX::XMVectorSubtract( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
+            auto       Ret = DirectX::XMVector3Length( v );
             return DirectX::XMVectorGetX( Ret );
         }
 
-        void CVector4::Abs(CVector4Ref V, CVector4* pOut)
+        void CVector4::Abs( CVector4Ref V, CVector4* pOut )
         {
             pOut->_Native = DirectX::XMVectorAbs( VKE_XMVEC4( V ) );
         }
 
-        CVector4 CVector4::Abs(CVector4Ref V)
+        CVector4 CVector4::Abs( CVector4Ref V )
         {
             return CVector4{ DirectX::XMVectorAbs( VKE_XMVEC4( V ) ) };
         }
 
-        void CVector4::Sqrt(CVector4Ref V, CVector4* pOut)
+        void CVector4::Sqrt( CVector4Ref V, CVector4* pOut )
         {
-            pOut->_Native = DirectX::XMVectorSqrt(VKE_XMVEC4(V));
+            pOut->_Native = DirectX::XMVectorSqrt( VKE_XMVEC4( V ) );
         }
 
         void CVector4::Dot( CVector4Ref V1, CVector4Ref V2, CVector4* pOut )
@@ -668,10 +671,10 @@ namespace VKE
             pOut->_Native = DirectX::XMVector4Dot( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
         }
 
-        float CVector4::Dot(CVector4Ref V1, CVector4Ref V2)
+        float CVector4::Dot( CVector4Ref V1, CVector4Ref V2 )
         {
-            auto Native = DirectX::XMVector4Dot(VKE_XMVEC4(V1), VKE_XMVEC4(V2));
-            return DirectX::XMVectorGetX(Native);
+            auto Native = DirectX::XMVector4Dot( VKE_XMVEC4( V1 ), VKE_XMVEC4( V2 ) );
+            return DirectX::XMVectorGetX( Native );
         }
 
         int32_t CVector4::MoveMask( CVector4Ref Vec )
@@ -679,7 +682,7 @@ namespace VKE
 #if VKE_USE_SSE
             return _mm_movemask_ps( Vec._Native );
 #else
-#   error "Implement this!!!"
+#error "Implement this!!!"
 #endif // VKE_USE_SSE
         }
 
@@ -720,23 +723,23 @@ namespace VKE
 #endif
         }
 
-        template<uint32_t Count>
+        template< uint32_t Count >
         void CVector4::Load( const float* ptr, CVector4* pOut )
         {
 #if VKE_USE_SSE
-            for(uint32_t i = 0; i < Count; ++i)
+            for( uint32_t i = 0; i < Count; ++i )
             {
                 pOut[ i ]._Native = _mm_load_ps1( &ptr[ i ] );
             }
 #else
             for( uint32_t i = 0; i < Count; ++i )
             {
-                pOut[ i ] = { ptr[ i ], ptr[ i ], ptr[ i ], ptr[i] };
+                pOut[ i ] = { ptr[ i ], ptr[ i ], ptr[ i ], ptr[ i ] };
             }
 #endif
         }
 
-        CVector4Ref vke_vectorcall CVector4::Load(float v)
+        CVector4Ref vke_vectorcall CVector4::Load( float v )
         {
 #if VKE_USE_SSE
             CVector4 ret;
@@ -768,6 +771,6 @@ namespace VKE
             return CVector4( x, y, x, y );
         }
 
-    } // Scene
-} // VKE
+    } // namespace Math
+} // namespace VKE
 #endif // VKE_USE_DIRECTX_MATH

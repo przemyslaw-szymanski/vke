@@ -29,7 +29,7 @@ namespace VKE::RenderSystem
 
     namespace NativeAPI
     {
-        static const decltype(VK_NULL_HANDLE) Null;
+        static const decltype( VK_NULL_HANDLE ) Null;
 
         using Buffer                = VkBuffer;
         using Pipeline              = VkPipeline;
@@ -75,8 +75,8 @@ namespace VKE::RenderSystem
             bool enabled   = false;
         };
 
-        using DDIExtArray = Utils::TCDynamicArray<SDDIExtension, 1>;
-        using DDIExtMap   = vke_hash_map<vke_string, SDDIExtension>;
+        using DDIExtArray = Utils::TCDynamicArray< SDDIExtension, 1 >;
+        using DDIExtMap   = vke_hash_map< vke_string, SDDIExtension >;
 
         struct VKE_API SDDIExtensionLayer
         {
@@ -87,7 +87,7 @@ namespace VKE::RenderSystem
             bool enabled   = false;
         };
 
-        using DDIExtLayerArray = Utils::TCDynamicArray<SDDIExtensionLayer, 1>;
+        using DDIExtLayerArray = Utils::TCDynamicArray< SDDIExtensionLayer, 1 >;
 
         struct SImplementation
         {
@@ -109,7 +109,7 @@ namespace VKE::RenderSystem
             static VkDebugUtilsMessengerEXT sVkDebugMessengerCallback;
 
             DeviceICD    m_ICD;
-            VkDeviceSize m_aHeapSizes[MAX_MEMORY_HEAPS];
+            VkDeviceSize m_aHeapSizes[ MAX_MEMORY_HEAPS ];
             uint32_t     m_instanceVersion = 0;
             DDIExtMap    m_mExtensions;
 
@@ -136,10 +136,10 @@ namespace VKE::RenderSystem
                 VkPhysicalDeviceMeshShaderPropertiesNV          MeshShaderNV;
                 VkPhysicalDeviceRayTracingPipelinePropertiesKHR Raytracing10;
                 VkPhysicalDeviceDescriptorIndexingProperties    DescriptorIndexing;
-                VkFormatProperties                              aFormatProperties[Formats::_MAX_COUNT];
+                VkFormatProperties                              aFormatProperties[ Formats::_MAX_COUNT ];
             } Properties; // struct SDeviceProperties
 
-            const SDDIExtension &GetExtensionInfo(cstr_t pName) const;
+            const SDDIExtension& GetExtensionInfo( cstr_t pName ) const;
 
         }; // struct SImplementation
 

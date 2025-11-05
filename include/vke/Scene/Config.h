@@ -12,10 +12,10 @@ namespace VKE
 
             struct Debug
             {
-                static const uint32_t DEFAULT_AABB_VIEW_COUNT = 1000;
-                static const uint32_t DEFAULT_SPHERE_VIEW_COUNT = 2000;
+                static const uint32_t DEFAULT_AABB_VIEW_COUNT    = 1000;
+                static const uint32_t DEFAULT_SPHERE_VIEW_COUNT  = 2000;
                 static const uint32_t DEFAULT_FRUSTUM_VIEW_COUNT = 100;
             };
         };
-    } // Config
-} // VKE
+    } // namespace Config
+} // namespace VKE

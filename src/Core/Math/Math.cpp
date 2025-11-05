@@ -19,47 +19,47 @@ namespace VKE
         const CVector3 CVector3::NEGATIVE_Y( 0.0f, -1.0f, 0.0f );
         const CVector3 CVector3::NEGATIVE_Z( 0.0f, 0.0f, -1.0f );
 
-        const CVector4 CVector4::ONE = CVector4( 1.0f );
+        const CVector4 CVector4::ONE          = CVector4( 1.0f );
         const CVector4 CVector4::NEGATIVE_ONE = CVector4( -1.0f );
-        const CVector4 CVector4::ZERO = CVector4( 0.0f );
-        const CVector4 CVector4::X = CVector4( 1.0f, 0.0f, 0.0f, 0.0f );
-        const CVector4 CVector4::Y = CVector4( 0.0f, 1.0f, 0.0f, 0.0f );
-        const CVector4 CVector4::Z = CVector4( 0.0f, 0.0f, 1.0f, 0.0f );
-        const CVector4 CVector4::W = CVector4( 0.0f, 0.0f, 0.0f, 1.0f );
-        const CVector4 CVector4::NEGATIVE_X = CVector4( -1.0f, 0.0f, 0.0f, 0.0f );
-        const CVector4 CVector4::NEGATIVE_Y = CVector4( 0.0f, -1.0f, 0.0f, 0.0f );
-        const CVector4 CVector4::NEGATIVE_Z = CVector4( 0.0f, 0.0f, -1.0f, 0.0f );
-        const CVector4 CVector4::NEGATIVE_W = CVector4( 0.0f, 0.0f, 0.0f, -1.0f );
+        const CVector4 CVector4::ZERO         = CVector4( 0.0f );
+        const CVector4 CVector4::X            = CVector4( 1.0f, 0.0f, 0.0f, 0.0f );
+        const CVector4 CVector4::Y            = CVector4( 0.0f, 1.0f, 0.0f, 0.0f );
+        const CVector4 CVector4::Z            = CVector4( 0.0f, 0.0f, 1.0f, 0.0f );
+        const CVector4 CVector4::W            = CVector4( 0.0f, 0.0f, 0.0f, 1.0f );
+        const CVector4 CVector4::NEGATIVE_X   = CVector4( -1.0f, 0.0f, 0.0f, 0.0f );
+        const CVector4 CVector4::NEGATIVE_Y   = CVector4( 0.0f, -1.0f, 0.0f, 0.0f );
+        const CVector4 CVector4::NEGATIVE_Z   = CVector4( 0.0f, 0.0f, -1.0f, 0.0f );
+        const CVector4 CVector4::NEGATIVE_W   = CVector4( 0.0f, 0.0f, 0.0f, -1.0f );
 
         const CQuaternion CQuaternion::UNIT( 0.0f, 0.0f, 0.0f, 1.0f );
 
         const CMatrix4x4 CMatrix4x4::IDENTITY = CMatrix4x4::Identity();
 
-        const CAABB CAABB::ONE = CAABB( CVector3( 0.0f ), CVector3( 1.0f ) );
+        const CAABB CAABB::ONE  = CAABB( CVector3( 0.0f ), CVector3( 1.0f ) );
         const CAABB CAABB::ZERO = CAABB( CVector3( 0.0f ), CVector3( 0.0f ) );
 
         const CBoundingSphere CBoundingSphere::ONE;
 
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE
 
 #if VKE_USE_DIRECTX_MATH
 namespace VKE
 {
     namespace Math
     {
-        const CVector4 CVector4::TRUE_INT = CVector4{ DirectX::XMVectorTrueInt() };
-        const CVector4 CVector4::FALSE_INT = CVector4{DirectX::XMVectorFalseInt()};
+        const CVector4 CVector4::TRUE_INT  = CVector4{ DirectX::XMVectorTrueInt() };
+        const CVector4 CVector4::FALSE_INT = CVector4{ DirectX::XMVectorFalseInt() };
 
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE
 #else // VKE_USE_DIRECTX_MATH
 namespace VKE
 {
     namespace Math
     {
-        const CVector4 CVector4::TRUE_INT = CVector4{1};
-        const CVector4 CVector4::FALSE_INT = CVector4{0};
-    }
-}
+        const CVector4 CVector4::TRUE_INT  = CVector4{ 1 };
+        const CVector4 CVector4::FALSE_INT = CVector4{ 0 };
+    } // namespace Math
+} // namespace VKE
 #endif

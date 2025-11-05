@@ -19,97 +19,97 @@ namespace VKE
         {
             struct SBackBufferManagerDesc
             {
-                uint32_t    backBufferCount = 3;
+                uint32_t backBufferCount = 3;
             };
 
             class VKE_API CBackBufferManager final
             {
                 friend class CGraphicsContext;
 
-                template<class HandleType, class DataType>
+                template< class HandleType, class DataType >
                 using DataContainer = vke_hash_map< HandleType, DataType >;
 
-                template<class HandleType, class DataType>
-                using ContainerArray = DataContainer< HandleType, DataType >[ Config::MAX_BACK_BUFFER_COUNT ];
-                using CustomDataArray = ContainerArray< uint32_t, void* >;
+                template< class HandleType, class DataType >
+                using ContainerArray      = DataContainer< HandleType, DataType >[ Config::MAX_BACK_BUFFER_COUNT ];
+                using CustomDataArray     = ContainerArray< uint32_t, void* >;
                 using CustomDataContainer = DataContainer< uint32_t, void* >;
-                
+
                 struct SBackBuffers
                 {
-                    CustomDataArray    aCustomData;
+                    CustomDataArray aCustomData;
                 };
 
                 struct SBackBuffer
                 {
-                    CustomDataContainer     CustomData;
+                    CustomDataContainer CustomData;
                 };
 
                 struct SBackBufferDataPointers
                 {
-                    CRenderingPipeline*     pRenderingPipeline = nullptr;
+                    CRenderingPipeline* pRenderingPipeline = nullptr;
                 };
 
                 struct SBackBufferDataHandles
                 {
-                    //RenderingPipelineHandle hRenderingPipeline = INVALID_HANDLE;
+                    // RenderingPipelineHandle hRenderingPipeline = INVALID_HANDLE;
                 };
 
-                public:
+            public:
+                CBackBufferManager( CGraphicsContext* pCtx );
+                ~CBackBufferManager();
 
-                    CBackBufferManager(CGraphicsContext* pCtx);
-                    ~CBackBufferManager();
+                Result Create( const SBackBufferManagerDesc& Desc );
+                void   Destroy();
 
-                    Result Create(const SBackBufferManagerDesc& Desc);
-                    void Destroy();
+                uint32_t AcquireNextBuffer();
 
-                    uint32_t AcquireNextBuffer();
-                    
-                    uint32_t GetBackBufferCount() const { return m_Desc.backBufferCount;}
+                uint32_t GetBackBufferCount() const
+                {
+                    return m_Desc.backBufferCount;
+                }
 
-                    uint32_t AddCustomData(uint8_t* aData, uint32_t elementSize);
-                    void* GetCustomData(uint32_t idx);
-                    void UpdateCustomData(uint32_t backBufferIdx, uint32_t dataIdx, void* pData);
-                    void UpdateCustomData(uint32_t dataIdx, uint8_t* aData, uint32_t elementSize);
+                uint32_t AddCustomData( uint8_t* aData, uint32_t elementSize );
+                void*    GetCustomData( uint32_t idx );
+                void     UpdateCustomData( uint32_t backBufferIdx, uint32_t dataIdx, void* pData );
+                void     UpdateCustomData( uint32_t dataIdx, uint8_t* aData, uint32_t elementSize );
 
-                    template<class T>
-                    uint32_t AddCustomData(T* aData)
-                    {
-                        return AddCustomData( reinterpret_cast< uint8_t* >( aData ), sizeof( T ) );
-                    }
+                template< class T >
+                uint32_t AddCustomData( T* aData )
+                {
+                    return AddCustomData( reinterpret_cast< uint8_t* >( aData ), sizeof( T ) );
+                }
 
-                    template<class T>
-                    void UpdateCustomData( uint32_t dataIdx, T* aData )
-                    {
-                        UpdateCustomData( dataIdx, reinterpret_cast< uint8_t* >( aData ), sizeof( T ) );
-                    }
+                template< class T >
+                void UpdateCustomData( uint32_t dataIdx, T* aData )
+                {
+                    UpdateCustomData( dataIdx, reinterpret_cast< uint8_t* >( aData ), sizeof( T ) );
+                }
 
-                    template<class T>
-                    void UpdateCustomData(uint32_t backBufferIdx, uint32_t dataIdx, T* aData )
-                    {
-                        UpdateCustomData( backBufferIdx, dataIdx, reinterpret_cast< uint8_t* >( aData ), sizeof( T ) );
-                    }
+                template< class T >
+                void UpdateCustomData( uint32_t backBufferIdx, uint32_t dataIdx, T* aData )
+                {
+                    UpdateCustomData( backBufferIdx, dataIdx, reinterpret_cast< uint8_t* >( aData ), sizeof( T ) );
+                }
 
-                    template<class T>
-                    T* GetCustomData(uint32_t dataIdx)
-                    {
-                        return reinterpret_cast< T* >( GetCustomData( dataIdx ) );
-                    }
+                template< class T >
+                T* GetCustomData( uint32_t dataIdx )
+                {
+                    return reinterpret_cast< T* >( GetCustomData( dataIdx ) );
+                }
 
-                protected:
+            protected:
+                void _Destroy();
 
-                    void _Destroy();
-
-                protected:
-
-                    SBackBufferManagerDesc  m_Desc;
-                    CGraphicsContext*       m_pCtx = nullptr;
-                    SBackBuffer             m_BackBuffers[ Config::MAX_BACK_BUFFER_COUNT ];
-                    uint32_t                m_customDataIdx = 0;
-                    SBackBufferDataPointers m_CurrBackBufferPtrs;
-                    SBackBufferDataHandles  m_CurrBackBufferHandles;
-                    uint16_t                m_currBackBufferIndex = 0;
-                    uint16_t                m_backBufferCount = 0;
+            protected:
+                SBackBufferManagerDesc  m_Desc;
+                CGraphicsContext*       m_pCtx = nullptr;
+                SBackBuffer             m_BackBuffers[ Config::MAX_BACK_BUFFER_COUNT ];
+                uint32_t                m_customDataIdx = 0;
+                SBackBufferDataPointers m_CurrBackBufferPtrs;
+                SBackBufferDataHandles  m_CurrBackBufferHandles;
+                uint16_t                m_currBackBufferIndex = 0;
+                uint16_t                m_backBufferCount     = 0;
             };
-        } // Managers
-    } // RenderSystem
-} // VKE
+        } // namespace Managers
+    } // namespace RenderSystem
+} // namespace VKE

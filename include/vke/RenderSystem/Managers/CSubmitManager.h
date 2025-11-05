@@ -21,45 +21,47 @@ namespace VKE
             // Max 10 command buffers per one submit
             static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
             using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
-            using DDICommandBufferArray = Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using DDICommandBufferArray =
+                Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using DDISemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, DEFAULT_COMMAND_BUFFER_COUNT >;
 
-            public:
+        public:
+            void operator=( const CCommandBufferBatch& Other );
+            void operator=( CCommandBufferBatch&& Other );
 
-                void operator=( const CCommandBufferBatch& Other );
-                void operator=( CCommandBufferBatch&& Other );
-                //VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
-                const NativeAPI::GPUFence& GetSignaledSemaphore() const { return m_hDDISignalSemaphore; }
-                void WaitOnSemaphore( const NativeAPI::GPUFence& hDDISemaphore )
-                {
-                    m_vDDIWaitSemaphores.PushBack( hDDISemaphore );
-                }
+            // VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
+            const NativeAPI::GPUFence& GetSignaledSemaphore() const
+            {
+                return m_hDDISignalSemaphore;
+            }
 
-                void WaitOnSemaphores( DDISemaphoreArray&& vDDISemaphores )
-                {
-                    m_vDDIWaitSemaphores.Append( vDDISemaphores );
-                }
+            void WaitOnSemaphore( const NativeAPI::GPUFence& hDDISemaphore )
+            {
+                m_vDDIWaitSemaphores.PushBack( hDDISemaphore );
+            }
 
-                bool CanSubmit() const;
+            void WaitOnSemaphores( DDISemaphoreArray&& vDDISemaphores )
+            {
+                m_vDDIWaitSemaphores.Append( vDDISemaphores );
+            }
 
-            private:
+            bool CanSubmit() const;
 
-                void    _Clear();
-                Result  _Submit( CCommandBuffer* pCb );
-                //Result  _Flush( const uint64_t& timeout );
+        private:
+            void   _Clear();
+            Result _Submit( CCommandBuffer* pCb );
+            // Result  _Flush( const uint64_t& timeout );
 
-            private:
-
-
-                CommandBufferArray      m_vpCommandBuffers;
-                DDICommandBufferArray   m_vDDICommandBuffers;
-                DDISemaphoreArray       m_vDDIWaitSemaphores;
-                NativeAPI::GPUFence            m_hDDISignalSemaphore = NativeAPI::Null;
-                NativeAPI::CPUFence                m_hDDIFence = NativeAPI::Null;
-                CSubmitManager*         m_pMgr = nullptr;
-                uint8_t                 m_currCmdBuffer = 0;
-                Threads::SyncObject     m_SyncObj;
-                bool                    m_submitted = false;
+        private:
+            CommandBufferArray    m_vpCommandBuffers;
+            DDICommandBufferArray m_vDDICommandBuffers;
+            DDISemaphoreArray     m_vDDIWaitSemaphores;
+            NativeAPI::GPUFence   m_hDDISignalSemaphore = NativeAPI::Null;
+            NativeAPI::CPUFence   m_hDDIFence           = NativeAPI::Null;
+            CSubmitManager*       m_pMgr                = nullptr;
+            uint8_t               m_currCmdBuffer       = 0;
+            Threads::SyncObject   m_SyncObj;
+            bool                  m_submitted = false;
         };
 
         struct SSubmitManagerDesc
@@ -76,6 +78,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using NEXT_SUBMIT_BATCH_ALGORITHM = NextSubmitBatchAlgorithms::ALGORITHM;
 
         class VKE_API CSubmitManager
@@ -90,74 +93,71 @@ namespace VKE
 
             static const uint32_t SUBMIT_COUNT = 32;
 
-            using SubmitArray = Utils::TCDynamicArray< CCommandBufferBatch, SUBMIT_COUNT >;
+            using SubmitArray    = Utils::TCDynamicArray< CCommandBufferBatch, SUBMIT_COUNT >;
             using SubmitPtrArray = Utils::TCDynamicArray< CCommandBufferBatch*, SUBMIT_COUNT >;
             using SubmitIdxQueue = Utils::TCFifo< CCommandBufferBatch*, SUBMIT_COUNT * 4 >;
-            using BatchPtrArray = Utils::TCDynamicArray< CCommandBufferBatch*, SUBMIT_COUNT >;
+            using BatchPtrArray  = Utils::TCDynamicArray< CCommandBufferBatch*, SUBMIT_COUNT >;
 
             struct SCommandBufferBatchBuffer
             {
-                SubmitArray     vSubmits;
-                SubmitIdxQueue  qpSubmitted;
-                uint32_t        currSubmitIdx = 0;
+                SubmitArray    vSubmits;
+                SubmitIdxQueue qpSubmitted;
+                uint32_t       currSubmitIdx = 0;
             };
 
-            public:
+        public:
+            CSubmitManager();
+            ~CSubmitManager();
 
-                CSubmitManager();
-                ~CSubmitManager();
+            Result Create( const SSubmitManagerDesc& Desc );
+            void   Destroy( CDeviceContext* pCtx );
 
-                Result Create(const SSubmitManagerDesc& Desc);
-                void Destroy(CDeviceContext* pCtx);
+            template< NEXT_SUBMIT_BATCH_ALGORITHM >
+            CCommandBufferBatch* _GetNextBatch( CContextBase* pCtx, const handle_t& hCmdPool );
 
-                template<NEXT_SUBMIT_BATCH_ALGORITHM>
-                CCommandBufferBatch* _GetNextBatch( CContextBase* pCtx, const handle_t& hCmdPool );
+            CCommandBufferBatch* GetCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool )
+            {
+                Threads::ScopedLock l( m_CurrentBatchSyncObj );
+                return _GetCurrentBatch( pCtx, hCmdPool );
+            }
 
-                CCommandBufferBatch* GetCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool )
-                {
-                    Threads::ScopedLock l( m_CurrentBatchSyncObj );
-                    return _GetCurrentBatch( pCtx, hCmdPool );
-                }
+            void SignalSemaphore( NativeAPI::GPUFence* phDDISemaphoreOut );
+            void SetWaitOnSemaphore( const NativeAPI::GPUFence& hSemaphore );
 
-                void SignalSemaphore( NativeAPI::GPUFence* phDDISemaphoreOut );
-                void SetWaitOnSemaphore( const NativeAPI::GPUFence& hSemaphore );
+            Result ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
+            Result ExecuteBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut );
+            CCommandBufferBatch* FlushCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
+            Result WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch );
 
-                Result ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
-                Result ExecuteBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut );
-                CCommandBufferBatch* FlushCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
-                Result WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch );
+            Result Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
+            {
+                Threads::ScopedLock l( m_CurrentBatchSyncObj );
+                return _Submit( pCtx, hCmdPool, pCb );
+            }
 
-                Result Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb )
-                {
-                    Threads::ScopedLock l( m_CurrentBatchSyncObj );
-                    return _Submit( pCtx, hCmdPool, pCb );
-                }
+        protected:
+            CCommandBufferBatch* _GetCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
+            Result               _Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
+            Result               _Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pSubmit );
+            void _FreeCommandBuffers( CContextBase* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit );
+            // void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
+            void _CreateSubmits( CContextBase* pCtx, uint32_t count );
+            // template<NEXT_SUBMIT_BATCH_ALGORITHM>
+            // CCommandBufferBatch*    _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
+            CCommandBufferBatch* _GetNextSubmitFreeSubmitFirst( CContextBase* pCtx, const handle_t& hCmdPool );
+            CCommandBufferBatch* _GetNextSubmitReadySubmitFirst( CContextBase* pCtx, const handle_t& hCmdPool );
+            CCommandBufferBatch* _GetSubmit( CContextBase* pCtx, const handle_t& hCmdPool, uint32_t idx );
+            void _FreeBatch( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBufferBatch** ppInOut );
 
-            protected:
-
-                CCommandBufferBatch* _GetCurrentBatch( CContextBase* pCtx, const handle_t& hCmdPool );
-              Result _Submit( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBuffer* pCb );
-                Result _Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pSubmit );
-              void _FreeCommandBuffers( CContextBase* pCtx, const handle_t& hPool, CCommandBufferBatch* pSubmit );
-                //void _CreateCommandBuffers(CCommandBufferBatch* pSubmit, uint32_t count);
-              void _CreateSubmits( CContextBase* pCtx, uint32_t count );
-                //template<NEXT_SUBMIT_BATCH_ALGORITHM>
-                //CCommandBufferBatch*    _GetNextSubmit( CDeviceContext* pCtx, const handle_t& hCmdPool );
-              CCommandBufferBatch* _GetNextSubmitFreeSubmitFirst( CContextBase* pCtx, const handle_t& hCmdPool );
-              CCommandBufferBatch* _GetNextSubmitReadySubmitFirst( CContextBase* pCtx, const handle_t& hCmdPool );
-              CCommandBufferBatch* _GetSubmit( CContextBase* pCtx, const handle_t& hCmdPool, uint32_t idx );
-              void _FreeBatch( CContextBase* pCtx, const handle_t& hCmdPool, CCommandBufferBatch** ppInOut );
-
-            protected:
-
-                SCommandBufferBatchBuffer   m_CommandBufferBatches;
-                BatchPtrArray               m_vpPendingBatches;
-                CCommandBufferBatch*        m_pCurrBatch = nullptr;
-                //SSubmitManagerDesc          m_Desc;
-                NativeAPI::GPUFence                m_hDDIWaitSemaphore = NativeAPI::Null;
-                Threads::SyncObject         m_CurrentBatchSyncObj;
-                bool                        m_signalSemaphore = true;
-                bool                        m_waitForSemaphores = true;
+        protected:
+            SCommandBufferBatchBuffer m_CommandBufferBatches;
+            BatchPtrArray             m_vpPendingBatches;
+            CCommandBufferBatch*      m_pCurrBatch = nullptr;
+            // SSubmitManagerDesc          m_Desc;
+            NativeAPI::GPUFence m_hDDIWaitSemaphore = NativeAPI::Null;
+            Threads::SyncObject m_CurrentBatchSyncObj;
+            bool                m_signalSemaphore   = true;
+            bool                m_waitForSemaphores = true;
         };
 
         /*template<NEXT_SUBMIT_BATCH_ALGORITHM Algorithm>
@@ -175,27 +175,27 @@ namespace VKE
             return pRet;
         }*/
 
-        template<NEXT_SUBMIT_BATCH_ALGORITHM Algorithm>
+        template< NEXT_SUBMIT_BATCH_ALGORITHM Algorithm >
         CCommandBufferBatch* CSubmitManager::_GetNextBatch( CContextBase* pCtx, const handle_t& hCmdPool )
         {
             CCommandBufferBatch* pBatch = nullptr;
             {
-                if constexpr(Algorithm == NextSubmitBatchAlgorithms::FIRST_READY)
+                if constexpr( Algorithm == NextSubmitBatchAlgorithms::FIRST_READY )
                 {
-                    pBatch = _GetNextSubmitReadySubmitFirst(pCtx, hCmdPool);
+                    pBatch = _GetNextSubmitReadySubmitFirst( pCtx, hCmdPool );
                 }
-                else if constexpr(Algorithm == NextSubmitBatchAlgorithms::FIRST_FREE)
+                else if constexpr( Algorithm == NextSubmitBatchAlgorithms::FIRST_FREE )
                 {
-                    pBatch = _GetNextSubmitFreeSubmitFirst(pCtx, hCmdPool);
+                    pBatch = _GetNextSubmitFreeSubmitFirst( pCtx, hCmdPool );
                 }
-                assert(pBatch);
+                assert( pBatch );
             }
-            assert(pBatch && "No free submit batch left");
+            assert( pBatch && "No free submit batch left" );
             pBatch->_Clear();
 
             pBatch->m_submitted = false;
 
             return pBatch;
         }
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

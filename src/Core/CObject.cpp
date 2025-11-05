@@ -5,5 +5,5 @@ namespace VKE
     namespace Core
     {
 
-    } // core
-} // vke
+    } // namespace Core
+} // namespace VKE

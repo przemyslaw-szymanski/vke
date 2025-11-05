@@ -7,7 +7,7 @@ namespace VKE
     namespace Scene
     {
         class CScene;
-    }
+    } // namespace Scene
 
     namespace RenderSystem
     {
@@ -24,6 +24,7 @@ namespace VKE
                 _MAX_COUNT
             };
         };
+
         using DRAWCALL_TYPE = uint8_t;
 
         union UObjectBits
@@ -35,6 +36,7 @@ namespace VKE
                 uint8_t invalid : 1;
                 uint8_t reserved : 5;
             };
+
             uint8_t bits;
         };
 
@@ -42,27 +44,28 @@ namespace VKE
         {
             using PipelineArray = Utils::TCDynamicArray< RenderSystem::PipelinePtr, 16 >;
 
-            RenderSystem::VertexBufferHandle        hVertexBuffer;
-            RenderSystem::IndexBufferHandle         hIndexBuffer;
-            RenderSystem::DescriptorSetHandle       hDescSet;
-            uint32_t                                descSetOffset = 0;
+            RenderSystem::VertexBufferHandle  hVertexBuffer;
+            RenderSystem::IndexBufferHandle   hIndexBuffer;
+            RenderSystem::DescriptorSetHandle hDescSet;
+            uint32_t                          descSetOffset = 0;
             /*RenderSystem::ShaderPtr*                ppVertexShader;
             RenderSystem::ShaderPtr*                ppPixelShader;
             RenderSystem::SVertexInputLayoutDesc    InputLayout;*/
-            PipelineArray                           vpPipelines;
-            uint32_t                                vertexBufferOffset = 0;
-            uint32_t                                indexBufferOffset = 0;
-            RenderSystem::SDrawParams               DrawParams;
+            PipelineArray             vpPipelines;
+            uint32_t                  vertexBufferOffset = 0;
+            uint32_t                  indexBufferOffset  = 0;
+            RenderSystem::SDrawParams DrawParams;
         };
 
         union UObjectHandle
         {
             VKE_ALIGN( 8 ) struct
             {
-                handle_t    layer           : 5;
-                handle_t    index           : 20;
-                handle_t    reserved        : 64 - 20 - 5;
+                handle_t layer : 5;
+                handle_t index : 20;
+                handle_t reserved : 64 - 20 - 5;
             };
+
             handle_t handle;
         };
 
@@ -70,8 +73,9 @@ namespace VKE
         {
             VKE_ALIGN( 4 ) struct
             {
-                uint32_t    reserved1 : 32;
+                uint32_t reserved1 : 32;
             };
+
             uint32_t handle;
         };
 
@@ -83,87 +87,95 @@ namespace VKE
 
             using Bitset = Utils::TCBitset< uint16_t >;
 
-            public:
+        public:
+            using LOD = SDrawcallData;
 
-                using LOD = SDrawcallData;
+        public:
+            vke_force_inline LOD& GetLOD( const uint32_t& idx )
+            {
+                return m_vLODs[ idx ];
+            }
 
-            public:
+            vke_force_inline LOD& GetLOD()
+            {
+                return GetLOD( m_currLOD );
+            }
 
-                vke_force_inline LOD& GetLOD( const uint32_t& idx )
-                {
-                    return m_vLODs[ idx ];
-                }
+            vke_force_inline handle_t GetHandle() const
+            {
+                return m_hObj.handle;
+            }
 
-                vke_force_inline LOD& GetLOD() { return GetLOD( m_currLOD ); }
+        protected:
+            using LODArray = Utils::TCDynamicArray< LOD, 6 >;
 
-                vke_force_inline handle_t GetHandle() const { return m_hObj.handle; }
+        public:
+            void AddLOD( const LOD& LOD )
+            {
+                m_vLODs.PushBack( LOD );
+            }
 
-            protected:
+            void DisableFrameGraphRendering( bool disable )
+            {
+                m_isFrameGraphRendering = !disable;
+            }
 
-                using LODArray = Utils::TCDynamicArray< LOD, 6 >;
+            bool IsFrameGrpahRenderingEnabled() const
+            {
+                return m_isFrameGraphRendering;
+            }
 
-            public:
-
-                void AddLOD( const LOD& LOD )
-                {
-                    m_vLODs.PushBack( LOD );
-                }
-
-                void DisableFrameGraphRendering( bool disable ) { m_isFrameGraphRendering = !disable; }
-                bool IsFrameGrpahRenderingEnabled() const { return m_isFrameGraphRendering; }
-
-            protected:
-
-
-            protected:
-
-                bool                m_isFrameGraphRendering = true;
-                uint8_t             m_currLOD = 0;
-                LODArray            m_vLODs;
-                UObjectHandle       m_hObj; // a handle in frame and Scene buffer
-                handle_t            m_hSceneGraph; // a handle in scene graph
-                uint32_t            m_hDbgView; // a handle to debug view object
+        protected:
+        protected:
+            bool          m_isFrameGraphRendering = true;
+            uint8_t       m_currLOD               = 0;
+            LODArray      m_vLODs;
+            UObjectHandle m_hObj;        // a handle in frame and Scene buffer
+            handle_t      m_hSceneGraph; // a handle in scene graph
+            uint32_t      m_hDbgView;    // a handle to debug view object
         };
+
         using DrawcallPtr = CDrawcall*;
 
         struct SFrameGraphDesc2
         {
-            cstr_t  pName = "";
-            void*   pDesc = nullptr;
+            cstr_t pName = "";
+            void*  pDesc = nullptr;
         };
 
         struct SForwardRendererDesc
         {
-
         };
 
         struct SForwardRendererDrawcallInfo
         {
-            DrawcallPtr     pDrawcall;
-            DRAWCALL_TYPE   type;
+            DrawcallPtr   pDrawcall;
+            DRAWCALL_TYPE type;
         };
 
         class VKE_API IFrameGraph
         {
             friend class CRenderSystem;
             friend class Scene::CScene;
-          
-            public:
 
-                virtual ~IFrameGraph() {}
+        public:
+            virtual ~IFrameGraph()
+            {
+            }
 
-                virtual void        SetScene(Scene::CScene* pScene) { m_pScene = pScene; }
+            virtual void SetScene( Scene::CScene* pScene )
+            {
+                m_pScene = pScene;
+            }
 
-                virtual void        Render(CommandBufferPtr) = 0;
+            virtual void Render( CommandBufferPtr ) = 0;
 
-            protected:
+        protected:
+            virtual Result _Create( const SFrameGraphDesc2& ) = 0;
+            virtual void   _Destroy()                         = 0;
 
-                virtual Result      _Create( const SFrameGraphDesc2& ) = 0;
-                virtual void        _Destroy() = 0;
-
-            protected:
-
-                Scene::CScene*      m_pScene = nullptr;
+        protected:
+            Scene::CScene* m_pScene = nullptr;
         };
-    }
-}
+    } // namespace RenderSystem
+} // namespace VKE

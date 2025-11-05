@@ -13,84 +13,88 @@ namespace VKE
     {
         class CFrustum
         {
-            public:
-                using Planes = CVector4[6];
-            public:
+        public:
+            using Planes = CVector4[ 6 ];
 
-                CFrustum() {}
+        public:
+            CFrustum()
+            {
+            }
 
-                CFrustum& operator=( const CFrustum& Other )
+            CFrustum& operator=( const CFrustum& Other )
+            {
+                this->_Native = Other._Native;
+                for( uint32_t i = 0; i < 6; ++i )
                 {
-                    this->_Native = Other._Native;
-                    for( uint32_t i = 0; i < 6; ++i )
-                    {
-                        this->aPlanes[ i ] = Other.aPlanes[ i ];
-                    }
-                    for( uint32_t i = 0; i < 8; ++i )
-                    {
-                        this->aCorners[ i ] = Other.aCorners[ i ];
-                    }
-                    return *this;
+                    this->aPlanes[ i ] = Other.aPlanes[ i ];
                 }
-                //CFrustum& operator=( CFrustum&& Other );
-                template<bool Update = true>
-                void vke_force_inline   CreateFromMatrix( const CMatrix4x4& Matrix );
-
-                void vke_force_inline   Transform( const CMatrix4x4& Matrix );
-                void vke_force_inline   Transform( const CVector3& Translation, const CVector4& Rotation, float scale );
-
-                bool vke_force_inline   Intersects( const CBoundingSphere& Sphere ) const;
-                bool vke_force_inline   Intersects( const CAABB& AABB ) const;
-
-                template<bool Update = true>
-                void vke_force_inline   SetOrientation( const CVector3& vecPosition, const CQuaternion& quatRotation );
-                template<bool Update = true>
-                void vke_force_inline   SetFar(const float far);
-                template<bool Update = true>
-                void vke_force_inline   SetNear(const float near);
-
-                void vke_force_inline   Update();
-
-                void vke_force_inline   CalcCorners( CVector3* pOut ) const;
-
-                void vke_force_inline   CalcMatrix( CMatrix4x4* pOut ) const;
-
-                struct Corners
+                for( uint32_t i = 0; i < 8; ++i )
                 {
-                    enum CORNER
-                    {
-                        LEFT_TOP_NEAR,
-                        RIGHT_TOP_NEAR,
-                        RIGHT_BOTTOM_NEAR,
-                        LEFT_BOTTOM_NEAR,
-                        LEFT_TOP_FAR,
-                        RIGHT_TOP_FAR,
-                        RIGHT_BOTTOM_FAR,
-                        LEFT_BOTTOM_FAR
-                    };
-                };
+                    this->aCorners[ i ] = Other.aCorners[ i ];
+                }
+                return *this;
+            }
 
-                struct PlaneTypes
-                {
-                    enum PLANE
-                    {
-                        NEAR_SLOPE,
-                        FAR_SLOPE,
-                        RIGHT_SLOPE,
-                        LEFT_SLOPE,
-                        TOP_SLOPE,
-                        BOTTOM_SLOPE
-                    };
-                };
+            // CFrustum& operator=( CFrustum&& Other );
+            template< bool Update = true >
+            void vke_force_inline CreateFromMatrix( const CMatrix4x4& Matrix );
 
-                Planes aPlanes;
-                CVector4 aCorners[ 8 ];
-                union
+            void vke_force_inline Transform( const CMatrix4x4& Matrix );
+            void vke_force_inline Transform( const CVector3& Translation, const CVector4& Rotation, float scale );
+
+            bool vke_force_inline Intersects( const CBoundingSphere& Sphere ) const;
+            bool vke_force_inline Intersects( const CAABB& AABB ) const;
+
+            template< bool Update = true >
+            void vke_force_inline SetOrientation( const CVector3& vecPosition, const CQuaternion& quatRotation );
+            template< bool Update = true >
+            void vke_force_inline SetFar( const float far );
+            template< bool Update = true >
+            void vke_force_inline SetNear( const float near );
+
+            void vke_force_inline Update();
+
+            void vke_force_inline CalcCorners( CVector3* pOut ) const;
+
+            void vke_force_inline CalcMatrix( CMatrix4x4* pOut ) const;
+
+            struct Corners
+            {
+                enum CORNER
                 {
-                    NativeFrustum   _Native;
+                    LEFT_TOP_NEAR,
+                    RIGHT_TOP_NEAR,
+                    RIGHT_BOTTOM_NEAR,
+                    LEFT_BOTTOM_NEAR,
+                    LEFT_TOP_FAR,
+                    RIGHT_TOP_FAR,
+                    RIGHT_BOTTOM_FAR,
+                    LEFT_BOTTOM_FAR
                 };
+            };
+
+            struct PlaneTypes
+            {
+                enum PLANE
+                {
+                    NEAR_SLOPE,
+                    FAR_SLOPE,
+                    RIGHT_SLOPE,
+                    LEFT_SLOPE,
+                    TOP_SLOPE,
+                    BOTTOM_SLOPE
+                };
+            };
+
+            Planes   aPlanes;
+            CVector4 aCorners[ 8 ];
+
+            union
+            {
+                NativeFrustum _Native;
+            };
         };
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE
 
-//#include "DirectX/CFrustum.inl"
+// #include "DirectX/CFrustum.inl"

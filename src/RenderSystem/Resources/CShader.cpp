@@ -15,8 +15,7 @@ namespace VKE
             EShLangCompute
         };*/
 
-        CShader::CShader(CShaderManager* pMgr, SHADER_TYPE) :
-            m_pMgr{ pMgr }
+        CShader::CShader( CShaderManager* pMgr, SHADER_TYPE ) : m_pMgr{ pMgr }
         {
         }
 
@@ -24,37 +23,34 @@ namespace VKE
         {
         }
 
-
-        hash_t CShader::CalcHash(const SShaderDesc& Desc)
+        hash_t CShader::CalcHash( const SShaderDesc& Desc )
         {
             Utils::SHash Hash;
-            //const hash_t h1 = Core::CResource::CalcHash( Desc.FileInfo );
-            //const hash_t h2 = Desc.EntryPoint.CalcHash();//Core::CResource::CalcHash( (cstr_t)Desc.EntryPoint.GetData() );
-            //const hash_t h3 = Desc.type;
-            //const hash_t h4 = h1 ^ ( h2 << 1 );
-            //const hash_t h5 = h4 ^ ( h3 << 1 );
-            //const hash_t h6 = h5 ^ ( h4 << 1 );
-            //hash_t incHash = 0;
-            //hash_t prepHash = 0;
-            //for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
+            // const hash_t h1 = Core::CResource::CalcHash( Desc.FileInfo );
+            // const hash_t h2 = Desc.EntryPoint.CalcHash();//Core::CResource::CalcHash(
+            // (cstr_t)Desc.EntryPoint.GetData() ); const hash_t h3 = Desc.type; const hash_t h4 = h1 ^ ( h2 << 1 );
+            // const hash_t h5 = h4 ^ ( h3 << 1 );
+            // const hash_t h6 = h5 ^ ( h4 << 1 );
+            // hash_t incHash = 0;
+            // hash_t prepHash = 0;
+            // for (uint32_t i = 0; i < Desc.vIncludes.GetCount(); ++i)
             //{
-            //    const hash_t h = Core::CResource::CalcHash( Desc.vIncludes[ i ] );
-            //    incHash = h ^ ( incHash << 1 );
-            //}
+            //     const hash_t h = Core::CResource::CalcHash( Desc.vIncludes[ i ] );
+            //     incHash = h ^ ( incHash << 1 );
+            // }
 
-            //for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
+            // for (uint32_t i = 0; i < Desc.vPreprocessor.GetCount(); ++i)
             //{
-            //    const hash_t h = Core::CResource::CalcHash( Desc.vPreprocessor[ i ] );
-            //    prepHash = h ^ ( prepHash << 1 );
-            //}
+            //     const hash_t h = Core::CResource::CalcHash( Desc.vPreprocessor[ i ] );
+            //     prepHash = h ^ ( prepHash << 1 );
+            // }
 
-
-            //const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
-            //SHandle Handle;
-            //Handle.value = 0;
-            //Handle.hash = hash;
-            //Handle.type = Desc.type;
-            //return (hash_t)Handle.value;
+            // const hash_t hash = h6 ^ ( incHash ) ^ ( prepHash );
+            // SHandle Handle;
+            // Handle.value = 0;
+            // Handle.hash = hash;
+            // Handle.type = Desc.type;
+            // return (hash_t)Handle.value;
 
             Hash += Desc.FileInfo.FileName.CalcHash();
             Hash += Desc.FileInfo.pUserData;
@@ -63,20 +59,20 @@ namespace VKE
             Hash += Desc.Name.CalcHash();
             Hash += Desc.profile;
 
-            for (uint32_t i = 0; i < Desc.vDefines.GetCount(); ++i)
+            for( uint32_t i = 0; i < Desc.vDefines.GetCount(); ++i )
             {
-                Hash += Desc.vDefines[i].Name.CalcHash();
-                Hash += Desc.vDefines[i].Value.CalcHash();
+                Hash += Desc.vDefines[ i ].Name.CalcHash();
+                Hash += Desc.vDefines[ i ].Value.CalcHash();
             }
 
             return Hash.value;
         }
 
-        void CShader::Init(const SShaderDesc& Info, const hash_t& hash)
+        void CShader::Init( const SShaderDesc& Info, const hash_t& hash )
         {
             {
-                //m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[ Info.type ] );
-                //m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
+                // m_CompilerData.pShader = ::new( &m_CompilerData.ShaderMemory ) glslang::TShader( g_aLanguages[
+                // Info.type ] ); m_CompilerData.pProgram = ::new( &m_CompilerData.ProgramMemory ) glslang::TProgram();
                 m_Desc = Info;
                 if( Info.pData )
                 {
@@ -89,15 +85,15 @@ namespace VKE
 
         void CShader::Release()
         {
-            //m_CompilerData.Release();
+            // m_CompilerData.Release();
             _SetResourceState( Core::ResourceStates::INVALID );
 
             if( this->GetRefCount() == 0 )
             {
-                m_Data.pCode = nullptr;
+                m_Data.pCode    = nullptr;
                 m_Data.codeSize = 0;
-                m_Data.stage = ShaderCompilationStages::UNKNOWN;
-                m_pFile = nullptr;
+                m_Data.stage    = ShaderCompilationStages::UNKNOWN;
+                m_pFile         = nullptr;
                 m_pMgr->_FreeShader( this );
             }
         }
@@ -109,7 +105,7 @@ namespace VKE
             if( this->m_hDDIObject == NativeAPI::Null )
             {
                 CShader* pThis = this;
-                res = m_pMgr->_PrepareShaderTask( &pThis );
+                res            = m_pMgr->_PrepareShaderTask( &pThis );
             }
             return res;
         }
@@ -117,48 +113,47 @@ namespace VKE
         void CShader::_SetFile( Core::FilePtr pFile )
         {
             VKE_ASSERT2( m_pFile.IsNull(), "File already set. Be sure a shader is properly created." );
-            m_pFile = pFile;
-            m_Data.pCode = pFile->GetData();
+            m_pFile         = pFile;
+            m_Data.pCode    = pFile->GetData();
             m_Data.codeSize = pFile->GetDataSize();
-            m_Data.stage = ShaderCompilationStages::HIGH_LEVEL_TEXT;
+            m_Data.stage    = ShaderCompilationStages::HIGH_LEVEL_TEXT;
             _AddResourceState( Core::ResourceStates::LOADED );
         }
 
-
-        //CShaderProgram::CShaderProgram(CShaderManager* pMgr) :
-        //    m_pMgr( pMgr )
+        // CShaderProgram::CShaderProgram(CShaderManager* pMgr) :
+        //     m_pMgr( pMgr )
         //{
-        //}
+        // }
 
-        //CShaderProgram::~CShaderProgram()
+        // CShaderProgram::~CShaderProgram()
         //{}
 
-        //void CShaderProgram::operator delete(void* pProgram)
+        // void CShaderProgram::operator delete(void* pProgram)
         //{
-        //    CShaderProgram* pThis = static_cast< CShaderProgram* >( pProgram );
-        //    VKE_ASSERT2( pThis, "Can not delete null pointer." );
-        //    pThis->Release();
-        //}
+        //     CShaderProgram* pThis = static_cast< CShaderProgram* >( pProgram );
+        //     VKE_ASSERT2( pThis, "Can not delete null pointer." );
+        //     pThis->Release();
+        // }
 
-        //void CShaderProgram::Release()
+        // void CShaderProgram::Release()
         //{
-        //    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-        //    {
-        //        m_Desc.apShaders[ i ] = nullptr;
-        //    }
-        //    _SetResourceState( Core::ResourceStates::INVALID );
-        //    if( this->GetRefCount() == 0 )
-        //    {
-        //        //m_pMgr->_FreeProgram( this );
-        //    }
-        //}
+        //     for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+        //     {
+        //         m_Desc.apShaders[ i ] = nullptr;
+        //     }
+        //     _SetResourceState( Core::ResourceStates::INVALID );
+        //     if( this->GetRefCount() == 0 )
+        //     {
+        //         //m_pMgr->_FreeProgram( this );
+        //     }
+        // }
 
-        //void CShaderProgram::Init(const SShaderProgramDesc& Desc)
+        // void CShaderProgram::Init(const SShaderProgramDesc& Desc)
         //{
-        //    m_Desc = Desc;
-        //    _SetResourceState( Core::ResourceStates::CREATED );
-        //    SHash Hash;
-        //    Hash += Core::CResource::CalcHash( Desc.FileInfo );
+        //     m_Desc = Desc;
+        //     _SetResourceState( Core::ResourceStates::CREATED );
+        //     SHash Hash;
+        //     Hash += Core::CResource::CalcHash( Desc.FileInfo );
 
         //    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
         //    {
@@ -174,5 +169,5 @@ namespace VKE
         //    this->m_hObject = Hash.value;
         //}
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

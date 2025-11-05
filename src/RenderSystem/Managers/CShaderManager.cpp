@@ -21,24 +21,24 @@ namespace VKE
             Core::CFileManager* m_pFileMgr;
             StringMap           m_mIncludes; // processed includes: key="name.ext" value=name.ext file text
 
-            Result _PreprocessIncludes( cstr_t pBaseDirPath,
-                cstr_t pCode, vke_string& strLine, vke_string* pStrOutput )
+            Result _PreprocessIncludes( cstr_t pBaseDirPath, cstr_t pCode, vke_string& strLine, vke_string* pStrOutput )
             {
                 std::smatch Match;
 
                 static const std::regex Regex( "^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*" );
-                char pFullFilePath[1024] = { 0 };
-                std::stringstream ssCode( pCode );
+                char                    pFullFilePath[ 1024 ] = { 0 };
+                std::stringstream       ssCode( pCode );
 
                 while( std::getline( ssCode, strLine ) )
                 {
                     if( std::regex_search( strLine, Match, Regex ) )
                     {
-                        const std::string& strMatch = Match[1];
+                        const std::string&  strMatch = Match[ 1 ];
                         Core::SLoadFileInfo Desc;
 
-                        uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
-                        ( void )fileNameLen;
+                        uint32_t fileNameLen = vke_sprintf(
+                            pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
+                        (void)fileNameLen;
                         Desc.FileInfo.FileName = pFullFilePath;
                         /*Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
                         Desc.FileInfo.pName = strMatch.c_str();
@@ -46,7 +46,7 @@ namespace VKE
                         Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
                         if( pFile.IsValid() )
                         {
-                            cstr_t pTmpCode = reinterpret_cast<cstr_t>(pFile->GetData());
+                            cstr_t pTmpCode = reinterpret_cast< cstr_t >( pFile->GetData() );
                             _PreprocessIncludes( pBaseDirPath, pTmpCode, strLine, pStrOutput );
                         }
                         else
@@ -66,21 +66,21 @@ namespace VKE
 
         CShaderTextProcessor g_ShadeTextProcessor;
 
-        TaskState ShaderManagerTasks::SCreateShadersTask::_OnStart(uint32_t /*tid*/)
+        TaskState ShaderManagerTasks::SCreateShadersTask::_OnStart( uint32_t /*tid*/ )
         {
             TaskState state = TaskStateBits::FAIL;
 
             return state;
         }
 
-        //TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t /*tid*/)
+        // TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t /*tid*/)
         //{
-        //    TaskState state = TaskStateBits::FAIL;
+        //     TaskState state = TaskStateBits::FAIL;
 
         //    return state;
         //}
 
-        //void ShaderManagerTasks::SCreateProgramTask::_OnGet( void** /*ppOut*/ )
+        // void ShaderManagerTasks::SCreateProgramTask::_OnGet( void** /*ppOut*/ )
         //{
 
         //}
@@ -89,31 +89,31 @@ namespace VKE
         {
             struct SCreateGroup
             {
-                SShadersCreateDesc          Desc;
-                CShaderManager::ShaderVec   vpShaders;
-                CShaderManager*             pMgr = nullptr;
-                uint32_t                    taskFinishedCount = 0;
+                SShadersCreateDesc        Desc;
+                CShaderManager::ShaderVec vpShaders;
+                CShaderManager*           pMgr              = nullptr;
+                uint32_t                  taskFinishedCount = 0;
 
                 struct SCreateTask : public Threads::ITask
                 {
-                    SCreateGroup*   pGroup;
-                    ExtentU16       DescRange;
-                    bool            block = true;
+                    SCreateGroup* pGroup;
+                    ExtentU16     DescRange;
+                    bool          block = true;
 
                     TaskState _OnStart( uint32_t tid ) override
                     {
-                        TaskState state = TaskStateBits::NOT_ACTIVE;
-                        auto& vDescs = pGroup->Desc.vCreateDescs;
+                        TaskState                  state        = TaskStateBits::NOT_ACTIVE;
+                        auto&                      vDescs       = pGroup->Desc.vCreateDescs;
                         CShaderManager::ShaderVec& vpTmpShaders = pGroup->vpShaders;
                         if( block )
                         {
                             for( uint32_t i = DescRange.begin; i < DescRange.end; ++i )
                             {
                                 SCreateShaderDesc& TmpDesc = vDescs[ i ];
-                                TmpDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                                ShaderPtr pShader = pGroup->pMgr->CreateShader( TmpDesc );
-                                vpTmpShaders[ i ] = pShader;
-                                //state = TaskStateBits::OK;
+                                TmpDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
+                                ShaderPtr pShader          = pGroup->pMgr->CreateShader( TmpDesc );
+                                vpTmpShaders[ i ]          = pShader;
+                                // state = TaskStateBits::OK;
                             }
                             pGroup->taskFinishedCount += ( DescRange.end - DescRange.begin );
                             if( pGroup->taskFinishedCount == pGroup->Desc.vCreateDescs.GetCount() )
@@ -148,11 +148,11 @@ namespace VKE
                 }
             };
 
-            template<class GroupType>
-            Result InitGroup(CShaderManager* pMgr, GroupType* pInOut)
+            template< class GroupType >
+            Result InitGroup( CShaderManager* pMgr, GroupType* pInOut )
             {
-                GroupType& Group = *pInOut;
-                Group.pMgr = pMgr;
+                GroupType& Group   = *pInOut;
+                Group.pMgr         = pMgr;
                 const uint32_t res = Group.vTasks.Resize( Platform::Thread::GetMaxConcurrentThreadCount() - 1 );
                 if( res != INVALID_POSITION )
                 {
@@ -170,13 +170,13 @@ namespace VKE
                 return Group.Init();
             }
 
-            template<class GroupType>
+            template< class GroupType >
             using TaskBuffer = Utils::TSFreePool< GroupType, uint32_t >;
 
             TaskBuffer< SCreateGroup > CreateTaskBuffer;
 
-            template<class TasksBufferType, class TaskGroupType>
-            Result CreateTaskGroup(CShaderManager* pMgr, TasksBufferType* pInOut, TaskGroupType** ppOut)
+            template< class TasksBufferType, class TaskGroupType >
+            Result CreateTaskGroup( CShaderManager* pMgr, TasksBufferType* pInOut, TaskGroupType** ppOut )
             {
                 /*if( !pInOut->vFreeElements.PopBack( &(*ppOut) ) )
                 {
@@ -195,35 +195,34 @@ namespace VKE
                         return VKE_ENOMEMORY;
                     }
                 }*/
-                Result ret = VKE_FAIL;
+                Result   ret = VKE_FAIL;
                 uint32_t idx;
                 if( !pInOut->vFreeElements.PopBack( &idx ) )
                 {
                     TaskGroupType Group;
                     idx = pInOut->vPool.PushBack( Group );
                 }
-                TaskGroupType* pGroup = &pInOut->vPool[idx];
+                TaskGroupType* pGroup = &pInOut->vPool[ idx ];
                 InitGroup( pMgr, pGroup );
-                //ret = CreateTaskGroup( pMgr, pInOut, ppOut );
+                // ret = CreateTaskGroup( pMgr, pInOut, ppOut );
                 return ret;
             }
 
-            template<class TasksBufferType, class TaskGroupType>
-            void FreeTaskGroup(TasksBufferType* pInOut, TaskGroupType* pIn)
+            template< class TasksBufferType, class TaskGroupType >
+            void FreeTaskGroup( TasksBufferType* pInOut, TaskGroupType* pIn )
             {
                 pInOut->vFreeElements.PushBack( pIn );
             }
         };
 
-        CShaderManager::CShaderManager(CDeviceContext* pCtx, Core::CFileManager* pFileMgr) :
-            m_pCtx{ pCtx },
-            m_pFileMgr{ pFileMgr }
+        CShaderManager::CShaderManager( CDeviceContext* pCtx, Core::CFileManager* pFileMgr ) :
+            m_pCtx{ pCtx }, m_pFileMgr{ pFileMgr }
         {
-
         }
 
         CShaderManager::~CShaderManager()
-        {}
+        {
+        }
 
         void CShaderManager::Destroy()
         {
@@ -232,10 +231,10 @@ namespace VKE
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     m_apDefaultShaders[ i ] = nullptr;
-                    ShaderBuffer& Buffer = m_aShaderBuffers[ i ];
-                    auto& Allocator = m_aShaderFreeListPools[ i ];
+                    ShaderBuffer& Buffer    = m_aShaderBuffers[ i ];
+                    auto&         Allocator = m_aShaderFreeListPools[ i ];
 
-                    for(auto& Itr : Buffer.Resources.Container )
+                    for( auto& Itr: Buffer.Resources.Container )
                     {
                         CShader* pShader = Itr.second;
                         _DestroyShader( &Allocator, &pShader );
@@ -263,30 +262,29 @@ namespace VKE
             Memory::DestroyObject( pAllocator, &pShader );
         }
 
-        Result CShaderManager::Create(const SShaderManagerDesc& Desc)
+        Result CShaderManager::Create( const SShaderManagerDesc& Desc )
         {
             Result res = VKE_FAIL;
-            m_Desc = Desc;
-            res = VKE_OK;
-            res = Memory::CreateObject( &HeapAllocator, &m_pCompiler, this );
+            m_Desc     = Desc;
+            res        = VKE_OK;
+            res        = Memory::CreateObject( &HeapAllocator, &m_pCompiler, this );
             if( VKE_SUCCEEDED( res ) )
             {
                 SShaderCompilerDesc CompilerDesc;
                 res = m_pCompiler->Create( CompilerDesc );
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    for (uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i)
+                    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                     {
-                        m_Desc.aMaxShaderCounts[ i ]
-                            = Max( m_Desc.aMaxShaderCounts[ i ],
-                                   Config::RenderSystem::Shader::MAX_SHADER_COUNT_PER_TYPE );
-
+                        m_Desc.aMaxShaderCounts[ i ] = Max( m_Desc.aMaxShaderCounts[ i ],
+                                                            Config::RenderSystem::Shader::MAX_SHADER_COUNT_PER_TYPE );
                     }
-                                        
-                    m_Desc.maxShaderProgramCount = Max( m_Desc.maxShaderProgramCount, Config::RenderSystem::Shader::MAX_SHADER_COUNT_PER_TYPE );
+
+                    m_Desc.maxShaderProgramCount =
+                        Max( m_Desc.maxShaderProgramCount, Config::RenderSystem::Shader::MAX_SHADER_COUNT_PER_TYPE );
 
                     const uint32_t shaderSize = sizeof( CShader );
-                    bool success = true;
+                    bool           success    = true;
                     for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                     {
                         res = m_aShaderFreeListPools[ i ].Create( m_Desc.aMaxShaderCounts[ i ], shaderSize, 1 );
@@ -304,7 +302,6 @@ namespace VKE
                             res = Memory::CreateObject( &HeapAllocator, &m_pShaderTaskGroups );
                             if( VKE_SUCCEEDED( res ) )
                             {
-
                             }
                         }
                     }
@@ -327,7 +324,7 @@ namespace VKE
             return res;
         }
 
-        Result CShaderManager::Init(const SShaderManagerInitDesc& Desc)
+        Result CShaderManager::Init( const SShaderManagerInitDesc& Desc )
         {
             Result ret = VKE_OK;
             m_InitDesc = Desc;
@@ -450,17 +447,11 @@ namespace VKE
             }
         }
 
-        static const EShLanguage g_aLanguages[ EShLangCount ] =
-        {
-            EShLangVertex,
-            EShLangTessControl,
-            EShLangTessEvaluation,
-            EShLangGeometry,
-            EShLangFragment,
-            EShLangCompute
-        };
+        static const EShLanguage g_aLanguages[ EShLangCount ] = { EShLangVertex,         EShLangTessControl,
+                                                                  EShLangTessEvaluation, EShLangGeometry,
+                                                                  EShLangFragment,       EShLangCompute };
 
-        ShaderRefPtr CShaderManager::CreateShader(const SCreateShaderDesc& Desc)
+        ShaderRefPtr CShaderManager::CreateShader( const SCreateShaderDesc& Desc )
         {
             ShaderRefPtr pRet;
             // Try to find shader type if none is set
@@ -483,16 +474,16 @@ namespace VKE
                 goto ERR;
             }
             {
-                CShader* pShader = nullptr;
-                hash_t hash = CShader::CalcHash( Desc.Shader );
-                bool reuseShader = false;
+                CShader*         pShader     = nullptr;
+                hash_t           hash        = CShader::CalcHash( Desc.Shader );
+                bool             reuseShader = false;
                 CShader::SHandle Handle;
-                Handle.value = hash;
-                bool needCreate = false;
-                Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ shaderType ];
+                Handle.value                    = hash;
+                bool                 needCreate = false;
+                Threads::SyncObject& SyncObj    = m_aShaderTypeSyncObjects[ shaderType ];
                 {
                     Threads::ScopedLock l( SyncObj );
-                    ShaderBuffer& Buffer = m_aShaderBuffers[ shaderType ];
+                    ShaderBuffer&       Buffer = m_aShaderBuffers[ shaderType ];
                     // Try to get this object if already created
                     reuseShader = Buffer.Find( Handle.hash, &pShader );
                     if( !reuseShader )
@@ -505,9 +496,9 @@ namespace VKE
                                 if( Buffer.Add( Handle.hash, pShader ) )
                                 {
                                     pShader->Init( Desc.Shader, hash );
-                                    pShader->m_Desc.type = shaderType;
+                                    pShader->m_Desc.type      = shaderType;
                                     pShader->m_resourceStages = Desc.Create.stages;
-                                    pRet = ShaderRefPtr{ pShader };
+                                    pRet                      = ShaderRefPtr{ pShader };
                                 }
                                 else
                                 {
@@ -522,7 +513,7 @@ namespace VKE
                     }
                     else
                     {
-                        pRet = ShaderRefPtr{ pShader };
+                        pRet       = ShaderRefPtr{ pShader };
                         needCreate = !pShader->IsResourceReady();
                     }
                 }
@@ -535,7 +526,7 @@ namespace VKE
                             Threads::ScopedLock l( m_aTaskSyncObjects[ShaderManagerTasks::CREATE_SHADER] );
                             pTask = _GetTask( &m_CreateShaderTaskPool );
                         }*/
-                        Threads::TSDataTypedTask<CShader*>* pTask;
+                        Threads::TSDataTypedTask< CShader* >* pTask;
                         {
                             Threads::ScopedLock l( m_aTaskSyncObjects[ ShaderManagerTasks::CREATE_SHADER ] );
                             pTask = _GetTask( &m_CreateShaderTaskPool );
@@ -543,24 +534,22 @@ namespace VKE
                         /*pTask->Desc = Desc;
                         pTask->hash = hash;
                         pTask->shaderType = shaderType;*/
-                        Threads::TaskFunction Func = [ this ]( void* pData )
-                        {
-                            Threads::TASK_RESULT Ret = TaskResults::FAIL;
-                            CShader* pShader = ( CShader* )pData;
-                            Result res = this->_CreateShader( &pShader );
+                        Threads::TaskFunction Func = [ this ]( void* pData ) {
+                            Threads::TASK_RESULT Ret     = TaskResults::FAIL;
+                            CShader*             pShader = (CShader*)pData;
+                            Result               res     = this->_CreateShader( &pShader );
                             if( VKE_SUCCEEDED( res ) )
                             {
                                 Ret = TaskResults::OK;
                             }
                             return Ret;
                         };
-                        
 
                         pTask->TaskData = pShader;
-                        pTask->Func = [ & ]( Threads::ITask* pThisTask ) {
-                            auto pTask = ( CreateShaderTask* )pThisTask;
-                            uint32_t ret = TaskStateBits::FAIL;
-                            Result res = this->_CreateShader( &pTask->TaskData );
+                        pTask->Func     = [ & ]( Threads::ITask* pThisTask ) {
+                            auto     pTask = (CreateShaderTask*)pThisTask;
+                            uint32_t ret   = TaskStateBits::FAIL;
+                            Result   res   = this->_CreateShader( &pTask->TaskData );
                             if( VKE_SUCCEEDED( res ) )
                             {
                                 ret = TaskStateBits::OK;
@@ -570,13 +559,12 @@ namespace VKE
                         /*m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
                             Threads::ThreadUsageBits::COMPILE, pTask );*/
                         m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
-                        Threads::ThreadUsageBits::COMPILE,
-                            Desc.Shader.Name.GetData(), Func, pShader );
+                            Threads::ThreadUsageBits::COMPILE, Desc.Shader.Name.GetData(), Func, pShader );
                     }
                     else
                     {
                         // return _CreateShaderTask( shaderType, hash, Desc );
-                        needCreate = (Desc.Create.flags & Core::CreateResourceFlags::DEFERRED) == 0;
+                        needCreate = ( Desc.Create.flags & Core::CreateResourceFlags::DEFERRED ) == 0;
                     }
                 }
                 if( needCreate )
@@ -591,7 +579,7 @@ namespace VKE
             return pRet;
         }
 
-        SHADER_TYPE CShaderManager::FindShaderType(cstr_t pFileName)
+        SHADER_TYPE CShaderManager::FindShaderType( cstr_t pFileName )
         {
             /*cstr_t pExt = strrchr(pFileName, '.' );
             if( pExt )
@@ -608,15 +596,16 @@ namespace VKE
                     }
                 }
             }*/
-            for (uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i)
+            for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
-                for (uint32_t j = 0; j < m_InitDesc.avShaderExtensions[i].GetCount(); ++j)
+                for( uint32_t j = 0; j < m_InitDesc.avShaderExtensions[ i ].GetCount(); ++j )
                 {
                     const char* pExt = m_InitDesc.avShaderExtensions[ i ][ j ];
-                    std::regex Re( std::format( ".*[.]{}$", pExt ), std::regex_constants::ECMAScript | std::regex_constants::icase );
-                    if (std::regex_match(pFileName, Re))
+                    std::regex  Re( std::format( ".*[.]{}$", pExt ),
+                                   std::regex_constants::ECMAScript | std::regex_constants::icase );
+                    if( std::regex_match( pFileName, Re ) )
                     {
-                        return static_cast<SHADER_TYPE>( i );
+                        return static_cast< SHADER_TYPE >( i );
                     }
                 }
             }
@@ -625,15 +614,14 @@ namespace VKE
 
         Result CShaderManager::_CreateShader( CShader** ppInOut )
         {
-            Result ret = VKE_OK;
-            CShader* pShader = *ppInOut;
-            const auto stages = pShader->m_resourceStages;
-            //const uint32_t resState = pShader->GetResourceState();
+            Result     ret     = VKE_OK;
+            CShader*   pShader = *ppInOut;
+            const auto stages  = pShader->m_resourceStages;
+            // const uint32_t resState = pShader->GetResourceState();
 
             if( stages & Core::ResourceStages::INIT )
             {
                 // TODO: hash is already calculated, use it
-
             }
 
             ShaderPtr pTmp{ pShader };
@@ -664,27 +652,27 @@ namespace VKE
         }
 
         ShaderRefPtr CShaderManager::_CreateShaderTask( SHADER_TYPE shaderType, hash_t hash,
-            const SCreateShaderDesc& Desc )
+                                                        const SCreateShaderDesc& Desc )
         {
             ShaderPtr pRet;
 
-            bool reuseShader = false;
-            CShader* pShader = nullptr;
+            bool     reuseShader = false;
+            CShader* pShader     = nullptr;
             {
                 CShader::SHandle Handle;
                 Handle.value = hash;
 
-                Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[shaderType];
-                Threads::ScopedLock l( SyncObj );
+                Threads::SyncObject& SyncObj = m_aShaderTypeSyncObjects[ shaderType ];
+                Threads::ScopedLock  l( SyncObj );
 
-                ShaderBuffer& Buffer = m_aShaderBuffers[shaderType];
+                ShaderBuffer& Buffer = m_aShaderBuffers[ shaderType ];
                 // Try to get this object if already created
                 reuseShader = Buffer.Find( Handle.hash, &pShader );
                 if( !reuseShader )
                 {
                     if( !Buffer.Reuse( Handle.hash, Handle.hash, &pShader ) )
                     {
-                        auto& Allocator = m_aShaderFreeListPools[shaderType];
+                        auto& Allocator = m_aShaderFreeListPools[ shaderType ];
                         if( VKE_SUCCEEDED( Memory::CreateObject( &Allocator, &pShader, this, shaderType ) ) )
                         {
                             if( Buffer.Add( Handle.hash, pShader ) )
@@ -710,12 +698,11 @@ namespace VKE
             }
             if( pShader && !reuseShader )
             {
-                //const uint32_t resState = pShader->GetResourceState();
+                // const uint32_t resState = pShader->GetResourceState();
 
                 if( Desc.Create.stages & Core::ResourceStages::INIT )
                 {
                     // TODO: hash is already calculated, use it
-
                 }
                 pRet = ShaderPtr( pShader );
                 if( Desc.Create.stages & Core::ResourceStages::LOAD )
@@ -732,14 +719,12 @@ namespace VKE
                 {
                     if( VKE_SUCCEEDED( PrepareShader( &pRet ) ) )
                     {
-
                     }
                     else
                     {
                         goto FAIL;
                     }
                 }
-
             }
             return ShaderRefPtr( pRet );
         FAIL:
@@ -748,24 +733,24 @@ namespace VKE
             return ShaderRefPtr( pRet );
         }
 
-        Result CShaderManager::PrepareShader(ShaderPtr* ppShader)
+        Result CShaderManager::PrepareShader( ShaderPtr* ppShader )
         {
             CShader* pShader = ( *ppShader ).Get();
             return _PrepareShaderTask( &pShader );
         }
 
-        Result CShaderManager::LoadShader(ShaderPtr* ppShader)
+        Result CShaderManager::LoadShader( ShaderPtr* ppShader )
         {
             CShader* pShader = ( *ppShader ).Get();
             return _LoadShaderTask( &pShader );
         }
 
-        Result CShaderManager::_LoadShaderTask(CShader** ppShader)
+        Result CShaderManager::_LoadShaderTask( CShader** ppShader )
         {
-            Result res = VKE_FAIL;
-            CShader* pShader = ( *ppShader );
+            Result              res     = VKE_FAIL;
+            CShader*            pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
-            if( !(pShader->GetResourceState() == Core::ResourceStates::LOADED ) )
+            if( !( pShader->GetResourceState() == Core::ResourceStates::LOADED ) )
             {
                 Core::SLoadFileInfo Desc;
                 Desc.FileInfo = pShader->m_Desc.FileInfo;
@@ -789,7 +774,7 @@ namespace VKE
                 }
                 else
                 {
-                    VKE_LOG_ERR("LOADED state is set for a resource file but no fileName provided.");
+                    VKE_LOG_ERR( "LOADED state is set for a resource file but no fileName provided." );
                 }
             }
             else
@@ -799,24 +784,25 @@ namespace VKE
             return res;
         }
 
-        Result _PreprocessIncludes(Core::CFileManager* pFileMgr, cstr_t pBaseDirPath,
-            cstr_t pCode, vke_string& strLine, vke_string* pStrOutput)
+        Result _PreprocessIncludes( Core::CFileManager* pFileMgr, cstr_t pBaseDirPath, cstr_t pCode,
+                                    vke_string& strLine, vke_string* pStrOutput )
         {
             std::smatch Match;
 
-            static const std::regex Regex("^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*");
-            char pFullFilePath[ 1024 ] = { 0 };
-            std::stringstream ssCode( pCode );
+            static const std::regex Regex( "^[ ]*#[ ]*include[ ]+[\"<](.*)[\">].*" );
+            char                    pFullFilePath[ 1024 ] = { 0 };
+            std::stringstream       ssCode( pCode );
 
             while( std::getline( ssCode, strLine ) )
             {
                 if( std::regex_search( strLine, Match, Regex ) )
                 {
-                    const std::string& strMatch = Match[ 1 ];
+                    const std::string&  strMatch = Match[ 1 ];
                     Core::SLoadFileInfo Desc;
 
-                    uint32_t fileNameLen = vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
-                    ( void )fileNameLen;
+                    uint32_t fileNameLen =
+                        vke_sprintf( pFullFilePath, sizeof( pFullFilePath ), "%s\\%s", pBaseDirPath, strMatch.c_str() );
+                    (void)fileNameLen;
                     Desc.FileInfo.FileName = pFullFilePath;
                     /*Desc.FileInfo.fileNameLen = static_cast< uint16_t >( fileNameLen );
                     Desc.FileInfo.pName = strMatch.c_str();
@@ -834,57 +820,59 @@ namespace VKE
                 }
                 else
                 {
-                    pStrOutput->append(strLine);
+                    pStrOutput->append( strLine );
                 }
             }
             pStrOutput->append( "\n" );
             return VKE_OK;
         }
 
-        Result CShaderManager::_PrepareShaderTask(CShader** ppShader)
+        Result CShaderManager::_PrepareShaderTask( CShader** ppShader )
         {
-            Result res = VKE_OK;
-            CShader* pShader = ( *ppShader );
+            Result              res     = VKE_OK;
+            CShader*            pShader = ( *ppShader );
             Threads::ScopedLock l( pShader->m_SyncObj );
             if( !( pShader->GetResourceState() == Core::ResourceStates::PREPARED ) )
             {
                 // Add preprocessor and includes
-                cstr_t pShaderData = reinterpret_cast< cstr_t >( pShader->m_Data.pCode ); //( pShader->m_pFile->GetData() );
-                uint32_t shaderDataSize = pShader->m_Data.codeSize; //pShader->m_pFile->GetDataSize();
+                cstr_t pShaderData =
+                    reinterpret_cast< cstr_t >( pShader->m_Data.pCode ); //( pShader->m_pFile->GetData() );
+                uint32_t shaderDataSize = pShader->m_Data.codeSize;      // pShader->m_pFile->GetDataSize();
                 VKE_ASSERT2( pShaderData != nullptr && shaderDataSize > 0, "Invalid shader data." );
 
                 const SShaderDesc& Desc = pShader->GetDesc();
 
-                char fileDir[1024];
+                char  fileDir[ 1024 ];
                 char* pFileDir = fileDir;
-                Platform::File::GetDirectory( Desc.FileInfo.FileName.GetData(), Desc.FileInfo.FileName.GetCount(), &pFileDir );
+                Platform::File::GetDirectory(
+                    Desc.FileInfo.FileName.GetData(), Desc.FileInfo.FileName.GetCount(), &pFileDir );
 
                 /// @TODO this function reports not freed memory blocks!!!
-                //res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
+                // res = _PreprocessIncludes( m_pFileMgr, pFileDir, pShaderData, strLine, &strCode );
 
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    //pShaderData = strCode.c_str();
-                    //shaderDataSize = strCode.length();
+                    // pShaderData = strCode.c_str();
+                    // shaderDataSize = strCode.length();
 
                     SCompileShaderInfo Info;
-                    Info.pBuffer = pShaderData;
+                    Info.pBuffer    = pShaderData;
                     Info.bufferSize = shaderDataSize;
-                    //Info.type = pShader->m_Desc.type;
-                    //Info.pEntryPoint = pShader->m_Desc.EntryPoint.GetData();
-                    //Info.pName = pShader->m_Desc.FileInfo.pName;
+                    // Info.type = pShader->m_Desc.type;
+                    // Info.pEntryPoint = pShader->m_Desc.EntryPoint.GetData();
+                    // Info.pName = pShader->m_Desc.FileInfo.pName;
                     Info.pDesc = &pShader->GetDesc();
-                    VKE_ASSERT2(Info.pBuffer, "Shader file must be loaded.");
+                    VKE_ASSERT2( Info.pBuffer, "Shader file must be loaded." );
                     SCompileShaderData Data;
-                    const hash_t bytecodeHash = _CalcShaderBytecodeHash(Info);
+                    const hash_t       bytecodeHash = _CalcShaderBytecodeHash( Info );
                     if( bytecodeHash )
                     {
-                        res = _ReadShaderCache( bytecodeHash, &Data );
+                        res             = _ReadShaderCache( bytecodeHash, &Data );
                         bool writeCache = false;
                         if( res == VKE_ENOTFOUND )
                         {
-                            res = m_pCompiler->Compile( Info, &Data );
-                            cstr_t p = ( cstr_t )&Data.vShaderBinary[ 0 ];
+                            res      = m_pCompiler->Compile( Info, &Data );
+                            cstr_t p = (cstr_t)&Data.vShaderBinary[ 0 ];
                             VKE_LOG( p );
                             writeCache = true; // write shader cache only if a shader is not available in current cache
                         }
@@ -901,7 +889,7 @@ namespace VKE
                     else
                     {
                         res = VKE_FAIL;
-                        VKE_LOG_ERR( "Invalid shader code for shader: " << Info.pDesc->FileInfo.FileName  );
+                        VKE_LOG_ERR( "Invalid shader code for shader: " << Info.pDesc->FileInfo.FileName );
                     }
                     pShader->m_pFile = Core::FileRefPtr();
                 }
@@ -909,7 +897,7 @@ namespace VKE
             return res;
         }
 
-        Result CShaderManager::CreateShaders(const SShadersCreateDesc& Desc, ShaderVec* pvOut)
+        Result CShaderManager::CreateShaders( const SShadersCreateDesc& Desc, ShaderVec* pvOut )
         {
             Result res = VKE_OK;
 
@@ -922,71 +910,70 @@ namespace VKE
 
             SCreateShaderDesc Desc;
             Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-            //Desc.Create.pfnCallback = []( const void*, void* ){};
+            // Desc.Create.pfnCallback = []( const void*, void* ){};
             Desc.Shader.FileInfo.FileName = "data\\shaders\\test.vs";
-            //Desc.Shader.FileInfo.fileNameLen = static_cast< uint16_t >( strlen( Desc.Shader.FileInfo.pFileName ) );
+            // Desc.Shader.FileInfo.fileNameLen = static_cast< uint16_t >( strlen( Desc.Shader.FileInfo.pFileName ) );
             Desc.Shader.type = FindShaderType( Desc.Shader.FileInfo.FileName.GetData() );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST 1" ) );
             Desc.Shader.vPreprocessor.PushBack( Utils::CString( "#define TEST2 2" ) );
-            //ShaderPtr pShader = CreateShader( std::move( Desc ) );
+            // ShaderPtr pShader = CreateShader( std::move( Desc ) );
             return res;
         }
 
         Result CShaderManager::Link()
         {
             Result res = VKE_FAIL;
-            //SLinkShaderInfo Info;
-            //res = Memory::CreateObject( &m_ShaderProgramFreeListPool, &Info.pProgram );
-            //if( VKE_SUCCEEDED( res ) )
+            // SLinkShaderInfo Info;
+            // res = Memory::CreateObject( &m_ShaderProgramFreeListPool, &Info.pProgram );
+            // if( VKE_SUCCEEDED( res ) )
             //{
-            //    //Memory::Copy< glslang::TShader*, ShaderTypes::_MAX_COUNT >( Info.apShaders, m_CurrCompilationUnit.apShaders );
-            //    for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
-            //    {
-            //        Info.apShaders[ i ] = m_CurrCompilationUnit.aInfos[ i ].pShader;
-            //    }
-            //    SLinkShaderData Data;
-            //    res = m_pCompiler->Link( Info, &Data );
-            //}
-            //else
+            //     //Memory::Copy< glslang::TShader*, ShaderTypes::_MAX_COUNT >( Info.apShaders,
+            //     m_CurrCompilationUnit.apShaders ); for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
+            //     {
+            //         Info.apShaders[ i ] = m_CurrCompilationUnit.aInfos[ i ].pShader;
+            //     }
+            //     SLinkShaderData Data;
+            //     res = m_pCompiler->Link( Info, &Data );
+            // }
+            // else
             //{
-            //    VKE_LOG_ERR( "Unable to allocate memory for glslang::TProgram object." );
-            //}
+            //     VKE_LOG_ERR( "Unable to allocate memory for glslang::TProgram object." );
+            // }
             return res;
         }
 
-        void CShaderManager::_FreeShader(CShader* pShader)
+        void CShaderManager::_FreeShader( CShader* pShader )
         {
-            //if( pShader->GetRefCount() == 0 )
+            // if( pShader->GetRefCount() == 0 )
             {
                 SHADER_TYPE type = pShader->m_Desc.type;
                 VKE_ASSERT2( type < ShaderTypes::_MAX_COUNT, "Invalid shader type." );
                 Threads::ScopedLock l( m_aShaderTypeSyncObjects[ type ] );
                 {
-                    //m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
+                    // m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
                     m_pCtx->_NativeAPI().DestroyShader( &pShader->m_hDDIObject, nullptr );
-                    //m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
+                    // m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
                     m_aShaderBuffers[ type ].AddFree( pShader->GetHandle().handle );
                 }
             }
         }
 
-        void* CShaderManager::_AllocateMemory(size_t size, size_t alignment)
+        void* CShaderManager::_AllocateMemory( size_t size, size_t alignment )
         {
             const size_t alignedSize = Math::Round( size, alignment );
-            void* pMem = VKE_MALLOC( alignedSize );
+            void*        pMem        = VKE_MALLOC( alignedSize );
             return pMem;
         }
 
-        void CShaderManager::_FreeMemory(void* /*pMemory*/, size_t /*size*/, size_t /*alignment*/)
+        void CShaderManager::_FreeMemory( void* /*pMemory*/, size_t /*size*/, size_t /*alignment*/ )
         {
-
         }
 
         ShaderRefPtr CShaderManager::GetShader( const hash_t& hash, SHADER_TYPE type )
         {
-            CShader* pShader;
+            CShader*     pShader;
             ShaderRefPtr pRet;
-            if( m_aShaderBuffers[type].Find( hash, &pShader ) )
+            if( m_aShaderBuffers[ type ].Find( hash, &pShader ) )
             {
                 pRet = ShaderRefPtr( pShader );
             }
@@ -996,40 +983,39 @@ namespace VKE
         ShaderRefPtr CShaderManager::GetShader( ShaderHandle hShader )
         {
             CShader::SHandle Handle;
-            Handle.value = hShader.handle;
+            Handle.value     = hShader.handle;
             SHADER_TYPE type = static_cast< SHADER_TYPE >( Handle.type );
             return GetShader( Handle.hash, type );
         }
-
-
 
         /*typedef void* (VKAPI_PTR *PFN_vkAllocationFunction)(
     void*                                       pUserData,
     size_t                                      size,
     size_t                                      alignment,
     VkSystemAllocationScope                     allocationScope);*/
-        void* VkAllocateCallback(void* pUser, size_t size, size_t alignment, uint32_t /*vkScope*/)
+        void* VkAllocateCallback( void* pUser, size_t size, size_t alignment, uint32_t /*vkScope*/ )
         {
             CShaderManager* pMgr = reinterpret_cast< CShaderManager* >( pUser );
-            return pMgr->_AllocateMemory(size, alignment);
+            return pMgr->_AllocateMemory( size, alignment );
         }
 
-        Result CShaderManager::_CreateShaderObject(const SCompileShaderData::BinaryElement* pBinary, size_t size, CShader** ppInOut)
+        Result CShaderManager::_CreateShaderObject( const SCompileShaderData::BinaryElement* pBinary, size_t size,
+                                                    CShader** ppInOut )
         {
             Result ret = VKE_FAIL;
             {
                 CShader* pShader = ( *ppInOut );
 
                 SShaderData Data;
-                Data.pCode = reinterpret_cast<const uint8_t*>(pBinary);
-                Data.codeSize = static_cast< uint32_t >( size );
-                Data.stage = ShaderCompilationStages::COMPILED_IR_BINARY;
-                Data.type = pShader->GetDesc().type;
+                Data.pCode                = reinterpret_cast< const uint8_t* >( pBinary );
+                Data.codeSize             = static_cast< uint32_t >( size );
+                Data.stage                = ShaderCompilationStages::COMPILED_IR_BINARY;
+                Data.type                 = pShader->GetDesc().type;
                 NativeAPI::Shader hShader = m_pCtx->_NativeAPI().CreateShader( Data, nullptr );
                 if( hShader != NativeAPI::Null )
                 {
                     pShader->m_hDDIObject = hShader;
-                    ret = VKE_OK;
+                    ret                   = VKE_OK;
                 }
             }
             return ret;
@@ -1046,37 +1032,29 @@ namespace VKE
 
             {
                 static cstr_t pGLSLShaderCode = VKE_TO_STRING(
-                    #version 450 core\r\n
-                    layout( location = 0 ) in vec4 pos;
-                    void main()
-                    {
-                        gl_Position = pos;
-                    }
-                );
+#version 450 core\r\n
+                    layout( location = 0 ) in vec4 pos; void main() { gl_Position = pos; } );
 
-                static cstr_t pHLSLShaderCode = VKE_TO_STRING(
-                    float4 main(in float4 pos : SV_Position) : SV_Position
-                    {
-                        return pos;
-                    }
-                );
+                static cstr_t pHLSLShaderCode =
+                    VKE_TO_STRING( float4 main( in float4 pos : SV_Position ) : SV_Position { return pos; } );
 
-                cstr_t pShaderCode = VKE_USE_HLSL_SYNTAX? pHLSLShaderCode : pGLSLShaderCode;
+                cstr_t pShaderCode = VKE_USE_HLSL_SYNTAX ? pHLSLShaderCode : pGLSLShaderCode;
 
                 SHADER_TYPE type = ShaderTypes::VERTEX;
 
                 SCreateShaderDesc Desc;
                 Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
+                Desc.Create.stages =
+                    Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
-                Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
-                Data.stage = ShaderCompilationStages::HIGH_LEVEL_TEXT;
-                Data.type = type;
+                Data.pCode    = reinterpret_cast< const uint8_t* >( pShaderCode );
+                Data.stage    = ShaderCompilationStages::HIGH_LEVEL_TEXT;
+                Data.type     = type;
 
-                Desc.Shader.pData = &Data;
+                Desc.Shader.pData      = &Data;
                 Desc.Shader.EntryPoint = "main";
-                Desc.Shader.type = type;
+                Desc.Shader.type       = type;
 
                 ShaderPtr pShader = CreateShader( Desc );
                 if( pShader.IsNull() )
@@ -1086,15 +1064,12 @@ namespace VKE
                 m_apDefaultShaders[ type ] = pShader;
             }
             {
-                static cstr_t pGLSLShaderCode =
-                    "#version 450 core\r\n"
-                    "layout(location=0) out vec4 color;"
-                    "void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }";
+                static cstr_t pGLSLShaderCode = "#version 450 core\r\n"
+                                                "layout(location=0) out vec4 color;"
+                                                "void main() { color = vec4(0.0, 1.0, 0.0, 1.0); }";
 
-                static cstr_t pHLSLShaderCode = VKE_TO_STRING
-                (
-                    float4 main() : SV_TARGET0 { return float4( 0.0, 1.0, 0.0, 1.0 ); }
-                );
+                static cstr_t pHLSLShaderCode =
+                    VKE_TO_STRING( float4 main() : SV_TARGET0 { return float4( 0.0, 1.0, 0.0, 1.0 ); } );
 
                 cstr_t pShaderCode = VKE_USE_HLSL_SYNTAX ? pHLSLShaderCode : pGLSLShaderCode;
 
@@ -1102,16 +1077,17 @@ namespace VKE
 
                 SCreateShaderDesc Desc;
                 Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-                Desc.Create.stages = Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
+                Desc.Create.stages =
+                    Core::ResourceStages::CREATE | Core::ResourceStages::INIT | Core::ResourceStages::PREPARE;
                 SShaderData Data;
                 Data.codeSize = static_cast< uint32_t >( strlen( pShaderCode ) );
-                Data.pCode = reinterpret_cast< const uint8_t* >( pShaderCode );
-                Data.stage = ShaderCompilationStages::HIGH_LEVEL_TEXT;
-                Data.type = type;
+                Data.pCode    = reinterpret_cast< const uint8_t* >( pShaderCode );
+                Data.stage    = ShaderCompilationStages::HIGH_LEVEL_TEXT;
+                Data.type     = type;
 
-                Desc.Shader.pData = &Data;
+                Desc.Shader.pData      = &Data;
                 Desc.Shader.EntryPoint = "main";
-                Desc.Shader.type = type;
+                Desc.Shader.type       = type;
 
                 ShaderPtr pShader = CreateShader( Desc );
                 if( pShader.IsNull() )
@@ -1124,67 +1100,71 @@ namespace VKE
             return ret;
         }
 
-        hash_t CShaderManager::_CalcShaderBytecodeHash(const SCompileShaderInfo& Info)
+        hash_t CShaderManager::_CalcShaderBytecodeHash( const SCompileShaderInfo& Info )
         {
             Utils::SHash Ret;
 
-            const auto& Desc = *Info.pDesc;
+            const auto&  Desc  = *Info.pDesc;
             SShaderData* pData = nullptr;
-            SShaderData TmpData;
-            if (Desc.pData)
+            SShaderData  TmpData;
+            if( Desc.pData )
             {
                 pData = Desc.pData;
             }
             else
             {
-                TmpData.pCode = reinterpret_cast<const uint8_t*>(Info.pBuffer);
+                TmpData.pCode    = reinterpret_cast< const uint8_t* >( Info.pBuffer );
                 TmpData.codeSize = Info.bufferSize;
-                pData = &TmpData;
+                pData            = &TmpData;
             }
             if( pData && pData->pCode )
             {
-                uint64_t* pPtr = ( uint64_t* )pData->pCode;
-                uint32_t size = pData->codeSize / sizeof( uint64_t );
+                uint64_t* pPtr = (uint64_t*)pData->pCode;
+                uint32_t  size = pData->codeSize / sizeof( uint64_t );
                 for( uint32_t i = 0; i < size; ++i, ++pPtr )
                 {
                     Ret += *pPtr;
                 }
             }
-            
+
             return Ret.value;
         }
 
-        Result CShaderManager::_ReadShaderCache(const hash_t& hash, SCompileShaderData* pOut)
+        Result CShaderManager::_ReadShaderCache( const hash_t& hash, SCompileShaderData* pOut )
         {
             Result ret = VKE_ENOTFOUND;
-            if (m_Desc.pShaderCacheFileName)
+            if( m_Desc.pShaderCacheFileName )
             {
-                if (Platform::File::Exists(m_Desc.pShaderCacheFileName))
+                if( Platform::File::Exists( m_Desc.pShaderCacheFileName ) )
                 {
-                    if (Platform::File::IsDirectory(m_Desc.pShaderCacheFileName))
+                    if( Platform::File::IsDirectory( m_Desc.pShaderCacheFileName ) )
                     {
-                        char pFileName[Config::Resource::MAX_NAME_LENGTH];
-                        vke_sprintf(pFileName, sizeof(pFileName), "%s/%llu.%s",
-                            m_Desc.pShaderCacheFileName, hash, m_Desc.pShaderCacheFileExt);
-                        if (Platform::File::Exists(pFileName))
+                        char pFileName[ Config::Resource::MAX_NAME_LENGTH ];
+                        vke_sprintf( pFileName,
+                                     sizeof( pFileName ),
+                                     "%s/%llu.%s",
+                                     m_Desc.pShaderCacheFileName,
+                                     hash,
+                                     m_Desc.pShaderCacheFileExt );
+                        if( Platform::File::Exists( pFileName ) )
                         {
-                            handle_t hFile = Platform::File::Open(pFileName, Platform::File::Modes::READ);
-                            if (hFile)
+                            handle_t hFile = Platform::File::Open( pFileName, Platform::File::Modes::READ );
+                            if( hFile )
                             {
-                                const uint32_t fileSize = Platform::File::GetSize(hFile);
-                                pOut->vShaderBinary.resize(fileSize);
+                                const uint32_t fileSize = Platform::File::GetSize( hFile );
+                                pOut->vShaderBinary.resize( fileSize );
 
                                 Platform::File::SReadData ReadData;
-                                ReadData.pData = &pOut->vShaderBinary[0];
+                                ReadData.pData         = &pOut->vShaderBinary[ 0 ];
                                 ReadData.readByteCount = fileSize;
-                                ReadData.offset = 0;
+                                ReadData.offset        = 0;
 
-                                uint32_t readSize = Platform::File::Read(hFile, &ReadData);
+                                uint32_t readSize = Platform::File::Read( hFile, &ReadData );
                                 Platform::File::Close( &hFile );
-                                if (readSize == fileSize)
+                                if( readSize == fileSize )
                                 {
                                     pOut->codeByteSize = readSize;
-                                    ret = VKE_OK;
+                                    ret                = VKE_OK;
                                 }
                             }
                         }
@@ -1194,35 +1174,39 @@ namespace VKE
             return ret;
         }
 
-        Result CShaderManager::_WriteShaderCache(const hash_t& hash, const SCompileShaderData& Data)
+        Result CShaderManager::_WriteShaderCache( const hash_t& hash, const SCompileShaderData& Data )
         {
             Result ret = VKE_FAIL;
-            if (m_Desc.pShaderCacheFileName)
+            if( m_Desc.pShaderCacheFileName )
             {
-                if (!Platform::File::Exists(m_Desc.pShaderCacheFileName))
+                if( !Platform::File::Exists( m_Desc.pShaderCacheFileName ) )
                 {
-                    cstr_t pExt = Platform::File::GetExtension(m_Desc.pShaderCacheFileName);
-                    if (pExt == nullptr || strcmp(pExt, "") == 0)
+                    cstr_t pExt = Platform::File::GetExtension( m_Desc.pShaderCacheFileName );
+                    if( pExt == nullptr || strcmp( pExt, "" ) == 0 )
                     {
-                        Platform::File::CreateDir(m_Desc.pShaderCacheFileName);
+                        Platform::File::CreateDir( m_Desc.pShaderCacheFileName );
                     }
                 }
-                if (Platform::File::IsDirectory(m_Desc.pShaderCacheFileName))
+                if( Platform::File::IsDirectory( m_Desc.pShaderCacheFileName ) )
                 {
                     {
                         {
-                            char pFileName[Config::Resource::MAX_NAME_LENGTH];
-                            vke_sprintf(pFileName, sizeof(pFileName), "%s/%llu.%s",
-                                m_Desc.pShaderCacheFileName, hash, m_Desc.pShaderCacheFileExt);
-                            handle_t hFile = Platform::File::Create(pFileName, Platform::File::Modes::WRITE);
-                            if (hFile)
+                            char pFileName[ Config::Resource::MAX_NAME_LENGTH ];
+                            vke_sprintf( pFileName,
+                                         sizeof( pFileName ),
+                                         "%s/%llu.%s",
+                                         m_Desc.pShaderCacheFileName,
+                                         hash,
+                                         m_Desc.pShaderCacheFileExt );
+                            handle_t hFile = Platform::File::Create( pFileName, Platform::File::Modes::WRITE );
+                            if( hFile )
                             {
                                 Platform::File::SWriteInfo Info;
-                                Info.pData = &Data.vShaderBinary[0];
+                                Info.pData    = &Data.vShaderBinary[ 0 ];
                                 Info.dataSize = (uint32_t)Data.vShaderBinary.size();
-                                Info.offset = 0;
-                                Platform::File::Write(hFile, Info);
-                                Platform::File::Close(&hFile);
+                                Info.offset   = 0;
+                                Platform::File::Write( hFile, Info );
+                                Platform::File::Close( &hFile );
                             }
                         }
                     }
@@ -1235,5 +1219,5 @@ namespace VKE
             return ret;
         }
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

@@ -8,21 +8,19 @@ namespace VKE
     {
         class CRenderSystem;
         class CFramebuffer;
+
         class CFramebufferManager //: public Core::TCManager< CFramebuffer >
         {
-            //using Base = Core::TCManager< CFramebuffer >;
-            
-            public:
+            // using Base = Core::TCManager< CFramebuffer >;
 
-                CFramebufferManager(CRenderSystem*);
+        public:
+            CFramebufferManager( CRenderSystem* );
 
-            protected:
+        protected:
+            // Core::CManager::ResourceRawPtr _AllocateMemory(const Core::SCreateDesc* const pInfo) override;
 
-                //Core::CManager::ResourceRawPtr _AllocateMemory(const Core::SCreateDesc* const pInfo) override;
-
-            protected:
-
-                CRenderSystem*  m_pRenderSystem;
+        protected:
+            CRenderSystem* m_pRenderSystem;
         };
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

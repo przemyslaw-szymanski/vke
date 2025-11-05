@@ -12,20 +12,17 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        TaskState PipelineManagerTasks::SCreatePipelineTask::_OnStart(uint32_t)
+        TaskState PipelineManagerTasks::SCreatePipelineTask::_OnStart( uint32_t )
         {
             return TaskStateBits::OK;
         }
 
-        void PipelineManagerTasks::SCreatePipelineTask::_OnGet(void**)
+        void PipelineManagerTasks::SCreatePipelineTask::_OnGet( void** )
         {
-
         }
 
-        CPipelineManager::CPipelineManager(CDeviceContext* pCtx) :
-            m_pCtx( pCtx )
+        CPipelineManager::CPipelineManager( CDeviceContext* pCtx ) : m_pCtx( pCtx )
         {
-
         }
 
         CPipelineManager::~CPipelineManager()
@@ -33,12 +30,13 @@ namespace VKE
             Destroy();
         }
 
-        Result CPipelineManager::Create(const SPipelineManagerDesc& Desc)
+        Result CPipelineManager::Create( const SPipelineManagerDesc& Desc )
         {
             Result res = VKE_FAIL;
             if( VKE_SUCCEEDED( m_PipelineMemMgr.Create( Desc.maxPipelineCount, sizeof( CPipeline ), 1 ) ) )
             {
-                if( VKE_SUCCEEDED( m_PipelineLayoutMemMgr.Create( Desc.maxPipelineLayoutCount, sizeof( CPipelineLayout ), 1 ) ) )
+                if( VKE_SUCCEEDED(
+                        m_PipelineLayoutMemMgr.Create( Desc.maxPipelineLayoutCount, sizeof( CPipelineLayout ), 1 ) ) )
                 {
                     res = VKE_OK;
                 }
@@ -48,14 +46,14 @@ namespace VKE
                 }
             }
             {
-                auto hDescSetLayout = m_pCtx->GetDefaultDescriptorSetLayout();
+                auto                hDescSetLayout = m_pCtx->GetDefaultDescriptorSetLayout();
                 SPipelineLayoutDesc LayoutDesc( hDescSetLayout );
                 LayoutDesc.SetDebugName( "Default" );
                 m_pDefaultLayout = CreateLayout( LayoutDesc );
             }
-            
+
             return res;
-ERR:
+        ERR:
             Destroy();
             return res;
         }
@@ -63,8 +61,8 @@ ERR:
         void CPipelineManager::Destroy()
         {
             m_pDefaultLayout = nullptr;
-            m_pCurrPipeline = nullptr;
-            for( auto& Itr : m_Buffer.mContainer )
+            m_pCurrPipeline  = nullptr;
+            for( auto& Itr: m_Buffer.mContainer )
             {
                 CPipeline* pPipeline = Itr.second;
                 _DestroyPipeline( &pPipeline );
@@ -72,7 +70,7 @@ ERR:
             }
             m_Buffer.Clear();
 
-            for( auto& Itr : m_LayoutBuffer.mContainer )
+            for( auto& Itr: m_LayoutBuffer.mContainer )
             {
                 CPipelineLayout* pLayout = Itr.second;
                 _DestroyLayout( &pLayout );
@@ -97,7 +95,7 @@ ERR:
         void CPipelineManager::_DestroyLayout( CPipelineLayout** ppLayout )
         {
             CPipelineLayout* pLayout = *ppLayout;
-            auto& hDDIObj = pLayout->m_hDDIObject;
+            auto&            hDDIObj = pLayout->m_hDDIObject;
             m_pCtx->NativeAPI().DestroyPipelineLayout( &hDDIObj, nullptr );
             Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
             *ppLayout = nullptr;
@@ -105,30 +103,30 @@ ERR:
 
         void CPipelineManager::DestroyPipeline( PipelinePtr* pInOut )
         {
-            CPipeline* pPipeline = (*pInOut).Release();
-            const auto handle = ( pPipeline->GetHandle().handle );
+            CPipeline* pPipeline = ( *pInOut ).Release();
+            const auto handle    = ( pPipeline->GetHandle().handle );
             m_Buffer.Remove( handle );
             _DestroyPipeline( &pPipeline );
         }
 
         void CPipelineManager::DestroyLayout( PipelineLayoutPtr* pInOut )
         {
-            CPipelineLayout* pLayout = (*pInOut).Release();
-            const auto handle = ( pLayout->GetHandle().handle );
+            CPipelineLayout* pLayout = ( *pInOut ).Release();
+            const auto       handle  = ( pLayout->GetHandle().handle );
             m_LayoutBuffer.Remove( handle );
             _DestroyLayout( &pLayout );
         }
 
-        PipelineRefPtr CPipelineManager::CreatePipeline(const SPipelineCreateDesc& Desc)
+        PipelineRefPtr CPipelineManager::CreatePipeline( const SPipelineCreateDesc& Desc )
         {
-            hash_t hash = _CalcHash( Desc.Pipeline );
-            CPipeline* pPipeline = nullptr;
+            hash_t         hash      = _CalcHash( Desc.Pipeline );
+            CPipeline*     pPipeline = nullptr;
             PipelineRefPtr pRet;
-            bool needCreate = false;
+            bool           needCreate = false;
             if( m_currPipelineHash == hash )
             {
-                pPipeline = m_pCurrPipeline;
-                pRet = PipelineRefPtr{ pPipeline };
+                pPipeline  = m_pCurrPipeline;
+                pRet       = PipelineRefPtr{ pPipeline };
                 needCreate = !pRet->IsResourceReady();
             }
             else
@@ -141,11 +139,11 @@ ERR:
                         {
                             if( m_Buffer.Add( hash, pPipeline ) )
                             {
-                                pPipeline->m_Desc = Desc.Pipeline;
+                                pPipeline->m_Desc           = Desc.Pipeline;
                                 pPipeline->m_hObject.handle = hash;
-                                pPipeline->m_hDDIObject = _GetDefaultPipeline( Desc.Pipeline );
-                                m_currPipelineHash = hash;
-                                m_pCurrPipeline = pPipeline;
+                                pPipeline->m_hDDIObject     = _GetDefaultPipeline( Desc.Pipeline );
+                                m_currPipelineHash          = hash;
+                                m_pCurrPipeline             = pPipeline;
 
                                 pRet = PipelineRefPtr( pPipeline );
                             }
@@ -163,46 +161,42 @@ ERR:
                     }
                     else
                     {
-                        pRet = PipelineRefPtr{ pPipeline };
+                        pRet       = PipelineRefPtr{ pPipeline };
                         needCreate = !pRet->IsResourceReady();
                     }
                 }
 
-                if( (Desc.Create.flags & Core::CreateResourceFlags::ASYNC) == Core::CreateResourceFlags::ASYNC )
+                if( ( Desc.Create.flags & Core::CreateResourceFlags::ASYNC ) == Core::CreateResourceFlags::ASYNC )
                 {
                     PipelineManagerTasks::SCreatePipelineTask* pTask;
                     {
                         Threads::ScopedLock l( m_CreatePipelineSyncObj );
                         pTask = CreatePipelineTaskPoolHelper::GetTask( &m_CreatePipelineTaskPool );
                     }
-                    pTask->pMgr = this;
+                    pTask->pMgr      = this;
                     pTask->pPipeline = pPipeline;
-                    pTask->Func = [ & ]( Threads::ITask* pThisTask )
-                    {
-                        uint32_t ret = TaskStateBits::FAIL;
-                        auto pTask = ( PipelineManagerTasks::SCreatePipelineTask* )pThisTask;
-                        Result res = _CreatePipelineTask( &pTask->pPipeline );
+                    pTask->Func      = [ & ]( Threads::ITask* pThisTask ) {
+                        uint32_t ret   = TaskStateBits::FAIL;
+                        auto     pTask = (PipelineManagerTasks::SCreatePipelineTask*)pThisTask;
+                        Result   res   = _CreatePipelineTask( &pTask->pPipeline );
                         if( VKE_SUCCEEDED( res ) )
                         {
                             ret = TaskStateBits::OK;
                         }
                         return ret;
                     };
-                    Threads::TSSimpleTask<CPipeline*> Task =
-                    {
-                        .Task = [ this ]( void* pData)
-                        {
-                            TASK_RESULT Res = TaskResults::OK;
-                            CPipeline* pPipeline = ( CPipeline* )pData;
-                            Result res = _CreatePipelineTask( &pPipeline );
-                            if( VKE_FAILED(res) )
-                            {
-                                Res = TaskResults::FAIL;
-                            }
-                            return Res;
-                        },
-                        .pData = &pPipeline
-                    };
+                    Threads::TSSimpleTask< CPipeline* > Task = { .Task =
+                                                                     [ this ]( void* pData ) {
+                                                                         TASK_RESULT Res  = TaskResults::OK;
+                                                                         CPipeline* pPipeline = (CPipeline*)pData;
+                                                                         Result res  = _CreatePipelineTask( &pPipeline );
+                                                                         if( VKE_FAILED( res ) )
+                                                                         {
+                                                                             Res = TaskResults::FAIL;
+                                                                         }
+                                                                         return Res;
+                                                                     },
+                                                                 .pData = &pPipeline };
                     m_pCtx->GetRenderSystem()->GetEngine()->GetThreadPool()->AddTask(
                         Threads::ThreadUsages( Threads::ThreadUsageBits::COMPILE ),
                         "Create Pipeline",
@@ -211,27 +205,25 @@ ERR:
                 }
                 else
                 {
-                    needCreate = (Desc.Create.flags & Core::CreateResourceFlags::DEFERRED) == 0;
+                    needCreate = ( Desc.Create.flags & Core::CreateResourceFlags::DEFERRED ) == 0;
                 }
             }
-            if (needCreate)
+            if( needCreate )
             {
-                for (uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i)
+                for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     SCreateShaderDesc ShaderDesc;
-                    ShaderDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
+                    ShaderDesc.Create.flags  = Core::CreateResourceFlags::DEFAULT;
                     ShaderDesc.Create.stages = Core::ResourceStages::FULL_LOAD;
-                    //ShaderDesc.Shader.EntryPoint = Desc.Pipeline.Shaders.aShaderNames[ i ].EntryPoint;
-                    //ShaderDesc.Shader.FileInfo.FileName = Desc.Pipeline.Shaders.aShaderNames[ i ].FileName;
-                    
+                    // ShaderDesc.Shader.EntryPoint = Desc.Pipeline.Shaders.aShaderNames[ i ].EntryPoint;
+                    // ShaderDesc.Shader.FileInfo.FileName = Desc.Pipeline.Shaders.aShaderNames[ i ].FileName;
                 }
                 // Check if all shaders are ready
                 bool shadersReady = true;
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     const auto pShader = Desc.Pipeline.Shaders.apShaders[ i ];
-                    if( pShader.IsValid()
-                        && !pShader->IsResourceReady() )
+                    if( pShader.IsValid() && !pShader->IsResourceReady() )
                     {
                         shadersReady = false;
                         break;
@@ -245,7 +237,7 @@ ERR:
                     }
                 }
             }
-            
+
             return pRet;
         ERR:
             if( pRet.IsValid() )
@@ -263,10 +255,9 @@ ERR:
             {
                 hRet = Desc.pDefault->GetDDIObject();
             }
-            else
-            if( Desc.hLayout != INVALID_HANDLE )
+            else if( Desc.hLayout != INVALID_HANDLE )
             {
-                //auto hash = GetLayout( Desc.hLayout )->GetHandle();
+                // auto hash = GetLayout( Desc.hLayout )->GetHandle();
                 hRet = m_mDefaultDDIPipelines[ Desc.hLayout.handle ];
             }
             return hRet;
@@ -283,12 +274,12 @@ ERR:
                 if( Desc.hLayout == INVALID_HANDLE )
                 {
                     auto hBindings = m_pCtx->CreateResourceBindings( Desc.ResourceBindings );
-                    if (hBindings == INVALID_HANDLE)
+                    if( hBindings == INVALID_HANDLE )
                     {
                         goto ERR;
                     }
                     auto hDescSetLayout = m_pCtx->GetDescriptorSetLayout( hBindings );
-                    if (hDescSetLayout == INVALID_HANDLE)
+                    if( hDescSetLayout == INVALID_HANDLE )
                     {
                         goto ERR;
                     }
@@ -302,7 +293,7 @@ ERR:
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
-                        pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
+                        pPipeline->m_pLayout         = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
                     }
                 }
@@ -317,7 +308,7 @@ ERR:
                         Platform::ThisThread::Pause();
                         if( pCurr->IsInvalid() )
                         {
-                            VKE_LOG_ERR("Unable to create pipeline because shader is not compiled.");
+                            VKE_LOG_ERR( "Unable to create pipeline because shader is not compiled." );
                             goto ERR;
                         }
                     }
@@ -326,9 +317,9 @@ ERR:
                 NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
                 if( hPipeline != NativeAPI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
-                    pPipeline->m_hDDIObject = hPipeline;
+                    pPipeline->m_hDDIObject      = hPipeline;
                     pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
-                    ret = VKE_OK;
+                    ret                          = VKE_OK;
                 }
                 else
                 {
@@ -340,14 +331,14 @@ ERR:
             return ret;
         ERR:
             pPipeline->m_resourceStates |= Core::ResourceStates::INVALID;
-            ret = VKE_FAIL;
+            ret                          = VKE_FAIL;
             return ret;
         }
 
-        Result CPipelineManager::_CreatePipelineTask(const SPipelineDesc& Desc, CPipeline** ppOut)
+        Result CPipelineManager::_CreatePipelineTask( const SPipelineDesc& Desc, CPipeline** ppOut )
         {
             Result ret = VKE_FAIL;
-            
+
             auto pPipeline = *ppOut;
             if( !pPipeline->IsResourceReady() )
             {
@@ -356,7 +347,7 @@ ERR:
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
-                        pPipeline->m_pLayout = m_pCtx->GetPipelineLayout( Desc.hLayout );
+                        pPipeline->m_pLayout         = m_pCtx->GetPipelineLayout( Desc.hLayout );
                         pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
                     }
                 }
@@ -364,9 +355,9 @@ ERR:
                 NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
                 if( hPipeline != NativeAPI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
-                    pPipeline->m_hDDIObject = hPipeline;
+                    pPipeline->m_hDDIObject      = hPipeline;
                     pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
-                    ret = VKE_OK;
+                    ret                          = VKE_OK;
                 }
                 else
                 {
@@ -379,9 +370,9 @@ ERR:
             return ret;
         }
 
-        hash_t CPipelineManager::_CalcHash(const SPipelineDesc& Desc)
+        hash_t CPipelineManager::_CalcHash( const SPipelineDesc& Desc )
         {
-            //VKE_SIMPLE_PROFILE();
+            // VKE_SIMPLE_PROFILE();
             hash_t hash = 0;
 
             Utils::Hash::Combine( &hash, Desc.hRenderPass.handle );
@@ -403,17 +394,17 @@ ERR:
                 }
             }
 
-#define FLOAT_TO_INT(f) (static_cast<int32_t>((f)*1000))
+#define FLOAT_TO_INT( f ) ( static_cast< int32_t >( ( f ) * 1000 ) )
 
             {
-                //blendingHash = Desc.Blending.enableLogicOperation ^ ( Desc.Blending.logicOperation << 1);
+                // blendingHash = Desc.Blending.enableLogicOperation ^ ( Desc.Blending.logicOperation << 1);
                 Utils::Hash::Combine( &hash, Desc.Blending.enable );
                 Utils::Hash::Combine( &hash, Desc.Blending.logicOperation );
                 Utils::Hash::Combine( &hash, Desc.Blending.vBlendStates.GetCount() );
 
-                for (uint32_t i = 0; i < Desc.Blending.vBlendStates.GetCount(); ++i)
+                for( uint32_t i = 0; i < Desc.Blending.vBlendStates.GetCount(); ++i )
                 {
-                    const auto& State = Desc.Blending.vBlendStates[i];
+                    const auto& State = Desc.Blending.vBlendStates[ i ];
                     /*hash_t hash = (State.enable << 1) ^ ( State.writeMask << 1 );
                     hash ^= (State.Color.src << 1) ^ (State.Color.dst << 1) ^ (State.Color.operation << 1);
                     hash ^= (State.Alpha.src << 1) ^ (State.Alpha.dst << 1) ^ (State.Alpha.operation << 1);
@@ -430,9 +421,11 @@ ERR:
             }
             {
                 const auto& Raster = Desc.Rasterization;
-                //rasterHash = FLOAT_TO_INT(Raster.Depth.biasClampFactor) ^ ( FLOAT_TO_INT(Raster.Depth.biasConstantFactor) << 1 );
-                //rasterHash ^= ( FLOAT_TO_INT(Raster.Depth.biasSlopeFactor) << 1 ) ^ ( FLOAT_TO_INT(Raster.Depth.enableClamp) << 1 );
-                //rasterHash ^= (Raster.Polygon.cullMode << 1) ^ (Raster.Polygon.frontFace << 1) ^ (Raster.Polygon.frontFace << 1);
+                // rasterHash = FLOAT_TO_INT(Raster.Depth.biasClampFactor) ^ (
+                // FLOAT_TO_INT(Raster.Depth.biasConstantFactor) << 1 ); rasterHash ^= (
+                // FLOAT_TO_INT(Raster.Depth.biasSlopeFactor) << 1 ) ^ ( FLOAT_TO_INT(Raster.Depth.enableClamp) << 1 );
+                // rasterHash ^= (Raster.Polygon.cullMode << 1) ^ (Raster.Polygon.frontFace << 1) ^
+                // (Raster.Polygon.frontFace << 1);
                 Utils::Hash::Combine( &hash, Raster.Depth.biasClampFactor );
                 Utils::Hash::Combine( &hash, Raster.Depth.biasConstantFactor );
                 Utils::Hash::Combine( &hash, Raster.Depth.biasClampFactor );
@@ -442,11 +435,11 @@ ERR:
                 Utils::Hash::Combine( &hash, Raster.Polygon.mode );
             }
             {
-                //Viewport
+                // Viewport
                 const auto& Viewport = Desc.Viewport;
                 for( uint32_t i = 0; i < Viewport.vViewports.GetCount(); ++i )
                 {
-                    const auto& Curr = Viewport.vViewports[i];
+                    const auto& Curr = Viewport.vViewports[ i ];
                     Utils::Hash::Combine( &hash, Curr.Size.width );
                     Utils::Hash::Combine( &hash, Curr.Size.height );
                     Utils::Hash::Combine( &hash, Curr.Position.x );
@@ -456,7 +449,7 @@ ERR:
                 }
                 for( uint32_t i = 0; i < Viewport.vScissors.GetCount(); ++i )
                 {
-                    const auto& Curr = Viewport.vScissors[i];
+                    const auto& Curr = Viewport.vScissors[ i ];
                     Utils::Hash::Combine( &hash, Curr.Size.width );
                     Utils::Hash::Combine( &hash, Curr.Size.height );
                     Utils::Hash::Combine( &hash, Curr.Position.x );
@@ -524,23 +517,23 @@ ERR:
             return hash;
         }
 
-        hash_t CPipelineManager::_CalcHash(const SPipelineLayoutDesc& Desc)
+        hash_t CPipelineManager::_CalcHash( const SPipelineLayoutDesc& Desc )
         {
             Utils::SHash Hash;
             Hash += Desc.vDescriptorSetLayouts.GetCount();
             for( uint32_t i = 0; i < Desc.vDescriptorSetLayouts.GetCount(); ++i )
             {
-                //hash ^= ( reinterpret_cast< uint64_t >( Desc.vDescriptorSetLayouts[ i ].handle ) << 1 );
+                // hash ^= ( reinterpret_cast< uint64_t >( Desc.vDescriptorSetLayouts[ i ].handle ) << 1 );
                 Hash += Desc.vDescriptorSetLayouts[ i ].handle;
             }
             return Hash.value;
         }
 
-        PipelineLayoutRefPtr CPipelineManager::CreateLayout(const SPipelineLayoutDesc& Desc)
+        PipelineLayoutRefPtr CPipelineManager::CreateLayout( const SPipelineLayoutDesc& Desc )
         {
-            hash_t hash = _CalcHash( Desc );
+            hash_t               hash = _CalcHash( Desc );
             PipelineLayoutRefPtr pRet;
-            Threads::ScopedLock l( m_LayoutSyncObj );
+            Threads::ScopedLock  l( m_LayoutSyncObj );
             {
                 CPipelineLayout* pLayout = nullptr;
                 if( !m_LayoutBuffer.Find( hash, &pLayout ) )
@@ -577,7 +570,7 @@ ERR:
                     if( hLayout != NativeAPI::Null )
                     {
                         pLayout->Init( Desc );
-                        pLayout->m_hDDIObject = hLayout;
+                        pLayout->m_hDDIObject     = hLayout;
                         pLayout->m_hObject.handle = hash;
                     }
                     else
@@ -611,7 +604,7 @@ ERR:
         PipelineRefPtr CPipelineManager::GetPipeline( PipelineHandle hPipeline )
         {
             PipelineRefPtr pRet;
-            CPipeline* pTmp;
+            CPipeline*     pTmp;
             m_Buffer.Find( hPipeline.handle, &pTmp );
             pRet = PipelineRefPtr{ pTmp };
             return pRet;
@@ -620,7 +613,7 @@ ERR:
         PipelineLayoutRefPtr CPipelineManager::GetLayout( PipelineLayoutHandle hLayout )
         {
             PipelineLayoutRefPtr pRet;
-            CPipelineLayout* pTmp;
+            CPipelineLayout*     pTmp;
             if( m_LayoutBuffer.Find( hLayout.handle, &pTmp ) )
             {
                 pRet = PipelineLayoutRefPtr{ pTmp };
@@ -633,14 +626,14 @@ ERR:
             return PipelineRefPtr{ m_pCurrPipeline };
         }
 
-    } // RenderSystem
+    } // namespace RenderSystem
 
     namespace RenderSystem
     {
         void CPipelineBuilder::SetParent( PipelinePtr pParent )
         {
-            m_pParent = pParent;
-            m_Desc = m_pParent->GetDesc();
+            m_pParent         = pParent;
+            m_Desc            = m_pParent->GetDesc();
             m_Desc.hDDIParent = m_pParent->GetDDIObject();
         }
 
@@ -664,7 +657,7 @@ ERR:
             m_Desc.hDDIRenderPass = pSwpChain->GetDDIRenderPass();
         }
 
-        void CPipelineBuilder::Bind( const DescriptorSetHandle& hSet, const uint32_t)
+        void CPipelineBuilder::Bind( const DescriptorSetHandle& hSet, const uint32_t )
         {
             m_vDescSets.PushBack( hSet );
         }
@@ -678,6 +671,6 @@ ERR:
         {
             m_Desc.hLayout = hLayout;
         }
-        
-    } // RenderSystem
-} // VKE
+
+    } // namespace RenderSystem
+} // namespace VKE

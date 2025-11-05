@@ -6,10 +6,9 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CRenderQueue::CRenderQueue(CGraphicsContext* pCtx) :
-            m_pCtx(pCtx)
+        CRenderQueue::CRenderQueue( CGraphicsContext* pCtx ) : m_pCtx( pCtx )
         {
-            assert(pCtx);
+            assert( pCtx );
         }
 
         CRenderQueue::~CRenderQueue()
@@ -19,21 +18,20 @@ namespace VKE
 
         void CRenderQueue::Destroy()
         {
-
         }
 
-        Result CRenderQueue::Create(const SRenderQueueDesc& Desc)
+        Result CRenderQueue::Create( const SRenderQueueDesc& Desc )
         {
-            assert(m_pCtx);
+            assert( m_pCtx );
             m_Desc = Desc;
-            
+
             return VKE_OK;
         }
 
         Result CRenderQueue::Begin()
         {
-            assert(m_pCtx);
-            
+            assert( m_pCtx );
+
             return VKE_OK;
         }
 
@@ -44,22 +42,22 @@ namespace VKE
 
         Result CRenderQueue::Execute()
         {
-            assert(m_pCtx);
-            //return m_pCtx->ExecuteRenderQueue(this);
+            assert( m_pCtx );
+            // return m_pCtx->ExecuteRenderQueue(this);
             return VKE_FAIL;
         }
 
-        void CRenderQueue::IsEnabled(bool enabled)
+        void CRenderQueue::IsEnabled( bool enabled )
         {
             if( m_enabled != enabled )
             {
                 m_enabled = enabled;
-                assert(m_pCtx);
-                //m_pCtx->_EnableRenderQueue(this, enabled);
+                assert( m_pCtx );
+                // m_pCtx->_EnableRenderQueue(this, enabled);
             }
         }
 
-        void CRenderQueue::SetRenderTarget(const RenderTargetHandle&)
+        void CRenderQueue::SetRenderTarget( const RenderTargetHandle& )
         {
             /*if( m_pRenderTarget )
             {
@@ -70,5 +68,5 @@ namespace VKE
             m_pRenderTarget->Begin(m_vkCmdBuffer);*/
         }
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

@@ -4,11 +4,10 @@
 
 namespace VKE
 {
-	namespace RenderSystem
-	{
-		class CContext
-		{
-
-		};
-	} // RenderSystem
-} // VKE
+    namespace RenderSystem
+    {
+        class CContext
+        {
+        };
+    } // namespace RenderSystem
+} // namespace VKE

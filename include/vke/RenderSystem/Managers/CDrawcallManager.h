@@ -11,7 +11,6 @@ namespace VKE
 
         struct SDrawcallManagerInfo
         {
-
         };
 
         class CDrawcallManager
@@ -28,14 +27,12 @@ namespace VKE
             // Bounding spheres
             // AABBs
 
-            public:
+        public:
+            Result Create( const SDrawcallManagerInfo& Info );
+            void   Destroy();
 
-            Result Create(const SDrawcallManagerInfo& Info);
-            void Destroy();
-
-            protected:
-
-                Memory::CFreeListPool m_pMemMgr;
+        protected:
+            Memory::CFreeListPool m_pMemMgr;
         };
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

@@ -7,11 +7,8 @@ namespace VKE::RenderSystem
 {
     class IFrameGraph;
 
-    
-
     struct SFrameGraphManagerDesc
     {
-
     };
 
     class CFrameGraphManager
@@ -19,27 +16,26 @@ namespace VKE::RenderSystem
         friend class CRenderSystem;
         friend class CFrameGraph;
         using NodeMemoryManager = Memory::CFreeList;
-        using FrameGraphMap = vke_hash_map<ResourceName, CFrameGraph>;
-      public:
+        using FrameGraphMap     = vke_hash_map< ResourceName, CFrameGraph >;
 
-          CFrameGraph* CreateFrameGraph( const SFrameGraphDesc& );
-          void DestroyFrameGraph( CFrameGraph** );
-          void DestroyFrameGraph( cstr_t pName );
+    public:
+        CFrameGraph* CreateFrameGraph( const SFrameGraphDesc& );
+        void         DestroyFrameGraph( CFrameGraph** );
+        void         DestroyFrameGraph( cstr_t pName );
 
-          CFrameGraph* GetFrameGraph()
-          {
-              return m_pCurrentFrameGraph;
-          }
+        CFrameGraph* GetFrameGraph()
+        {
+            return m_pCurrentFrameGraph;
+        }
 
-      protected:
-        Result _Create(const SFrameGraphManagerDesc&);
-        void _Destroy();
+    protected:
+        Result _Create( const SFrameGraphManagerDesc& );
+        void   _Destroy();
 
-      protected:
-
-          SFrameGraphManagerDesc m_Desc;
-          NodeMemoryManager m_NodeMemMgr;
-          FrameGraphMap m_mFrameGraphs;
-          CFrameGraph* m_pCurrentFrameGraph = nullptr;
+    protected:
+        SFrameGraphManagerDesc m_Desc;
+        NodeMemoryManager      m_NodeMemMgr;
+        FrameGraphMap          m_mFrameGraphs;
+        CFrameGraph*           m_pCurrentFrameGraph = nullptr;
     };
-} // VKE
+} // namespace VKE::RenderSystem

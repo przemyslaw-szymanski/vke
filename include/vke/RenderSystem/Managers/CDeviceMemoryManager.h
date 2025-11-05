@@ -9,27 +9,32 @@ namespace VKE
     {
         struct SAllocateDesc
         {
-            CDDI::AllocateDescs::SMemory    Memory;
-            uint32_t                        poolSize = 0; /// 0 for default settings
+            CDDI::AllocateDescs::SMemory Memory;
+            uint32_t                     poolSize = 0; /// 0 for default settings
 #if VKE_RENDER_SYSTEM_MEMORY_DEBUG
             union
             {
                 const STextureDesc* pTexDesc;
-                const SBufferDesc* pBufferDesc;
+                const SBufferDesc*  pBufferDesc;
             };
+
             uint32_t descType = 0; // 1 tex, 2 buff, 0 undefined
-            void SetDebugInfo(const STextureDesc* pDesc)
+
+            void SetDebugInfo( const STextureDesc* pDesc )
             {
                 pTexDesc = pDesc;
                 descType = 1;
             }
+
             void SetDebugInfo( const SBufferDesc* pDesc )
             {
                 pBufferDesc = pDesc;
-                descType = 2;
+                descType    = 2;
             }
 #endif
-            void SetDebugInfo( const void* ){}
+            void SetDebugInfo( const void* )
+            {
+            }
         };
 
         class CDeviceMemoryManager
@@ -39,11 +44,11 @@ namespace VKE
             using ViewVec = Utils::TCDynamicArray< CMemoryPoolView >;
 
             using AllocationHandleType = uint32_t;
-            using PoolHandleType = uint16_t;
+            using PoolHandleType       = uint16_t;
 
             struct SPool
             {
-                SAllocateMemoryData     Data;
+                SAllocateMemoryData Data;
             };
 
             struct SViewHandle
@@ -52,10 +57,11 @@ namespace VKE
                 {
                     struct
                     {
-                        uint32_t    poolIdx : 16;
-                        uint32_t    viewIdx : 16;
+                        uint32_t poolIdx : 16;
+                        uint32_t viewIdx : 16;
                     };
-                    uint32_t        handle;
+
+                    uint32_t handle;
                 };
             };
 
@@ -63,103 +69,110 @@ namespace VKE
             {
                 struct
                 {
-                    AllocationHandleType    hAllocInfo;
-                    PoolHandleType          hPool;
-                    uint32_t                dedicated : 1;
+                    AllocationHandleType hAllocInfo;
+                    PoolHandleType       hPool;
+                    uint32_t             dedicated : 1;
                 };
-                handle_t    handle;
 
-                UAllocationHandle() {}
-                UAllocationHandle( const handle_t& h ) : handle{ h } {}
-                void operator=( const handle_t& h ) { handle = h; }
+                handle_t handle;
+
+                UAllocationHandle()
+                {
+                }
+
+                UAllocationHandle( const handle_t& h ) : handle{ h }
+                {
+                }
+
+                void operator=( const handle_t& h )
+                {
+                    handle = h;
+                }
             };
 
-            using PoolVec = Utils::TCDynamicArray< SPool >;
-            using PoolBuffer = Utils::TSFreePool< SPool >;
-            using SyncObjVec = Utils::TCDynamicArray< Threads::SyncObject >;
-            using PoolViewVec = Utils::TCDynamicArray< CMemoryPoolView >;
+            using PoolVec          = Utils::TCDynamicArray< SPool >;
+            using PoolBuffer       = Utils::TSFreePool< SPool >;
+            using SyncObjVec       = Utils::TCDynamicArray< Threads::SyncObject >;
+            using PoolViewVec      = Utils::TCDynamicArray< CMemoryPoolView >;
             using AllocationBuffer = Utils::TSFreePool< SMemoryAllocationInfo >;
-            using HandleVec = Utils::TCDynamicArray< handle_t >;
-            using PoolMap = vke_hash_map< MEMORY_USAGE, HandleVec >;
-            using PoolSizeMap = vke_hash_map< MEMORY_USAGE, uint32_t >;
+            using HandleVec        = Utils::TCDynamicArray< handle_t >;
+            using PoolMap          = vke_hash_map< MEMORY_USAGE, HandleVec >;
+            using PoolSizeMap      = vke_hash_map< MEMORY_USAGE, uint32_t >;
 
-            public:
+        public:
+            struct SCreateMemoryPoolDesc
+            {
+                uint32_t     size;
+                uint32_t     alignment;
+                MEMORY_USAGE usage;
+            };
 
-                struct SCreateMemoryPoolDesc
+            struct SViewDesc
+            {
+                handle_t hPool;
+                uint32_t size;
+            };
+
+            struct SAllocationHandle
+            {
+                union
                 {
-                    uint32_t        size;
-                    uint32_t        alignment;
-                    MEMORY_USAGE    usage;
-                };
-
-                struct SViewDesc
-                {
-                    handle_t    hPool;
-                    uint32_t    size;
-                };
-
-                struct SAllocationHandle
-                {
-                    union
+                    struct
                     {
-                        struct
-                        {
-                            SViewHandle     hView;
-                            uint32_t        offset;
-                        };
-                        handle_t    handle;
+                        SViewHandle hView;
+                        uint32_t    offset;
                     };
+
+                    handle_t handle;
                 };
+            };
 
-            public:
+        public:
+            CDeviceMemoryManager( CDeviceContext* pCtx );
+            ~CDeviceMemoryManager();
 
-                            CDeviceMemoryManager(CDeviceContext* pCtx);
-                            ~CDeviceMemoryManager();
+            Result Create( const SDeviceMemoryManagerDesc& Desc );
+            void   Destroy();
 
-                Result      Create(const SDeviceMemoryManagerDesc& Desc);
-                void        Destroy();
+            handle_t AllocateTexture( const SAllocateDesc& Desc );
+            handle_t AllocateBuffer( const SAllocateDesc& Desc );
 
-                handle_t    AllocateTexture( const SAllocateDesc& Desc );
-                handle_t    AllocateBuffer( const SAllocateDesc& Desc );
+            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
+            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
 
-                Result      UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
-                Result      UpdateMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
+            void* MapMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
+            void  UnmapMemory( const handle_t& hMemory );
 
-                void*       MapMemory(const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory);
-                void        UnmapMemory(const handle_t& hMemory);
+            const SMemoryAllocationInfo& GetAllocationInfo( const handle_t& hMemory );
 
-                const SMemoryAllocationInfo& GetAllocationInfo( const handle_t& hMemory );
+            void LogDebug();
 
-                void LogDebug();
+        protected:
+            handle_t _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
+            handle_t _CreatePool( const SCreateMemoryPoolDesc& Desc );
+            handle_t _CreatePool( const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq );
+            handle_t _AllocateFromPool( const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq,
+                                        SBindMemoryInfo* pBindInfoOut );
 
-            protected:
-
-                handle_t    _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
-                handle_t    _CreatePool(const SCreateMemoryPoolDesc& Desc);
-                handle_t    _CreatePool(const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq);
-                handle_t    _AllocateFromPool( const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq,
-                    SBindMemoryInfo* pBindInfoOut );
-
-            protected:
-
-                SDeviceMemoryManagerDesc    m_Desc;
-                CDeviceContext*             m_pCtx;
-                //PoolVec                     m_vPools;
-                PoolMap                     m_mPoolIndices;
-                PoolSizeMap                 m_mLastPoolSizes;
-                PoolBuffer                  m_PoolBuffer;
-                AllocationBuffer            m_AllocBuffer;
-                SyncObjVec                  m_vSyncObjects;
-                PoolViewVec                 m_vPoolViews;
-                uint32_t                    m_maxPoolCount;
-                uint32_t m_aMaxPoolCounts[MemoryHeapTypes::_MAX_COUNT];
-                size_t m_aMinAllocSizes[MemoryHeapTypes::_MAX_COUNT];
-                size_t m_aHeapSizes[ MemoryHeapTypes::_MAX_COUNT ];
-                //uint32_t                    m_lastPoolSize = 0;
-                //size_t                      m_totalMemAllocated = 0;
-                size_t m_aTotalMemAllocated[ MemoryHeapTypes::_MAX_COUNT ] = { 0 };
-                size_t m_aTotalMemUsed[ MemoryHeapTypes::_MAX_COUNT ] = { 0 };
-                //size_t                      m_totalMemUsed = 0;
+        protected:
+            SDeviceMemoryManagerDesc m_Desc;
+            CDeviceContext*          m_pCtx;
+            // PoolVec                     m_vPools;
+            PoolMap          m_mPoolIndices;
+            PoolSizeMap      m_mLastPoolSizes;
+            PoolBuffer       m_PoolBuffer;
+            AllocationBuffer m_AllocBuffer;
+            SyncObjVec       m_vSyncObjects;
+            PoolViewVec      m_vPoolViews;
+            uint32_t         m_maxPoolCount;
+            uint32_t         m_aMaxPoolCounts[ MemoryHeapTypes::_MAX_COUNT ];
+            size_t           m_aMinAllocSizes[ MemoryHeapTypes::_MAX_COUNT ];
+            size_t           m_aHeapSizes[ MemoryHeapTypes::_MAX_COUNT ];
+            // uint32_t                    m_lastPoolSize = 0;
+            // size_t                      m_totalMemAllocated = 0;
+            size_t m_aTotalMemAllocated[ MemoryHeapTypes::_MAX_COUNT ] = { 0 };
+            size_t m_aTotalMemUsed[ MemoryHeapTypes::_MAX_COUNT ]      = { 0 };
+            // size_t                      m_totalMemUsed = 0;
         };
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

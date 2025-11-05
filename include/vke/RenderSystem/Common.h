@@ -15,12 +15,12 @@
 #include "RenderSystem/CDDITypes.h"
 
 #ifdef OPTIONAL
-#pragma push_macro("OPTIONAL")
+#pragma push_macro( "OPTIONAL" )
 #undef OPTIONAL
 #endif
 
 #ifdef DOMAIN
-#pragma push_macro("DOMAIN")
+#pragma push_macro( "DOMAIN" )
 #undef DOMAIN
 #endif
 
@@ -28,10 +28,10 @@ namespace VKE
 {
 
 #if VKE_RENDER_SYSTEM_DEBUG || VKE_DEBUG
-#define VKE_RENDER_SYSTEM_DEBUG_CODE(_code) _code
+#define VKE_RENDER_SYSTEM_DEBUG_CODE( _code ) _code
 #define VKE_RENDER_SYSTEM_DEBUG_NAME                                                                                   \
     ResourceName _DbgName = "";                                                                                        \
-    void         SetDebugName(cstr_t pName)                                                                            \
+    void         SetDebugName( cstr_t pName )                                                                          \
     {                                                                                                                  \
         _DbgName = pName;                                                                                              \
     }                                                                                                                  \
@@ -43,18 +43,18 @@ namespace VKE
     {                                                                                                                  \
         return _DbgName.IsEmpty();                                                                                     \
     }
-#define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo *pDebugInfo = nullptr
-#define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj) (_pCmdBuff)->BeginDebugInfo((_obj).pDebugInfo)
-#define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff) (_pCmdBuff)->EndDebugInfo()
-#define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)                                                          \
+#define VKE_RENDER_SYSTEM_DEBUG_INFO SDebugInfo* pDebugInfo = nullptr
+#define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( _pCmdBuff, _obj ) ( _pCmdBuff )->BeginDebugInfo( ( _obj ).pDebugInfo )
+#define VKE_RENDER_SYSTEM_END_DEBUG_INFO( _pCmdBuff ) ( _pCmdBuff )->EndDebugInfo()
+#define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _obj, _text, _Color )                                                        \
     VKE::RenderSystem::SDebugInfo __dbgInfo;                                                                           \
-    __dbgInfo.pText   = (_text);                                                                                       \
-    __dbgInfo.Color   = (_Color);                                                                                      \
-    (_obj).pDebugInfo = &__dbgInfo;
+    __dbgInfo.pText     = ( _text );                                                                                   \
+    __dbgInfo.Color     = ( _Color );                                                                                  \
+    ( _obj ).pDebugInfo = &__dbgInfo;
 #else
-#define VKE_RENDER_SYSTEM_DEBUG_CODE(_code)
+#define VKE_RENDER_SYSTEM_DEBUG_CODE( _code )
 #define VKE_RENDER_SYSTEM_DEBUG_NAME                                                                                   \
-    void SetDebugName(cstr_t)                                                                                          \
+    void SetDebugName( cstr_t )                                                                                        \
     {                                                                                                                  \
     }                                                                                                                  \
     cstr_t GetDebugName() const                                                                                        \
@@ -66,28 +66,28 @@ namespace VKE
         return true;                                                                                                   \
     }
 #define VKE_RENDER_SYSTEM_DEBUG_INFO
-#define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO(_pCmdBuff, _obj)
-#define VKE_RENDER_SYSTEM_END_DEBUG_INFO(_pCmdBuff)
-#define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _text, _Color)
+#define VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( _pCmdBuff, _obj )
+#define VKE_RENDER_SYSTEM_END_DEBUG_INFO( _pCmdBuff )
+#define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _obj, _text, _Color )
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
-#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME(_obj, _name) VKE_DEBUG_CODE((_obj).Name = _name)
+#define VKE_RENDER_SYSTEM_SET_DEBUG_NAME( _obj, _name ) VKE_DEBUG_CODE( ( _obj ).Name = _name )
 #if VKE_RENDER_SYSTEM_DEBUG
-#define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj) (_obj).Name
+#define VKE_RENDER_SYSTEM_GET_DEBUG_NAME( _obj ) ( _obj ).Name
 // #   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO(_obj, _color, _text ) do{ (_obj).pDebugInfo->Color = (_color);
 // (_obj).pDebugInfo->pText = (_text); }while(0,0)
 #else
-#define VKE_RENDER_SYSTEM_GET_DEBUG_NAME(_obj) ""
+#define VKE_RENDER_SYSTEM_GET_DEBUG_NAME( _obj ) ""
 // #   define VKE_RENDER_SYSTEM_SET_DEBUG_INFO( _dbgInfo, _color, _text )
 #endif // VKE_RENDER_SYSTEM_DEBUG
 
 #if VKE_USE_GLSL_COMPILER
-#define VKE_SHADER_COMPILER_STR(_str) _str
+#define VKE_SHADER_COMPILER_STR( _str ) _str
 #elif VKE_USE_DIRECTX_SHADER_COMPILER
-#define VKE_SHADER_COMPILER_STR(_str) L##_str
+#define VKE_SHADER_COMPILER_STR( _str ) L##_str
 #endif
 
-#if !defined(VKE_USE_HLSL_SYNTAX)
+#if !defined( VKE_USE_HLSL_SYNTAX )
 #define VKE_USE_HLSL_SYNTAX 0
 #endif
 
@@ -99,18 +99,19 @@ namespace VKE
     using ShaderCompilerCharType = wchar_t;
 #endif
 
-    using ShaderCompilerString = Utils::TCString<ShaderCompilerCharType>;
+    using ShaderCompilerString = Utils::TCString< ShaderCompilerCharType >;
 
     class CRenderSystem;
 
-    template <typename T> struct TSArray
+    template< typename T >
+    struct TSArray
     {
         uint32_t count = 0;
-        const T *pData = nullptr;
+        const T* pData = nullptr;
 
-        vke_force_inline const T &operator[](uint32_t idx) const
+        vke_force_inline const T& operator[]( uint32_t idx ) const
         {
-            return pData[idx];
+            return pData[ idx ];
         }
     };
 
@@ -139,27 +140,28 @@ namespace VKE
         class CContextBase;
         class CDeviceContext;
 
-        using StringVec = Utils::TCDynamicArray<vke_string>;
-        using CStrVec   = Utils::TCDynamicArray<cstr_t>;
+        using StringVec = Utils::TCDynamicArray< vke_string >;
+        using CStrVec   = Utils::TCDynamicArray< cstr_t >;
 
-        template <uint32_t DEFAULT_COUNT = 32> using UintVec = Utils::TCDynamicArray<uint32_t, DEFAULT_COUNT>;
+        template< uint32_t DEFAULT_COUNT = 32 >
+        using UintVec = Utils::TCDynamicArray< uint32_t, DEFAULT_COUNT >;
 
-        VKE_DECLARE_HANDLE(Pipeline);
-        VKE_DECLARE_HANDLE(PipelineLayout);
-        VKE_DECLARE_HANDLE(DescriptorSet);
-        VKE_DECLARE_HANDLE(DescriptorSetLayout);
-        VKE_DECLARE_HANDLE2(Buffer, uint32_t);
-        VKE_DECLARE_HANDLE2(VertexBuffer, uint32_t);
-        VKE_DECLARE_HANDLE2(IndexBuffer, uint32_t);
-        VKE_DECLARE_HANDLE(Texture);
-        VKE_DECLARE_HANDLE(TextureView);
-        VKE_DECLARE_HANDLE(BufferView);
-        VKE_DECLARE_HANDLE(RenderPass);
-        VKE_DECLARE_HANDLE(Sampler);
-        VKE_DECLARE_HANDLE(Framebuffer);
-        VKE_DECLARE_HANDLE(Shader);
-        VKE_DECLARE_HANDLE(RenderTarget);
-        VKE_DECLARE_HANDLE(Event);
+        VKE_DECLARE_HANDLE( Pipeline );
+        VKE_DECLARE_HANDLE( PipelineLayout );
+        VKE_DECLARE_HANDLE( DescriptorSet );
+        VKE_DECLARE_HANDLE( DescriptorSetLayout );
+        VKE_DECLARE_HANDLE2( Buffer, uint32_t );
+        VKE_DECLARE_HANDLE2( VertexBuffer, uint32_t );
+        VKE_DECLARE_HANDLE2( IndexBuffer, uint32_t );
+        VKE_DECLARE_HANDLE( Texture );
+        VKE_DECLARE_HANDLE( TextureView );
+        VKE_DECLARE_HANDLE( BufferView );
+        VKE_DECLARE_HANDLE( RenderPass );
+        VKE_DECLARE_HANDLE( Sampler );
+        VKE_DECLARE_HANDLE( Framebuffer );
+        VKE_DECLARE_HANDLE( Shader );
+        VKE_DECLARE_HANDLE( RenderTarget );
+        VKE_DECLARE_HANDLE( Event );
 
         struct FeatureLevels
         {
@@ -204,7 +206,7 @@ namespace VKE
 
         using FEATURE_LEVEL = FeatureLevels::LEVEL;
 
-        static vke_force_inline uint16_t CalcFormatSize(const FORMAT &fmt)
+        static vke_force_inline uint16_t CalcFormatSize( const FORMAT& fmt )
         {
             // Size in bits
             static const uint16_t aSizes[] = {
@@ -395,7 +397,7 @@ namespace VKE
                 128,           // ASTC_12x12_SRGB_BLOCK,
 
             };
-            return aSizes[fmt] / 8; // convert to bytes
+            return aSizes[ fmt ] / 8; // convert to bytes
         }
 
         struct ApiObjectTypes
@@ -443,7 +445,7 @@ namespace VKE
         };
 
         using TextureSizeType = uint16_t;
-        using TextureSize     = TSExtent<TextureSizeType>;
+        using TextureSize     = TSExtent< TextureSizeType >;
         using BufferSizeType  = uint32_t;
 
         struct VKE_API SColor
@@ -455,39 +457,40 @@ namespace VKE
                     float r, g, b, a;
                 };
 
-                float    floats[4];
-                uint32_t uints[4];
-                int32_t  ints[4];
-                uint8_t  bytes[4];
+                float    floats[ 4 ];
+                uint32_t uints[ 4 ];
+                int32_t  ints[ 4 ];
+                uint8_t  bytes[ 4 ];
             };
 
             SColor()
             {
             }
 
-            SColor(const SColor &Other) : r(Other.r), g(Other.g), b(Other.b), a(Other.a)
+            SColor( const SColor& Other ) : r( Other.r ), g( Other.g ), b( Other.b ), a( Other.a )
             {
             }
 
-            explicit SColor(uint32_t v)
-                : r(static_cast<float>(v)), g(static_cast<float>(v)), b(static_cast<float>(v)), a(static_cast<float>(v))
+            explicit SColor( uint32_t v ) :
+                r( static_cast< float >( v ) ), g( static_cast< float >( v ) ), b( static_cast< float >( v ) ),
+                a( static_cast< float >( v ) )
             {
             }
 
-            SColor(float red, float green, float blue, float alpha) : r(red), g(green), b(blue), a(alpha)
+            SColor( float red, float green, float blue, float alpha ) : r( red ), g( green ), b( blue ), a( alpha )
             {
             }
 
-            explicit SColor(float v) : r(v), g(v), b(v), a(v)
+            explicit SColor( float v ) : r( v ), g( v ), b( v ), a( v )
             {
             }
 
-            void operator=(float v)
+            void operator=( float v )
             {
                 r = g = b = a = v;
             }
 
-            void CopyToNative(void *pNativeArray) const;
+            void CopyToNative( void* pNativeArray ) const;
 
             static const SColor ZERO;
             static const SColor ONE;
@@ -517,7 +520,7 @@ namespace VKE
             {
             }
 
-            SDepthStencilValue(float d, uint32_t s) : depth{ d }, stencil{ s }
+            SDepthStencilValue( float d, uint32_t s ) : depth{ d }, stencil{ s }
             {
             }
 
@@ -537,23 +540,23 @@ namespace VKE
             {
             }
 
-            SClearValue(const SClearValue &V) : Color(V.Color)
+            SClearValue( const SClearValue& V ) : Color( V.Color )
             {
             }
 
-            SClearValue(const SColor &C) : Color{ C }
+            SClearValue( const SColor& C ) : Color{ C }
             {
             }
 
-            SClearValue(const SDepthStencilValue &DS) : DepthStencil{ DS }
+            SClearValue( const SDepthStencilValue& DS ) : DepthStencil{ DS }
             {
             }
 
-            SClearValue(float r, float g, float b, float a) : Color(r, g, b, a)
+            SClearValue( float r, float g, float b, float a ) : Color( r, g, b, a )
             {
             }
 
-            SClearValue(float d, uint32_t s) : DepthStencil(d, s)
+            SClearValue( float d, uint32_t s ) : DepthStencil( d, s )
             {
             }
         };
@@ -567,8 +570,8 @@ namespace VKE
             uint32_t CalcHash() const
             {
                 Utils::SHash Hash;
-                Hash.Combine(Position.x, Position.y, Size.width, Size.height, MinMaxDepth.min, MinMaxDepth.max);
-                return static_cast<uint32_t>(Hash.value);
+                Hash.Combine( Position.x, Position.y, Size.width, Size.height, MinMaxDepth.min, MinMaxDepth.max );
+                return static_cast< uint32_t >( Hash.value );
             }
         };
 
@@ -580,8 +583,8 @@ namespace VKE
             uint32_t CalcHash() const
             {
                 Utils::SHash Hash;
-                Hash.Combine(Position.x, Position.y, Size.width, Size.height);
-                return static_cast<uint32_t>(Hash.value);
+                Hash.Combine( Position.x, Position.y, Size.width, Size.height );
+                return static_cast< uint32_t >( Hash.value );
             }
         };
 
@@ -617,7 +620,8 @@ namespace VKE
             RES_ID_INDEX
         };
 
-        template <class NameT, class HandleT, class PtrT> struct SResourceID
+        template< class NameT, class HandleT, class PtrT >
+        struct SResourceID
         {
             union
             {
@@ -633,19 +637,19 @@ namespace VKE
             {
             }
 
-            SResourceID(const NameT &n, RES_ID_TYPE t) : name{ n }, type{ t }
+            SResourceID( const NameT& n, RES_ID_TYPE t ) : name{ n }, type{ t }
             {
             }
 
-            SResourceID(const HandleT &h, RES_ID_TYPE t) : handle{ h }, type{ t }
+            SResourceID( const HandleT& h, RES_ID_TYPE t ) : handle{ h }, type{ t }
             {
             }
 
-            SResourceID(const PtrT &p, RES_ID_TYPE t) : ptr{ p }, type{ t }
+            SResourceID( const PtrT& p, RES_ID_TYPE t ) : ptr{ p }, type{ t }
             {
             }
 
-            SResourceID(const uint32_t &i, RES_ID_TYPE t) : index{ i }, type{ t }
+            SResourceID( const uint32_t& i, RES_ID_TYPE t ) : index{ i }, type{ t }
             {
             }
         };
@@ -750,9 +754,9 @@ namespace VKE
 
         struct GraphicsQueueTypes
         {
-            static const uint32_t RENDER     = VKE_BIT(0);
-            static const uint32_t COMPUTE    = VKE_BIT(1);
-            static const uint32_t TRANSFER   = VKE_BIT(2);
+            static const uint32_t RENDER     = VKE_BIT( 0 );
+            static const uint32_t COMPUTE    = VKE_BIT( 1 );
+            static const uint32_t TRANSFER   = VKE_BIT( 2 );
             static const uint32_t _MAX_COUNT = 3;
             static const uint32_t GENERAL    = RENDER | COMPUTE | TRANSFER;
         };
@@ -765,7 +769,7 @@ namespace VKE
 
         struct SAdapterInfo
         {
-            char           name[Constants::MAX_NAME_LENGTH];
+            char           name[ Constants::MAX_NAME_LENGTH ];
             SAdapterLimits limits;
             uint32_t       apiVersion;
             uint32_t       driverVersion;
@@ -814,7 +818,7 @@ namespace VKE
         {
             WindowPtr pWindow = WindowPtr();
             // CGraphicsContext*   pCtx = nullptr;
-            void          *pPrivate         = nullptr;
+            void*          pPrivate         = nullptr;
             uint32_t       queueFamilyIndex = 0;
             TextureSize    Size             = { 800, 600 };
             COLOR_SPACE    colorSpace       = ColorSpaces::SRGB;
@@ -872,20 +876,20 @@ namespace VKE
         {
             enum TYPE : uint16_t
             {
-                VERTEX          = VKE_BIT(1),
-                TS_HULL         = VKE_BIT(2),
-                TS_DOMAIN       = VKE_BIT(3),
-                GEOMETRY        = VKE_BIT(4),
-                PIXEL           = VKE_BIT(5),
-                MS_TASK         = VKE_BIT(6),
-                MS_MESH         = VKE_BIT(7),
-                RT_RAYGEN       = VKE_BIT(8),
-                RT_ANY_HIT      = VKE_BIT(9),
-                RT_CLOSEST_HIT  = VKE_BIT(10),
-                RT_MISS_HIT     = VKE_BIT(11),
-                RT_CALLABLE     = VKE_BIT(12),
-                RT_INTERSECTION = VKE_BIT(13),
-                COMPUTE         = VKE_BIT(14),
+                VERTEX          = VKE_BIT( 1 ),
+                TS_HULL         = VKE_BIT( 2 ),
+                TS_DOMAIN       = VKE_BIT( 3 ),
+                GEOMETRY        = VKE_BIT( 4 ),
+                PIXEL           = VKE_BIT( 5 ),
+                MS_TASK         = VKE_BIT( 6 ),
+                MS_MESH         = VKE_BIT( 7 ),
+                RT_RAYGEN       = VKE_BIT( 8 ),
+                RT_ANY_HIT      = VKE_BIT( 9 ),
+                RT_CLOSEST_HIT  = VKE_BIT( 10 ),
+                RT_MISS_HIT     = VKE_BIT( 11 ),
+                RT_CALLABLE     = VKE_BIT( 12 ),
+                RT_INTERSECTION = VKE_BIT( 13 ),
+                COMPUTE         = VKE_BIT( 14 ),
                 _MAX_COUNT      = 14,
                 UNKNOWN         = 0x0,
                 MESH            = MS_TASK | MS_MESH,
@@ -919,7 +923,7 @@ namespace VKE
         using BINDING_TYPE        = BindingTypes::TYPE;
         using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
         using DescriptorSetTypes  = BindingTypes;
-        using DescriptorSetCounts = uint16_t[DescriptorSetTypes::_MAX_COUNT];
+        using DescriptorSetCounts = uint16_t[ DescriptorSetTypes::_MAX_COUNT ];
 
         struct SResourceBinding
         {
@@ -927,16 +931,16 @@ namespace VKE
             {
             }
 
-            SResourceBinding(uint8_t idx) : index{ idx }, set{ 0 }, stages{ PipelineStages::ALL }, count{ 1 }
+            SResourceBinding( uint8_t idx ) : index{ idx }, set{ 0 }, stages{ PipelineStages::ALL }, count{ 1 }
             {
             }
 
-            SResourceBinding(uint8_t idx, PIPELINE_STAGES s) : index{ idx }, set{ 0 }, stages{ s }, count{ 1 }
+            SResourceBinding( uint8_t idx, PIPELINE_STAGES s ) : index{ idx }, set{ 0 }, stages{ s }, count{ 1 }
             {
             }
 
-            SResourceBinding(uint8_t idx, PIPELINE_STAGES s, uint16_t c)
-                : index{ idx }, set{ 0 }, stages{ s }, count{ c }
+            SResourceBinding( uint8_t idx, PIPELINE_STAGES s, uint16_t c ) :
+                index{ idx }, set{ 0 }, stages{ s }, count{ c }
             {
             }
 
@@ -973,15 +977,15 @@ namespace VKE
             };
 
             using BindingArray =
-                Utils::TCDynamicArray<SBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT>;
+                Utils::TCDynamicArray< SBinding, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT >;
 
             SDescriptorSetLayoutDesc()
             {
             }
 
-            SDescriptorSetLayoutDesc(DEFAULT_CTOR_INIT)
+            SDescriptorSetLayoutDesc( DEFAULT_CTOR_INIT )
             {
-                vBindings.PushBack({});
+                vBindings.PushBack( {} );
             }
 
             BindingArray vBindings;
@@ -990,15 +994,16 @@ namespace VKE
 
         struct SUpdateBindingsHelper
         {
-            template <class HandleType> struct TSBinding
+            template< class HandleType >
+            struct TSBinding
             {
-                const HandleType *ahHandles;
+                const HandleType* ahHandles;
                 uint16_t          count;
                 BINDING_TYPE      type;
                 uint8_t           binding;
             };
 
-            struct SBufferBinding : TSBinding<BufferHandle>
+            struct SBufferBinding : TSBinding< BufferHandle >
             {
                 uint32_t offset;
                 uint32_t range;
@@ -1006,21 +1011,21 @@ namespace VKE
 
             struct SSamplerAndTextureBinding
             {
-                const SamplerHandle     *ahSamplers;
-                const TextureHandle     *ahTextures;
-                const TextureViewHandle *ahTexViews;
+                const SamplerHandle*     ahSamplers;
+                const TextureHandle*     ahTextures;
+                const TextureViewHandle* ahTexViews;
                 uint16_t                 count;
                 BINDING_TYPE             type;
                 uint8_t                  binding;
             };
 
-            void AddBinding(uint8_t binding, const RenderTargetHandle *ahHandles, const uint16_t count)
+            void AddBinding( uint8_t binding, const RenderTargetHandle* ahHandles, const uint16_t count )
             {
-                TSBinding<RenderTargetHandle> Binding;
+                TSBinding< RenderTargetHandle > Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count     = count;
                 Binding.binding   = binding;
-                vRTs.PushBack(Binding);
+                vRTs.PushBack( Binding );
             }
 
             /*void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint16_t count )
@@ -1032,26 +1037,26 @@ namespace VKE
                 vTexs.PushBack( Binding );
             }*/
 
-            void AddBinding(uint8_t binding, const TextureViewHandle *ahHandles, const uint16_t count)
+            void AddBinding( uint8_t binding, const TextureViewHandle* ahHandles, const uint16_t count )
             {
-                TSBinding<TextureViewHandle> Binding;
+                TSBinding< TextureViewHandle > Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count     = count;
                 Binding.binding   = binding;
-                vTexViews.PushBack(Binding);
+                vTexViews.PushBack( Binding );
             }
 
-            void AddBinding(uint8_t binding, const SamplerHandle *ahHandles, const uint16_t count)
+            void AddBinding( uint8_t binding, const SamplerHandle* ahHandles, const uint16_t count )
             {
-                TSBinding<SamplerHandle> Binding;
+                TSBinding< SamplerHandle > Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count     = count;
                 Binding.binding   = binding;
-                vSamplers.PushBack(Binding);
+                vSamplers.PushBack( Binding );
             }
 
-            void AddBinding(uint8_t binding, const SamplerHandle *ahSamplers, const TextureViewHandle *ahTexViews,
-                            const uint16_t count)
+            void AddBinding( uint8_t binding, const SamplerHandle* ahSamplers, const TextureViewHandle* ahTexViews,
+                             const uint16_t count )
             {
                 SSamplerAndTextureBinding Binding;
                 Binding.ahSamplers = ahSamplers;
@@ -1059,11 +1064,11 @@ namespace VKE
                 Binding.count      = count;
                 Binding.binding    = binding;
                 Binding.type       = BindingTypes::SAMPLER_AND_TEXTURE;
-                vSamplerAndTextures.PushBack(Binding);
+                vSamplerAndTextures.PushBack( Binding );
             }
 
-            void AddBinding(uint8_t binding, const uint32_t offset, const uint32_t range, const BufferHandle &hBuffer,
-                            BINDING_TYPE type)
+            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range, const BufferHandle& hBuffer,
+                             BINDING_TYPE type )
             {
                 SBufferBinding Binding;
                 Binding.ahHandles = &hBuffer;
@@ -1072,11 +1077,11 @@ namespace VKE
                 Binding.offset    = offset;
                 Binding.range     = range;
                 Binding.type      = type;
-                vBuffers.PushBack(Binding);
+                vBuffers.PushBack( Binding );
             }
 
-            void AddBinding(uint8_t binding, const uint32_t offset, BufferPtr pBuffer);
-            void AddBinding(uint8_t binding, const uint32_t offset, const uint32_t range, BufferPtr pBuffer);
+            void AddBinding( uint8_t binding, const uint32_t offset, BufferPtr pBuffer );
+            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range, BufferPtr pBuffer );
 
             void Reset()
             {
@@ -1088,13 +1093,14 @@ namespace VKE
                 vSamplerAndTextures.Clear();
             }
 
-            template <class HandleType> using BindingArray = Utils::TCDynamicArray<TSBinding<HandleType>, 16>;
-            using RtArray                                  = BindingArray<RenderTargetHandle>;
-            using TexArray                                 = BindingArray<TextureHandle>;
-            using TexViewArray                             = BindingArray<TextureViewHandle>;
-            using SamplerArray                             = BindingArray<SamplerHandle>;
-            using BufferArray                              = Utils::TCDynamicArray<SBufferBinding, 8>;
-            using SamplerAndTextureArray                   = Utils::TCDynamicArray<SSamplerAndTextureBinding, 16>;
+            template< class HandleType >
+            using BindingArray           = Utils::TCDynamicArray< TSBinding< HandleType >, 16 >;
+            using RtArray                = BindingArray< RenderTargetHandle >;
+            using TexArray               = BindingArray< TextureHandle >;
+            using TexViewArray           = BindingArray< TextureViewHandle >;
+            using SamplerArray           = BindingArray< SamplerHandle >;
+            using BufferArray            = Utils::TCDynamicArray< SBufferBinding, 8 >;
+            using SamplerAndTextureArray = Utils::TCDynamicArray< SSamplerAndTextureBinding, 16 >;
 
             RtArray                vRTs;
             TexArray               vTexs;
@@ -1112,12 +1118,12 @@ namespace VKE
 
         struct SGraphicsContextCallbacks
         {
-            std::function<void(CGraphicsContext *)> RenderFrame;
+            std::function< void( CGraphicsContext* ) > RenderFrame;
         };
 
         struct SCommandBufferPoolDesc
         {
-            CContextBase *pContext           = nullptr;
+            CContextBase* pContext           = nullptr;
             uint32_t      commandBufferCount = Config::RenderSystem::CommandBuffer::DEFAULT_COUNT_IN_POOL;
             uint8_t       threadIndex        = UNDEFINED_U8;
         };
@@ -1126,10 +1132,10 @@ namespace VKE
         {
             SRenderSystemMemoryInfo()
             {
-                memset(aResourceTypes, UNDEFINED, sizeof(aResourceTypes));
+                memset( aResourceTypes, UNDEFINED, sizeof( aResourceTypes ) );
             }
 
-            uint16_t aResourceTypes[ResourceTypes::_MAX_COUNT];
+            uint16_t aResourceTypes[ ResourceTypes::_MAX_COUNT ];
         };
 
         struct QueueTypes
@@ -1156,7 +1162,7 @@ namespace VKE
             enum FLAGS
             {
                 NONE                = 0x0,
-                BASIC_MULTITHREADED = VKE_BIT(0),
+                BASIC_MULTITHREADED = VKE_BIT( 0 ),
                 _MAX_COUNT
             };
         };
@@ -1165,17 +1171,17 @@ namespace VKE
 
         struct SFrameGraphDesc
         {
-            ResourceName      Name                                 = "DefaultMT";
-            TextureSize       Size                                 = { 0, 0 };
-            CDeviceContext   *pDevice                              = nullptr;
-            CContextBase     *apContexts[ContextTypes::_MAX_COUNT] = { nullptr };
-            FRAME_GRAPH_FLAGS flags                                = FrameGraphFlagBits::BASIC_MULTITHREADED;
+            ResourceName      Name                                   = "DefaultMT";
+            TextureSize       Size                                   = { 0, 0 };
+            CDeviceContext*   pDevice                                = nullptr;
+            CContextBase*     apContexts[ ContextTypes::_MAX_COUNT ] = { nullptr };
+            FRAME_GRAPH_FLAGS flags                                  = FrameGraphFlagBits::BASIC_MULTITHREADED;
         };
 
         struct SRenderSystemDesc
         {
             SRenderSystemMemoryInfo Memory;
-            TSArray<SWindowDesc>    Windows;
+            TSArray< SWindowDesc >  Windows;
             SFrameGraphDesc         FrameGraph;
             bool                    debugMode = VKE_RENDER_SYSTEM_DEBUG;
 
@@ -1196,7 +1202,7 @@ namespace VKE
 
         struct SFramebufferDesc
         {
-            using AttachmentArray = Utils::TCDynamicArray<NativeAPI::TextureView, 8>;
+            using AttachmentArray = Utils::TCDynamicArray< NativeAPI::TextureView, 8 >;
             TextureSize      Size;
             AttachmentArray  vDDIAttachments;
             RenderPassHandle hRenderPass;
@@ -1238,13 +1244,13 @@ namespace VKE
         {
             enum BITS : uint8_t
             {
-                TRANSFER_SRC                = VKE_BIT(1),
-                TRANSFER_DST                = VKE_BIT(2),
-                SAMPLED                     = VKE_BIT(3),
-                STORAGE                     = VKE_BIT(4),
-                COLOR_RENDER_TARGET         = VKE_BIT(5),
-                DEPTH_STENCIL_RENDER_TARGET = VKE_BIT(6),
-                FILE_IO                     = VKE_BIT(7), // Texture created from file
+                TRANSFER_SRC                = VKE_BIT( 1 ),
+                TRANSFER_DST                = VKE_BIT( 2 ),
+                SAMPLED                     = VKE_BIT( 3 ),
+                STORAGE                     = VKE_BIT( 4 ),
+                COLOR_RENDER_TARGET         = VKE_BIT( 5 ),
+                DEPTH_STENCIL_RENDER_TARGET = VKE_BIT( 6 ),
+                FILE_IO                     = VKE_BIT( 7 ), // Texture created from file
                 _MAX_COUNT                  = 7
             };
         };
@@ -1390,13 +1396,13 @@ namespace VKE
             enum BITS : uint8_t
             {
                 UNDEFINED            = 0x0,
-                DEDICATED_ALLOCATION = VKE_BIT(0),
-                CPU_ACCESS           = VKE_BIT(1),
-                CPU_NO_FLUSH         = VKE_BIT(2),
-                CPU_CACHED           = VKE_BIT(3),
-                GPU_ACCESS           = VKE_BIT(4),
-                BUFFER               = VKE_BIT(5),
-                TEXTURE              = VKE_BIT(6),
+                DEDICATED_ALLOCATION = VKE_BIT( 0 ),
+                CPU_ACCESS           = VKE_BIT( 1 ),
+                CPU_NO_FLUSH         = VKE_BIT( 2 ),
+                CPU_CACHED           = VKE_BIT( 3 ),
+                GPU_ACCESS           = VKE_BIT( 4 ),
+                BUFFER               = VKE_BIT( 5 ),
+                TEXTURE              = VKE_BIT( 6 ),
                 DYNAMIC              = CPU_ACCESS | GPU_ACCESS,
                 UPLOAD               = DYNAMIC | CPU_NO_FLUSH,
                 STATIC               = GPU_ACCESS,
@@ -1717,7 +1723,7 @@ namespace VKE
                     VKE_RENDER_SYSTEM_DEBUG_NAME;
                 };
 
-                using AttachmentDescArray = Utils::TCDynamicArray<SRenderTargetDesc, 8>;
+                using AttachmentDescArray = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
                 AttachmentDescArray vRenderTargets;
                 AttachmentDescArray vTextures;
                 SRenderTargetDesc   DepthBuffer;
@@ -1737,15 +1743,15 @@ namespace VKE
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
-            using SubpassDescArray      = Utils::TCDynamicArray<SSubpassDesc, 8>;
-            using AttachmentDescArray   = Utils::TCDynamicArray<SRenderTargetDesc, 8>;
-            using RenderTargetDescArray = Utils::TCDynamicArray<RenderSystem::SRenderTargetDesc, 8>;
+            using SubpassDescArray      = Utils::TCDynamicArray< SSubpassDesc, 8 >;
+            using AttachmentDescArray   = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
+            using RenderTargetDescArray = Utils::TCDynamicArray< RenderSystem::SRenderTargetDesc, 8 >;
 
             struct SRenderPassDesc()
             {
             }
 
-            struct SRenderPassDesc(DEFAULT_CTOR_INIT) : Size(800, 600)
+            struct SRenderPassDesc( DEFAULT_CTOR_INIT ) : Size( 800, 600 )
 
             {
             }
@@ -1761,10 +1767,10 @@ namespace VKE
         using SRenderPassAttachmentDesc = SRenderPassDesc::SRenderTargetDesc;
         using SSubpassAttachmentDesc    = SRenderPassDesc::SSubpassDesc::SRenderTargetDesc;
 
-        using RenderTargetID = SResourceID<cstr_t, RenderTargetHandle, void *>;
-        using TextureID      = SResourceID<cstr_t, TextureHandle, void *>;
-        using TextureViewID  = SResourceID<cstr_t, TextureViewHandle, void *>;
-        using RenderPassID   = SResourceID<cstr_t, RenderPassHandle, void *>;
+        using RenderTargetID = SResourceID< cstr_t, RenderTargetHandle, void* >;
+        using TextureID      = SResourceID< cstr_t, TextureHandle, void* >;
+        using TextureViewID  = SResourceID< cstr_t, TextureViewHandle, void* >;
+        using RenderPassID   = SResourceID< cstr_t, RenderPassHandle, void* >;
 
         struct SSetRenderTargetInfo
         {
@@ -1777,22 +1783,22 @@ namespace VKE
             {
             }
 
-            explicit SSetRenderTargetInfo(RenderTargetHandle hRT)
-                : RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ 0, 0, 0, 1 },
-                  state{ TextureStates::COLOR_RENDER_TARGET },
-                  renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            explicit SSetRenderTargetInfo( RenderTargetHandle hRT ) :
+                RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ 0, 0, 0, 1 },
+                state{ TextureStates::COLOR_RENDER_TARGET },
+                renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
             {
             }
 
-            explicit SSetRenderTargetInfo(RenderTargetHandle hRT, const SClearValue &Clear)
-                : RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ Clear }, state{ TextureStates::COLOR_RENDER_TARGET },
-                  renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            explicit SSetRenderTargetInfo( RenderTargetHandle hRT, const SClearValue& Clear ) :
+                RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ Clear }, state{ TextureStates::COLOR_RENDER_TARGET },
+                renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
             {
             }
 
-            explicit SSetRenderTargetInfo(RenderTargetHandle hRT, const SClearValue &Clear, TEXTURE_STATE state)
-                : RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ Clear }, state{ state },
-                  renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
+            explicit SSetRenderTargetInfo( RenderTargetHandle hRT, const SClearValue& Clear, TEXTURE_STATE state ) :
+                RenderTarget{ hRT, RES_ID_HANDLE }, ClearColor{ Clear }, state{ state },
+                renderPassOp{ RenderTargetRenderPassOperations::COLOR_CLEAR_STORE }
             {
             }
         };
@@ -1808,7 +1814,7 @@ namespace VKE
 
         struct VKE_API SSimpleRenderPassDesc
         {
-            using RenderTargetArray = Utils::TCDynamicArray<SSetRenderTargetInfo, 8>;
+            using RenderTargetArray = Utils::TCDynamicArray< SSetRenderTargetInfo, 8 >;
             RenderTargetArray vRenderTargets;
             Rect2DI32         RenderArea;
             ResourceName      Name;
@@ -1819,7 +1825,7 @@ namespace VKE
         {
             struct SPassDesc
             {
-                using Callback                = std::function<void(const SPassDesc &)>;
+                using Callback                = std::function< void( const SPassDesc& ) >;
                 RenderPassHandle hPass        = INVALID_HANDLE;
                 RenderPassHandle hWaitForPass = INVALID_HANDLE;
                 Callback         OnRender     = {};
@@ -1827,7 +1833,7 @@ namespace VKE
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
-            using RenderPassArray = Utils::TCDynamicArray<SPassDesc>;
+            using RenderPassArray = Utils::TCDynamicArray< SPassDesc >;
 
             RenderPassArray vRenderPassHandles;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -1835,14 +1841,14 @@ namespace VKE
 
         struct SBeginRenderPassInfo
         {
-            using ClearValueArray = Utils::TCDynamicArray<NativeAPI::ClearValue, 8>;
+            using ClearValueArray = Utils::TCDynamicArray< NativeAPI::ClearValue, 8 >;
             ClearValueArray        vDDIClearValues;
             NativeAPI::Framebuffer hDDIFramebuffer;
             NativeAPI::RenderPass  hDDIRenderPass;
             Rect2DI32              RenderArea;
         };
 
-        using RenderTargetInfoArray = Utils::TCDynamicArray<SRenderTargetInfo, 8>;
+        using RenderTargetInfoArray = Utils::TCDynamicArray< SRenderTargetInfo, 8 >;
 
         struct SBeginRenderPassInfo2
         {
@@ -1854,23 +1860,35 @@ namespace VKE
             uint32_t              renderTargetLayerIndex = 0;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
-            static vke_force_inline hash_t CalcHash(const SBeginRenderPassInfo2 &Info)
+            static vke_force_inline hash_t CalcHash( const SBeginRenderPassInfo2& Info )
             {
                 Utils::SHash Hash;
-                Hash.Combine(
-                    Info.DepthRenderTargetInfo.ClearColor.DepthStencil.depth,
-                    Info.DepthRenderTargetInfo.ClearColor.DepthStencil.stencil, Info.DepthRenderTargetInfo.hDDIView,
-                    Info.DepthRenderTargetInfo.renderPassOp, Info.DepthRenderTargetInfo.state,
-                    Info.StencilRenderTargetInfo.ClearColor.DepthStencil.stencil, Info.StencilRenderTargetInfo.hDDIView,
-                    Info.StencilRenderTargetInfo.renderPassOp, Info.StencilRenderTargetInfo.state,
-                    Info.RenderArea.Position.x, Info.RenderArea.Position.y, Info.RenderArea.Size.width,
-                    Info.RenderArea.Size.height, Info.renderTargetLayerCount, Info.renderTargetLayerIndex);
+                Hash.Combine( Info.DepthRenderTargetInfo.ClearColor.DepthStencil.depth,
+                              Info.DepthRenderTargetInfo.ClearColor.DepthStencil.stencil,
+                              Info.DepthRenderTargetInfo.hDDIView,
+                              Info.DepthRenderTargetInfo.renderPassOp,
+                              Info.DepthRenderTargetInfo.state,
+                              Info.StencilRenderTargetInfo.ClearColor.DepthStencil.stencil,
+                              Info.StencilRenderTargetInfo.hDDIView,
+                              Info.StencilRenderTargetInfo.renderPassOp,
+                              Info.StencilRenderTargetInfo.state,
+                              Info.RenderArea.Position.x,
+                              Info.RenderArea.Position.y,
+                              Info.RenderArea.Size.width,
+                              Info.RenderArea.Size.height,
+                              Info.renderTargetLayerCount,
+                              Info.renderTargetLayerIndex );
 
-                for (uint32_t i = 0; i < Info.vColorRenderTargetInfos.GetCount(); ++i)
+                for( uint32_t i = 0; i < Info.vColorRenderTargetInfos.GetCount(); ++i )
                 {
-                    const auto &RT = Info.vColorRenderTargetInfos[i];
-                    Hash.Combine(RT.ClearColor.Color.r, RT.ClearColor.Color.g, RT.ClearColor.Color.g,
-                                 RT.ClearColor.Color.a, RT.hDDIView, RT.renderPassOp, RT.state);
+                    const auto& RT = Info.vColorRenderTargetInfos[ i ];
+                    Hash.Combine( RT.ClearColor.Color.r,
+                                  RT.ClearColor.Color.g,
+                                  RT.ClearColor.Color.g,
+                                  RT.ClearColor.Color.a,
+                                  RT.hDDIView,
+                                  RT.renderPassOp,
+                                  RT.state );
                 }
                 return Hash.value;
             }
@@ -1879,7 +1897,7 @@ namespace VKE
         struct SBindRenderPassInfo
         {
             NativeAPI::CommandBuffer    hDDICommandBuffer;
-            const SBeginRenderPassInfo *pBeginInfo;
+            const SBeginRenderPassInfo* pBeginInfo;
         };
 
         namespace EventListeners
@@ -1890,24 +1908,24 @@ namespace VKE
                 {
                 }
 
-                virtual bool OnRenderFrame(CGraphicsContext *)
+                virtual bool OnRenderFrame( CGraphicsContext* )
                 {
                     return true;
                 }
 
-                virtual void OnAfterPresent(CGraphicsContext *)
+                virtual void OnAfterPresent( CGraphicsContext* )
                 {
                 }
 
-                virtual void OnBeforePresent(CGraphicsContext *)
+                virtual void OnBeforePresent( CGraphicsContext* )
                 {
                 }
 
-                virtual void OnBeforeExecute(CGraphicsContext *)
+                virtual void OnBeforeExecute( CGraphicsContext* )
                 {
                 }
 
-                virtual void OnAfterExecute(CGraphicsContext *)
+                virtual void OnAfterExecute( CGraphicsContext* )
                 {
                 }
 
@@ -1936,7 +1954,7 @@ namespace VKE
         struct SDeviceMemoryManagerDesc
         {
             SMemoryPoolManagerDesc      MemoryPoolDesc;
-            uint32_t                    defaultPoolSize = VKE_MEGABYTES(16);
+            uint32_t                    defaultPoolSize = VKE_MEGABYTES( 16 );
             DEVICE_MEMORY_RESIZE_POLICY resizePolicy    = DeviceMemoryResizePolicies::TWO_TIMES_LAST_SIZE;
         };
 
@@ -1958,41 +1976,41 @@ namespace VKE
             enum TYPE : uint64_t
             {
                 UNKNOWN                           = 0x0,
-                INDIRECT_BUFFER_READ              = VKE_BIT(1),
-                INDEX_READ                        = VKE_BIT(2),
-                VERTEX_ATTRIBUTE_READ             = VKE_BIT(3),
-                VS_UNIFORM_READ                   = VKE_BIT(4),
-                PS_UNIFORM_READ                   = VKE_BIT(5),
-                GS_UNIFORM_READ                   = VKE_BIT(6),
-                TS_UNIFORM_READ                   = VKE_BIT(7),
-                CS_UNIFORM_READ                   = VKE_BIT(8),
-                MS_UNIFORM_READ                   = VKE_BIT(9),
-                RT_UNIFORM_READ                   = VKE_BIT(10),
-                INPUT_ATTACHMENT_READ             = VKE_BIT(11),
-                VS_SHADER_READ                    = VKE_BIT(12),
-                PS_SHADER_READ                    = VKE_BIT(13),
-                GS_SHADER_READ                    = VKE_BIT(14),
-                TS_SHADER_READ                    = VKE_BIT(15),
-                CS_SHADER_READ                    = VKE_BIT(16),
-                MS_SHADER_READ                    = VKE_BIT(17),
-                RS_SHADER_READ                    = VKE_BIT(18),
-                VS_SHADER_WRITE                   = VKE_BIT(19),
-                PS_SHADER_WRITE                   = VKE_BIT(20),
-                GS_SHADER_WRITE                   = VKE_BIT(21),
-                TS_SHADER_WRITE                   = VKE_BIT(22),
-                CS_SHADER_WRITE                   = VKE_BIT(23),
-                MS_SHADER_WRITE                   = VKE_BIT(24),
-                RS_SHADER_WRITE                   = VKE_BIT(25),
-                COLOR_RENDER_TARGET_READ          = VKE_BIT(26),
-                COLOR_RENDER_TARGET_WRITE         = VKE_BIT(27),
-                DEPTH_STENCIL_RENDER_TARGET_READ  = VKE_BIT(28),
-                DEPTH_STENCIL_RENDER_TARGET_WRITE = VKE_BIT(29),
-                DATA_TRANSFER_READ                = VKE_BIT(30),
-                DATA_TRANSFER_WRITE               = VKE_BIT(31),
-                CPU_MEMORY_READ                   = VKE_BIT(32),
-                CPU_MEMORY_WRITE                  = VKE_BIT(33),
-                GPU_MEMORY_READ                   = VKE_BIT(34),
-                GPU_MEMORY_WRITE                  = VKE_BIT(35),
+                INDIRECT_BUFFER_READ              = VKE_BIT( 1 ),
+                INDEX_READ                        = VKE_BIT( 2 ),
+                VERTEX_ATTRIBUTE_READ             = VKE_BIT( 3 ),
+                VS_UNIFORM_READ                   = VKE_BIT( 4 ),
+                PS_UNIFORM_READ                   = VKE_BIT( 5 ),
+                GS_UNIFORM_READ                   = VKE_BIT( 6 ),
+                TS_UNIFORM_READ                   = VKE_BIT( 7 ),
+                CS_UNIFORM_READ                   = VKE_BIT( 8 ),
+                MS_UNIFORM_READ                   = VKE_BIT( 9 ),
+                RT_UNIFORM_READ                   = VKE_BIT( 10 ),
+                INPUT_ATTACHMENT_READ             = VKE_BIT( 11 ),
+                VS_SHADER_READ                    = VKE_BIT( 12 ),
+                PS_SHADER_READ                    = VKE_BIT( 13 ),
+                GS_SHADER_READ                    = VKE_BIT( 14 ),
+                TS_SHADER_READ                    = VKE_BIT( 15 ),
+                CS_SHADER_READ                    = VKE_BIT( 16 ),
+                MS_SHADER_READ                    = VKE_BIT( 17 ),
+                RS_SHADER_READ                    = VKE_BIT( 18 ),
+                VS_SHADER_WRITE                   = VKE_BIT( 19 ),
+                PS_SHADER_WRITE                   = VKE_BIT( 20 ),
+                GS_SHADER_WRITE                   = VKE_BIT( 21 ),
+                TS_SHADER_WRITE                   = VKE_BIT( 22 ),
+                CS_SHADER_WRITE                   = VKE_BIT( 23 ),
+                MS_SHADER_WRITE                   = VKE_BIT( 24 ),
+                RS_SHADER_WRITE                   = VKE_BIT( 25 ),
+                COLOR_RENDER_TARGET_READ          = VKE_BIT( 26 ),
+                COLOR_RENDER_TARGET_WRITE         = VKE_BIT( 27 ),
+                DEPTH_STENCIL_RENDER_TARGET_READ  = VKE_BIT( 28 ),
+                DEPTH_STENCIL_RENDER_TARGET_WRITE = VKE_BIT( 29 ),
+                DATA_TRANSFER_READ                = VKE_BIT( 30 ),
+                DATA_TRANSFER_WRITE               = VKE_BIT( 31 ),
+                CPU_MEMORY_READ                   = VKE_BIT( 32 ),
+                CPU_MEMORY_WRITE                  = VKE_BIT( 33 ),
+                GPU_MEMORY_READ                   = VKE_BIT( 34 ),
+                GPU_MEMORY_WRITE                  = VKE_BIT( 35 ),
                 _MAX_COUNT                        = 36,
                 UNIFORM_READ                      = VS_UNIFORM_READ | PS_UNIFORM_READ,
                 SHADER_READ                       = VS_SHADER_READ | PS_SHADER_READ,
@@ -2008,7 +2026,7 @@ namespace VKE
         struct SResourceManagerDesc
         {
             SDeviceMemoryManagerDesc DeviceMemoryDesc;
-            uint32_t                 aMemorySizes[MemoryAccessTypes::_MAX_COUNT] = { 0 };
+            uint32_t                 aMemorySizes[ MemoryAccessTypes::_MAX_COUNT ] = { 0 };
         };
 
         struct ShaderCompilationStages
@@ -2030,7 +2048,7 @@ namespace VKE
             uint32_t                 codeSize;
             SHADER_TYPE              type = ShaderTypes::_MAX_COUNT;
             SHADER_COMPILATION_STAGE stage;
-            const uint8_t           *pCode;
+            const uint8_t*           pCode;
         };
 
         struct SShaderDefine
@@ -2043,30 +2061,30 @@ namespace VKE
 
         struct SShaderDesc
         {
-            template <typename T>
-            using NameString = Utils::TCString<T, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH>;
+            template< typename T >
+            using NameString = Utils::TCString< T, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
 
-            using NameWString = NameString<wchar_t>;
-            using NameCString = NameString<char>;
+            using NameWString = NameString< wchar_t >;
+            using NameCString = NameString< char >;
             // using NameString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_ENTRY_POINT_NAME_LENGTH >;
-            using IncludeString = Utils::TCString<char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH>;
+            using IncludeString = Utils::TCString< char, Config::RenderSystem::Shader::MAX_INCLUDE_PATH_LENGTH >;
             using PreprocessorString =
-                Utils::TCString<char, Config::RenderSystem::Shader::MAX_PREPROCESSOR_DIRECTIVE_LENGTH>;
+                Utils::TCString< char, Config::RenderSystem::Shader::MAX_PREPROCESSOR_DIRECTIVE_LENGTH >;
 
-            using IncStringArray  = Utils::TCDynamicArray<IncludeString>;
-            using PrepStringArray = Utils::TCDynamicArray<PreprocessorString>;
+            using IncStringArray  = Utils::TCDynamicArray< IncludeString >;
+            using PrepStringArray = Utils::TCDynamicArray< PreprocessorString >;
 
-            using DefineArray = Utils::TCDynamicArray<SShaderDefine>;
+            using DefineArray = Utils::TCDynamicArray< SShaderDefine >;
 
             Core::SFileInfo FileInfo;
             SHADER_TYPE     type       = ShaderTypes::UNKNOWN;
             SHADER_PROFILE  profile    = ShaderProfiles::UNKNOWN;
-            NameCString     EntryPoint = NameCString("main");
+            NameCString     EntryPoint = NameCString( "main" );
             NameCString     Name       = "Unknown";
             IncStringArray  vIncludes;
             PrepStringArray vPreprocessor;
             DefineArray     vDefines;
-            SShaderData    *pData = nullptr; // optional parameter if an application wants to use its own binaries
+            SShaderData*    pData = nullptr; // optional parameter if an application wants to use its own binaries
             bool            useShaderCache = true;
 
             // SShaderDesc() = default;
@@ -2123,8 +2141,8 @@ namespace VKE
         struct SCompileShaderInfo
         {
             cstr_t             pBuffer       = nullptr;
-            void              *pCompilerData = nullptr;
-            const SShaderDesc *pDesc         = nullptr;
+            void*              pCompilerData = nullptr;
+            const SShaderDesc* pDesc         = nullptr;
             uint32_t           bufferSize    = 0;
             uint8_t            tid           = 0;
         };
@@ -2136,7 +2154,7 @@ namespace VKE
 #elif VKE_USE_DIRECTX_SHADER_COMPILER
             using BinaryElement = uint8_t;
 #endif
-            using ShaderBinaryData = vke_vector<BinaryElement>;
+            using ShaderBinaryData = vke_vector< BinaryElement >;
             ShaderBinaryData vShaderBinary;
             uint32_t         codeByteSize;
         };
@@ -2298,7 +2316,7 @@ namespace VKE
                 GREEN = 2,
                 BLUE  = 4,
                 ALPHA = 8,
-                ALL   = (RED | GREEN | BLUE | ALPHA)
+                ALL   = ( RED | GREEN | BLUE | ALPHA )
             };
         };
 
@@ -2362,23 +2380,24 @@ namespace VKE
         };
         using SHADER_TYPE = ShaderTypes::TYPE;*/
 
-        template <class T, uint32_t TASK_COUNT> struct TaskPoolHelper
+        template< class T, uint32_t TASK_COUNT >
+        struct TaskPoolHelper
         {
-            using Pool = Utils::TSFreePool<T, uint32_t, TASK_COUNT>;
+            using Pool = Utils::TSFreePool< T, uint32_t, TASK_COUNT >;
 
-            static T *GetTask(Pool *pPool)
+            static T* GetTask( Pool* pPool )
             {
-                T       *pTask = nullptr;
+                T*       pTask = nullptr;
                 uint32_t idx;
-                if (pPool->vFreeElements.PopBack(&idx))
+                if( pPool->vFreeElements.PopBack( &idx ) )
                 {
-                    pTask = &pPool->vPool[idx];
+                    pTask = &pPool->vPool[ idx ];
                 }
                 else
                 {
                     T Task;
-                    idx   = pPool->vPool.PushBack(Task);
-                    pTask = &pPool->vPool[idx];
+                    idx   = pPool->vPool.PushBack( Task );
+                    pTask = &pPool->vPool[ idx ];
                 }
                 return pTask;
             }
@@ -2407,25 +2426,25 @@ namespace VKE
         struct VKE_API SCreateBindingDesc
         {
             friend class CContextBase;
-            void AddBinding(const SDescriptorSetLayoutDesc::SBinding &Binding);
-            void AddBinding(const SResourceBinding &Binding, const BufferPtr &pBuffer);
-            void AddBinding(const STextureBinding &Binding);
-            void AddBinding(const SSamplerBinding &Binding);
-            void AddBinding(const SSamplerTextureBinding &Binding);
-            void AddConstantBuffer(uint8_t index, PIPELINE_STAGES stages);
-            void AddBuffer(uint8_t index, PIPELINE_STAGES stages, const uint16_t &arrayElementCount);
-            void AddDynamicConstantBuffer(uint8_t index, PIPELINE_STAGES stages);
-            void AddDynamicBuffer(uint8_t index, PIPELINE_STAGES stages, const uint16_t &arrayElementCount);
-            void AddTextures(uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u);
-            void AddSamplers(uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u);
+            void AddBinding( const SDescriptorSetLayoutDesc::SBinding& Binding );
+            void AddBinding( const SResourceBinding& Binding, const BufferPtr& pBuffer );
+            void AddBinding( const STextureBinding& Binding );
+            void AddBinding( const SSamplerBinding& Binding );
+            void AddBinding( const SSamplerTextureBinding& Binding );
+            void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
+            void AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
+            void AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
+            void AddDynamicBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
+            void AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
+            void AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
 
-            void                     AddSamplerAndTexture(uint8_t index, PIPELINE_STAGES stages);
+            void                     AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
             SDescriptorSetLayoutDesc LayoutDesc;
 #if VKE_RENDER_SYSTEM_DEBUG
-            void SetDebugName(cstr_t pName)
+            void SetDebugName( cstr_t pName )
             {
                 _DebugName = pName;
-                LayoutDesc.SetDebugName(pName);
+                LayoutDesc.SetDebugName( pName );
             }
 
             cstr_t GetDebugName() const
@@ -2440,7 +2459,7 @@ namespace VKE
 
         struct SPipelineDesc
         {
-            using FormatArray = Utils::TCDynamicArray<FORMAT, 8>;
+            using FormatArray = Utils::TCDynamicArray< FORMAT, 8 >;
 
             struct SShaders
             {
@@ -2454,13 +2473,13 @@ namespace VKE
                 {
                 }
 
-                ShaderPtr apShaders[ShaderTypes::_MAX_COUNT];
+                ShaderPtr apShaders[ ShaderTypes::_MAX_COUNT ];
             };
 
             struct SBlending
             {
                 using BlendStateArray =
-                    Utils::TCDynamicArray<SBlendState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT>;
+                    Utils::TCDynamicArray< SBlendState, Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT >;
                 BlendStateArray vBlendStates;
                 LOGIC_OPERATION logicOperation = LogicOperations::NO_OPERATION;
                 bool            enable         = false;
@@ -2469,9 +2488,9 @@ namespace VKE
             struct SViewport
             {
                 using ViewportArray =
-                    Utils::TCDynamicArray<SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT>;
+                    Utils::TCDynamicArray< SViewportDesc, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
                 using ScissorArray =
-                    Utils::TCDynamicArray<SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT>;
+                    Utils::TCDynamicArray< SScissorDesc, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
                 ViewportArray vViewports;
                 ScissorArray  vScissors;
                 bool          enable = true;
@@ -2535,23 +2554,23 @@ namespace VKE
                     {
                     }
 
-                    SVertexAttribute(DEFAULT_CTOR_INIT)
-                        : pName(""), format{ Formats::R32G32B32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
-                          offset{ 0 }, stride{ 3 * 4 }, inputRate{ VertexInputRates::VERTEX }
+                    SVertexAttribute( DEFAULT_CTOR_INIT ) :
+                        pName( "" ), format{ Formats::R32G32B32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
+                        offset{ 0 }, stride{ 3 * 4 }, inputRate{ VertexInputRates::VERTEX }
                     {
                     }
 
-                    SVertexAttribute(cstr_t name, const FORMAT &fmt, uint16_t bindingLocation)
-                        : pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 }, location{ bindingLocation },
-                          offset{ 0 }, stride{ CalcFormatSize(fmt) }, inputRate{ VertexInputRates::VERTEX }
+                    SVertexAttribute( cstr_t name, const FORMAT& fmt, uint16_t bindingLocation ) :
+                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 }, location{ bindingLocation },
+                        offset{ 0 }, stride{ CalcFormatSize( fmt ) }, inputRate{ VertexInputRates::VERTEX }
                     {
                     }
 
-                    SVertexAttribute(cstr_t name, const FORMAT &fmt, const uint16_t &bufferBindingIdx,
-                                     const uint16_t &bindingLocation, const uint16_t &off, const uint16_t &strd,
-                                     const VERTEX_INPUT_RATE &rate)
-                        : pName{ name }, format{ fmt }, vertexBufferBindingIndex{ bufferBindingIdx },
-                          location{ bindingLocation }, offset{ off }, stride{ strd }, inputRate{ rate }
+                    SVertexAttribute( cstr_t name, const FORMAT& fmt, const uint16_t& bufferBindingIdx,
+                                      const uint16_t& bindingLocation, const uint16_t& off, const uint16_t& strd,
+                                      const VERTEX_INPUT_RATE& rate ) :
+                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ bufferBindingIdx },
+                        location{ bindingLocation }, offset{ off }, stride{ strd }, inputRate{ rate }
                     {
                     }
 
@@ -2565,7 +2584,8 @@ namespace VKE
                 };
 
                 using SVertexAttributeArray =
-                    Utils::TCDynamicArray<SVertexAttribute, Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT>;
+                    Utils::TCDynamicArray< SVertexAttribute,
+                                           Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >;
 
                 SVertexAttributeArray vVertexAttributes;
                 PRIMITIVE_TOPOLOGY    topology               = PrimitiveTopologies::TRIANGLE_LIST;
@@ -2588,7 +2608,7 @@ namespace VKE
             {
             }
 
-            SPipelineDesc &operator=(const SPipelineDesc &) = default;
+            SPipelineDesc& operator=( const SPipelineDesc& ) = default;
 
             SShaders                  Shaders;
             SBlending                 Blending;
@@ -2649,14 +2669,14 @@ namespace VKE
             enum BITS
             {
                 UNDEFINED       = 0,
-                TRANSFER_SRC    = VKE_BIT(1),
-                TRANSFER_DST    = VKE_BIT(2),
-                TEXEL_BUFFER    = VKE_BIT(3),
-                CONSTANT_BUFFER = VKE_BIT(4),
-                BUFFER          = VKE_BIT(5),
-                INDEX_BUFFER    = VKE_BIT(6),
-                VERTEX_BUFFER   = VKE_BIT(7),
-                INDIRECT_BUFFER = VKE_BIT(8),
+                TRANSFER_SRC    = VKE_BIT( 1 ),
+                TRANSFER_DST    = VKE_BIT( 2 ),
+                TEXEL_BUFFER    = VKE_BIT( 3 ),
+                CONSTANT_BUFFER = VKE_BIT( 4 ),
+                BUFFER          = VKE_BIT( 5 ),
+                INDEX_BUFFER    = VKE_BIT( 6 ),
+                VERTEX_BUFFER   = VKE_BIT( 7 ),
+                INDIRECT_BUFFER = VKE_BIT( 8 ),
                 UPLOAD          = TRANSFER_SRC
             };
         };
@@ -2667,8 +2687,8 @@ namespace VKE
         {
             SBufferRegion() = default;
 
-            SBufferRegion(const uint32_t &elemCount, const uint32_t &elemSize)
-                : elementCount{ elemCount }, elementSize{ elemSize }
+            SBufferRegion( const uint32_t& elemCount, const uint32_t& elemSize ) :
+                elementCount{ elemCount }, elementSize{ elemSize }
             {
             }
 
@@ -2678,7 +2698,7 @@ namespace VKE
 
         struct SBufferDesc
         {
-            using BufferRegions = Utils::TCDynamicArray<SBufferRegion, 8>;
+            using BufferRegions = Utils::TCDynamicArray< SBufferRegion, 8 >;
 
             MEMORY_USAGE memoryUsage = MemoryUsages::DEFAULT;
             BUFFER_USAGE usage       = BufferUsages::UNDEFINED;
@@ -2723,7 +2743,7 @@ namespace VKE
 
         struct SVertexInputLayoutDesc
         {
-            using AttributeArray = Utils::TCDynamicArray<SVertexAttributeDesc, 8>;
+            using AttributeArray = Utils::TCDynamicArray< SVertexAttributeDesc, 8 >;
             AttributeArray     vAttributes;
             PRIMITIVE_TOPOLOGY topology               = PrimitiveTopologies::TRIANGLE_LIST;
             bool               enablePrimitiveRestart = false;
@@ -2796,8 +2816,8 @@ namespace VKE
 
         struct SPresentSurfaceCaps
         {
-            using Formats = Utils::TCDynamicArray<SPresentSurfaceFormat>;
-            using Modes   = Utils::TCDynamicArray<PRESENT_MODE, 8>;
+            using Formats = Utils::TCDynamicArray< SPresentSurfaceFormat >;
+            using Modes   = Utils::TCDynamicArray< PRESENT_MODE, 8 >;
 
             Formats     vFormats;
             Modes       vModes;
@@ -2835,16 +2855,16 @@ namespace VKE
             };
 
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-            using DescSetLayoutArray    = Utils::TCDynamicArray<DescriptorSetLayoutHandle, MAX_COUNT>;
-            using PushConstantArray     = Utils::TCDynamicArray<SPushConstantDesc, 4>;
+            using DescSetLayoutArray    = Utils::TCDynamicArray< DescriptorSetLayoutHandle, MAX_COUNT >;
+            using PushConstantArray     = Utils::TCDynamicArray< SPushConstantDesc, 4 >;
 
             SPipelineLayoutDesc()
             {
             }
 
-            SPipelineLayoutDesc(DescriptorSetLayoutHandle hLayout)
+            SPipelineLayoutDesc( DescriptorSetLayoutHandle hLayout )
             {
-                vDescriptorSetLayouts.PushBack(hLayout);
+                vDescriptorSetLayouts.PushBack( hLayout );
             }
 
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -2854,11 +2874,11 @@ namespace VKE
 
         struct SDDISwapChain
         {
-            using ImageArray       = Utils::TCDynamicArray<NativeAPI::Texture, 3>;
-            using ImageViewArray   = Utils::TCDynamicArray<NativeAPI::TextureView, 3>;
-            using FramebufferArray = Utils::TCDynamicArray<NativeAPI::Framebuffer, 3>;
+            using ImageArray       = Utils::TCDynamicArray< NativeAPI::Texture, 3 >;
+            using ImageViewArray   = Utils::TCDynamicArray< NativeAPI::TextureView, 3 >;
+            using FramebufferArray = Utils::TCDynamicArray< NativeAPI::Framebuffer, 3 >;
 
-            void                     *pInternalAllocator = nullptr;
+            void*                     pInternalAllocator = nullptr;
             ImageArray                vImages;
             ImageViewArray            vImageViews;
             FramebufferArray          vFramebuffers;
@@ -2889,14 +2909,14 @@ namespace VKE
             FEATURE_LEVEL featureLevel;
         };
 
-        using AdapterInfoArray = Utils::TCDynamicArray<RenderSystem::SAdapterInfo>;
+        using AdapterInfoArray = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
 
         struct SSubmitInfo
         {
-            NativeAPI::GPUFence *pDDISignalSemaphores = nullptr;
-            NativeAPI::GPUFence *pDDIWaitSemaphores   = nullptr;
+            NativeAPI::GPUFence* pDDISignalSemaphores = nullptr;
+            NativeAPI::GPUFence* pDDIWaitSemaphores   = nullptr;
             // CommandBufferPtr*   pCommandBuffers = nullptr;
-            NativeAPI::CommandBuffer *pDDICommandBuffers   = nullptr;
+            NativeAPI::CommandBuffer* pDDICommandBuffers   = nullptr;
             NativeAPI::CPUFence       hDDIFence            = NativeAPI::Null;
             NativeAPI::Queue          hDDIQueue            = NativeAPI::Null;
             uint16_t                  signalSemaphoreCount = 0;
@@ -2908,15 +2928,15 @@ namespace VKE
         {
             uint32_t imageIndex;
             // NativeAPI::SwapChain    hDDISwapChain;
-            CSwapChain         *pSwapChain;
+            CSwapChain*         pSwapChain;
             NativeAPI::GPUFence hDDIWaitSemaphore = NativeAPI::Null;
         };
 
         struct SPresentData
         {
-            using UintArray      = Utils::TCDynamicArray<uint32_t, 8>;
-            using SemaphoreArray = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
-            using SwapChainArray = Utils::TCDynamicArray<NativeAPI::SwapChain, 8>;
+            using UintArray      = Utils::TCDynamicArray< uint32_t, 8 >;
+            using SemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 >;
+            using SwapChainArray = Utils::TCDynamicArray< NativeAPI::SwapChain, 8 >;
             SwapChainArray   vSwapchains;
             SemaphoreArray   vWaitSemaphores;
             UintArray        vImageIndices;
@@ -2962,19 +2982,19 @@ namespace VKE
             enum FLAGS : STAGING_BUFFER_FLAGS
             {
                 OUT_OF_SPACE_DEFAULT        = 0,
-                OUT_OF_SPACE_DO_NOTHING     = VKE_BIT(1),
-                OUT_OF_SPACE_ALLOCATE_NEW   = VKE_BIT(2),
-                OUT_OF_SPACE_FLUSH_AND_WAIT = VKE_BIT(3),
-                OUT_OF_SPACE_WAIT_FOR_FRAME = VKE_BIT(4),
+                OUT_OF_SPACE_DO_NOTHING     = VKE_BIT( 1 ),
+                OUT_OF_SPACE_ALLOCATE_NEW   = VKE_BIT( 2 ),
+                OUT_OF_SPACE_FLUSH_AND_WAIT = VKE_BIT( 3 ),
+                OUT_OF_SPACE_WAIT_FOR_FRAME = VKE_BIT( 4 ),
                 _MAX_COUNT                  = 5
             };
         };
 
-        using StagingBufferFlags = Utils::TCBitset<STAGING_BUFFER_FLAGS>;
+        using StagingBufferFlags = Utils::TCBitset< STAGING_BUFFER_FLAGS >;
 
         struct SUpdateMemoryInfo
         {
-            const void        *pData;
+            const void*        pData;
             uint32_t           dataSize;
             uint32_t           dstDataOffset = 0;
             StagingBufferFlags flags         = 0;
@@ -2985,7 +3005,7 @@ namespace VKE
         {
             uint32_t    hLockedStagingBuffer;
             uint32_t    stagingBufferOffset;
-            const void *pSrcData;
+            const void* pSrcData;
             uint32_t    dataSize;
             uint32_t    dataAlignedSize;
         };
@@ -2995,20 +3015,20 @@ namespace VKE
             uint32_t hUpdateInfo;
             uint32_t dstBufferOffset;
             uint32_t totalSize = 0; /// 0
-            CBuffer *pDstBuffer;
+            CBuffer* pDstBuffer;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
         struct SBindPipelineInfo
         {
-            CCommandBuffer *pCmdBuffer;
-            CPipeline      *pPipeline;
+            CCommandBuffer* pCmdBuffer;
+            CPipeline*      pPipeline;
         };
 
         struct SBindVertexBufferInfo
         {
-            CCommandBuffer *pCmdBuffer;
-            CVertexBuffer  *pBuffer;
+            CCommandBuffer* pCmdBuffer;
+            CVertexBuffer*  pBuffer;
             size_t          offset;
         };
 
@@ -3021,16 +3041,16 @@ namespace VKE
 
         struct SBindIndexBufferInfo
         {
-            CCommandBuffer *pCmdBuffer;
-            CIndexBuffer   *pBuffer;
+            CCommandBuffer* pCmdBuffer;
+            CIndexBuffer*   pBuffer;
             size_t          offset;
         };
 
         struct SBindDDIDescriptorSetsInfo
         {
             NativeAPI::CommandBuffer        hDDICommandBuffer;
-            const NativeAPI::DescriptorSet *aDDISetHandles;
-            const uint32_t                 *aDynamicOffsets = nullptr;
+            const NativeAPI::DescriptorSet* aDDISetHandles;
+            const uint32_t*                 aDynamicOffsets = nullptr;
             NativeAPI::PipelineLayout       hDDIPipelineLayout;
             uint16_t                        firstSet;
             uint16_t                        setCount;
@@ -3058,7 +3078,7 @@ namespace VKE
         struct SFreeCommandBufferInfo
         {
             NativeAPI::CommandBufferPool hDDIPool;
-            NativeAPI::CommandBuffer    *pDDICommandBuffers;
+            NativeAPI::CommandBuffer*    pDDICommandBuffers;
             uint32_t                     count;
         };
 
@@ -3070,7 +3090,7 @@ namespace VKE
                 uint32_t            count;
             };
 
-            using SizeVec = Utils::TCDynamicArray<SSize>;
+            using SizeVec = Utils::TCDynamicArray< SSize >;
 
             uint32_t maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
             SizeVec  vPoolSizes;
@@ -3081,14 +3101,14 @@ namespace VKE
         {
             enum FLAGS
             {
-                END                        = VKE_BIT(0),
-                EXECUTE                    = VKE_BIT(1),
-                WAIT                       = VKE_BIT(2),
-                DONT_SIGNAL_SEMAPHORE      = VKE_BIT(3),
-                DONT_WAIT_FOR_SEMAPHORE    = VKE_BIT(4),
-                DONT_PUSH_SIGNAL_SEMAPHORE = VKE_BIT(5),
-                SIGNAL_GPU_FENCE           = VKE_BIT(6),
-                WAIT_FOR_GPU_FENCE         = VKE_BIT(7),
+                END                        = VKE_BIT( 0 ),
+                EXECUTE                    = VKE_BIT( 1 ),
+                WAIT                       = VKE_BIT( 2 ),
+                DONT_SIGNAL_SEMAPHORE      = VKE_BIT( 3 ),
+                DONT_WAIT_FOR_SEMAPHORE    = VKE_BIT( 4 ),
+                DONT_PUSH_SIGNAL_SEMAPHORE = VKE_BIT( 5 ),
+                SIGNAL_GPU_FENCE           = VKE_BIT( 6 ),
+                WAIT_FOR_GPU_FENCE         = VKE_BIT( 7 ),
                 _MAX_COUNT                 = 8
             };
         };
@@ -3098,7 +3118,7 @@ namespace VKE
         struct STransferContextDesc
         {
             // SCommandBufferPoolDesc  CmdBufferPoolDesc;
-            void *pPrivate = nullptr;
+            void* pPrivate = nullptr;
         };
 
         struct SGraphicsContextDesc
@@ -3106,7 +3126,7 @@ namespace VKE
             SSwapChainDesc SwapChainDesc;
             // SCommandBufferPoolDesc      CmdBufferPoolDesc;
             SDescriptorPoolDesc DescriptorPoolDesc;
-            void               *pPrivate = nullptr;
+            void*               pPrivate = nullptr;
         };
 
         struct SDrawIndirectParams
@@ -3287,8 +3307,8 @@ namespace VKE
         struct SDeviceContextDesc
         {
             SCreateDeviceDesc   DeviceDesc;
-            const SAdapterInfo *pAdapterInfo            = nullptr;
-            const void         *pPrivate                = nullptr;
+            const SAdapterInfo* pAdapterInfo            = nullptr;
+            const void*         pPrivate                = nullptr;
             DescriptorSetCounts aMaxDescriptorSetCounts = { 0 };
         };
 
@@ -3338,7 +3358,7 @@ namespace VKE
                     int32_t z;
                 };
 
-                int32_t xyz[3];
+                int32_t xyz[ 3 ];
             };
         };
 
@@ -3346,13 +3366,13 @@ namespace VKE
         {
             STextureSubresourceRange SrcSubresource;
             STextureSubresourceRange DstSubresource;
-            SOffset3D                srcOffsets[2];
-            SOffset3D                dstOffsets[2];
+            SOffset3D                srcOffsets[ 2 ];
+            SOffset3D                dstOffsets[ 2 ];
         };
 
         struct SBlitTextureInfo
         {
-            using RegionArray = Utils::TCDynamicArray<SBlitTextureRegion>;
+            using RegionArray = Utils::TCDynamicArray< SBlitTextureRegion >;
             NativeAPI::Texture hAPISrcTexture;
             NativeAPI::Texture hAPIDstTexture;
             TEXTURE_STATE      srcTextureState;
@@ -3366,18 +3386,18 @@ namespace VKE
             CommandBufferPtr pCommandBuffer;
         };
         class CFrameGraphNode;
-        using FrameGraphWorkload = std::function<Result(CFrameGraphNode *const, uint8_t)>;
+        using FrameGraphWorkload = std::function< Result( CFrameGraphNode* const, uint8_t ) >;
 
-        using FrameGraphNodeFlags = Utils::TCBitset<uint32_t>;
+        using FrameGraphNodeFlags = Utils::TCBitset< uint32_t >;
 
         struct FrameGraphNodeFlagBits
         {
             enum BITS : uint32_t
             {
                 NONE             = 0x0,
-                SIGNAL_GPU_FENCE = VKE_BIT(0),
-                SIGNAL_CPU_FENCE = VKE_BIT(1),
-                SIGNAL_THREAD    = VKE_BIT(2)
+                SIGNAL_GPU_FENCE = VKE_BIT( 0 ),
+                SIGNAL_CPU_FENCE = VKE_BIT( 1 ),
+                SIGNAL_THREAD    = VKE_BIT( 2 )
             };
         };
 
@@ -3426,7 +3446,7 @@ namespace VKE
 
         struct SFrameGraphNodeDesc
         {
-            using TextureDescArray = Utils::TCDynamicArray<SFrameGraphRenderTargetTextureDesc, 8>;
+            using TextureDescArray = Utils::TCDynamicArray< SFrameGraphRenderTargetTextureDesc, 8 >;
 
             cstr_t           pName;
             cstr_t           pExecute       = "Main";
@@ -3461,30 +3481,30 @@ namespace VKE
         struct SExecuteBatch
         {
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
-            using ExecuteBatchArray                        = Utils::TCDynamicArray<SExecuteBatch *, 4>;
-            using SemaphoreArray                           = Utils::TCDynamicArray<NativeAPI::GPUFence, 8>;
+            using ExecuteBatchArray                        = Utils::TCDynamicArray< SExecuteBatch*, 4 >;
+            using SemaphoreArray                           = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 >;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
-            CContextBase                                                     *pContext        = nullptr;
-            NativeAPI::GPUFence                                               hSignalGPUFence = NativeAPI::Null;
-            NativeAPI::CPUFence                                               hSignalCPUFence = NativeAPI::Null;
-            SemaphoreArray                                                    vDDIWaitGPUFences;
-            Utils::TCDynamicArray<CCommandBuffer *, DEFAULT_CMD_BUFFER_COUNT> vpCommandBuffers;
-            uint32_t                                                          swapchainElementIndex = INVALID_POSITION;
-            VKE_DEBUG_CODE(uint32_t executionCount = 0;)
-            VKE_DEBUG_CODE(uint32_t acquireCount = 0;)
+            CContextBase*                                                      pContext        = nullptr;
+            NativeAPI::GPUFence                                                hSignalGPUFence = NativeAPI::Null;
+            NativeAPI::CPUFence                                                hSignalCPUFence = NativeAPI::Null;
+            SemaphoreArray                                                     vDDIWaitGPUFences;
+            Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_CMD_BUFFER_COUNT > vpCommandBuffers;
+            uint32_t                                                           swapchainElementIndex = INVALID_POSITION;
+            VKE_DEBUG_CODE( uint32_t executionCount = 0; )
+            VKE_DEBUG_CODE( uint32_t acquireCount = 0; )
             uint32_t                     refCount        = 0;
             Result                       executionResult = Results::NOT_READY;
             EXECUTE_COMMAND_BUFFER_FLAGS executeFlags    = 0;
             ExecuteBatchArray            vDependencies;
 
-            void AddDependency(SExecuteBatch **ppBatch)
+            void AddDependency( SExecuteBatch** ppBatch )
             {
-                SExecuteBatch *pBatch = *ppBatch;
-                vDDIWaitGPUFences.PushBackUnique(pBatch->hSignalGPUFence);
-                vDependencies.PushBackUnique(pBatch);
+                SExecuteBatch* pBatch = *ppBatch;
+                vDDIWaitGPUFences.PushBackUnique( pBatch->hSignalGPUFence );
+                vDependencies.PushBackUnique( pBatch );
                 pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
-                VKE_ASSERT(pBatch->executionResult == Results::NOT_READY);
+                VKE_ASSERT( pBatch->executionResult == Results::NOT_READY );
             }
         };
 
@@ -3540,9 +3560,9 @@ namespace VKE
         {
             static const uint16_t MAX_BARRIER_COUNT = 16;
 
-            using MemoryBarrierArray  = Utils::TCDynamicArray<SMemoryBarrierInfo, MAX_BARRIER_COUNT>;
-            using TextureBarrierArray = Utils::TCDynamicArray<STextureBarrierInfo, MAX_BARRIER_COUNT>;
-            using BufferBarrierArray  = Utils::TCDynamicArray<SBufferBarrierInfo, MAX_BARRIER_COUNT>;
+            using MemoryBarrierArray  = Utils::TCDynamicArray< SMemoryBarrierInfo, MAX_BARRIER_COUNT >;
+            using TextureBarrierArray = Utils::TCDynamicArray< STextureBarrierInfo, MAX_BARRIER_COUNT >;
+            using BufferBarrierArray  = Utils::TCDynamicArray< SBufferBarrierInfo, MAX_BARRIER_COUNT >;
 
             MemoryBarrierArray  vMemoryBarriers;
             TextureBarrierArray vTextureBarriers;
@@ -3558,7 +3578,7 @@ namespace VKE
                 uint32_t size;
             };
 
-            using RegionArray = Utils::TCDynamicArray<SRegion>;
+            using RegionArray = Utils::TCDynamicArray< SRegion >;
 
             NativeAPI::Buffer hDDISrcBuffer;
             // NativeAPI::Buffer           hDDIDstBuffer;
@@ -3578,7 +3598,7 @@ namespace VKE
 
         struct SCopyTextureInfoEx
         {
-            SCopyTextureInfo        *pBaseInfo;
+            SCopyTextureInfo*        pBaseInfo;
             TEXTURE_STATE            srcTextureState;
             TEXTURE_STATE            dstTextureState;
             STextureSubresourceRange SrcSubresource;
@@ -3603,7 +3623,7 @@ namespace VKE
 
         struct SCopyBufferToTextureInfo
         {
-            using RegionArray = Utils::TCDynamicArray<SBufferTextureRegion>;
+            using RegionArray = Utils::TCDynamicArray< SBufferTextureRegion >;
 
             NativeAPI::Buffer  hDDISrcBuffer;
             NativeAPI::Texture hDDIDstTexture;
@@ -3696,12 +3716,12 @@ namespace VKE
             SDeviceFeatures Features;
         };
 
-        using QueuePriorityArray = Utils::TCDynamicArray<float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT>;
+        using QueuePriorityArray = Utils::TCDynamicArray< float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueFamilyPropertyArray =
-            Utils::TCDynamicArray<NativeAPI::QueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT>;
-        using UintArray      = Utils::TCDynamicArray<uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT>;
-        using QueueTypeArray = UintArray[QueueTypes::_MAX_COUNT];
-        using DDIQueueArray  = Utils::TCDynamicArray<NativeAPI::Queue>;
+            Utils::TCDynamicArray< NativeAPI::QueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        using UintArray      = Utils::TCDynamicArray< uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        using QueueTypeArray = UintArray[ QueueTypes::_MAX_COUNT ];
+        using DDIQueueArray  = Utils::TCDynamicArray< NativeAPI::Queue >;
 
         struct SUpdateBufferDescriptorSetInfo
         {
@@ -3712,7 +3732,7 @@ namespace VKE
                 NativeAPI::DeviceSize range;
             };
 
-            using BufferInfoArray = Utils::TCDynamicArray<SBufferInfo, 4>;
+            using BufferInfoArray = Utils::TCDynamicArray< SBufferInfo, 4 >;
 
             uint32_t                 binding;
             uint32_t                 count;
@@ -3729,7 +3749,7 @@ namespace VKE
                 TEXTURE_STATE          textureState;
             };
 
-            using TextureInfoArray = Utils::TCDynamicArray<STextureInfo, 8>;
+            using TextureInfoArray = Utils::TCDynamicArray< STextureInfo, 8 >;
 
             TextureInfoArray         vTextureInfos;
             NativeAPI::DescriptorSet hDDISet;
@@ -3753,8 +3773,8 @@ namespace VKE
                 NativeAPI::DeviceSize range;
             };
 
-            using BufferInfoArray  = Utils::TCDynamicArray<SBufferInfo, 8>;
-            using TextureInfoArray = Utils::TCDynamicArray<SSamplerTextureInfo, 8>;
+            using BufferInfoArray  = Utils::TCDynamicArray< SBufferInfo, 8 >;
+            using TextureInfoArray = Utils::TCDynamicArray< SSamplerTextureInfo, 8 >;
 
             NativeAPI::DescriptorSet hDDISet;
             DESCRIPTOR_SET_TYPE      type;
@@ -3771,7 +3791,7 @@ namespace VKE
             QUEUE_TYPE         type;
         };
 
-        using QueueFamilyInfoArray = Utils::TCDynamicArray<SQueueFamilyInfo>;
+        using QueueFamilyInfoArray = Utils::TCDynamicArray< SQueueFamilyInfo >;
 
         struct SAdapterProperties
         {
@@ -3785,17 +3805,17 @@ namespace VKE
 
             NativeAPI::SImplementation::SDeviceProperties Properties;
             NativeAPI::SImplementation::SDeviceFeatures   Features;
-            NativeAPI::DeviceLimits &Limits = Properties.Device.properties.limits;
+            NativeAPI::DeviceLimits&                      Limits = Properties.Device.properties.limits;
 
-            void operator=(const SDeviceProperties &Rhs)
+            void operator=( const SDeviceProperties& Rhs )
             {
                 vQueueFamilyProperties = Rhs.vQueueFamilyProperties;
                 vQueueFamilies         = Rhs.vQueueFamilies;
 
-                Memory::Copy<Formats::_MAX_COUNT>(Properties.aFormatProperties, Rhs.Properties.aFormatProperties);
-                Memory::Copy(&Properties.Memory, &Rhs.Properties.Memory);
-                Memory::Copy(&Properties.Device, &Rhs.Properties.Device);
-                VKE_ASSERT2(false, "TODO: IMPLEMENT");
+                Memory::Copy< Formats::_MAX_COUNT >( Properties.aFormatProperties, Rhs.Properties.aFormatProperties );
+                Memory::Copy( &Properties.Memory, &Rhs.Properties.Memory );
+                Memory::Copy( &Properties.Device, &Rhs.Properties.Device );
+                VKE_ASSERT2( false, "TODO: IMPLEMENT" );
             }
         }; // struct SDeviceProperties
 
@@ -3809,12 +3829,12 @@ namespace VKE
             uint32_t firstInstance;
         };
 
-#define VKE_ADD_DDI_OBJECT(_type)                                                                                      \
+#define VKE_ADD_DDI_OBJECT( _type )                                                                                    \
 protected:                                                                                                             \
     _type m_hDDIObject = NativeAPI::Null;                                                                              \
                                                                                                                        \
 public:                                                                                                                \
-    vke_force_inline const _type &GetDDIObject() const                                                                 \
+    vke_force_inline const _type& GetDDIObject() const                                                                 \
     {                                                                                                                  \
         return m_hDDIObject;                                                                                           \
     }
@@ -3825,5 +3845,5 @@ public:                                                                         
 
 } // namespace VKE
 
-#pragma pop_macro("OPTIONAL")
+#pragma pop_macro( "OPTIONAL" )
 // #pragma pop_macro( "DOMAIN" )

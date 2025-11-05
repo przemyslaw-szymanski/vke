@@ -9,30 +9,30 @@ namespace VKE
         CLogger::CLogger()
         {
 #if VKE_DEBUG
-            AddMode(LoggerModeFlagBits::COMPILER);
+            AddMode( LoggerModeFlagBits::COMPILER );
 #endif
             m_Timer.Start();
         }
 
-        CLogger& CLogger::operator<<(const CLogger& Logger)
+        CLogger& CLogger::operator<<( const CLogger& Logger )
         {
             return *this << Logger.m_Stream.str();
         }
 
-        void CLogger::SetMode(LOGGER_MODE_FLAGS mode)
+        void CLogger::SetMode( LOGGER_MODE_FLAGS mode )
         {
-            m_Mode = static_cast<uint8_t>(mode);
+            m_Mode = static_cast< uint8_t >( mode );
         }
 
-        void CLogger::AddMode(LOGGER_MODE_FLAGS mode)
+        void CLogger::AddMode( LOGGER_MODE_FLAGS mode )
         {
-            m_Mode += static_cast<uint8_t>(mode);
+            m_Mode += static_cast< uint8_t >( mode );
         }
 
-        void CLogger::RemoveMode(LOGGER_MODE_FLAGS mode)
+        void CLogger::RemoveMode( LOGGER_MODE_FLAGS mode )
         {
-            m_Mode -= static_cast<uint8_t>(mode);
+            m_Mode -= static_cast< uint8_t >( mode );
         }
 
-    } // Utils
-} // VKE
+    } // namespace Utils
+} // namespace VKE

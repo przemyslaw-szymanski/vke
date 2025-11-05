@@ -4,9 +4,9 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        Result CDescriptorSet::Init(const SDescriptorSetDesc& Desc)
+        Result CDescriptorSet::Init( const SDescriptorSetDesc& Desc )
         {
-            Result res = VKE_OK;
+            Result res             = VKE_OK;
             this->m_hObject.handle = CalcHash( Desc );
             return res;
         }
@@ -18,9 +18,9 @@ namespace VKE
             return Hash.value;
         }
 
-        Result CDescriptorSetLayout::Init(const SDescriptorSetLayoutDesc& Desc)
+        Result CDescriptorSetLayout::Init( const SDescriptorSetLayoutDesc& Desc )
         {
-            Result res = VKE_OK;
+            Result res             = VKE_OK;
             this->m_hObject.handle = CalcHash( Desc );
             return res;
         }
@@ -37,5 +37,5 @@ namespace VKE
             return Hash.value;
         }
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

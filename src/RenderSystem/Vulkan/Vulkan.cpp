@@ -2,22 +2,22 @@
 #include "Core/Platform/CPlatform.h"
 #include "Core/Utils/CLogger.h"
 
-//#undef VKE_VK_FUNCTION
-//#define VKE_VK_FUNCTION(_name) PFN_##_name _name
-//#undef VK_EXPORTED_FUNCTION
-//#undef VKE_ICD_GLOBAL
-//#undef VKE_INSTANCE_ICD
-//#undef VKE_DEVICE_ICD
-//#define VK_EXPORTED_FUNCTION(name) PFN_##name name = 0
-//#define VKE_ICD_GLOBAL(name) PFN_##name name = 0
-//#define VKE_INSTANCE_ICD(name) PFN_##name name = 0
-//#define VKE_DEVICE_ICD(name) PFN_##name name = 0
-//#include "ThirdParty/vulkan/funclist.h"
-//#undef VKE_DEVICE_ICD
-//#undef VKE_INSTANCE_ICD
-//#undef VKE_ICD_GLOBAL
-//#undef VK_EXPORTED_FUNCTION
-//#undef VKE_VK_FUNCTION
+// #undef VKE_VK_FUNCTION
+// #define VKE_VK_FUNCTION(_name) PFN_##_name _name
+// #undef VK_EXPORTED_FUNCTION
+// #undef VKE_ICD_GLOBAL
+// #undef VKE_INSTANCE_ICD
+// #undef VKE_DEVICE_ICD
+// #define VK_EXPORTED_FUNCTION(name) PFN_##name name = 0
+// #define VKE_ICD_GLOBAL(name) PFN_##name name = 0
+// #define VKE_INSTANCE_ICD(name) PFN_##name name = 0
+// #define VKE_DEVICE_ICD(name) PFN_##name name = 0
+// #include "ThirdParty/vulkan/funclist.h"
+// #undef VKE_DEVICE_ICD
+// #undef VKE_INSTANCE_ICD
+// #undef VKE_ICD_GLOBAL
+// #undef VK_EXPORTED_FUNCTION
+// #undef VKE_VK_FUNCTION
 
 namespace VKE
 {
@@ -25,7 +25,7 @@ namespace VKE
     {
 
         using ErrorMap = std::map< std::thread::id, VkResult >;
-        ErrorMap g_mErrors;
+        ErrorMap   g_mErrors;
         std::mutex g_ErrorMutex;
 
         void SetLastError( VkResult err )
@@ -67,7 +67,9 @@ namespace VKE
         {
             Lock();
             if( m_presentCount-- < 0 )
+            {
                 m_presentCount = 0;
+            }
             m_isPresentDone = m_presentCount == 0;
             Unlock();
         }
@@ -89,13 +91,14 @@ namespace VKE
             m_isPresentDone = false;
             if( this->GetRefCount() == m_PresentData.vSwapChains.GetCount() )
             {
-                m_PresentInfo.pImageIndices = &m_PresentData.vImageIndices[ 0 ];
-                m_PresentInfo.pSwapchains = &m_PresentData.vSwapChains[ 0 ];
-                m_PresentInfo.pWaitSemaphores = &m_PresentData.vWaitSemaphores[ 0 ];
-                m_PresentInfo.swapchainCount = m_PresentData.vSwapChains.GetCount();
+                m_PresentInfo.pImageIndices      = &m_PresentData.vImageIndices[ 0 ];
+                m_PresentInfo.pSwapchains        = &m_PresentData.vSwapChains[ 0 ];
+                m_PresentInfo.pWaitSemaphores    = &m_PresentData.vWaitSemaphores[ 0 ];
+                m_PresentInfo.swapchainCount     = m_PresentData.vSwapChains.GetCount();
                 m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
                 VK_ERR( ICD.vkQueuePresentKHR( vkQueue, &m_PresentInfo ) );
-                // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]}, imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
+                // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]},
+                // imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
                 m_isPresentDone = true;
                 m_PresentData.vImageIndices.Clear();
                 m_PresentData.vSwapChains.Clear();
@@ -118,7 +121,7 @@ namespace VKE
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_X8_D24_UNORM_PACK32:
                 case VK_FORMAT_S8_UINT:
-                return false;
+                    return false;
             }
             return true;
         }
@@ -134,7 +137,7 @@ namespace VKE
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_X8_D24_UNORM_PACK32:
                 case VK_FORMAT_S8_UINT:
-                return true;
+                    return true;
             }
             return false;
         }
@@ -147,55 +150,66 @@ namespace VKE
                 case VK_FORMAT_D24_UNORM_S8_UINT:
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_S8_UINT:
-                return true;
+                    return true;
             }
             return false;
         }
 
-#define VKE_EXPORT_FUNC(_name, _handle, _getProcAddr) \
-    pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \
-    if(!pOut->_name) \
-            { VKE_LOG_ERR("Unable to load function: " << #_name); err = VKE_ENOTFOUND; }
+#define VKE_EXPORT_FUNC( _name, _handle, _getProcAddr )                                                                \
+    pOut->_name = ( PFN_##_name )( _getProcAddr( ( _handle ), #_name ) );                                              \
+    if( !pOut->_name )                                                                                                 \
+    {                                                                                                                  \
+        VKE_LOG_ERR( "Unable to load function: " << #_name );                                                          \
+        err = VKE_ENOTFOUND;                                                                                           \
+    }
 
-#define VKE_EXPORT_EXT_FUNC(_name, _handle, _getProcAddr) \
-    pOut->_name = (PFN_##_name)(_getProcAddr((_handle), #_name)); \
-    if(!pOut->_name) \
-            { VKE_LOG_WARN("Unable to load EXT function: " << #_name); }
+#define VKE_EXPORT_EXT_FUNC( _name, _handle, _getProcAddr )                                                            \
+    pOut->_name = ( PFN_##_name )( _getProcAddr( ( _handle ), #_name ) );                                              \
+    if( !pOut->_name )                                                                                                 \
+    {                                                                                                                  \
+        VKE_LOG_WARN( "Unable to load EXT function: " << #_name );                                                     \
+    }
 
         Result LoadGlobalFunctions( handle_t hLib, VkICD::Global* pOut )
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
-#define VK_EXPORTED_FUNCTION(_name) VKE_EXPORT_FUNC(_name, hLib, Platform::DynamicLibrary::GetProcAddress)
+#define VK_EXPORTED_FUNCTION( _name ) VKE_EXPORT_FUNC( _name, hLib, Platform::DynamicLibrary::GetProcAddress )
 #include "ThirdParty/vulkan/VKEICD.h"
 #undef VK_EXPORTED_FUNCTION
-#define VKE_ICD_GLOBAL(_name) VKE_EXPORT_FUNC(_name, VK_NULL_HANDLE, pOut->vkGetInstanceProcAddr)
+#define VKE_ICD_GLOBAL( _name ) VKE_EXPORT_FUNC( _name, VK_NULL_HANDLE, pOut->vkGetInstanceProcAddr )
 #include "ThirdParty/vulkan/VKEICD.h"
 #undef VKE_ICD_GLOBAL
-#else // VKE_AUTO_ICD
-            pOut->vkGetInstanceProcAddr = reinterpret_cast< PFN_vkGetInstanceProcAddr >( Platform::GetProcAddress( hLib, "vkGetInstanceProcAddr" ) );
-            pOut->vkCreateInstance = reinterpret_cast< PFN_vkCreateInstance >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkCreateInstance" ) );
-            //pOut->vkDestroyInstance = reinterpret_cast< PFN_vkDestroyInstance >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkDestroyInstance" ) );
-            pOut->vkEnumerateInstanceExtensionProperties = reinterpret_cast< PFN_vkEnumerateInstanceExtensionProperties >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties" ) );
-            pOut->vkEnumerateInstanceLayerProperties = reinterpret_cast< PFN_vkEnumerateInstanceLayerProperties >( pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceLayerProperties" ) );
+#else  // VKE_AUTO_ICD
+            pOut->vkGetInstanceProcAddr = reinterpret_cast< PFN_vkGetInstanceProcAddr >(
+                Platform::GetProcAddress( hLib, "vkGetInstanceProcAddr" ) );
+            pOut->vkCreateInstance = reinterpret_cast< PFN_vkCreateInstance >(
+                pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkCreateInstance" ) );
+            // pOut->vkDestroyInstance = reinterpret_cast< PFN_vkDestroyInstance >( pOut->vkGetInstanceProcAddr(
+            // VK_NULL_HANDLE, "vkDestroyInstance" ) );
+            pOut->vkEnumerateInstanceExtensionProperties =
+                reinterpret_cast< PFN_vkEnumerateInstanceExtensionProperties >(
+                    pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties" ) );
+            pOut->vkEnumerateInstanceLayerProperties = reinterpret_cast< PFN_vkEnumerateInstanceLayerProperties >(
+                pOut->vkGetInstanceProcAddr( VK_NULL_HANDLE, "vkEnumerateInstanceLayerProperties" ) );
 #endif // VKE_AUTO_ICD
             return err;
         }
 
-        Result LoadInstanceFunctions( VkInstance vkInstance, const VkICD::Global& Global,
-                                      VkICD::Instance* pOut )
+        Result LoadInstanceFunctions( VkInstance vkInstance, const VkICD::Global& Global, VkICD::Instance* pOut )
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
-#   undef VKE_INSTANCE_ICD
-#   undef VKE_INSTANCE_EXT_ICD
-#   define VKE_INSTANCE_ICD(_name) VKE_EXPORT_FUNC(_name, vkInstance, Global.vkGetInstanceProcAddr)
-#   define VKE_INSTANCE_EXT_ICD(_name) VKE_EXPORT_EXT_FUNC(_name, vkInstance, Global.vkGetInstanceProcAddr)
-#       include "ThirdParty/vulkan/VKEICD.h"
-#   undef VKE_INSTANCE_ICD
-#   undef VKE_INSTANCE_EXT_ICD
-#else // VKE_AUTO_ICD
-            pOut->vkDestroySurfaceKHR = reinterpret_cast< PFN_vkDestroySurfaceKHR >( Global.vkGetInstanceProcAddr( vkInstance, "vkDestroySurfaceKHR" ) );
+#undef VKE_INSTANCE_ICD
+#undef VKE_INSTANCE_EXT_ICD
+#define VKE_INSTANCE_ICD( _name ) VKE_EXPORT_FUNC( _name, vkInstance, Global.vkGetInstanceProcAddr )
+#define VKE_INSTANCE_EXT_ICD( _name ) VKE_EXPORT_EXT_FUNC( _name, vkInstance, Global.vkGetInstanceProcAddr )
+#include "ThirdParty/vulkan/VKEICD.h"
+#undef VKE_INSTANCE_ICD
+#undef VKE_INSTANCE_EXT_ICD
+#else  // VKE_AUTO_ICD
+            pOut->vkDestroySurfaceKHR = reinterpret_cast< PFN_vkDestroySurfaceKHR >(
+                Global.vkGetInstanceProcAddr( vkInstance, "vkDestroySurfaceKHR" ) );
 #endif // VKE_AUTO_ICD
             return err;
         }
@@ -204,17 +218,17 @@ namespace VKE
         {
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
-#   undef VKE_DEVICE_ICD
-#   undef VKE_DEVICE_EXT_ICD
-#   define VKE_DEVICE_ICD(_name) VKE_EXPORT_FUNC(_name, vkDevice, Instance.vkGetDeviceProcAddr)
-#   define VKE_DEVICE_EXT_ICD(_name) VKE_EXPORT_EXT_FUNC(_name, vkDevice, Instance.vkGetDeviceProcAddr);
-#       include "ThirdParty/vulkan/VKEICD.h"
-#   undef VKE_DEVICE_ICD
-#   undef VKE_DEVICE_EXT_ICD
+#undef VKE_DEVICE_ICD
+#undef VKE_DEVICE_EXT_ICD
+#define VKE_DEVICE_ICD( _name ) VKE_EXPORT_FUNC( _name, vkDevice, Instance.vkGetDeviceProcAddr )
+#define VKE_DEVICE_EXT_ICD( _name ) VKE_EXPORT_EXT_FUNC( _name, vkDevice, Instance.vkGetDeviceProcAddr );
+#include "ThirdParty/vulkan/VKEICD.h"
+#undef VKE_DEVICE_ICD
+#undef VKE_DEVICE_EXT_ICD
 #else // VKE_AUTO_ICD
 
 #endif // VKE_AUTO_ICD
             return err;
         }
-    }
-}
+    } // namespace Vulkan
+} // namespace VKE

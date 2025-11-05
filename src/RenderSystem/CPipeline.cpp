@@ -4,28 +4,27 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        Result CPipelineLayout::Init(const SPipelineLayoutDesc&)
+        Result CPipelineLayout::Init( const SPipelineLayoutDesc& )
         {
             Result res = VKE_OK;
 
             return res;
         }
 
-        CPipeline::CPipeline(CPipelineManager* pMgr) :
-            m_pMgr( pMgr )
+        CPipeline::CPipeline( CPipelineManager* pMgr ) : m_pMgr( pMgr )
         {
         }
 
         CPipeline::~CPipeline()
         {
-
         }
 
-        Result CPipeline::Init(const SPipelineDesc& Desc)
+        Result CPipeline::Init( const SPipelineDesc& Desc )
         {
-            //m_type = Desc.Shaders..IsValid() ? PipelineTypes::COMPUTE : PipelineTypes::GRAPHICS;
-            m_type = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ].IsNull() ? PipelineTypes::GRAPHICS : PipelineTypes::COMPUTE;
-            //m_Desc = Desc;
+            // m_type = Desc.Shaders..IsValid() ? PipelineTypes::COMPUTE : PipelineTypes::GRAPHICS;
+            m_type = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ].IsNull() ? PipelineTypes::GRAPHICS
+                                                                             : PipelineTypes::COMPUTE;
+            // m_Desc = Desc;
             return VKE_OK;
         }
 
@@ -33,5 +32,5 @@ namespace VKE
         {
             m_pLayout = nullptr;
         }
-    }
-}
+    } // namespace RenderSystem
+} // namespace VKE

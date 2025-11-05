@@ -17,10 +17,12 @@ namespace VKE
         struct SShaderInitInfo
         {
         };
+
         class VKE_API CShader
         {
             friend class CShaderManager;
             friend class SShaderCompiler;
+
             VKE_ALIGN( sizeof( uint64_t ) ) struct SHandle
             {
                 union
@@ -30,36 +32,40 @@ namespace VKE
                         uint64_t hash : 61;
                         uint64_t type : 3;
                     };
+
                     uint64_t value;
                 };
             };
+
             VKE_ADD_DDI_OBJECT( NativeAPI::Shader );
             VKE_DECL_BASE_OBJECT( ShaderHandle );
             VKE_DECL_BASE_RESOURCE();
 
-          public:
+        public:
             // using CompilerData = CDDI::CompilerData;
             using InitInfo = SShaderInitInfo;
-            using ShaderBinaryBuffer
-                = Utils::TCDynamicArray<uint8_t, Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE>;
+            using ShaderBinaryBuffer =
+                Utils::TCDynamicArray< uint8_t, Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE >;
 
-          public:
+        public:
             CShader( CShaderManager* pMgr, SHADER_TYPE type );
             ~CShader();
             static hash_t CalcHash( const SShaderDesc& );
             void          Init( const SShaderDesc& Info, const hash_t& hash );
             void          Release();
             Result        Compile();
+
             // const CompilerData*     GetCompilerData() const { return &m_CompilerData; }
             const SShaderDesc& GetDesc() const
             {
                 return m_Desc;
             }
+
             // const VkShaderModule&   GetNative() const { return m_vkModule; }
-          protected:
+        protected:
             void _SetFile( Core::FilePtr pFile );
 
-          protected:
+        protected:
             SShaderDesc m_Desc;
             SShaderData m_Data;
             // CompilerData		m_CompilerData;
@@ -67,6 +73,7 @@ namespace VKE
             Core::FileRefPtr      m_pFile;
             Core::RESOURCE_STAGES m_resourceStages;
         };
+
         struct SShaderProgramDesc
         {
             using ShaderArray     = ShaderRefPtr[ ShaderTypes::_MAX_COUNT ];
@@ -75,20 +82,21 @@ namespace VKE
             ShaderArray     apShaders;
             EntryPointArray apEntryPoints = { nullptr };
         };
+
         class VKE_API CShaderProgram
         {
             friend class CShaderManager;
             VKE_DECL_BASE_OBJECT( handle_t );
             VKE_DECL_BASE_RESOURCE();
 
-          public:
+        public:
             CShaderProgram( CShaderManager* pMgr );
             ~CShaderProgram();
             void operator delete( void* );
             void Init( const SShaderProgramDesc& Desc );
             void Release();
 
-          protected:
+        protected:
             glslang::TProgram  m_Program;
             CShaderManager*    m_pMgr;
             Core::FileRefPtr   m_pFile;
@@ -96,9 +104,9 @@ namespace VKE
         };
     } // namespace RenderSystem
 
-    using ShaderPtr           = Utils::TCWeakPtr<RenderSystem::CShader>;
-    using ShaderRefPtr        = Utils::TCObjectSmartPtr<RenderSystem::CShader>;
-    using ShaderProgramPtr    = Utils::TCWeakPtr<RenderSystem::CShaderProgram>;
-    using ShaderProgramRefPtr = Utils::TCObjectSmartPtr<RenderSystem::CShaderProgram>;
+    using ShaderPtr           = Utils::TCWeakPtr< RenderSystem::CShader >;
+    using ShaderRefPtr        = Utils::TCObjectSmartPtr< RenderSystem::CShader >;
+    using ShaderProgramPtr    = Utils::TCWeakPtr< RenderSystem::CShaderProgram >;
+    using ShaderProgramRefPtr = Utils::TCObjectSmartPtr< RenderSystem::CShaderProgram >;
 
 } // namespace VKE

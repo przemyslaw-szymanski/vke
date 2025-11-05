@@ -31,7 +31,7 @@ namespace VKE
         namespace Managers
         {
             class CBackBufferManager;
-        } // Managers
+        } // namespace Managers
 
         struct SInternal;
 
@@ -49,19 +49,18 @@ namespace VKE
             friend class CDDI;
             struct SPrivate;
 
-            
-            //using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
-            //using FenceArray = Utils::TCDynamicArray< VkFence >;
-           // using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
-            //using RenderQueueArray = Utils::TCDynamicArray< CRenderQueue* >;
-            //using RenderTargetArray = Utils::TCDynamicArray< RenderTargetRefPtr >;
+            // using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
+            // using FenceArray = Utils::TCDynamicArray< VkFence >;
+            // using SwapChainArray = Utils::TCDynamicArray< VkSwapchainKHR >;
+            // using RenderQueueArray = Utils::TCDynamicArray< CRenderQueue* >;
+            // using RenderTargetArray = Utils::TCDynamicArray< RenderTargetRefPtr >;
 
-            template<class ResourceType>
+            template< class ResourceType >
             struct SResourceBuffer
             {
                 using Map = vke_hash_map< handle_t, ResourceType >;
-                Map         mBuffer;
-                uint32_t    handleCounter = 0;
+                Map      mBuffer;
+                uint32_t handleCounter = 0;
             };
 
             using RenderingPipelineBuffer = SResourceBuffer< CRenderingPipeline* >;
@@ -77,7 +76,8 @@ namespace VKE
                     _ENUM_COUNT
                 };
             };
-            using TASK = ContextTasks::TASK;
+
+            using TASK        = ContextTasks::TASK;
             using CurrentTask = TASK;
 
             enum class RenderState
@@ -89,134 +89,141 @@ namespace VKE
                 SWAP_BUFFERS
             };
 
-            public:
+        public:
+            using CContextBase::SetTextureState;
+            using CContextBase::Wait;
 
-                using CContextBase::SetTextureState;
-                using CContextBase::Wait;
+        public:
+            CGraphicsContext( CDeviceContext* pCtx );
+            CGraphicsContext( const CGraphicsContext& ) = delete;
+            ~CGraphicsContext();
 
-            public:
+            Result Create( const SGraphicsContextDesc& Info );
+            // void                    Destroy();
 
-                CGraphicsContext(CDeviceContext* pCtx);
-                CGraphicsContext( const CGraphicsContext& ) = delete;
-                ~CGraphicsContext();
+            void Resize( uint32_t width, uint32_t height );
 
-                Result                  Create(const SGraphicsContextDesc& Info);
-                //void                    Destroy();
+            Result Present( const SPresentInfo& Info );
 
-                void                    Resize(uint32_t width, uint32_t height);
+            void RenderFrame();
+            void FinishRendering();
 
-                Result                  Present(const SPresentInfo& Info);
+            CommandBufferPtr BeginFrame();
+            void             EndFrame();
 
-                void                    RenderFrame();
-                void                    FinishRendering();
+            // const VkICD::Device&    _GetICD() const;
 
-                CommandBufferPtr        BeginFrame();
-                void                    EndFrame();
+            vke_force_inline CDeviceContext* GetDeviceContext() const
+            {
+                return /*m_BaseCtx.*/ m_pDeviceCtx;
+            }
 
-                //const VkICD::Device&    _GetICD() const;
+            CSwapChain* GetSwapChain() const
+            {
+                return m_pSwapChain;
+            }
 
-                vke_force_inline
-                CDeviceContext*         GetDeviceContext() const { return /*m_BaseCtx.*/m_pDeviceCtx; }
+            void SetEventListener( EventListeners::IGraphicsContext* );
 
-                CSwapChain*             GetSwapChain() const { return m_pSwapChain; }
+            const SGraphicsContextDesc& GetDesc() const
+            {
+                return m_Desc;
+            }
 
-                void                    SetEventListener(EventListeners::IGraphicsContext*);
+            void Wait();
 
-                const
-                SGraphicsContextDesc&   GetDesc() const { return m_Desc; }
+            QueueRefPtr _GetQueue()
+            {
+                return /*m_BaseCtx.*/ m_pQueue;
+            }
 
-                void                    Wait();
+            uint8_t GetBackBufferIndex() const
+            {
+                return /*m_BaseCtx.*/ m_backBufferIdx;
+            }
 
-                QueueRefPtr             _GetQueue() { return /*m_BaseCtx.*/m_pQueue; }
+            // Result                  ExecuteCommandBuffers( NativeAPI::GPUFence* phDDISignalSemaphore );
 
-                uint8_t                 GetBackBufferIndex() const { return /*m_BaseCtx.*/m_backBufferIdx; }
+            void SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
+            // void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) {
+            // CContextBase::SetTextureState( state, phRT ); } void                    SetTextureState( const
+            // TEXTURE_STATE& state, TextureHandle* phTex ) { CContextBase::SetTextureState( state, phTex ); }
 
-                //Result                  ExecuteCommandBuffers( NativeAPI::GPUFence* phDDISignalSemaphore );
+            void BindDefaultRenderPass();
 
-                void                    SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
-                //void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) { CContextBase::SetTextureState( state, phRT ); }
-                //void                    SetTextureState( const TEXTURE_STATE& state, TextureHandle* phTex ) { CContextBase::SetTextureState( state, phTex ); }
+        protected:
+            void _Destroy();
 
-                void                    BindDefaultRenderPass();
+            void _AddToPresent( CSwapChain* );
 
-            protected:
+            TASK_RESULT _RenderFrameTask();
+            TASK_RESULT _PresentFrameTask();
+            TASK_RESULT _ExecuteCommandBuffersTask();
 
-                void            _Destroy();
+            vke_force_inline void _SetCurrentTask( TASK task );
+            vke_force_inline TASK _GetCurrentTask();
 
-                void            _AddToPresent(CSwapChain*);
+            VkInstance _GetInstance() const;
 
+            void _WaitForFrameToFinish();
 
-                TASK_RESULT     _RenderFrameTask();
-                TASK_RESULT     _PresentFrameTask();
-                TASK_RESULT     _ExecuteCommandBuffersTask();
+            /*template<typename ObjectT, typename VkStructT>
+            ObjectT _CreateObject(const VkStructT& VkCreateInfo, Utils::TSFreePool< ObjectT >* pOut);
+            template<typename ObjectBufferT>
+            void _DestroyObjects( ObjectBufferT* pOut );*/
 
-                vke_force_inline
-                void            _SetCurrentTask(TASK task);
-                vke_force_inline
-                TASK            _GetCurrentTask();
+            CRenderingPipeline* _CreateRenderingPipeline( const SRenderingPipelineDesc& Desc );
 
-                VkInstance      _GetInstance() const;
+            void _ResizeSwapChainTask( uint32_t width, uint32_t height );
 
-                void            _WaitForFrameToFinish();
+        protected:
+            SGraphicsContextDesc m_Desc;
+            // CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
+            // CDDI&                       m_DDI;
+            // CContextBase                m_BaseCtx;
+            CPipelineManager m_PipelineMgr;
+            // CSubmitManager              m_SubmitMgr;
+            CSwapChain*                       m_pSwapChain = nullptr;
+            SPresentData                      m_PresentData;
+            SPrivate*                         m_pPrivate = nullptr;
+            Threads::SyncObject               m_SyncObj;
+            EventListeners::IGraphicsContext* m_pEventListener;
+            // Tasks::SGraphicsContext     m_Tasks;
+            CCommandBufferBatch*    m_pCurrentFrameBatch = nullptr;
+            RenderingPipelineBuffer m_RenderingPipelines;
+            CRenderingPipeline*     m_pCurrRenderingPipeline    = nullptr;
+            CRenderingPipeline*     m_pDefaultRenderingPipeline = nullptr;
+            // RenderTargetArray               m_vpRenderTargets;
+            RenderState      m_renderState             = RenderState::NO_RENDER;
+            uint16_t         m_enabledRenderQueueCount = 0;
+            std::atomic_bool m_readyToPresent          = false;
+            std::atomic_bool m_readyToExecute          = false;
+            // uint8_t                     m_currentBackBufferIdx = 0;
+            // uint8_t                     m_prevBackBufferIdx = UNDEFINED_U8;
+            std::atomic_bool    m_needQuit        = false;
+            std::atomic_bool    m_needBeginFrame  = false;
+            std::atomic_bool    m_needEndFrame    = false;
+            bool                m_frameEnded      = true;
+            bool                m_presentEnded    = true;
+            bool                m_submitEnded     = true;
+            std::atomic_bool    m_needRenderFrame = false;
+            bool                m_stopRendering   = false;
+            CurrentTask         m_CurrentTask     = ContextTasks::BEGIN_FRAME;
+            Threads::SyncObject m_CurrentTaskSyncObj;
+            // handle_t                    m_hCommandPool = INVALID_HANDLE;
+            // VkCommandBuffer             m_vkCbTmp[ 2 ];
+            // VkFence                     m_vkFenceTmp[2];
+            // VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
+            // CCommandBufferBatch*                    m_pTmpSubmit;
+            uint32_t m_instnceId  = 0;
+            bool     m_createdTmp = false;
+            uint32_t m_currFrame  = 0;
 
-                /*template<typename ObjectT, typename VkStructT>
-                ObjectT _CreateObject(const VkStructT& VkCreateInfo, Utils::TSFreePool< ObjectT >* pOut);
-                template<typename ObjectBufferT>
-                void _DestroyObjects( ObjectBufferT* pOut );*/
-
-                CRenderingPipeline* _CreateRenderingPipeline(const SRenderingPipelineDesc& Desc);
-
-                void            _ResizeSwapChainTask(uint32_t width, uint32_t height);
-
-            protected:
-
-                SGraphicsContextDesc        m_Desc;
-                //CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
-                //CDDI&                       m_DDI;
-                //CContextBase                m_BaseCtx;
-                CPipelineManager            m_PipelineMgr;
-                //CSubmitManager              m_SubmitMgr;
-                CSwapChain*                 m_pSwapChain = nullptr;
-                SPresentData                m_PresentData;
-                SPrivate*                   m_pPrivate = nullptr;
-                Threads::SyncObject         m_SyncObj;
-                EventListeners::IGraphicsContext*  m_pEventListener;
-                //Tasks::SGraphicsContext     m_Tasks;
-                CCommandBufferBatch* m_pCurrentFrameBatch = nullptr;
-                RenderingPipelineBuffer         m_RenderingPipelines;
-                CRenderingPipeline*             m_pCurrRenderingPipeline = nullptr;
-                CRenderingPipeline*             m_pDefaultRenderingPipeline = nullptr;
-                //RenderTargetArray               m_vpRenderTargets;
-                RenderState                     m_renderState = RenderState::NO_RENDER;
-                uint16_t                        m_enabledRenderQueueCount = 0;
-                std::atomic_bool                m_readyToPresent = false;
-                std::atomic_bool                m_readyToExecute = false;
-                //uint8_t                     m_currentBackBufferIdx = 0;
-                //uint8_t                     m_prevBackBufferIdx = UNDEFINED_U8;
-                std::atomic_bool                m_needQuit = false;
-                std::atomic_bool                m_needBeginFrame = false;
-                std::atomic_bool                m_needEndFrame = false;
-                bool                        m_frameEnded = true;
-                bool                        m_presentEnded = true;
-                bool                        m_submitEnded = true;
-                std::atomic_bool            m_needRenderFrame = false;
-                bool                        m_stopRendering = false;
-                CurrentTask                 m_CurrentTask = ContextTasks::BEGIN_FRAME;
-                Threads::SyncObject         m_CurrentTaskSyncObj;
-                //handle_t                    m_hCommandPool = INVALID_HANDLE;
-                //VkCommandBuffer             m_vkCbTmp[ 2 ];
-                //VkFence                     m_vkFenceTmp[2];
-                //VkSemaphore                 m_vkSignals[ 2 ], m_vkWaits[2];
-                //CCommandBufferBatch*                    m_pTmpSubmit;
-                uint32_t                    m_instnceId = 0;
-                bool                        m_createdTmp = false;
-                uint32_t                    m_currFrame = 0;
-
-                SPresentInfo                m_PresentInfo;
-                Threads::SyncObject         m_ExecuteQueueSyncObj;
+            SPresentInfo        m_PresentInfo;
+            Threads::SyncObject m_ExecuteQueueSyncObj;
         };
 
-        void CGraphicsContext::_SetCurrentTask(TASK task)
+        void CGraphicsContext::_SetCurrentTask( TASK task )
         {
             m_CurrentTaskSyncObj.Lock();
             m_CurrentTask = task;
@@ -231,5 +238,5 @@ namespace VKE
             return t;
         }
 
-    } // RenderSystem
-} // vke
+    } // namespace RenderSystem
+} // namespace VKE

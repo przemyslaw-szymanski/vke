@@ -13,7 +13,7 @@
 #endif
 
 #ifndef VKE_ANY_API_SELECTED
-#   error "NO API SELECTED IN CMAKE"
+#error "NO API SELECTED IN CMAKE"
 #endif // VKE_VULKAN_RENDER_SYSTEM
 
 namespace VKE
@@ -22,7 +22,7 @@ namespace VKE
     {
         namespace DDI
         {
-            
-        } // DDI
-    } // RenderSystem
-} // VKE
+
+        } // namespace DDI
+    } // namespace RenderSystem
+} // namespace VKE

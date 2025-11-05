@@ -9,7 +9,6 @@ namespace VKE
         class CVector3;
         class CVector2;
         class CVector3;
-        
-        
-    } // Math
-} // vke
+
+    } // namespace Math
+} // namespace VKE

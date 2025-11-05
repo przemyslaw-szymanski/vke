@@ -5,6 +5,7 @@
 #include "ThirdParty/glslang/glslang/Public/ShaderLang.h"
 #include "ThirdParty/glslang/glslang/OSDependent/osinclude.h"
 #include "Core/VKEConfig.h"
+
 namespace VKE
 {
     namespace RenderSystem
@@ -13,20 +14,20 @@ namespace VKE
 
         struct SLinkShaderInfo
         {
-            glslang::TShader*   apShaders[ ShaderTypes::_MAX_COUNT ] = { nullptr };
-            glslang::TProgram*  pProgram = nullptr;
+            glslang::TShader*  apShaders[ ShaderTypes::_MAX_COUNT ] = { nullptr };
+            glslang::TProgram* pProgram                             = nullptr;
         };
 
         struct SLinkShaderData
         {
-            using ShaderBinaryData = vke_vector < uint32_t >;
-            ShaderBinaryData   aShaderBinaries[ ShaderTypes::_MAX_COUNT ];
+            using ShaderBinaryData = vke_vector< uint32_t >;
+            ShaderBinaryData aShaderBinaries[ ShaderTypes::_MAX_COUNT ];
         };
 
         struct SShaderBinaryData
         {
-            uint8_t*    apBinaries[ ShaderTypes::_MAX_COUNT ] = { nullptr };
-            uint32_t    aBinarySizes[ ShaderTypes::_MAX_COUNT ] = { 0 };
+            uint8_t* apBinaries[ ShaderTypes::_MAX_COUNT ]   = { nullptr };
+            uint32_t aBinarySizes[ ShaderTypes::_MAX_COUNT ] = { 0 };
         };
 
         struct SShaderCompilerDesc
@@ -36,24 +37,23 @@ namespace VKE
 
         class CShaderCompiler
         {
-            public:
+        public:
+            CShaderCompiler( CShaderManager* pMgr );
+            ~CShaderCompiler();
+            Result Create( const SShaderCompilerDesc& Desc );
+            void   Destroy();
+            Result Compile( const SCompileShaderInfo& Info, SCompileShaderData* pOut );
+            Result ConvertToBinary( const SLinkShaderData& LinkData, SShaderBinaryData* pOut );
+            Result WriteToHeaderFile( const char* pFileName, const SCompileShaderInfo& Info,
+                                      const SLinkShaderData& Data );
+            Result WriteToBinaryFile( const char* pFileName, const SCompileShaderInfo& Info,
+                                      const SLinkShaderData& Data );
+            Result WriteToBinaryFile( cstr_t pFileName, const std::vector< uint32_t >& vBinary );
 
-                CShaderCompiler(CShaderManager* pMgr);
-                ~CShaderCompiler();
-                Result Create(const SShaderCompilerDesc& Desc);
-                void Destroy();
-                Result Compile(const SCompileShaderInfo& Info, SCompileShaderData* pOut);
-                Result ConvertToBinary(const SLinkShaderData& LinkData, SShaderBinaryData* pOut);
-                Result WriteToHeaderFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data);
-                Result WriteToBinaryFile(const char* pFileName, const SCompileShaderInfo& Info, const SLinkShaderData& Data);
-                Result WriteToBinaryFile(cstr_t pFileName, const std::vector<uint32_t>& vBinary);
-
-
-            protected:
-
-                CShaderManager*     m_pShaderMgr;
-                SShaderCompilerDesc m_Desc;
-                bool                m_isCreated = false;
+        protected:
+            CShaderManager*     m_pShaderMgr;
+            SShaderCompilerDesc m_Desc;
+            bool                m_isCreated = false;
         };
-    }
-}
+    } // namespace RenderSystem
+} // namespace VKE

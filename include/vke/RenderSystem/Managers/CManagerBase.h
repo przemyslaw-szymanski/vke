@@ -24,5 +24,5 @@ namespace VKE
 
             CRenderSystem*  m_pRenderSystem;
         };*/
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

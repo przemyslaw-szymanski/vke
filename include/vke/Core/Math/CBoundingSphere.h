@@ -9,48 +9,62 @@ namespace VKE
     {
         class VKE_API CBoundingSphere
         {
-            public:
+        public:
+            CBoundingSphere() {};
 
-                CBoundingSphere() {};
-                ~CBoundingSphere() {}
-                CBoundingSphere( const CVector3& Center, float radius ) :
-                    Position( Center ), radius( radius )
-                {}
-                //CBoundingSphere(const CAABB& AABB);
+            ~CBoundingSphere()
+            {
+            }
 
-                CBoundingSphere& operator=( const CBoundingSphere& Other ) { _Native = Other._Native; return *this; }
+            CBoundingSphere( const CVector3& Center, float radius ) : Position( Center ), radius( radius )
+            {
+            }
 
-                /*CBoundingSphere( const CBoundingSphere& Other );
-                CBoundingSphere( CBoundingSphere&& Other );
+            // CBoundingSphere(const CAABB& AABB);
 
-                CBoundingSphere& operator=( CBoundingSphere&& Other );
-                CBoundingSphere& operator=( const CBoundingSphere& Other );
+            CBoundingSphere& operator=( const CBoundingSphere& Other )
+            {
+                _Native = Other._Native;
+                return *this;
+            }
 
-                bool operator==( const CBoundingSphere& Other ) const;
-                bool operator!=( const CBoundingSphere& Other ) const;
-                bool operator<( const CBoundingSphere& Other ) const;
-                bool operator>( const CBoundingSphere& Other ) const;
-                bool operator<=( const CBoundingSphere& Other ) const;
-                bool operator>=( const CBoundingSphere& Other ) const;*/
+            /*CBoundingSphere( const CBoundingSphere& Other );
+            CBoundingSphere( CBoundingSphere&& Other );
 
-                static vke_force_inline void CreateFromAABB(const CAABB& AABB, CBoundingSphere* pOut);
-                void vke_force_inline CreateFromAABB(const CAABB& AABB);
+            CBoundingSphere& operator=( CBoundingSphere&& Other );
+            CBoundingSphere& operator=( const CBoundingSphere& Other );
 
-                static const CBoundingSphere ONE;
-                static const vke_force_inline CBoundingSphere& _One() { return ONE; }
+            bool operator==( const CBoundingSphere& Other ) const;
+            bool operator!=( const CBoundingSphere& Other ) const;
+            bool operator<( const CBoundingSphere& Other ) const;
+            bool operator>( const CBoundingSphere& Other ) const;
+            bool operator<=( const CBoundingSphere& Other ) const;
+            bool operator>=( const CBoundingSphere& Other ) const;*/
 
-                static vke_force_inline bool Contains(const Math::CVector3& vecCenter, const float radius, const Math::CVector4& vecPoint);
+            static vke_force_inline void CreateFromAABB( const CAABB& AABB, CBoundingSphere* pOut );
+            void vke_force_inline        CreateFromAABB( const CAABB& AABB );
 
-                union
+            static const CBoundingSphere ONE;
+
+            static const vke_force_inline CBoundingSphere& _One()
+            {
+                return ONE;
+            }
+
+            static vke_force_inline bool Contains( const Math::CVector3& vecCenter, const float radius,
+                                                   const Math::CVector4& vecPoint );
+
+            union
+            {
+                struct
                 {
-                    struct
-                    {
-                        CVector3    Position;
-                        float       radius;
-                    };
-                    NativeBoundingSphere    _Native;
+                    CVector3 Position;
+                    float    radius;
                 };
+
+                NativeBoundingSphere _Native;
+            };
         };
 
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE

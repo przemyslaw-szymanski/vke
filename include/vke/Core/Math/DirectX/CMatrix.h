@@ -6,6 +6,6 @@ namespace VKE
     namespace Math
     {
 
-    } // Math
-} // VKE
+    } // namespace Math
+} // namespace VKE
 #endif // #if VKE_USE_DIRECTX_MATH

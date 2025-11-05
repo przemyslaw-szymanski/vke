@@ -7,11 +7,11 @@
 #include "Core/Threads/Common.h"
 #include "Core/Utils/CLogger.h"
 
-#if defined(CreateWindow)
+#if defined( CreateWindow )
 #undef CreateWindow
 #endif
 
-#if defined(FindWindow)
+#if defined( FindWindow )
 #undef FindWindow
 #endif
 
@@ -22,22 +22,23 @@ namespace VKE
         namespace EventListeners
         {
             class IInput;
-        }
-    }
+        } // namespace EventListeners
+    } // namespace Input
+
     struct VKE_API SEngineInfo
     {
-        cstr_t              pApplicationName = "unknown";
-        cstr_t              pName = "Vulkan Engine";
-        uint32_t            version = 1;
-        uint32_t            applicationVersion = 0;
-        Threads::SThreadPoolInfo     thread;
+        cstr_t                   pApplicationName   = "unknown";
+        cstr_t                   pName              = "Vulkan Engine";
+        uint32_t                 version            = 1;
+        uint32_t                 applicationVersion = 0;
+        Threads::SThreadPoolInfo thread;
 
         RenderSystem::SDeviceMemoryManagerDesc DeiceMemoryManager;
     };
 
     struct VKE_API SEngineLimits
     {
-        uint16_t    maxWindowCount = 128;
+        uint16_t maxWindowCount = 128;
     };
 
     namespace Core
@@ -45,101 +46,130 @@ namespace VKE
         class CFileManager;
         class CImageManager;
         class CResourceManager;
-    }
+    } // namespace Core
 
     namespace Memory
     {
         class CFreeListManager;
-    }
+    } // namespace Memory
 
     namespace RenderSystem
     {
         class CRenderSystem;
-    }
+    } // namespace RenderSystem
 
     namespace Scene
     {
         class CWorld;
         class CScene;
-    }
+    } // namespace Scene
 
     namespace Input
     {
         class CInputSystem;
-    }
+    } // namespace Input
 
     struct SManagers
     {
-        Core::CFileManager*     pFileMgr = nullptr;
-        Core::CImageManager*    pImgMgr = nullptr;
+        Core::CFileManager*  pFileMgr = nullptr;
+        Core::CImageManager* pImgMgr  = nullptr;
     };
 
     class VKE_API CVkEngine final
     {
         struct SInternal;
-        public:
 
-                            CVkEngine();
-                            ~CVkEngine();
+    public:
+        CVkEngine();
+        ~CVkEngine();
 
-            Result          Init(const SEngineInfo& Info);
-            void            Destroy();
+        Result Init( const SEngineInfo& Info );
+        void   Destroy();
 
-            void            GetEngineLimits(SEngineLimits* pLimitsOut);
-            const
-            SEngineLimits&  GetEngineLimits() const { return m_Limits; }
+        void GetEngineLimits( SEngineLimits* pLimitsOut );
 
-            const SEngineInfo&    GetInfo() const { return m_Desc; }
+        const SEngineLimits& GetEngineLimits() const
+        {
+            return m_Limits;
+        }
 
-            WindowPtr       CreateRenderWindow(const SWindowDesc& Desc);
-            WindowPtr       _CreateWindow(const SWindowDesc& Desc);
-            void            DestroyRenderWindow(WindowPtr pWnd);
-            WindowPtr       GetWindow() { return m_pCurrentWindow; }
-            const
-            WindowPtr       GetWindow() const { return m_pCurrentWindow; }
-            WindowPtr       FindWindow(cstr_t pWndName);
-            WindowPtr       FindWindow(const handle_t& hWnd);
-            WindowPtr       FindWindowTS(cstr_t pWndName);
-            WindowPtr       FindWindowTS(const handle_t& hWnd);
-            uint32_t        GetWindowCountTS();
+        const SEngineInfo& GetInfo() const
+        {
+            return m_Desc;
+        }
 
-            const SManagers&    GetManagers() const { return m_Managers; }
+        WindowPtr CreateRenderWindow( const SWindowDesc& Desc );
+        WindowPtr _CreateWindow( const SWindowDesc& Desc );
+        void      DestroyRenderWindow( WindowPtr pWnd );
 
-            Threads::CThreadPool*    GetThreadPool() const { return m_pThreadPool; }
+        WindowPtr GetWindow()
+        {
+            return m_pCurrentWindow;
+        }
 
-            void            FinishTasks();
-            void            WaitForTasks();
+        const WindowPtr GetWindow() const
+        {
+            return m_pCurrentWindow;
+        }
 
-            RenderSystem::CRenderSystem*  CreateRenderSystem(const SRenderSystemDesc& Info);
+        WindowPtr FindWindow( cstr_t pWndName );
+        WindowPtr FindWindow( const handle_t& hWnd );
+        WindowPtr FindWindowTS( cstr_t pWndName );
+        WindowPtr FindWindowTS( const handle_t& hWnd );
+        uint32_t  GetWindowCountTS();
 
-            void            BeginFrame();
-            void            EndFrame();
-            void            StartRendering();
-            void            StopRendering();
+        const SManagers& GetManagers() const
+        {
+            return m_Managers;
+        }
 
-            Scene::CWorld*  GetWorld();
+        Threads::CThreadPool* GetThreadPool() const
+        {
+            return m_pThreadPool;
+        }
 
-            Core::CImageManager*    GetImageManager() const { return m_Managers.pImgMgr; }
+        void FinishTasks();
+        void WaitForTasks();
 
-            RenderSystem::CRenderSystem* GetRenderSystem() const { return m_pRS; }
-            Core::CResourceManager* GetResourceManager() const { return m_pResMgr; }
+        RenderSystem::CRenderSystem* CreateRenderSystem( const SRenderSystemDesc& Info );
 
-        protected:
+        void BeginFrame();
+        void EndFrame();
+        void StartRendering();
+        void StopRendering();
 
-            SEngineLimits   m_Limits;
-            SEngineInfo     m_Desc;
-            SInternal*      m_pPrivate = nullptr;
-            WindowPtr       m_pCurrentWindow;
-            handle_t        m_currWndHandle = 0;
-            SManagers       m_Managers;
-            Scene::CWorld*  m_pWorld = nullptr;
-            //Input::CInputSystem*    m_pInputSystem = nullptr;
-            RenderSystem::CRenderSystem*  m_pRS = nullptr;
-            Core::CResourceManager* m_pResMgr = nullptr;
-            Threads::CThreadPool*    m_pThreadPool = nullptr;
-            std::mutex      m_Mutex;
-            Threads::SyncObject m_WindowSyncObj;
-            Memory::CFreeListManager*   m_pFreeListMgr = nullptr;
+        Scene::CWorld* GetWorld();
+
+        Core::CImageManager* GetImageManager() const
+        {
+            return m_Managers.pImgMgr;
+        }
+
+        RenderSystem::CRenderSystem* GetRenderSystem() const
+        {
+            return m_pRS;
+        }
+
+        Core::CResourceManager* GetResourceManager() const
+        {
+            return m_pResMgr;
+        }
+
+    protected:
+        SEngineLimits  m_Limits;
+        SEngineInfo    m_Desc;
+        SInternal*     m_pPrivate = nullptr;
+        WindowPtr      m_pCurrentWindow;
+        handle_t       m_currWndHandle = 0;
+        SManagers      m_Managers;
+        Scene::CWorld* m_pWorld = nullptr;
+        // Input::CInputSystem*    m_pInputSystem = nullptr;
+        RenderSystem::CRenderSystem* m_pRS         = nullptr;
+        Core::CResourceManager*      m_pResMgr     = nullptr;
+        Threads::CThreadPool*        m_pThreadPool = nullptr;
+        std::mutex                   m_Mutex;
+        Threads::SyncObject          m_WindowSyncObj;
+        Memory::CFreeListManager*    m_pFreeListMgr = nullptr;
     };
 
-} // VKE
+} // namespace VKE

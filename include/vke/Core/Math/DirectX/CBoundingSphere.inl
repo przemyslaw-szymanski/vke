@@ -64,21 +64,22 @@ namespace VKE
             _Native.CreateFromBoundingBox(_Native, AABB._Native);
         }*/
 
-        void CBoundingSphere::CreateFromAABB(const CAABB& AABB, CBoundingSphere* pOut)
+        void CBoundingSphere::CreateFromAABB( const CAABB& AABB, CBoundingSphere* pOut )
         {
             pOut->_Native.CreateFromBoundingBox( pOut->_Native, AABB._Native );
         }
 
-        void CBoundingSphere::CreateFromAABB(const CAABB& AABB)
+        void CBoundingSphere::CreateFromAABB( const CAABB& AABB )
         {
             _Native.CreateFromBoundingBox( _Native, AABB._Native );
         }
 
-        bool CBoundingSphere::Contains(const Math::CVector3& vecCenter, const float radius, const Math::CVector4& vecPoint)
+        bool CBoundingSphere::Contains( const Math::CVector3& vecCenter, const float radius,
+                                        const Math::CVector4& vecPoint )
         {
-            NativeBoundingSphere Native(vecCenter._Native, radius);
-            return Native.Contains(vecPoint._Native);
+            NativeBoundingSphere Native( vecCenter._Native, radius );
+            return Native.Contains( vecPoint._Native );
         }
-    } // VKE
-} // Math
+    } // namespace Math
+} // namespace VKE
 #endif // VKE_USE_DIRECTX_MATH

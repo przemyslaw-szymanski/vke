@@ -12,7 +12,7 @@ namespace VKE
     namespace Memory
     {
         class CFreeListPool;
-    }
+    } // namespace Memory
 
     namespace RenderSystem
     {
@@ -24,7 +24,7 @@ namespace VKE
         class CGraphicsContext;
         class CFrameGraph;
         class CFrameGraphManager;
-    }
+    } // namespace RenderSystem
 
     class CVkEngine;
     class CWindow;
@@ -40,66 +40,64 @@ namespace VKE
             friend class CGraphicsContext;
             friend class CDeviceContext;
             using FreeListVec = vke_vector< Memory::CFreeListPool* >;
-            using ContextVec = vke_vector< RenderSystem::CGraphicsContext* >;
-            using DeviceVec = Utils::TCDynamicArray< RenderSystem::CDeviceContext*, 4 >;
+            using ContextVec  = vke_vector< RenderSystem::CGraphicsContext* >;
+            using DeviceVec   = Utils::TCDynamicArray< RenderSystem::CDeviceContext*, 4 >;
 
         public:
-
             using AdapterVec = Utils::TCDynamicArray< RenderSystem::SAdapterInfo >;
 
         public:
-
-            CRenderSystem(CVkEngine* pEngine);
+            CRenderSystem( CVkEngine* pEngine );
             ~CRenderSystem();
 
-            Result Create(const SRenderSystemDesc& Info);
-            void Destroy();
+            Result Create( const SRenderSystemDesc& Info );
+            void   Destroy();
 
-            vke_force_inline
-                CVkEngine*      GetEngine() const { return m_pEngine; }
+            vke_force_inline CVkEngine* GetEngine() const
+            {
+                return m_pEngine;
+            }
 
-            void                RenderFrame(const WindowPtr pWnd);
+            void RenderFrame( const WindowPtr pWnd );
 
-            CPipeline*          CreatePipeline();
-            handle_t            CreateFramebuffer(const SFramebufferDesc& Info);
+            CPipeline* CreatePipeline();
+            handle_t   CreateFramebuffer( const SFramebufferDesc& Info );
 
-            Result              MakeCurrent(RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope = ContextScopes::ALL);
+            Result MakeCurrent( RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope = ContextScopes::ALL );
 
-            const AdapterInfoArray&   GetAdapters() const;
+            const AdapterInfoArray& GetAdapters() const;
 
-            CGraphicsContext*   GetCurrentContext(CONTEXT_SCOPE scope);
+            CGraphicsContext* GetCurrentContext( CONTEXT_SCOPE scope );
 
-            CDeviceContext*     CreateDeviceContext(const SDeviceContextDesc& Desc);
-            void                DestroyDeviceContext(CDeviceContext** ppOut);
+            CDeviceContext* CreateDeviceContext( const SDeviceContextDesc& Desc );
+            void            DestroyDeviceContext( CDeviceContext** ppOut );
 
-            CFrameGraph*        CreateFrameGraph( const SFrameGraphDesc& );
-            CFrameGraph*        GetFrameGraph();
+            CFrameGraph* CreateFrameGraph( const SFrameGraphDesc& );
+            CFrameGraph* GetFrameGraph();
 
-            CDeviceContext*     GetDeviceContext() const;
+            CDeviceContext* GetDeviceContext() const;
 
         protected:
-
-            Result      _AllocMemory(SRenderSystemDesc* pInfoOut);
+            Result      _AllocMemory( SRenderSystemDesc* pInfoOut );
             Result      _InitAPI();
             Result      _CreateDevices();
-            Result      _CreateFreeListMemory(uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount, size_t memSize);
-            const
-            void*       _GetICD() const;
+            Result      _CreateFreeListMemory( uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount,
+                                               size_t memSize );
+            const void* _GetICD() const;
 
-            VkInstance  _GetVkInstance() const;
+            VkInstance _GetVkInstance() const;
 
         protected:
-
-            SRenderSystemDesc       m_Desc;
-            SRSInternal*            m_pPrivate = nullptr;
-            CVkEngine*              m_pEngine = nullptr;
-            FreeListVec             m_vpFreeLists;
-            DeviceVec               m_vpDevices;
-            AdapterInfoArray        m_vAdapterInfos;
-            CFrameGraphManager*     m_pFrameGraphMgr = nullptr;
-            Threads::SyncObject     m_SyncObj;
-            SDriverInfo m_DriverData;
+            SRenderSystemDesc   m_Desc;
+            SRSInternal*        m_pPrivate = nullptr;
+            CVkEngine*          m_pEngine  = nullptr;
+            FreeListVec         m_vpFreeLists;
+            DeviceVec           m_vpDevices;
+            AdapterInfoArray    m_vAdapterInfos;
+            CFrameGraphManager* m_pFrameGraphMgr = nullptr;
+            Threads::SyncObject m_SyncObj;
+            SDriverInfo         m_DriverData;
         };
-    } // RenderSystem
+    } // namespace RenderSystem
 
-} // VKE
+} // namespace VKE

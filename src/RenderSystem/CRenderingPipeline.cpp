@@ -8,9 +8,9 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        CRenderingPipeline::CRenderingPipeline(CGraphicsContext* pCtx) :
-            m_pCtx(pCtx)
-        {}
+        CRenderingPipeline::CRenderingPipeline( CGraphicsContext* pCtx ) : m_pCtx( pCtx )
+        {
+        }
 
         CRenderingPipeline::~CRenderingPipeline()
         {
@@ -19,28 +19,25 @@ namespace VKE
 
         void CRenderingPipeline::Destroy()
         {
-            for( auto& pPass : m_vpRenderPasses )
+            for( auto& pPass: m_vpRenderPasses )
             {
-                Memory::DestroyObject(&HeapAllocator, &pPass);
+                Memory::DestroyObject( &HeapAllocator, &pPass );
             }
             m_vpRenderPasses.Clear();
-        }  
+        }
 
-        Result CRenderingPipeline::Create(const SRenderingPipelineDesc& Desc)
+        Result CRenderingPipeline::Create( const SRenderingPipelineDesc& Desc )
         {
             m_Desc = Desc;
             return VKE_OK;
         }
 
-
         void CRenderingPipeline::Begin()
         {
-
         }
 
         void CRenderingPipeline::End()
         {
-
         }
 
         void CRenderingPipeline::Render()
@@ -52,5 +49,5 @@ namespace VKE
             }
         }
 
-    } // RenderSystem
-} // VKE
+    } // namespace RenderSystem
+} // namespace VKE

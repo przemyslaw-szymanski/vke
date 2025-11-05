@@ -8,26 +8,29 @@ namespace VKE
     namespace Threads
     {
         class CTaskGroup;
+
         class CSchedulerTask final : public ITask
         {
             friend class CTaskGroup;
+
             struct SDefaultUserTask : public ITask
             {
-                SDefaultUserTask(CTaskGroup* pOwner) : pGroup{ pOwner }
-                {}
+                SDefaultUserTask( CTaskGroup* pOwner ) : pGroup{ pOwner }
+                {
+                }
+
                 CTaskGroup* pGroup;
-                TaskState _OnStart(uint32_t threadId) override;
+                TaskState   _OnStart( uint32_t threadId ) override;
             };
 
             SDefaultUserTask m_DefaultTask;
-            ITask* pUserTask = nullptr;
-            CTaskGroup* pGroup = nullptr;
+            ITask*           pUserTask = nullptr;
+            CTaskGroup*      pGroup    = nullptr;
 
-            protected:
+        protected:
+            CSchedulerTask( CTaskGroup* pOwner );
 
-                CSchedulerTask(CTaskGroup* pOwner);
-
-                TaskState _OnStart(uint32_t threadId) override;
+            TaskState _OnStart( uint32_t threadId ) override;
         };
 
         class VKE_API CTaskGroup final
@@ -36,25 +39,27 @@ namespace VKE
             friend class CSchedulerTask;
             using TaskVec = Utils::TCDynamicArray< ITask*, 32 >;
 
-            public:
+        public:
+            CTaskGroup();
 
-                CTaskGroup();
+            void AddTask( ITask* pTask );
+            void AddSchedulerTask( ITask* pTask );
+            void Pause();
+            void Restart();
+            void Remove();
+            void Wait();
 
-                void AddTask(ITask* pTask);
-                void AddSchedulerTask(ITask* pTask);
-                void Pause();
-                void Restart();
-                void Remove();
-                void Wait();
-                bool AreTasksFinished() const { return m_tasksFinished; }
+            bool AreTasksFinished() const
+            {
+                return m_tasksFinished;
+            }
 
-            protected:
-
-                TaskVec         m_vpTasks;
-                CSchedulerTask  m_Scheduler;
-                SyncObject      m_SyncObj;
-                uint32_t        m_id;
-                bool            m_tasksFinished = true;
+        protected:
+            TaskVec        m_vpTasks;
+            CSchedulerTask m_Scheduler;
+            SyncObject     m_SyncObj;
+            uint32_t       m_id;
+            bool           m_tasksFinished = true;
         };
-    } // Threads
-} // VKE
+    } // namespace Threads
+} // namespace VKE

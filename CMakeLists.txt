@@ -1,11 +1,35 @@
-cmake_minimum_required(VERSION 3.2)
-
-project(vkEngine C CXX)
+cmake_minimum_required(VERSION 3.5)
 
 # https://stackoverflow.com/questions/29397349/cmake-convert-unix-to-windows-path
 macro(msys_to_cmake_path MsysPath ResultingPath)
   string(REGEX REPLACE "^/([a-zA-Z])/" "\\1:/" ${ResultingPath} "${MsysPath}")
 endmacro()
+
+# Try to find vcpkg in PATH if not already set.
+# This allows using a globally installed vcpkg instead of a submodule.
+# Submodule is easy to use for new users, but a global installation is often preferred for faster builds.
+if(NOT VCPKG_EXECUTABLE)
+    find_program(VCPKG_EXECUTABLE vcpkg)
+endif()
+
+if(VCPKG_EXECUTABLE)
+    # Get the parent directory of the vcpkg executable
+    get_filename_component(VCPKG_ROOT "${VCPKG_EXECUTABLE}" DIRECTORY)
+    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+    message(STATUS "[VCPKG]: Using available exe: ${VCPKG_EXECUTABLE}")
+    message(STATUS "[VCPKG]: Root directory: ${VCPKG_ROOT}")
+else()
+    # Check if vcpkg submodule exists
+    if(EXISTS "${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg/scripts/buildsystems/vcpkg.cmake")
+        message(STATUS "[VCPKG]: Using submodule: ${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg")
+        set(VCPKG_ROOT "${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg")
+        set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+    else()
+        message(FATAL_ERROR "vcpkg not found. Please ensure vcpkg is in PATH or the submodule is initialized.")
+    endif()
+endif()
+
+project(vkEngine C CXX)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(VKE_WINDOWS 1)

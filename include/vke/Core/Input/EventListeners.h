@@ -10,16 +10,31 @@ namespace VKE
         {
             class IInput
             {
-                public:
+            public:
+                virtual ~IInput()
+                {
+                }
 
-                    virtual ~IInput() {}
+                virtual void OnKeyDown( const Input::SKeyboardState&, const Input::KEY& )
+                {
+                }
 
-                    virtual void OnKeyDown( const Input::SKeyboardState&, const Input::KEY& ) {}
-                    virtual void OnKeyUp( const Input::SKeyboardState&, const Input::KEY& ) {}
-                    virtual void OnMouseMove( const Input::SMouseState& ) {}
-                    virtual void OnMouseButtonDown( const Input::SMouseState& ) {}
-                    virtual void OnMouseButtonUp( const Input::SMouseState& ) {}
+                virtual void OnKeyUp( const Input::SKeyboardState&, const Input::KEY& )
+                {
+                }
+
+                virtual void OnMouseMove( const Input::SMouseState& )
+                {
+                }
+
+                virtual void OnMouseButtonDown( const Input::SMouseState& )
+                {
+                }
+
+                virtual void OnMouseButtonUp( const Input::SMouseState& )
+                {
+                }
             };
-        } // EventListeners
-    } // Input
-} // VKE
+        } // namespace EventListeners
+    } // namespace Input
+} // namespace VKE
