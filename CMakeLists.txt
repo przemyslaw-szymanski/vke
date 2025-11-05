@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.5)
 
 # https://stackoverflow.com/questions/29397349/cmake-convert-unix-to-windows-path
 macro(msys_to_cmake_path MsysPath ResultingPath)
