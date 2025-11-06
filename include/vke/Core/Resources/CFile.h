@@ -20,6 +20,7 @@ namespace VKE
             VKE_DECL_BASE_RESOURCE();
 
         public:
+            // TODO(szymansk): Change to std::byte for use in CImageManager instead of reinterpret_cast
             using DataType = uint8_t;
 
         protected:
