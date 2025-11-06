@@ -12,10 +12,8 @@
 #include "RenderSystem/Resources/CTexture.h"
 
 #include "CCommandLineArgs.h"
-#include "ThirdParty/glslang/SPIRV/GlslangToSpv.h"
-#include "ThirdParty/glslang/glslang/Include/ShHandle.h"
-#include "ThirdParty/glslang/glslang/OSDependent/osinclude.h"
-#include "ThirdParty/glslang/glslang/Public/ShaderLang.h"
+#include <glslang/SPIRV/GlslangToSpv.h>
+#include <glslang/Public/ShaderLang.h>
 
 namespace VKE
 {

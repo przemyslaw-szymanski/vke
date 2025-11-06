@@ -17,7 +17,7 @@
 #define VKE_USE_VULKAN_ANDROID 1
 #error implement here
 #endif // VKE_WINDOWS
-#include "ThirdParty/vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 #ifdef __cplusplus
 extern "C"
 {
@@ -32,7 +32,7 @@ extern "C"
 #define VKE_DECLARE_GLOBAL_ICD 1
 #define VKE_DECLARE_INSTANCE_ICD 1
 #define VKE_DECLARE_DEVICE_ICD 1
-#include "ThirdParty/vulkan/VKEICD.h"
+#include "RenderSystem/vulkan/VKEICD.h"
 #undef VKE_DEVICE_ICD
 #undef VKE_DEVICE_EXT_ICD
 #undef VKE_INSTANCE_ICD
@@ -45,8 +45,8 @@ extern "C"
 #ifdef __cplusplus
 } // extern "C"
 #endif
-#include "RenderSystem/Vulkan/VKEImageFormats.h"
-#include "ThirdParty/vulkan/vkFormatList.h"
+#include "RenderSystem/VKEImageFormats.h"
+#include "RenderSystem/Vulkan/vkFormatList.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Common.h"
 

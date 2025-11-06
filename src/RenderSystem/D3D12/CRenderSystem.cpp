@@ -1,4 +1,4 @@
-#include "CRenderSystem.h"
+#include "RenderSystem/D3D12/CRenderSystem.h"
 
 #if VKE_D3D12_RENDER_SYSTEM
 

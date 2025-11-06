@@ -12,7 +12,7 @@
 #define VKE_USE_VULKAN_ANDROID 1
 #error implement here
 #endif // VKE_WINDOWS
-#include "ThirdParty/vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace VKE
 {

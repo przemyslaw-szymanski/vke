@@ -2,6 +2,32 @@
   "name": "vke",
   "version-string": "1.0.0",
   "dependencies": [
-
+    {
+      "name": "vulkan"
+    },
+    {
+      "name": "vulkan-validationlayers"
+    },
+    {
+      "name": "devil"
+    },
+    {
+      "name": "directx-dxc"
+    },
+    {
+      "name": "directxtex"
+    },
+    {
+      "name": "directxtk12"
+    },
+    {
+      "name": "glslang"
+    },
+    {
+      "name": "directxmath"
+    },
+    {
+      "name": "zlib"
+    }
   ]
 }

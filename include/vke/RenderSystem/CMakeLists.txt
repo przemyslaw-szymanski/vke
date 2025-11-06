@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 if(VKE_VULKAN_RENDER_SYSTEM)
     set(RENDER_SYSTEM_NAME vkEngineRenderSystem_Vulkan)
 endif()
+
 project(vkEngineRenderSystem C CXX)
 
 set(INC_DIRS
@@ -107,16 +108,11 @@ add_dependencies(vkEngineRenderSystem vkEngineCore)
     
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
 
-find_library(FIND_LIB glslangd.lib ${LIB_DIR})
+#find_library(FIND_LIB glslangd.lib ${LIB_DIR})
+#set_target_properties(vkEngineRenderSystem PROPERTIES IMPORTED_LOCATION ${LIB_DIR}/glslangd.lib)
 
-set_target_properties(vkEngineRenderSystem PROPERTIES IMPORTED_LOCATION ${LIB_DIR}/glslangd.lib)
+#if(VKE_VULKAN_RENDER_SYSTEM)
+target_link_libraries(vkEngineRenderSystem PUBLIC ${THIRD_PARTY_LIBS})
+#else()
 
-if(VKE_VULKAN_RENDER_SYSTEM)
-target_link_libraries(vkEngineRenderSystem
-    debug vkEngineCore_d
-    optimized vkEngineCore
-    debug glslangd debug HLSLd debug SPIRVd
-    optimized glslang optimized HLSL optimized SPIRV)
-else()
-
-endif()
+#endif()

@@ -5,7 +5,7 @@
 #include "RenderSystem/Common.h"
 
 #if VKE_USE_DIRECTXTEX
-#include "ThirdParty/DirectXTex/DirectXTex/DirectXTex.h"
+#include <DirectXTex.h>
 #endif
 
 namespace VKE

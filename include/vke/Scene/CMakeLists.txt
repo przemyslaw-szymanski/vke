@@ -21,4 +21,4 @@ add_dependencies(vkEngineScene vkEngineRenderSystem)
 
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
 
-target_link_libraries(vkEngineScene debug vkEngineRenderSystem_d optimized vkEngineRenderSystem)
+target_link_libraries(vkEngineScene debug vkEngineRenderSystem_d optimized vkEngineRenderSystem ${THIRD_PARTY_LIBS})

@@ -83,5 +83,12 @@ error: building llvm:x64-windows failed with: BUILD_FAILED
 This may possible be caused because of long paths on Windows. Enabling long paths may not be enough as theres still some limit applied.
 To fix this issue, you can try to clone the repository in a directory with a shorter path, for example directly on C: drive or just have a system wide vcpkg under C:\vcpkg.
 
+### No Vulkan validation layer
+If you are running the engine with Vulkan and you see a warning about missing validation layers. There are few possible solutions:
+1. If you are using vcpkg you have to manually set the path to the validation layers. You can do this by setting the `VK_ADD_LAYER_PATH` environment variable to point to the directory where vcpkg installs the Vulkan layers. For example:
+    - The directory is located at your CMake build folder under `vcpkg_installed\<triplet>\bin`.
+	- After setting the environment variable, restart your IDE / terminal / CMake GUI to ensure the changes take effect.
+2. Alternatively install Vulkan SDK from LunarG: [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
+
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
