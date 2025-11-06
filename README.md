@@ -68,8 +68,9 @@ There are some advantages of using folder view:
 ## Clang-Format
 The project uses modern `clang-format` to maintain consistent code style. A `.clang-format` file is provided in the root directory of the project.
 Visual Studio uses old version, so to avoid issues, please download the latest version of clang-format from LLVM releases (eg.: 21.x.x):
-[LLVM Releases](https://releases.llvm.org/download.html)
-After downloading, you can set up Visual Studio to use the downloaded `clang-format.exe`:
+[LLVM Releases](https://github.com/llvm/llvm-project/releases)
+Use binary archive, eg: clang+llvm-21.1.5-x86_64-pc-windows-msvc.tar.xz
+Open archive, from bin/ extract clang-format.exe and use it with your IDE.
 1. Open Visual Studio and go to `Tools` > `Options`.
 2. Navigate to `Text Editor` > `C/C++` > `Formatting` > `General`.
 3. Check the box for `Enable ClangFormat support`.
