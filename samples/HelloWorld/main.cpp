@@ -1,6 +1,4 @@
-
-
-#include "../CSampleFramework.h"
+#include "VKE.h"
 
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {
@@ -19,23 +17,26 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
         return true;
     }
+
 };
 
 int main()
 {   
-    CSampleFramework Sample;
-    SSampleCreateDesc Desc;
-    VKE::RenderSystem::EventListeners::IGraphicsContext* apListeners[1] =
-    {
-        new SGfxContextListener()
-    };
-    Desc.ppGfxListeners = apListeners;
-    Desc.gfxListenerCount = 1;
+    VKE_DETECT_MEMORY_LEAKS();
 
-    if( Sample.Create( Desc ) )
+    // Bootstrap engine
     {
-        Sample.Start();
+        // Create engine instance
+        VKE::CVkEngine* pEngine = VKECreate();
+
+        // Create Window
+        VKE::SWindowDesc WndDesc;
+        VKE::WindowPtr pWindow = pEngine->CreateRenderWindow( WndDesc );
+
+        // Initialize RenderSystem
+        VKE::RenderSystem::SRenderSystemDesc RenderSysDesc;
+        VKE::RenderSystem::CRenderSystem*    pRenderSystem = pEngine->CreateRenderSystem( RenderSysDesc );
     }
-    Sample.Destroy();
+
     return 0;
 }
