@@ -35,6 +35,11 @@ namespace VKE
     {                                                                                                                  \
         _DbgName = pName;                                                                                              \
     }                                                                                                                  \
+    template<typename ... ArgsT>                                                                                       \
+    void SetDebugName( cstr_t pFormat, ArgsT... args )                                                                 \
+    {                                                                                                                  \
+        _DbgName.Format( pFormat, std::forward<ArgsT>(args)...);                                                       \
+    }                                                                                                                  \
     cstr_t GetDebugName() const                                                                                        \
     {                                                                                                                  \
         return _DbgName.GetData();                                                                                     \
@@ -54,7 +59,8 @@ namespace VKE
 #else
 #define VKE_RENDER_SYSTEM_DEBUG_CODE( _code )
 #define VKE_RENDER_SYSTEM_DEBUG_NAME                                                                                   \
-    void SetDebugName( cstr_t )                                                                                        \
+    template< typename... ArgsT >                                                                                      \
+    void SetDebugName( ArgsT... )                                                                                      \
     {                                                                                                                  \
     }                                                                                                                  \
     cstr_t GetDebugName() const                                                                                        \
@@ -2440,21 +2446,7 @@ namespace VKE
 
             void                     AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
             SDescriptorSetLayoutDesc LayoutDesc;
-#if VKE_RENDER_SYSTEM_DEBUG
-            void SetDebugName( cstr_t pName )
-            {
-                _DebugName = pName;
-                LayoutDesc.SetDebugName( pName );
-            }
-
-            cstr_t GetDebugName() const
-            {
-                return _DebugName.GetData();
-            }
-
-        private:
-            ShortName _DebugName;
-#endif
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
         struct SPipelineDesc
