@@ -56,8 +56,8 @@ namespace VKE
                 const float aspectRatio = m_Desc.Viewport.width / m_Desc.Viewport.height;
                 m_ProjMatrix.SetPerspective( m_Desc.Viewport, m_Desc.ClipPlanes );
                 m_ProjMatrix.SetPerspectiveFOV( m_fovAngle, aspectRatio, m_Desc.ClipPlanes );
-                // m_Frustum.CreateFromMatrix( m_ProjMatrix );
-                m_frustumWidth = CalcFrustumWidth( m_Desc.ClipPlanes.end );
+                m_FrustumWidth.min = CalcFrustumWidth( m_Desc.ClipPlanes.min );
+                m_FrustumWidth.max = CalcFrustumWidth( m_Desc.ClipPlanes.max );
             }
             // auto tmp = m_Desc.vecLookAt + m_Desc.vecPosition;
             _UpdateViewMatrix();
@@ -95,7 +95,7 @@ namespace VKE
             m_Desc.vecUp = Up;
         }
 
-        void CCamera::SetFOV( const float angle )
+        void CCamera::SetFOV( Math::Radians angle )
         {
             m_fovAngle       = angle;
             m_needProjUpdate = true;
@@ -118,22 +118,7 @@ namespace VKE
             m_Desc.vecPosition += vecDistance;
         }
 
-        void CCamera::Rotate( const Math::CVector3& vecAxis, const float angleRadians )
-        {
-            /*const float halfAngle = angleRadians * 0.5f;
-            const float sin = std::sinf( halfAngle );
-            const float cos = std::cosf( halfAngle );
-            Math::CQuaternion quatTmp;
-            quatTmp.x = sin * vecAxis.x;
-            quatTmp.y = sin * vecAxis.y;
-            quatTmp.z = sin * vecAxis.z;
-            quatTmp.w = cos;
-            Math::CQuaternion quatNormalized;
-            Math::CQuaternion::Normalize( quatTmp, &quatNormalized );
-            m_quatOrientation *= quatNormalized;*/
-        }
-
-        void CCamera::Rotate( const float pitch, const float yaw, const float roll )
+        void CCamera::Rotate( Math::Radians pitch, Math::Radians yaw, Math::Radians roll )
         {
             /*DirectX::XMMATRIX rot, rotp, roty, rotr;
             Math::CVector4 look( m_LookAt );
@@ -152,7 +137,7 @@ namespace VKE
             _ApplyRotation( mtxRot );
         }
 
-        void CCamera::SetAngleX( const float angleRadians )
+        void CCamera::SetAngleX( Math::Radians angleRadians )
         {
             /*m_vecAngleRadians.x = Math::NormalizeAngle( angleRadians );
             Math::CVector3 vecXAxis = Mul( m_quatOrientation, Math::CVector3::X
@@ -162,7 +147,7 @@ namespace VKE
             m_quatOrientation *= quatTmp;
         }
 
-        void CCamera::SetAngleY( const float angleRadians )
+        void CCamera::SetAngleY( Math::Radians angleRadians )
         {
             /*m_vecAngleRadians.y = Math::Clamp( angleRadians, -Math::PI_DIV_2 +
             1e-3f, Math::PI_DIV_2 + 1e-3f ); Math::CVector3 vecYAxis = Mul(

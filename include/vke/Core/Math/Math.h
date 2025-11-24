@@ -193,6 +193,134 @@ namespace VKE
     } // namespace Math
 } // namespace VKE
 
+namespace VKE::Math
+{
+    struct RadianTrait;
+
+    template< typename T >
+    class TSAngle;
+
+    struct DegreeTrait
+    {
+        template< typename T >
+        static TSAngle< T > Convert( float degrees )
+        {
+            if constexpr( std::is_same_v< T, RadianTrait > )
+            {
+                return TSAngle< T >( degrees * 0.0174532925f );
+            }
+            else
+            {
+                return TSAngle< T >( degrees );
+            }
+        }
+    };
+
+    struct RadianTrait
+    {
+        template< typename T >
+        static TSAngle< T > Convert( float radians )
+        {
+            if constexpr( std::is_same_v< T, DegreeTrait > )
+            {
+                return TSAngle< T >( radians * 57.2957795f );
+            }
+            return TSAngle< T >( radians );
+        }
+    };
+
+    template< typename AngleTraitT >
+    class TSAngle
+    {
+        float m_angle;
+
+    public:
+        TSAngle()                 = default;
+        TSAngle( const TSAngle& ) = default;
+        TSAngle( TSAngle&& )      = default;
+
+        explicit TSAngle( float angle ) : m_angle{ angle }
+        {
+        }
+
+        template< typename OtherAngleTraitT >
+        explicit TSAngle( TSAngle< OtherAngleTraitT > Other ) :
+            m_angle( OtherAngleTraitT::template Convert< AngleTraitT >( Other ) )
+        {
+        }
+
+        operator float() const
+        {
+            return m_angle;
+        }
+
+        TSAngle& operator=( const TSAngle& )        = default;
+        bool     operator==( const TSAngle& ) const = default;
+        bool     operator!=( const TSAngle& ) const = default;
+        bool     operator<( const TSAngle& ) const  = default;
+        bool     operator>( const TSAngle& ) const  = default;
+        bool     operator<=( const TSAngle& ) const = default;
+        bool     operator>=( const TSAngle& ) const = default;
+
+        TSAngle operator+( TSAngle Other ) const
+        {
+            return TSAngle( m_angle + Other.m_angle );
+        }
+
+        TSAngle operator-( TSAngle Other ) const
+        {
+            return TSAngle( m_angle - Other.m_angle );
+        }
+
+        TSAngle operator*( TSAngle Other ) const
+        {
+            return TSAngle( m_angle * Other.m_angle );
+        }
+
+        TSAngle operator/( TSAngle Other ) const
+        {
+            return TSAngle( m_angle + Other.m_angle );
+        }
+
+        TSAngle& operator+=( TSAngle Other )
+        {
+            m_angle += Other.m_angle;
+            return *this;
+        }
+
+        TSAngle& operator-=( TSAngle Other )
+        {
+            m_angle -= Other.m_angle;
+            return *this;
+        }
+
+        TSAngle& operator*=( TSAngle Other )
+        {
+            m_angle *= Other.m_angle;
+            return *this;
+        }
+
+        TSAngle& operator/=( TSAngle Other )
+        {
+            m_angle /= Other.m_angle;
+            return *this;
+        }
+
+        TSAngle< RadianTrait > ToRadians() const
+        {
+            return AngleTraitT::template Convert< RadianTrait >( *this );
+        }
+
+        TSAngle< DegreeTrait > ToDegrees() const
+        {
+            return AngleTraitT::template Convert< DegreeTrait >( *this );
+        }
+    };
+
+    using Radians = TSAngle< RadianTrait >;
+    using Degrees = TSAngle< DegreeTrait >;
+} // VKE::Math
+
 #include "DirectX/CVector.inl"
 #include "DirectX/CQuaternion.inl"
 #include "DirectX/CMatrix.inl"

@@ -868,7 +868,7 @@ namespace VKE
 #endif
             auto      pCamera = m_pTerrain->GetScene()->GetCamera();
             SViewData View;
-            View.fovRadians   = pCamera->GetFOVAngleRadians();
+            View.fovRadians   = pCamera->GetFOV();
             View.screenWidth  = pCamera->GetViewport().width;
             View.screenHeight = pCamera->GetViewport().height;
             View.frustumWidth = pCamera->CalcFrustumWidth( 1.0f ); // frustum width at 1.0f distance
