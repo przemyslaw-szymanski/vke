@@ -40,36 +40,36 @@ namespace VKE
 
             void Update( float time );
             void Reset();
-            void SetFOV( const float angle );
+            void SetFOV( Math::Radians angle );
             void SetClippingPlanes( const ExtentF32& Planes );
             void SetViewport( const ExtentF32& Viewport );
             void SetPosition( const Math::CVector3& Position );
             void SetUp( const Math::CVector3& Up );
             void SetLookAt( const Math::CVector3& Position );
             void Move( const Math::CVector3& vecDistance );
-            void Rotate( const Math::CVector3& vecAxis, const float angleRadians );
-            void Rotate( const float pitch, const float yaw, const float roll );
-            void SetAngleX( const float angleRadians );
-            void SetAngleY( const float angleRadians );
+            void Rotate( const Math::CVector3& vecAxis, Math::Radians angleRadians );
+            void Rotate( Math::Radians pitch, Math::Radians yaw, Math::Radians roll );
+            void SetAngleX( Math::Radians angleRadians );
+            void SetAngleY( Math::Radians angleRadians );
 
-            void SetYaw( const float angleRadians )
+            void SetYaw( Math::Radians angleRadians )
             {
                 SetAngleY( angleRadians );
             }
 
-            void SetPitch( const float angleRadians )
+            void SetPitch( Math::Radians angleRadians )
             {
                 SetAngleX( angleRadians );
             }
 
-            void RotateX( const float angleRadians )
+            void RotateX( Math::Radians angleRadians )
             {
-                SetAngleX( m_vecAngleRadians.x + angleRadians );
+                SetAngleX( Math::Radians( m_rotateX + angleRadians ) );
             }
 
-            void RotateY( const float angleRadians )
+            void RotateY( Math::Radians angleRadians )
             {
-                SetAngleY( m_vecAngleRadians.y + angleRadians );
+                SetAngleY( Math::Radians( m_rotateY + angleRadians ) );
             }
 
             const Math::CVector3& GetPosition() const
@@ -127,9 +127,9 @@ namespace VKE
                 Math::CMatrix4x4::Mul( m_ViewMatrix, m_ProjMatrix, pOut );
             }
 
-            float GetFOVAngleRadians() const
+            Math::Radians GetFOV() const
             {
-                return Math::ConvertToRadians( m_fovAngle );
+                return m_fovAngle;
             }
 
             const ExtentF32& GetViewport() const
@@ -137,10 +137,13 @@ namespace VKE
                 return m_Desc.Viewport;
             }
 
-            // Get frustum width at max distance
-            float GetFrustumWidth() const
+            /// <summary>
+            /// Gets min/max frustum widths
+            /// </summary>
+            /// <returns></returns>
+            const ExtentF32& GetFrustumWidth() const
             {
-                return m_frustumWidth;
+                return m_FrustumWidth;
             }
 
             // Calculates frustum width at some distance
@@ -155,10 +158,15 @@ namespace VKE
         protected:
             SCameraDesc       m_Desc;
             Math::CVector3    m_vecDirection;
-            Math::CVector3    m_vecAngleRadians;
             Math::CQuaternion m_quatOrientation = Math::CQuaternion::UNIT;
-            float             m_fovAngle        = 45.0f;
-            float             m_frustumWidth    = 0.0f;
+            Math::Radians     m_fovAngle        = Math::Radians( Math::Degrees( 45 ) );
+            Math::Radians     m_rotateX         = Math::Radians( 0 );
+            Math::Radians     m_rotateY         = Math::Radians( 0 );
+            Math::Radians     m_rotateZ         = Math::Radians( 0 );
+            /// <summary>
+            /// Min frustum width at near distance and max at far distance
+            /// </summary>
+            ExtentF32         m_FrustumWidth;
             uint32_t          m_handle;
             uint32_t          m_hDbgView       = UNDEFINED_U32;
             bool              m_needProjUpdate = true;

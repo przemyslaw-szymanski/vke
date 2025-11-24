@@ -72,12 +72,14 @@ struct SInputListener : public VKE::Input::EventListeners::IInput
     {
         if( !mouseDown || ( Mouse.Move.x == 0 && Mouse.Move.y == 0 ) )
             return;
-        const float scale = 0.25f + 0.0f;
-        float x = VKE::Math::ConvertToRadians( ( float )Mouse.Move.x ) * scale;
+        const float scale = 0.01f + 0.0f;
+        /*float x = VKE::Math::ConvertToRadians( ( float )Mouse.Move.x ) * scale;
         float y =
-            VKE::Math::ConvertToRadians( ( float )Mouse.Move.y ) * scale * 1;
-        printf( "m %f, %f\n", x, y );
-        pCamera->Rotate( x, y, 0.0f );
+            VKE::Math::ConvertToRadians( ( float )Mouse.Move.y ) * scale * 1;*/
+        VKE::Math::Radians x = VKE::Math::Radians( (float)Mouse.Move.x * scale );
+        VKE::Math::Radians y = VKE::Math::Radians( (float)Mouse.Move.y * scale );
+        printf( "m %f, %f\n", (float)x, (float)y );
+        pCamera->Rotate( x, y, VKE::Math::Radians( 0.0f ) );
     }
 };
 struct SGfxContextListener
