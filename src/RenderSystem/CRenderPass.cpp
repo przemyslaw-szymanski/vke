@@ -81,21 +81,6 @@ namespace VKE
             return res;
         }
 
-        /*
-        bool MakeAttachmentRef(const SRenderPassDesc::AttachmentDescArray &vAttachments,
-                                const SSubpassAttachmentDesc& SubpassAttachmentDesc, VkAttachmentReference* pRefOut )
-        {
-            int32_t idx = FindTextureHandle( vAttachments, SubpassAttachmentDesc.hTextureView );
-            bool res = false;
-            if( idx >= 0 )
-            {
-                pRefOut->attachment = idx;
-                pRefOut->layout = Vulkan::Map::ImageLayout( SubpassAttachmentDesc.state );
-                res = true;
-            }
-            return res;
-        }
-        */
         // DDI api handles only
         Result CRenderPass::Create( const SRenderPassDesc& Desc )
         {

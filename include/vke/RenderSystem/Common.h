@@ -915,6 +915,7 @@ namespace VKE
                 DYNAMIC_CONSTANT_BUFFER,
                 DYNAMIC_BUFFER,
                 RENDER_TARGET,
+                DEPTH_STENCIL,
                 _MAX_COUNT,
                 UNKNOWN = _MAX_COUNT
             };

@@ -53,10 +53,13 @@ namespace VKE::RenderSystem
             };
         };
 
+        // Static methods
+        static Result QueryAdapters( AdapterInfoArray* pOut );
+        static Result Load( const SDDILoadInfo& Info, SDriverInfo* pOut );
+
+        // Object methods
         Result CreateDevice( const SCreateDeviceDesc& Info, CDeviceContext* pCtx );
         void   DestroyDevice();
-
-        static Result Load( const SDDILoadInfo& Info, SDriverInfo* pOut );
 
         const NativeAPI::Device& GetDevice() const
         {
@@ -72,8 +75,6 @@ namespace VKE::RenderSystem
         {
             return m_DeviceProperties.vQueueFamilies;
         }
-
-        static Result QueryAdapters( AdapterInfoArray* pOut );
 
         void QueryDeviceInfo( SDeviceInfo* pOut );
 
@@ -148,7 +149,8 @@ namespace VKE::RenderSystem
         void*            MapMemory( const SMapMemoryInfo& Info );
         void             UnmapMemory( const NativeAPI::Memory& hDDIMemory );
 
-        void Reset( const NativeAPI::CommandBuffer& hCommandBuffer );
+        void Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
+                    const NativeAPI::CommandBufferPool& hCommandBufferPool );
         void BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer );
         void EndCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer );
 

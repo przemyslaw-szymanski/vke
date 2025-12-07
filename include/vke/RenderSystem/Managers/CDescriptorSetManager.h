@@ -5,7 +5,6 @@
 
 #include "RenderSystem/CDescriptorSet.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {

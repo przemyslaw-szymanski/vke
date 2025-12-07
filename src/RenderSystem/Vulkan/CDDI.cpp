@@ -94,15 +94,16 @@ namespace VKE
 
         const NativeAPI::DDIExtArray GetRequiredDeviceExtensions( bool debug )
         {
-            const NativeAPI::DDIExtArray Ret = { // name, required, supported
-                                                 { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
-                                                 { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
-                                                 { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
-                                                 { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
-                                                 { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
-                                                 { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
-                                                 { VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, true, false },
-                                                 { VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, true, false }
+            const NativeAPI::DDIExtArray Ret = {
+                // name, required, supported
+                { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE1_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE2_EXTENSION_NAME, true, false },
+                { VK_KHR_MAINTENANCE3_EXTENSION_NAME, true, false },
+                { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME, true, false },
+                { VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME, true, false },
+                { VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME, true, false },
+                { VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, true, false },
             };
             return Ret;
         }
@@ -165,10 +166,11 @@ namespace VKE
 
             VkImageViewType ImageViewType( RenderSystem::TEXTURE_VIEW_TYPE type )
             {
-                static const VkImageViewType aVkTypes[] = { VK_IMAGE_VIEW_TYPE_1D,        VK_IMAGE_VIEW_TYPE_2D,
-                                                            VK_IMAGE_VIEW_TYPE_3D,        VK_IMAGE_VIEW_TYPE_1D_ARRAY,
-                                                            VK_IMAGE_VIEW_TYPE_2D_ARRAY,  VK_IMAGE_VIEW_TYPE_CUBE,
-                                                            VK_IMAGE_VIEW_TYPE_CUBE_ARRAY };
+                static const VkImageViewType aVkTypes[] = {
+                    VK_IMAGE_VIEW_TYPE_1D,         VK_IMAGE_VIEW_TYPE_2D,       VK_IMAGE_VIEW_TYPE_3D,
+                    VK_IMAGE_VIEW_TYPE_1D_ARRAY,   VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_CUBE,
+                    VK_IMAGE_VIEW_TYPE_CUBE_ARRAY,
+                };
                 return aVkTypes[ type ];
             }
 
@@ -230,16 +232,17 @@ namespace VKE
             VkImageAspectFlags ImageAspect( RenderSystem::TEXTURE_ASPECT aspect )
             {
                 VKE_ASSERT( aspect != 0 );
-                static const VkImageAspectFlags aVkAspects[] = { // UNKNOWN
-                                                                 0,
-                                                                 // COLOR
-                                                                 VK_IMAGE_ASPECT_COLOR_BIT,
-                                                                 // DEPTH
-                                                                 VK_IMAGE_ASPECT_DEPTH_BIT,
-                                                                 // STENCIL
-                                                                 VK_IMAGE_ASPECT_STENCIL_BIT,
-                                                                 // DEPTH_STENCIL
-                                                                 VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
+                static const VkImageAspectFlags aVkAspects[] = {
+                    // UNKNOWN
+                    0,
+                    // COLOR
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    // DEPTH
+                    VK_IMAGE_ASPECT_DEPTH_BIT,
+                    // STENCIL
+                    VK_IMAGE_ASPECT_STENCIL_BIT,
+                    // DEPTH_STENCIL
+                    VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
                 };
                 return aVkAspects[ aspect ];
             }
@@ -4962,7 +4965,8 @@ namespace VKE
             return ret;
         }
 
-        void CDDI::Reset( const NativeAPI::CommandBuffer& hCommandBuffer )
+        void CDDI::Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
+                          const NativeAPI::CommandBufferPool& hCommandBufferPool )
         {
             const auto flags = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
             VK_ERR( m_Implementation.m_ICD.vkResetCommandBuffer( hCommandBuffer, flags ) );

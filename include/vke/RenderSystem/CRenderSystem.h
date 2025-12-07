@@ -5,7 +5,6 @@
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CDDI.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
@@ -63,8 +62,6 @@ namespace VKE
             CPipeline* CreatePipeline();
             handle_t   CreateFramebuffer( const SFramebufferDesc& Info );
 
-            Result MakeCurrent( RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope = ContextScopes::ALL );
-
             const AdapterInfoArray& GetAdapters() const;
 
             CGraphicsContext* GetCurrentContext( CONTEXT_SCOPE scope );
@@ -85,12 +82,9 @@ namespace VKE
                                                size_t memSize );
             const void* _GetICD() const;
 
-            VkInstance _GetVkInstance() const;
-
         protected:
             SRenderSystemDesc   m_Desc;
-            SRSInternal*        m_pPrivate = nullptr;
-            CVkEngine*          m_pEngine  = nullptr;
+            CVkEngine*          m_pEngine = nullptr;
             FreeListVec         m_vpFreeLists;
             DeviceVec           m_vpDevices;
             AdapterInfoArray    m_vAdapterInfos;

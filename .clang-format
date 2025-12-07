@@ -104,7 +104,4 @@ AlignConsecutiveShortCaseStatements:
     AlignCaseArrows: false
     AlignCaseColons: false
 
-# Macro indents
-IndentPPDirectives: AfterHash
-
 #IndentGotoLabels: false

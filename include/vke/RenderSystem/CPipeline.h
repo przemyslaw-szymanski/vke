@@ -4,102 +4,80 @@
 
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDescriptorSet.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 
-namespace VKE
+namespace VKE::RenderSystem
 {
-    namespace RenderSystem
+    class VKE_API CPipelineLayout
     {
-        class VKE_API CPipelineLayout
+        friend class CPipelineManager;
+        VKE_ADD_DDI_OBJECT( NativeAPI::PipelineLayout );
+        VKE_DECL_BASE_OBJECT( PipelineLayoutHandle );
+
+    public:
+        CPipelineLayout( CPipelineManager* pMgr ) : m_pMgr( pMgr )
         {
-            friend class CPipelineManager;
-            VKE_ADD_DDI_OBJECT( NativeAPI::PipelineLayout );
-            VKE_DECL_BASE_OBJECT( PipelineLayoutHandle );
+        }
 
-        public:
-            CPipelineLayout( CPipelineManager* pMgr ) : m_pMgr( pMgr )
-            {
-            }
+        Result Init( const SPipelineLayoutDesc& Desc );
 
-            Result Init( const SPipelineLayoutDesc& Desc );
-
-            const SPipelineLayoutDesc& GetDesc() const
-            {
-                return m_Desc;
-            }
-
-        protected:
-            SPipelineLayoutDesc m_Desc;
-            CPipelineManager*   m_pMgr;
-        };
-
-        using PipelineLayoutPtr    = Utils::TCWeakPtr< CPipelineLayout >;
-        using PipelineLayoutRefPtr = Utils::TCObjectSmartPtr< CPipelineLayout >;
-
-        class VKE_API CPipeline
+        const SPipelineLayoutDesc& GetDesc() const
         {
-            friend class CPipelineManager;
-            friend class CDeviceContext;
-            friend class CGraphicsContext;
-            friend class CComputeContext;
-            friend class CCommandBuffer;
+            return m_Desc;
+        }
 
-            struct SVkCreateDesc
-            {
-                VkGraphicsPipelineCreateInfo           GraphicsCreateInfo                = {};
-                VkComputePipelineCreateInfo            ComputeCreateInfo                 = {};
-                VkPipelineShaderStageCreateInfo        Stages[ ShaderTypes::_MAX_COUNT ] = {};
-                VkPipelineVertexInputStateCreateInfo   VertexInputState;
-                VkPipelineInputAssemblyStateCreateInfo InputAssemblyState;
-                VkPipelineTessellationStateCreateInfo  TessellationState;
-                VkPipelineViewportStateCreateInfo      ViewportState;
-                VkPipelineRasterizationStateCreateInfo RasterizationState;
-                VkPipelineMultisampleStateCreateInfo   MultisampleState;
-                VkPipelineDepthStencilStateCreateInfo  DepthStencilState;
-                VkPipelineColorBlendStateCreateInfo    ColorBlendState;
-                VkPipelineDynamicStateCreateInfo       DynamicState;
-            };
+    protected:
+        SPipelineLayoutDesc m_Desc;
+        CPipelineManager*   m_pMgr;
+    };
 
-            VKE_ADD_DDI_OBJECT( NativeAPI::Pipeline );
-            VKE_DECL_BASE_OBJECT( PipelineHandle );
-            VKE_DECL_BASE_RESOURCE();
+    using PipelineLayoutPtr    = Utils::TCWeakPtr< CPipelineLayout >;
+    using PipelineLayoutRefPtr = Utils::TCObjectSmartPtr< CPipelineLayout >;
 
-        public:
-            CPipeline( CPipelineManager* );
-            ~CPipeline();
+    class VKE_API CPipeline
+    {
+        friend class CPipelineManager;
+        friend class CDeviceContext;
+        friend class CGraphicsContext;
+        friend class CComputeContext;
+        friend class CCommandBuffer;
 
-            Result Init( const SPipelineDesc& Desc );
+        VKE_ADD_DDI_OBJECT( NativeAPI::Pipeline );
+        VKE_DECL_BASE_OBJECT( PipelineHandle );
+        VKE_DECL_BASE_RESOURCE();
 
-            PIPELINE_TYPE GetType() const
-            {
-                return m_type;
-            }
+    public:
+        CPipeline( CPipelineManager* );
+        ~CPipeline();
 
-            const SPipelineDesc& GetDesc() const
-            {
-                return m_Desc;
-            }
+        Result Init( const SPipelineDesc& Desc );
 
-            PipelineLayoutPtr GetLayout() const
-            {
-                return m_pLayout;
-            }
+        PIPELINE_TYPE GetType() const
+        {
+            return m_type;
+        }
 
-        protected:
-            void _Destroy();
+        const SPipelineDesc& GetDesc() const
+        {
+            return m_Desc;
+        }
 
-        protected:
-            SVkCreateDesc m_CreateDesc;
-            SPipelineDesc m_Desc;
-            // VkPipeline              m_vkPipeline = VK_NULL_HANDLE;
-            PipelineLayoutRefPtr m_pLayout;
-            CPipelineManager*    m_pMgr;
-            PIPELINE_TYPE        m_type;
-            bool                 m_isActive = false;
-        };
+        PipelineLayoutPtr GetLayout() const
+        {
+            return m_pLayout;
+        }
 
-        using PipelinePtr    = Utils::TCWeakPtr< CPipeline >;
-        using PipelineRefPtr = Utils::TCObjectSmartPtr< CPipeline >;
+    protected:
+        void _Destroy();
 
-    } // namespace RenderSystem
-} // namespace VKE
+    protected:
+        SPipelineDesc        m_Desc;
+        PipelineLayoutRefPtr m_pLayout;
+        CPipelineManager*    m_pMgr;
+        PIPELINE_TYPE        m_type;
+        bool                 m_isActive = false;
+    };
+
+    using PipelinePtr    = Utils::TCWeakPtr< CPipeline >;
+    using PipelineRefPtr = Utils::TCObjectSmartPtr< CPipeline >;
+
+} // namespace VKE::RenderSystem

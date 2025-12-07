@@ -46,28 +46,22 @@ set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(THIRD_PARTY_DIR "${SOURCE_DIR}/ThirdParty")
 set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
 set(THIRD_PARTY_LIBS)
+set(DLL_DEPENDENCIES )
 
-#set(DXC_PATH "${THIRD_PARTY_DIR}/dxc")
-#set(DX_SHADER_COMPILER_PATH "${THIRD_PARTY_DIR}/DirectXShaderCompiler")
+if(VKE_D3D12_RENDER_SYSTEM)
 
-set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
-    optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
+endif()
 
-#set(GLSLANG_LIBS
-#debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
-#optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
 find_package(glslang CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
 
 find_package(ZLIB REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" ZLIB::ZLIB)
 
-#set(DXC_LIBS
-#    debug dxclib
-#    optimized dxclib)
 if(VKE_USE_DIRECTX_SHADER_COMPILER)
     find_package(directx-dxc CONFIG REQUIRED)
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXShaderCompiler)
+    set(DLL_DEPENDENCIES ${DLL_DEPENDENCIES} "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin/dxcompiler.dll")
 endif()
 
 find_package(directxtex CONFIG REQUIRED)
@@ -82,23 +76,18 @@ endif()
 find_package(directxmath CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXMath)
 
-find_package(Vulkan REQUIRED)
-message(STATUS "Found Vulkan: ${Vulkan_LIBRARIES}")
-message(STATUS "Vulkan include dirs: ${Vulkan_INCLUDE_DIRS}")
-set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Vulkan::Vulkan)
+if(VKE_VULKAN_RENDER_SYSTEM)
+    find_package(Vulkan REQUIRED)
+    message(STATUS "Found Vulkan: ${Vulkan_LIBRARIES}")
+    message(STATUS "Vulkan include dirs: ${Vulkan_INCLUDE_DIRS}")
+    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Vulkan::Vulkan)
+endif()
 
-# Is this actually used?
-#set(GAINPUT_LIBS
-#    optimized gainputstatic debug gainputstatic-d)
-
-#if(VKE_USE_GAINPUT)
-#    set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${GAINPUT_LIBS})
-#endif()
-
-#if(VKE_USE_DIRECTX_SHADER_COMPILER)
-#    set(THIRD_PARTY_LIB_DIRS "${THIRD_PARTY_LIB_DIRS}" "${THIRD_PARTY_DIR}/dxc/lib")
-#    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" "${DXC_LIBS}")
-#endif()
+if(VKE_D3D12_RENDER_SYSTEM)
+    find_package(directx-headers CONFIG REQUIRED)
+    find_package(directx12-agility CONFIG REQUIRED)
+    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility)
+endif()
 
 message("Third Party Libs:")
 foreach(LIB IN LISTS THIRD_PARTY_LIBS)
@@ -121,10 +110,27 @@ add_library(vkEngine SHARED
     src/DllMain.cpp
     .clang-format)
 
-add_dependencies(vkEngine vkEngineScene)
+add_dependencies(vkEngine vkEngineRenderSystem vkEngineScene)
 
-set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
-target_link_libraries(vkEngine ${LINK_LIBS})
+#set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
+#    optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
+
+#set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
+set(LINK_LIBS ${THIRD_PARTY_LIBS})
+
+message("Linking vkEngine with libs:")
+foreach(LIB IN LISTS LINK_LIBS)
+    message(" - ${LIB}")
+endforeach()
+
+foreach(DLL_PATH IN LISTS DLL_DEPENDENCIES)
+    add_custom_command(TARGET vkEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DLL_PATH}"
+        $<TARGET_FILE_DIR:vkEngine>)
+endforeach()
+
+target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngineScene ${LINK_LIBS})
 include(LinkSettings.cmake NO_POLICY_SCOPE)
 
 if(BUILD_SAMPLES_ENABLED)

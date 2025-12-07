@@ -80,8 +80,10 @@ namespace VKE
                 VKE_ASSERT( Desc.threadIndex < MAX_THREAD_COUNT );
                 tid = Desc.threadIndex;
             }
-            pPool->hDDIPool                     = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
-            auto                            idx = m_avpPools[ tid ].PushBack( pPool );
+
+            pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
+            auto idx        = m_avpPools[ tid ].PushBack( pPool );
+
             SCommandBufferPoolHandleDecoder Decoder;
             Decoder.Decode.threadId = tid;
             Decoder.Decode.index    = idx;
@@ -136,7 +138,8 @@ namespace VKE
                 if( VKE_SUCCEEDED( CreateCommandBuffers< false >( 1u, ppOut ) ) )
                 {
                     pCurr = *ppOut;
-                    pCurr->Reset();
+                    // TODO(blturkot): Reset() on CommandList is deprecated. Remove this once confirmed it works on
+                    // samples. pCurr->Reset();
                     pCurr->Begin();
                     m_apCurrentCommandBuffers[ tid ] = pCurr;
 

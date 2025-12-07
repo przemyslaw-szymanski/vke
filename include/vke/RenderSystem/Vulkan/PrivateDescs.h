@@ -1,20 +1,16 @@
 #pragma once
 
-#include "RenderSystem/CQueue.h"
 #include "Core/Threads/Common.h"
 
-namespace VKE
+namespace VKE::RenderSystem
 {
-    namespace RenderSystem
+    struct SGraphicsContextPrivateDesc
     {
-        struct SGraphicsContextPrivateDesc
-        {
-            QueueRefPtr pQueue;
-            handle_t    hCmdPool;
-        };
+        QueueRefPtr pQueue;
+        handle_t    hCmdPool;
+    };
 
-        struct SSwapChainPrivateDesc : public SGraphicsContextPrivateDesc
-        {
-        };
-    } // namespace RenderSystem
-} // namespace VKE
+    struct SSwapChainPrivateDesc : public SGraphicsContextPrivateDesc
+    {
+    };
+} // namespace VKE::RenderSystem

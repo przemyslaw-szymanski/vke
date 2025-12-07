@@ -48,9 +48,9 @@ namespace VKE
 
             struct SCommandBufferBatch
             {
-                CommandBufferArray vCmdBuffers;
-                VkFence            vkFence        = VK_NULL_HANDLE;
-                bool               readyToExecute = false;
+                CommandBufferArray  vCmdBuffers;
+                NativeAPI::CPUFence vkFence        = NativeAPI::Null;
+                bool                readyToExecute = false;
 
                 void Reset()
                 {

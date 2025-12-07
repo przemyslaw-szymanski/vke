@@ -175,6 +175,8 @@ namespace VKE
             uint16_t        threadCount  = Constants::Threads::COUNT_OPTIMAL;
             uint16_t        taskMemSize  = 1024;
             uint16_t        maxTaskCount = 1024;
+            // TODO(blturkot): If vThreadDescs depends on threadCount and it requires resize, those should be private
+            // and have appropriate getters/setters.
         };
 
         struct VKE_API STaskResult

@@ -22,7 +22,6 @@
 #include "RenderSystem/Managers/CBackBufferManager.h"
 #include "RenderSystem/Managers/CShaderManager.h"
 
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Vulkan/PrivateDescs.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
@@ -490,11 +489,6 @@ namespace VKE
         //     Result ret = m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this, this->m_pQueue, &pBatch );
         //     return ret;
         // }
-
-        VkInstance CGraphicsContext::_GetInstance() const
-        {
-            return /*m_BaseCtx.*/ m_pDeviceCtx->_GetInstance();
-        }
 
         void CGraphicsContext::SetEventListener( EventListeners::IGraphicsContext* pListener )
         {

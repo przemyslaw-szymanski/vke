@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CDDI.h"
@@ -361,7 +361,7 @@ namespace VKE
         protected:
             CContextBase*          m_pBaseCtx = nullptr;
             CCommandBufferManager* m_pMgr     = nullptr;
-            // TODO(blturkot): Nie jest u�ywane?
+            // TODO(blturkot): Nie jest używane?
             // CResourceBarrierManager     m_BarrierMgr;
             SBarrierInfo      m_BarrierInfo;
             DescSetArray      m_vBindings;

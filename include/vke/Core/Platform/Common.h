@@ -21,15 +21,15 @@ namespace VKE
 
     struct SWindowDesc
     {
-        ExtentU16   Size     = { 800, 600 };
-        ExtentU16   Position = { UNDEFINED_U16, UNDEFINED_U16 };
-        handle_t    hWnd;
-        handle_t    hProcess;
-        cstr_t      pTitle;
-        void*       pUserData;
-        uint32_t    threadId;
-        WINDOW_MODE mode;
-        bool        vSync;
+        ExtentU16   Size      = { 800, 600 };
+        ExtentU16   Position  = { UNDEFINED_U16, UNDEFINED_U16 };
+        handle_t    hWnd      = 0;
+        cstr_t      pTitle    = "VKE untitled window";
+        WINDOW_MODE mode      = WINDOW_MODE::WINDOW;
+        bool        vSync     = false;
+        handle_t    hProcess  = 0;
+        void*       pUserData = nullptr;
+        uint32_t    threadId  = 0;
     };
 
     template< typename T >

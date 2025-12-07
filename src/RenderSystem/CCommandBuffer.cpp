@@ -99,12 +99,17 @@ namespace VKE
 
         void CCommandBuffer::Begin()
         {
-            VKE_ASSERT( m_state == CommandBufferStates::RESET );
             _BeginProlog();
+
+            // TODO(blturkot): _BeginCommandBuffer calls Reset( CommandBuffer ). Because D3D12 doesn't allow multiple
+            // Reset() calls we cannot explicitly call it here. Remove this when samples are confirmed to work.
+            // _Reset();
+            // VKE_ASSERT( m_state == CommandBufferStates::RESET );
+
             auto pThis = this;
-            _Reset();
             m_pBaseCtx->_BeginCommandBuffer( &pThis );
             m_state = States::BEGIN;
+
             VKE_LOG_CB();
             m_pMgr->_LogCommand( this, "Begin" );
         }
@@ -137,14 +142,18 @@ namespace VKE
             return ret;
         }
 
+        // TODO(blturkot): Reset on CommandBuffer is deprecated and should be used on context instead.
+        // Remove this once confirmed it's working with samples.
         void CCommandBuffer::Reset()
         {
-            VKE_ASSERT( m_state != CommandBufferStates::BEGIN );
-            _NotifyExecuted();
-            m_pBaseCtx->_Reset( this );
-            m_state            = CommandBufferStates::RESET;
-            m_isDebugInfoBegun = false;
-            m_pMgr->_LogCommand( this, "Reset" );
+            VKE_ASSERT2( false,
+                         "Reset on CCommandBuffer is deprecated. Use ContextBase.Reset( CCommandBuffer ) instead." );
+            // VKE_ASSERT( m_state != CommandBufferStates::BEGIN );
+            //_NotifyExecuted();
+            // m_pBaseCtx->_Reset( this );
+            // m_state            = CommandBufferStates::RESET;
+            // m_isDebugInfoBegun = false;
+            // m_pMgr->_LogCommand( this, "Reset" );
         }
 
         Result CCommandBuffer::Flush()

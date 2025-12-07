@@ -108,11 +108,7 @@ add_dependencies(vkEngineRenderSystem vkEngineCore)
     
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
 
-#find_library(FIND_LIB glslangd.lib ${LIB_DIR})
-#set_target_properties(vkEngineRenderSystem PROPERTIES IMPORTED_LOCATION ${LIB_DIR}/glslangd.lib)
-
-#if(VKE_VULKAN_RENDER_SYSTEM)
-target_link_libraries(vkEngineRenderSystem PUBLIC ${THIRD_PARTY_LIBS})
-#else()
-
-#endif()
+target_link_libraries(vkEngineRenderSystem
+    debug vkEngineCore_d
+    optimized vkEngineCore
+    ${THIRD_PARTY_LIBS} )

@@ -1,5 +1,4 @@
 ﻿#include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "Core/Utils/CLogger.h"
@@ -30,20 +29,7 @@ namespace VKE
         template< typename T >
         using ResourceBuffer = Utils::TCDynamicArray< T, 256 >;
 
-        struct SPropertiesInput
-        {
-            VkICD::Instance& ICD;
-            VkPhysicalDevice vkPhysicalDevice;
-
-            SPropertiesInput()                        = delete;
-            void operator=( const SPropertiesInput& ) = delete;
-        };
-
-        Result GetProperties( const SPropertiesInput& In, SDeviceProperties* pOut );
-        Result CheckExtensions( VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray< const char* >& );
-
-        CDeviceContext::CDeviceContext( CRenderSystem* pRS ) : // CContextBase( this, "Device" )
-            m_pRenderSystem( pRS )
+        CDeviceContext::CDeviceContext( CRenderSystem* pRS ) : m_pRenderSystem( pRS )
         {
         }
 
@@ -548,12 +534,6 @@ namespace VKE
             return pRet;
         }
 
-        VkInstance CDeviceContext::_GetInstance() const
-        {
-            // return m_pRenderSystem->_GetInstance();
-            return VK_NULL_HANDLE;
-        }
-
         void CDeviceContext::_NotifyDestroy( CGraphicsContext* pCtx )
         {
             VKE_ASSERT2( pCtx != nullptr, "GraphicsContext must not be destroyed." );
@@ -577,44 +557,6 @@ namespace VKE
                 //            }
                 pWnd->GetSwapChain()->GetGraphicsContext()->RenderFrame();
             }
-        }
-
-        /*Result CDeviceContext::_AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX index,
-            Threads::ITask* pTask )
-        {
-            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usage, index, pTask );
-        }*/
-
-        VkImageLayout ConvertInitialLayoutToOptimalLayout( VkImageLayout vkInitial )
-        {
-            static const VkImageLayout aVkLayouts[] = {
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // undefined -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // general -> undefined
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,         // color attachment -> color attachment
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth -> depth
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // depth read only -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // transfer src -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // n/a
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // n/a
-                VK_IMAGE_LAYOUT_UNDEFINED
-            };
-            return aVkLayouts[ vkInitial ];
-        }
-
-        VkImageLayout ConvertInitialLayoutToReadLayout( VkImageLayout vkInitial )
-        {
-            static const VkImageLayout aVkLayouts[] = {
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,        // color attachment -> read only
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth attachment -> read only
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth read only -> depth read only
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,        // read only -> read only
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED
-            };
-            return aVkLayouts[ vkInitial ];
         }
 
         PipelineRefPtr CDeviceContext::CreatePipeline( const SPipelineCreateDesc& Desc )
@@ -1172,42 +1114,6 @@ namespace VKE
         void CDeviceContext::FreeUnusedAllocations()
         {
             m_pBufferMgr->FreeUnusedAllocations();
-        }
-
-        Result CheckExtensions( VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
-                                const Utils::TCDynamicArray< const char* >& vExtensions )
-        {
-            uint32_t count = 0;
-            VK_ERR( Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
-
-            Utils::TCDynamicArray< VkExtensionProperties > vProperties( count );
-
-            VK_ERR(
-                Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, &vProperties[ 0 ] ) );
-
-            std::string ext;
-            Result      err = VKE_OK;
-
-            for( uint32_t e = 0; e < vExtensions.GetCount(); ++e )
-            {
-                ext        = vExtensions[ e ];
-                bool found = false;
-                for( uint32_t p = 0; p < count; ++p )
-                {
-                    if( ext == vProperties[ p ].extensionName )
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if( !found )
-                {
-                    VKE_LOG_ERR( "Extension: " << ext << " is not supported by the device." );
-                    err = VKE_ENOTFOUND;
-                }
-            }
-
-            return err;
         }
 
         void CDeviceContext::_OnFrameStart( CGraphicsContext* )

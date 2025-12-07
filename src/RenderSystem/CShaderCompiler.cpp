@@ -20,14 +20,14 @@ namespace VKE
     {
         struct SDXC
         {
-            IDxcCompiler*               pCompiler = nullptr;
-            IDxcLibrary*                pLibrary = nullptr;
-            IDxcContainerReflection*    pContainerReflection = nullptr;
-            IDxcVersionInfo*            pVersionInfo = nullptr;
-            IDxcVersionInfo2*           pVersionInfo2 = nullptr;
-            DxcCreateInstanceProc       DxcCreateInstance = nullptr;
-            DxcCreateInstance2Proc      DxcCreateInstance2 = nullptr;
-            handle_t                    hDll;
+            IDxcCompiler*            pCompiler            = nullptr;
+            IDxcLibrary*             pLibrary             = nullptr;
+            IDxcContainerReflection* pContainerReflection = nullptr;
+            IDxcVersionInfo*         pVersionInfo         = nullptr;
+            IDxcVersionInfo2*        pVersionInfo2        = nullptr;
+            DxcCreateInstanceProc    DxcCreateInstance    = nullptr;
+            DxcCreateInstance2Proc   DxcCreateInstance2   = nullptr;
+            handle_t                 hDll;
 
             Result Initialize()
             {
@@ -42,9 +42,9 @@ namespace VKE
                 hDll = Platform::DynamicLibrary::Load( pDllName );
                 if( hDll != INVALID_HANDLE )
                 {
-                    DxcCreateInstance = static_cast<DxcCreateInstanceProc>(
+                    DxcCreateInstance = static_cast< DxcCreateInstanceProc >(
                         Platform::DynamicLibrary::GetProcAddress( hDll, "DxcCreateInstance" ) );
-                    DxcCreateInstance2 = static_cast<DxcCreateInstance2Proc>(
+                    DxcCreateInstance2 = static_cast< DxcCreateInstance2Proc >(
                         Platform::DynamicLibrary::GetProcAddress( hDll, "DxcCreateInstance2" ) );
                     if( DxcCreateInstance == nullptr )
                     {
@@ -58,10 +58,10 @@ namespace VKE
                 return VKE_FAIL;
             }
 
-            template<class T>
+            template< class T >
             Result CreateInstance( REFCLSID clsid, T** ppOut )
             {
-                HRESULT hr = DxcCreateInstance( clsid, __uuidof( T ), ( LPVOID* )ppOut );
+                HRESULT hr = DxcCreateInstance( clsid, __uuidof( T ), (LPVOID*)ppOut );
                 return hr == VKE_HR_OK ? VKE_OK : VKE_FAIL;
             }
         };
@@ -90,9 +90,9 @@ namespace VKE
         Result CShaderCompiler::Create( const SShaderCompilerDesc& Desc )
         {
             Result ret = VKE_FAIL;
-            m_Desc = Desc;
-            ret = g_DXC.Initialize();
-            if( VKE_SUCCEEDED(ret) )
+            m_Desc     = Desc;
+            ret        = g_DXC.Initialize();
+            if( VKE_SUCCEEDED( ret ) )
             {
                 if( VKE_FAILED( g_DXC.CreateInstance( CLSID_DxcCompiler, &g_DXC.pCompiler ) ) )
                 {
@@ -304,9 +304,16 @@ namespace VKE
                 vArgs.push_back( L"-WX" );
                 vArgs.push_back( L"-H" );
                 vArgs.push_back( L"-Vi" );
+
+                // TODO(blturkot): Support this to output debug info to a file, ideally bin/symbols/
+                // vArgs.push_back( L"-Fd" );
 #if VKE_RENDER_SYSTEM_DEBUG
                 vArgs.push_back( L"-Zi" );
                 vArgs.push_back( L"-Od" );
+                // TODO(blturkot): compiler reports warning because theres no .pdb output specified. Requesting
+                // explicitly embed_debug to prevent warning but eventually .pdb should be outputted to a file. (most
+                // likely in bin/).
+                vArgs.push_back( L"-Qembed_debug" );
 #else
                 vArgs.push_back( L"-O3" );
 #endif

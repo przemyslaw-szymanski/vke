@@ -4,66 +4,52 @@
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Utils/TCDynamicArray.h"
 
-#include "RenderSystem/Vulkan/Common.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Common.h"
 
-namespace VKE
+namespace VKE::RenderSystem
 {
-    namespace RenderSystem
+    class CCommandBuffer;
+    class CGraphicsContext;
+    class CDevice;
+    class CRenderTarget;
+    class CCommandBufferBatch;
+
+    class CRenderQueue
     {
-        class CCommandBuffer;
-        class CGraphicsContext;
-        class CDevice;
-        class CRenderTarget;
-        class CCommandBufferBatch;
+        friend class CGraphicsContext;
 
-        class CRenderQueue
+    public:
+        CRenderQueue( CGraphicsContext* pCtx );
+        ~CRenderQueue();
+        Result Create( const SRenderQueueDesc& Desc );
+        void   Destroy();
+        Result Begin();
+        Result End();
+        Result Execute();
+        void   SetPriority( uint16_t priority );
+
+        uint16_t GetPriority() const
         {
-            friend class CGraphicsContext;
-            using CommandBufferArray = Utils::TCDynamicArray< Vulkan::SCommandBuffer >;
+            return m_priority;
+        }
 
-        public:
-            CRenderQueue( CGraphicsContext* pCtx );
-            ~CRenderQueue();
-            Result Create( const SRenderQueueDesc& Desc );
-            void   Destroy();
-            Result Begin();
-            Result End();
-            Result Execute();
-            void   SetPriority( uint16_t priority );
+        void SetRenderTarget( const RenderTargetHandle& hRenderTarget );
+        void IsEnabled( bool enabled );
 
-            uint16_t GetPriority() const
-            {
-                return m_priority;
-            }
+        bool IsEnabled() const
+        {
+            return m_enabled;
+        }
 
-            void SetRenderTarget( const RenderTargetHandle& hRenderTarget );
-            void IsEnabled( bool enabled );
-
-            bool IsEnabled() const
-            {
-                return m_enabled;
-            }
-
-        protected:
-            // const Vulkan::SCommandBuffer&  _GetCommandBuffer() { return *m_pCurrCmdBuffer; }
-            VkCommandBuffer _GetCommandBuffer() const
-            {
-                return m_vkCmdBuffer;
-            }
-
-        protected:
-            SRenderQueueDesc        m_Desc;
-            Vulkan::SCommandBuffer* m_pCurrCmdBuffer = nullptr;
-            VkCommandBuffer         m_vkCmdBuffer    = VK_NULL_HANDLE;
-            CGraphicsContext*       m_pCtx;
-            CCommandBufferBatch*    m_pSubmit       = nullptr;
-            CRenderTarget*          m_pRenderTarget = nullptr;
-            RENDER_QUEUE_USAGE      m_usage;
-            uint16_t                m_type     = 0;
-            uint16_t                m_id       = 0;
-            uint16_t                m_priority = 0;
-            bool                    m_enabled  = false;
-        };
-    } // namespace RenderSystem
-} // namespace VKE
+    protected:
+        SRenderQueueDesc     m_Desc;
+        CGraphicsContext*    m_pCtx;
+        CCommandBufferBatch* m_pSubmit       = nullptr;
+        CRenderTarget*       m_pRenderTarget = nullptr;
+        RENDER_QUEUE_USAGE   m_usage;
+        uint16_t             m_type     = 0;
+        uint16_t             m_id       = 0;
+        uint16_t             m_priority = 0;
+        bool                 m_enabled  = false;
+    };
+} // namespace VKE::RenderSystem

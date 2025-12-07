@@ -4,9 +4,8 @@
 #include "RenderSystem/Vulkan/CDDITypes.h"
 #define VKE_ANY_API_SELECTED
 // VKE_VULKAN_RENDER_SYSTEM
-#endif
 
-#if VKE_D3D12_RENDER_SYSTEM
+#elif VKE_D3D12_RENDER_SYSTEM
 #include "RenderSystem/D3D12/CDDITypes.h"
 #define VKE_ANY_API_SELECTED
 // VKE_D3D12_RENDER_SYSTEM

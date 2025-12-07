@@ -2,7 +2,7 @@
 
 #if VKE_D3D12_RENDER_SYSTEM
 
-#include <d3d12.h>
+#include <directx/d3d12.h>
 #include <dxgi1_6.h>
 
 namespace VKE::RenderSystem
@@ -29,62 +29,6 @@ namespace VKE::RenderSystem
     {
         static const decltype( nullptr ) Null;
 
-        struct FenceTypes
-        {
-            enum TYPE
-            {
-                CPU,
-                GPU
-            };
-        };
-
-        /*template<FenceTypes::TYPE T>
-        struct TSFence
-        {
-            ID3D12Fence* pFence;
-            TSFence()
-            {
-            }
-            TSFence( ID3D12Fence* pPtr )
-                : pFence( pPtr )
-            {
-            }
-
-            operator ID3D12Fence* ()
-            {
-                return pFence;
-            }
-
-            operator const ID3D12Fence*() const
-            {
-                return pFence;
-            }
-
-            TSFence& operator=(ID3D12Fence* pPtr)
-            {
-                pFence = pPtr;
-                return *this;
-            }
-
-            TSFence& operator=(TSFence Fence)
-            {
-                pFence = Fence.pFence;
-                return *this;
-            }
-        };*/
-
-        struct NoTrait
-        {
-        };
-
-        struct CPUFenceTrait
-        {
-        };
-
-        struct GPUFenceTrait
-        {
-        };
-
         template< class ObjT >
         concept Nullable = std::is_pointer_v< ObjT >;
 
@@ -97,82 +41,75 @@ namespace VKE::RenderSystem
             }
         };
 
-        template< class D3D12TypeT, class DefaultT, class TypeTraitT = NoTrait,
-                  class HashTraitT = TSSimpleHashT< D3D12TypeT > >
+        template< class D3D12TypeT, class DefaultT, class ChildObjectT, class HashTraitT = TSSimpleHashT< D3D12TypeT > >
         struct TSObjectWrapper
         {
             D3D12TypeT Obj;
 
-            TSObjectWrapper()
-            {
-            }
+            TSObjectWrapper() = default;
 
             TSObjectWrapper( const D3D12TypeT& Other ) : Obj{ Other }
             {
             }
 
-            TSObjectWrapper( decltype( Null ) ) : Obj{ DefaultT{} }
-            {
-            }
-
             TSObjectWrapper( decltype( Null ) )
-                requires std::is_pointer_v< D3D12TypeT >
+                //    requires std::is_pointer_v< D3D12TypeT >
                 : Obj{ Null }
             {
             }
 
+            ChildObjectT& Reinterpret()
+            {
+                return reinterpret_cast< ChildObjectT& >( *this );
+            }
+
+            ChildObjectT& Reinterpret( const TSObjectWrapper& pOther )
+            {
+                return reinterpret_cast< ChildObjectT& >( const_cast< TSObjectWrapper& >( pOther ) );
+            }
+
+            const ChildObjectT& Reinterpret() const
+            {
+                return reinterpret_cast< const ChildObjectT& >( *this );
+            }
+
             TSObjectWrapper& operator=( const TSObjectWrapper& Other )
             {
-                Obj = Other.Obj;
+                auto& ref = Reinterpret();
+                ref.Assign( Reinterpret( Other ) );
                 return *this;
             }
 
             TSObjectWrapper& operator=( const D3D12TypeT& Other )
             {
-                Obj = Other;
+                auto& ref = Reinterpret();
+                ref.Assign( Other );
                 return *this;
             }
 
             TSObjectWrapper& operator=( decltype( Null ) )
             {
-                if constexpr( std::is_pointer_v< D3D12TypeT > )
-                {
-                    Obj = Null;
-                }
-                else
-                {
-                    Obj = DefaultT{};
-                }
+                auto& ref = Reinterpret();
+                ref.SetNull( Null );
                 return *this;
             }
 
             const bool operator==( decltype( Null ) ) const
             {
-                if constexpr( std::is_pointer_v< D3D12TypeT > )
-                {
-                    return Obj == Null;
-                }
-                else
-                {
-                    return Obj == DefaultT{};
-                }
+                auto& ref = Reinterpret();
+                return ref.IsNull();
             }
 
             const bool operator!=( decltype( Null ) ) const
             {
-                if constexpr( std::is_pointer_v< D3D12TypeT > )
-                {
-                    return Obj == Null;
-                }
-                else
-                {
-                    return Obj == DefaultT{};
-                }
+                auto& ref = Reinterpret();
+                return !ref.IsNull();
             }
 
             const bool operator==( const TSObjectWrapper& Other ) const
             {
-                return Obj == Other.Obj;
+                auto& ref = Reinterpret();
+                return ref.Equals( Other.Obj );
             }
 
             operator D3D12TypeT()
@@ -189,6 +126,296 @@ namespace VKE::RenderSystem
             {
                 return HashTraitT::CalcHash( Obj );
             }
+
+            void Assign( const TSObjectWrapper& Other )
+            {
+                Obj = Other.Obj;
+            }
+
+            void Assign( const D3D12TypeT& Other )
+            {
+                Obj = Other;
+            }
+
+            void SetNull()
+            {
+                Obj = Null;
+            }
+
+            bool IsNull() const
+            {
+                return Obj == Null;
+            }
+
+            const bool Equals( const D3D12TypeT& Other ) const
+            {
+                return Obj == Other;
+            }
+        };
+
+        namespace CustomTypes
+        {
+            using DDIFence               = ID3D12Fence1*;
+            using DDICommandBufferPool   = ID3D12CommandAllocator*;
+            using DDIShader              = D3D12_SHADER_BYTECODE;
+            using DDIDescriptorSetLayout = D3D12_ROOT_PARAMETER1;
+            using DDIDescriptorSetRange  = D3D12_DESCRIPTOR_RANGE1;
+
+            struct CPUFence : TSObjectWrapper< DDIFence, std::nullopt_t, CPUFence >
+            {
+                using Wrapper = TSObjectWrapper< DDIFence, std::nullopt_t, CPUFence >;
+
+                HANDLE hEvent = nullptr;
+                UINT64 Value  = 0;
+
+                CPUFence() = default;
+
+                CPUFence( decltype( Null ) ) : Wrapper( Null )
+                {
+                }
+
+                CPUFence( const DDIFence& Other ) : Wrapper( Other )
+                {
+                }
+            };
+
+            struct GPUFence : TSObjectWrapper< DDIFence, std::nullopt_t, GPUFence >
+            {
+                using Wrapper = TSObjectWrapper< DDIFence, std::nullopt_t, GPUFence >;
+
+                HANDLE hEvent = nullptr;
+                UINT64 Value  = 0;
+
+                GPUFence() = default;
+
+                GPUFence( decltype( Null ) ) : Wrapper( Null )
+                {
+                }
+
+                GPUFence( const DDIFence& Other ) : Wrapper( Other )
+                {
+                }
+            };
+
+            struct CommandBufferPool : TSObjectWrapper< DDICommandBufferPool, std::nullopt_t, CommandBufferPool >
+            {
+                using Wrapper = TSObjectWrapper< DDICommandBufferPool, std::nullopt_t, CommandBufferPool >;
+
+                D3D12_COMMAND_LIST_TYPE NativeType = D3D12_COMMAND_LIST_TYPE_DIRECT;
+                uint8_t                 EngineType = 0;
+
+                CommandBufferPool() = default;
+
+                CommandBufferPool( decltype( Null ) ) : Wrapper( Null )
+                {
+                }
+
+                CommandBufferPool( const DDICommandBufferPool& Other ) : Wrapper( Other )
+                {
+                }
+            };
+
+            struct Shader : TSObjectWrapper< DDIShader, std::nullptr_t, Shader >
+            {
+                using Wrapper = TSObjectWrapper< DDIShader, std::nullptr_t, Shader >;
+
+                Shader() = default;
+
+                Shader( decltype( Null ) )
+                {
+                    SetNull();
+                }
+
+                Shader( const DDIShader& Other )
+                {
+                    Assign( Other );
+                }
+
+                void SetNull()
+                {
+                    Obj.pShaderBytecode = nullptr;
+                    Obj.BytecodeLength  = 0;
+                }
+
+                bool IsNull() const
+                {
+                    return Obj.pShaderBytecode == nullptr;
+                }
+
+                void Assign( const DDIShader& Other )
+                {
+                    Obj.pShaderBytecode = Other.pShaderBytecode;
+                    Obj.BytecodeLength  = Other.BytecodeLength;
+                }
+
+                const bool Equals( const DDIShader& Other ) const
+                {
+                    return Obj.pShaderBytecode == Other.pShaderBytecode;
+                }
+            };
+
+            struct SPipelineLayout : TSObjectWrapper< uint32_t, std::nullopt_t, SPipelineLayout, SPipelineLayout >
+            {
+                SPipelineLayout() = default;
+
+                SPipelineLayout( decltype( Null ) )
+                {
+                    SetNull();
+                }
+
+                SPipelineLayout( const SPipelineLayout& Other )
+                {
+                    Assign( Other );
+                }
+
+                static hash_t CalcHash( SPipelineLayout* pLayout )
+                {
+                    return 0;
+                }
+
+                void SetNull()
+                {
+                    Obj = 0;
+                }
+
+                bool IsNull() const
+                {
+                    return Obj == 0;
+                }
+
+                const bool Equals( const uint32_t& Other ) const
+                {
+                    return Obj == Other;
+                }
+            };
+
+            struct SDescriptorPool : TSObjectWrapper< uint32_t, std::nullopt_t, SDescriptorPool >
+            {
+                ID3D12DescriptorHeap* Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
+
+                SDescriptorPool() = default;
+
+                SDescriptorPool( decltype( Null ) )
+                {
+                    SetNull();
+                }
+
+                SDescriptorPool( const SDescriptorPool& Other ) : Heaps{ Null }
+                {
+                    Assign( Other.Obj );
+                }
+
+                // static hash_t CalcHash( SDescriptorPool* pPool )
+                //{
+                //     return 0;
+                // }
+
+                void SetNull()
+                {
+                    Obj = 0;
+                }
+
+                bool IsNull() const
+                {
+                    for( auto& heap: Heaps )
+                    {
+                        if( heap != Null )
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
+                const bool Equals( const uint32_t& Other ) const
+                {
+                    return Obj == Other;
+                }
+            };
+
+            struct SDescriptorSetLayout
+                : TSObjectWrapper< DDIDescriptorSetLayout, std::nullptr_t, SDescriptorSetLayout >
+            {
+                using Wrapper = TSObjectWrapper< DDIDescriptorSetLayout, std::nullptr_t, SDescriptorSetLayout >;
+
+                Utils::TCDynamicArray< DDIDescriptorSetRange, 32 > vDescriptorRanges;
+
+                SDescriptorSetLayout() = default;
+
+                SDescriptorSetLayout( decltype( Null ) )
+                {
+                    SetNull();
+                }
+
+                SDescriptorSetLayout( const DDIDescriptorSetLayout& Other )
+                {
+                    Assign( Other );
+                }
+
+                void SetNull()
+                {
+                    Obj.DescriptorTable.NumDescriptorRanges = 0;
+                    Obj.DescriptorTable.pDescriptorRanges   = nullptr;
+                }
+
+                bool IsNull() const
+                {
+                    return Obj.DescriptorTable.pDescriptorRanges == nullptr;
+                }
+
+                void Assign( const SDescriptorSetLayout& Other )
+                {
+                    Obj               = Other.Obj;
+                    vDescriptorRanges = Other.vDescriptorRanges;
+
+                    // Update pointer to copied data
+                    Obj.DescriptorTable.pDescriptorRanges = vDescriptorRanges.GetData();
+                }
+
+                const bool Equals( const DDIDescriptorSetLayout& Other ) const
+                {
+                    return memcmp( &Obj, &Other, sizeof( DDIDescriptorSetLayout ) ) == 0;
+                }
+            };
+
+            struct SFenceTypes
+            {
+                struct GPU
+                {
+                };
+
+                struct CPU
+                {
+                };
+            };
+
+            template< class TypeT >
+            struct SMonitoredFence
+            {
+                TypeT Type;
+
+                ID3D12Fence1* pFence;
+                HANDLE        hHandle;
+                UINT64        counter = 0;
+            };
+
+            struct SCommandQueue
+            {
+                static Utils::TCDynamicArray< SCommandQueue > s_QueuePool;
+
+                ID3D12CommandQueue*                 pQueue = nullptr;
+                SMonitoredFence< SFenceTypes::GPU > GpuFence;
+            };
+
+        } // namespace CustomTypes
+
+        struct FenceTypes
+        {
+            enum TYPE
+            {
+                CPU,
+                GPU
+            };
         };
 
         struct SClearValue : D3D12_CLEAR_VALUE
@@ -238,59 +465,47 @@ namespace VKE::RenderSystem
             }
         };
 
-        struct SPipelineLayout
-        {
-            bool operator==( SPipelineLayout ) const
-            {
-                return true;
-            }
-        };
-
-        struct SPipelineLayoutHash
-        {
-            static hash_t CalcHash( SPipelineLayout )
-            {
-                return 0;
-            }
-        };
-
         struct SDeviceLimits
         {
             // TODO(blturkot): Fill with limits
         };
 
-        using Buffer                = ID3D12Resource*;
-        using Pipeline              = ID3D12PipelineState*;
-        using Texture               = ID3D12Resource*;
-        using Sampler               = void*;
-        using RenderPass            = ID3D12Object*;
-        using CommandBuffer         = ID3D12CommandList*;
-        using TextureView           = void*;
-        using BufferView            = void*;
-        using CPUFence              = TSObjectWrapper< ID3D12Fence*, std::nullopt_t, CPUFenceTrait >;
-        using GPUFence              = TSObjectWrapper< ID3D12Fence*, std::nullopt_t, GPUFenceTrait >;
-        using Device                = ID3D12Device10*;
-        using DescriptorPool        = ID3D12DescriptorHeap*;
-        using DescriptorSet         = ID3D12DescriptorHeap*;
-        using DescriptorSetLayout   = ID3D12DescriptorHeap*;
-        using CommandBufferPool     = ID3D12CommandAllocator*;
-        using Framebuffer           = ID3D12Resource*;
-        using ClearValue            = SClearValue;
-        using Queue                 = ID3D12CommandQueue*;
-        using Format                = DXGI_FORMAT;
-        using ImageType             = D3D12_RESOURCE_DIMENSION;
-        using ImageLayout           = D3D12_RESOURCE_FLAGS;
-        using ImageUsageFlags       = D3D12_RESOURCE_FLAGS;
-        using Memory                = ID3D12Object*;
-        using PresentSurface        = ID3D12Resource*;
-        using SwapChain             = IDXGISwapChain4*;
-        using Adapter               = IDXGIAdapter4*;
-        using Shader                = TSObjectWrapper< byte*, std::nullptr_t >;
-        using PipelineLayout        = TSObjectWrapper< SPipelineLayout, SPipelineLayout, NoTrait, SPipelineLayoutHash >;
+        using Buffer              = ID3D12Resource*;
+        using Pipeline            = ID3D12PipelineState*;
+        using Texture             = ID3D12Resource*;
+        using Sampler             = void*;
+        using RenderPass          = ID3D12Object*;
+        using CommandBuffer       = ID3D12GraphicsCommandList*;
+        using TextureView         = void*;
+        using BufferView          = void*;
+        using CPUFence            = CustomTypes::CPUFence;
+        using GPUFence            = CustomTypes::GPUFence;
+        using Device              = ID3D12Device10*;
+        using DescriptorPool      = CustomTypes::SDescriptorPool;
+        using DescriptorSet       = ID3D12DescriptorHeap*;
+        using DescriptorSetLayout = CustomTypes::SDescriptorSetLayout;
+        using CommandBufferPool   = CustomTypes::CommandBufferPool;
+        using Framebuffer         = ID3D12Resource*;
+        using ClearValue          = SClearValue;
+        using Queue               = ID3D12CommandQueue*;
+        using Format              = DXGI_FORMAT;
+        using ImageType           = D3D12_RESOURCE_DIMENSION;
+        using ImageLayout         = D3D12_RESOURCE_FLAGS;
+        using ImageUsageFlags     = D3D12_RESOURCE_FLAGS;
+        using Memory              = ID3D12Object*;
+        using PresentSurface      = ID3D12Resource*;
+        using SwapChain           = IDXGISwapChain4*;
+        using Adapter             = IDXGIAdapter4*;
+        using Shader              = CustomTypes::Shader;
+        // using PipelineLayout        = CustomTypes::SPipelineLayout;
+        using PipelineLayout        = ID3D12RootSignature*;
         using DeviceSize            = UINT64;
         using Event                 = HANDLE;
         using QueueFamilyProperties = void*;
         using DeviceLimits          = SDeviceLimits;
+
+        using Result  = HRESULT;
+        using Factory = IDXGIFactory7*;
 
         enum ImageViewType
         {
@@ -316,6 +531,17 @@ namespace VKE::RenderSystem
         {
             static const uint32_t MAX_MEMORY_HEAPS = 16;
 
+            static Factory spFactory;
+            static bool    sTearingSupported;
+            static bool    sDebugLayerEnabled;
+
+            struct SMemoryHeapProperties
+            {
+                D3D12_HEAP_TYPE   Type;
+                D3D12_MEMORY_POOL Pool;
+                size_t            SizeInBytes;
+            };
+
             // TODO(blturkot): Fill with private data
             struct SDeviceProperties
             {
@@ -329,6 +555,11 @@ namespace VKE::RenderSystem
 
                 struct
                 {
+                    UINT                  DescriptorHeapSizes[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
+                    SMemoryHeapProperties HeapProperties[ MAX_MEMORY_HEAPS ];
+                    UINT64                localBudget;
+                    UINT64                hostBudget;
+                    bool                  UploadHeapSupported;
                 } Memory;
 
                 void* aFormatProperties[ Formats::_MAX_COUNT ];
