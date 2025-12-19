@@ -2907,10 +2907,13 @@ namespace VKE
         {
             NativeAPI::GPUFence* pDDISignalSemaphores = nullptr;
             NativeAPI::GPUFence* pDDIWaitSemaphores   = nullptr;
-            // CommandBufferPtr*   pCommandBuffers = nullptr;
+            NativeAPI::Fence    hSignalFence         = NativeAPI::Null;
+            NativeAPI::Fence          hWaitForFence         = NativeAPI::Null;
             NativeAPI::CommandBuffer* pDDICommandBuffers   = nullptr;
             NativeAPI::CPUFence       hDDIFence            = NativeAPI::Null;
             NativeAPI::Queue          hDDIQueue            = NativeAPI::Null;
+            uint16_t                  signalFenceValue     = 0;
+            uint16_t                  waitForFenceValue     = 0;
             uint16_t                  signalSemaphoreCount = 0;
             uint16_t                  waitSemaphoreCount   = 0;
             uint16_t                  commandBufferCount   = 0;
@@ -2922,6 +2925,8 @@ namespace VKE
             // NativeAPI::SwapChain    hDDISwapChain;
             CSwapChain*         pSwapChain;
             NativeAPI::GPUFence hDDIWaitSemaphore = NativeAPI::Null;
+            NativeAPI::Fence    hWaitFence        = NativeAPI::Null;
+            uint16_t            waitFenceValue    = 0;
         };
 
         struct SPresentData

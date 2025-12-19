@@ -633,6 +633,7 @@ namespace VKE::RenderSystem
         {
             CommandBufferArray avpCommandBuffers[ ContextTypes::_MAX_COUNT ];
             ExecuteBatchArray  avExecutes[ ContextTypes::_MAX_COUNT ];
+            NativeAPI::Fence   FrameFence;
             GPUFenceArray      vGPUFences;
             CPUFenceArray      vCPUFences;
             ThreadFenceArray   vThreadFences;

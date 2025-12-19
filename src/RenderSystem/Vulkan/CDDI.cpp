@@ -1135,6 +1135,50 @@ namespace VKE
 
         } // namespace Convert
 
+        namespace NativeAPI
+        {
+            struct SFence
+            {
+                std::atomic_uint32_t counter;
+                ResourceName         BaseName;
+                struct SFences
+                {
+                    CPUFence hFence = Null;
+                    GPUFence hSemaphore = Null;
+                };
+
+                Utils::TCDynamicArray< uint16_t > vValues;
+                Utils::TCDynamicArray< SFences >  vFences;
+
+                SFences& GetFences( CDDI* pApi, uint16_t value )
+                {
+                    auto idx = vValues.Find( value );
+                    if( idx == INVALID_POSITION )
+                    {
+                        auto idx1 = vValues.PushBack( value );
+                        auto idx2 = vFences.PushBack( {} );
+                        VKE_ASSERT( idx1 == idx2 );
+                        SFences& Fences = vFences.Back();
+                        SFenceDesc FenDesc;
+                        FenDesc.isSignaled = false;
+                        FenDesc.SetDebugName( "%s_%d", BaseName.GetData(), value );
+                        Fences.hFence   = pApi->CreateFence( FenDesc, nullptr );
+                        SSemaphoreDesc SemDesc;
+                        SemDesc.SetDebugName( FenDesc.GetDebugName() );
+                        Fences.hSemaphore = pApi->CreateSemaphore( SemDesc, nullptr );
+                        return Fences;
+                    }
+                    return vFences[ idx ];
+                }
+
+                SFences& GetFences( uint16_t value )
+                {
+                    auto idx = vValues.Find( value );
+                    return vFences[ idx ];
+                }
+            };
+        } // namespace NativeAPI
+
         namespace Helper
         {
 
@@ -2722,9 +2766,36 @@ namespace VKE
             return hObj;
         }
 
+        NativeAPI::Fence CDDI::CreateFence2( const SFenceDesc& Desc )
+        {
+            NativeAPI::SFence* pFence = nullptr;
+            
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
+            {
+                SSemaphoreDesc SemDesc;
+                SemDesc.SetDebugName( Desc.GetDebugName() );
+                pFence->vFences.Resize( 1 );
+                pFence->vFences[ 0 ].hFence = CreateFence( Desc, nullptr );
+                pFence->vFences[ 0 ].hSemaphore = CreateSemaphore( SemDesc, nullptr );
+            }
+            return pFence;
+        }
+
         void CDDI::DestroyFence( NativeAPI::CPUFence* phFence, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Fence, phFence, pAllocator );
+        }
+
+        void CDDI::DestroyFence( NativeAPI::Fence* phFence )
+        {
+            NativeAPI::Fence pFence = *phFence;
+            auto&            vFences = pFence->vFences;
+            for( uint32_t i = 0; i < vFences.GetCount(); ++i )
+            {
+                DestroyFence( &vFences[ i ].hFence, nullptr );
+                DestroySemaphore( &vFences[ i ].hSemaphore, nullptr );
+            }
+            Memory::DestroyObject( &HeapAllocator, phFence );
         }
 
         NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator )
@@ -3984,6 +4055,30 @@ namespace VKE
             return res == VK_SUCCESS;
         }
 
+        bool CDDI::IsSignaled( const NativeAPI::Fence& hFence ) const
+        {
+            const auto& Fences = hFence->vFences;
+            return IsSignaled( Fences[ hFence->counter.load() ].hFence );
+        }
+
+        uint16_t CDDI::GetCompletedValue( const NativeAPI::Fence& hFence ) const
+        {
+            uint16_t lastSignaledValue = 0;
+            for( uint32_t i = 0; i < hFence->vValues.GetCount(); ++i )
+            {
+                auto vkResult = m_Implementation.m_ICD.vkGetFenceStatus( m_hDevice, hFence->vFences[ i ].hFence );
+                switch( vkResult )
+                {
+                    case VK_SUCCESS:
+                        lastSignaledValue = hFence->vValues[ i ];
+                        break;
+                    case VK_ERROR_DEVICE_LOST:
+                        return UNDEFINED_U16;
+                }
+            }
+            return lastSignaledValue;
+        }
+
         void CDDI::Reset( NativeAPI::CPUFence* phFence )
         {
             VK_ERR( m_Implementation.m_ICD.vkResetFences( m_hDevice, 1, phFence ) );
@@ -4282,19 +4377,50 @@ namespace VKE
 
             static VkPipelineStageFlags                   vkWaitMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             Utils::TCDynamicArray< VkPipelineStageFlags > vWaitMask( Info.waitSemaphoreCount, vkWaitMask );
+            NativeAPI::CPUFence                           hSignalFence = Info.hDDIFence;
+            NativeAPI::GPUFence*                          phWaitForSemaphores = Info.waitSemaphoreCount? Info.pDDIWaitSemaphores : NativeAPI::Null;
+            NativeAPI::GPUFence* phSignalSemaphores =
+                Info.signalSemaphoreCount ? Info.pDDISignalSemaphores : NativeAPI::Null;
+            uint32_t waitForFenceCount = Info.waitSemaphoreCount;
+            uint32_t signalSemaphoreCount = Info.signalSemaphoreCount;
+            
+            VKE_ASSERT( ( Info.hDDIFence != NativeAPI::Null && Info.hSignalFence == NativeAPI::Null ) ||
+                        ( Info.hDDIFence == NativeAPI::Null && Info.hSignalFence != NativeAPI::Null ) );
+            VKE_ASSERT( ( Info.waitSemaphoreCount != 0 && Info.hWaitForFence == NativeAPI::Null ) ||
+                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence != NativeAPI::Null ) ||
+                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence == NativeAPI::Null ) );
+            VKE_ASSERT( ( Info.signalSemaphoreCount != 0 && Info.hSignalFence == NativeAPI::Null ) ||
+                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence != NativeAPI::Null ) || 
+                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence == NativeAPI::Null ) );
+            //VKE_ASSERT( ( Info.signalSemaphoreCount <= 1 && Info.waitSemaphoreCount <= 1 ) );
+
+            if(Info.hSignalFence != NativeAPI::Null)
+            {
+                Info.hSignalFence->counter = Info.signalFenceValue;
+                auto& Fences = Info.hSignalFence->GetFences(this, Info.signalFenceValue);
+                hSignalFence = Fences.hFence;
+                phSignalSemaphores = &Fences.hSemaphore;
+                signalSemaphoreCount = phSignalSemaphores != NativeAPI::Null ? 1 : 0;
+            }
+            if( Info.hWaitForFence != NativeAPI::Null )
+            {
+                auto& Fences = Info.hWaitForFence->GetFences( Info.waitForFenceValue );
+                phWaitForSemaphores = &Fences.hSemaphore;
+                waitForFenceCount = phWaitForSemaphores != NativeAPI::Null ? 1 : 0;
+            }
 
             VkSubmitInfo si;
             si.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             si.pNext                = nullptr;
-            si.pSignalSemaphores    = Info.pDDISignalSemaphores;
+            si.pSignalSemaphores    = phSignalSemaphores;
             si.signalSemaphoreCount = Info.signalSemaphoreCount;
-            si.pWaitSemaphores      = Info.pDDIWaitSemaphores;
+            si.pWaitSemaphores      = phWaitForSemaphores;
             si.waitSemaphoreCount   = Info.waitSemaphoreCount;
             si.pWaitDstStageMask    = vWaitMask.GetData();
             si.commandBufferCount   = Info.commandBufferCount;
             si.pCommandBuffers      = &Info.pDDICommandBuffers[ 0 ];
             // VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
-            VkResult res = m_Implementation.m_ICD.vkQueueSubmit( Info.hDDIQueue, 1, &si, Info.hDDIFence );
+            VkResult res = m_Implementation.m_ICD.vkQueueSubmit( Info.hDDIQueue, 1, &si, hSignalFence );
             VK_ERR( res );
             ret = res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
             return ret;
