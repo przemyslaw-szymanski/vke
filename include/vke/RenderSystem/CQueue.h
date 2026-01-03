@@ -26,7 +26,7 @@ namespace VKE
             friend class CComputeContext;
             friend class CTransferContext;
 
-            using SwapChainArray = Utils::TCDynamicArray< CSwapChain*, 8 >;
+            using SwapChainArray = Utils::TCDynamicArray< NativeAPI::SwapChain, 8 >;
 
         public:
             friend class RenderSystem::CDeviceContext;

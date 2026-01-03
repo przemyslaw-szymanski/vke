@@ -210,6 +210,16 @@ namespace VKE
                 return IsFenceSignaled( hFence );
             }
 
+            bool IsReadyToUse( NativeAPI::Fence hFence, NativeAPI::FenceValue fenceValue ) const
+            {
+                return m_DDI.GetCompletedValue( hFence ) >= fenceValue;
+            }
+
+            Result Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue fenceValue )
+            {
+                return m_DDI.WaitForFence( hFence, fenceValue );
+            }
+
             bool IsLocked( NativeAPI::CPUFence hFence ) const
             {
                 return !IsFenceSignaled( hFence );
@@ -269,7 +279,13 @@ namespace VKE
             void                DestroyGPUFence( NativeAPI::GPUFence* );
             NativeAPI::CPUFence CreateCPUFence( const SFenceDesc& );
             void                DestroyCPUFence( NativeAPI::CPUFence* );
+            NativeAPI::Fence    CreateFence( const SFenceDesc& );
+            void                DestroyFence( NativeAPI::Fence* );
             void                Reset( NativeAPI::CPUFence* );
+            void                Reset( NativeAPI::Fence* phFence )
+            {
+                NativeAPI().Reset( phFence, 0 );
+            }
 
         protected:
             void _Destroy();

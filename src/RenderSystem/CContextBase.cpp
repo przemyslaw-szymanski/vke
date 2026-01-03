@@ -194,7 +194,7 @@ namespace VKE
             vke_sprintf( name2, 128, "%s_GPUFence_batchBuffer%d_batch%d", m_pName, batchBufferIndex, batchIndex );
             SemaphoreDesc.SetDebugName( name2 );
 #endif
-            FenceDesc.isSignaled  = true; // signaled means ready to use / already executed
+            FenceDesc.startValue  = 0; // signaled means ready to use / already executed
             Batch.pContext        = this;
             Batch.hSignalCPUFence = DDI.CreateFence( FenceDesc, nullptr );
             Batch.hSignalGPUFence = DDI.CreateSemaphore( SemaphoreDesc, nullptr );
@@ -347,6 +347,11 @@ namespace VKE
             return (SExecuteBatch*)pCmdBuff->m_pExecuteBatch;
         }
 
+        /// <summary>
+        /// deprecated
+        /// </summary>
+        /// <param name="pBatch"></param>
+        /// <returns></returns>
         Result CContextBase::_ExecuteBatch( SExecuteBatch* pBatch )
         {
             Lock();
@@ -528,6 +533,11 @@ namespace VKE
                 _AcquireExecuteBatch();
             }
             return ret;
+        }
+
+        Result CContextBase::Execute( const SSubmitInfo& Info )
+        {
+            return m_pQueue->Execute( Info );
         }
 
         void CContextBase::_Reset( CCommandBuffer* pCmdBuffer )

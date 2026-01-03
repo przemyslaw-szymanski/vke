@@ -1307,6 +1307,16 @@ namespace VKE
             _NativeAPI().DestroyFence( phInOut, nullptr );
         }
 
+        NativeAPI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc )
+        {
+            return _NativeAPI().CreateFence2( Desc );
+        }
+
+        void CDeviceContext::DestroyFence( NativeAPI::Fence* phInOut )
+        {
+            _NativeAPI().DestroyFence( phInOut );
+        }
+
         void CDeviceContext::Reset( NativeAPI::CPUFence* phInOut )
         {
             NativeAPI().Reset( phInOut );

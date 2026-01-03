@@ -205,9 +205,11 @@ namespace VKE::RenderSystem
 
         bool   IsSignaled( const NativeAPI::CPUFence& hFence ) const;
         bool   IsSignaled( const NativeAPI::Fence& hFence ) const;
-        uint16_t GetCompletedValue( const NativeAPI::Fence& hFence ) const;
+        NativeAPI::FenceValue GetCompletedValue( const NativeAPI::Fence& hFence ) const;
         void   Reset( NativeAPI::CPUFence* phFence );
+        void                  Reset( NativeAPI::Fence* phFence, NativeAPI::FenceValue value );
         Result WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout );
+        Result                WaitForFence( NativeAPI::Fence Fence, NativeAPI::FenceValue value );
         Result WaitForQueue( const NativeAPI::Queue& hQueue );
         Result WaitForDevice();
 

@@ -68,6 +68,7 @@ namespace VKE::RenderSystem
         using QueueFamilyProperties = VkQueueFamilyProperties;
         using DeviceLimits          = VkPhysicalDeviceLimits;
         using Result                = VkResult;
+        using FenceValue = uint64_t;
 
         struct VKE_API SDDIExtension
         {

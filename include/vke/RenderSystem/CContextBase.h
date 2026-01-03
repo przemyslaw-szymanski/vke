@@ -96,15 +96,16 @@ namespace VKE
                 return m_pDeviceCtx;
             }
 
+            NativeAPI::Queue GetNativeQueue() const
+            {
+                return m_pQueue->GetDDIObject();
+            }
+
             CTransferContext* GetTransferContext() const;
             // template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
             Result Execute( EXECUTE_COMMAND_BUFFER_FLAGS flags );
 
-            // CCommandBuffer*             GetPreparationCommandBuffer();
-            // Result                      BeginPreparation();
-            // Result                      EndPreparation();
-            // Result                      WaitForPreparation();
-            // bool                        IsPreparationDone();
+            Result Execute( const SSubmitInfo& );
 
             NativeAPI::GPUFence GetSignaledSemaphore() const
             {
