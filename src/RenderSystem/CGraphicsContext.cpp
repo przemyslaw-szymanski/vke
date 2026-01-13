@@ -190,6 +190,7 @@ namespace VKE
             SSubmitInfo      SubmitInfo;
             SFenceDesc       FenceDesc;
             FenceDesc.SetDebugName( "CreateGraphicsContext" );
+            FenceDesc.startValue = 0;
             //SExecuteBatch*   pExecute = nullptr;
             auto             pPrivate = reinterpret_cast< SGraphicsContextPrivateDesc* >( Desc.pPrivate );
             ///*m_BaseCtx.*/m_pQueue = pPrivate->m_pQueue;

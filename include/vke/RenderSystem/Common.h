@@ -2775,11 +2775,12 @@ namespace VKE
         struct SSemaphoreDesc
         {
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+            NativeAPI::FenceValue startValue = UNDEFINED_U64;
         };
 
         struct SFenceDesc
         {
-            NativeAPI::FenceValue startValue = 0;
+            NativeAPI::FenceValue startValue = UNDEFINED_U64;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 

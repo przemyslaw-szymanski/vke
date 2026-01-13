@@ -1139,9 +1139,11 @@ namespace VKE
         {
             struct SFence
             {
+                VKE_RENDER_SYSTEM_DEBUG_NAME;
                 std::atomic<FenceValue> counter;
                 FenceValue                lastSignaledValue = 0;
-                ResourceName         BaseName;
+                bool                      isNativeMonitored = false;
+                bool                      isBinary          = false;
                 struct SFences
                 {
                     CPUFence hFence = Null;
@@ -1151,55 +1153,91 @@ namespace VKE
                 Utils::TCDynamicArray< FenceValue > vValues;
                 Utils::TCDynamicArray< SFences >  vFences;
 
+                VKE::Result Create( CDDI* pApi, const SFenceDesc& Desc, bool nativeMonitored )
+                {
+                    isBinary = Desc.startValue == UNDEFINED_U64;
+                    isNativeMonitored = nativeMonitored;
+                    this->counter     = Desc.startValue; // increase current counter
+                    if( isNativeMonitored || isBinary )
+                    {  
+                        if( vFences.IsEmpty() )
+                        {
+                            SFences        Fences;
+                            SSemaphoreDesc SemDesc;
+                            SemDesc.SetDebugName( Desc.GetDebugName() );
+                            SemDesc.startValue = Desc.startValue;
+                            Fences.hSemaphore  = pApi->CreateSemaphore( SemDesc, nullptr );
+                            if( isBinary )
+                            {
+                                SFenceDesc FenceDesc;
+                                FenceDesc.SetDebugName( Desc.GetDebugName() );
+                                Fences.hFence = pApi->CreateFence( FenceDesc, nullptr );
+                            }
+                            vFences.PushBack( Fences );
+                            vValues.PushBack( Desc.startValue );
+                        }
+                    }
+                    else
+                    {
+                        this->SetDebugName( Desc.GetDebugName() );
+                    }
+
+                    return VKE_OK;
+                }
+
                 /// <summary>
                 /// Increases counter value and returns Fence associated to requested one.
                 /// </summary>
                 /// <param name="pApi"></param>
                 /// <param name="value">New value for which fence will wait</param>
                 /// <returns></returns>
-                SFences* Create( CDDI* pApi, FenceValue value )
+                SFences* Signal( CDDI* pApi, FenceValue value )
                 {
-                    // 0 is special value and means that fence is not ready to be signaled
-                    if( value == 0 )
+                    if( !isBinary && !isNativeMonitored )
                     {
-                        return nullptr;
-                    }
-                    // Check if there is any fence completed
-                    // mark it as 0 and reuse it
-                    Recycle( pApi );
-                    // Find first free index
-                    // Index is free when its value is set to 0
-                    // Index is freed when fence is signaled
-                    auto idx = vValues.Find( 0 );
-                    
-                    VKE_ASSERT( this->counter.load() < value );
-                    this->counter = value; // increase current counter
-                    if( idx == INVALID_POSITION )
-                    {
-                        idx = vValues.PushBack( value );
-                        if( vFences.GetCount() <= idx )
+                        VKE_ASSERT( this->counter.load() < value );
+                        this->counter = value; // increase current counter
+                        // Check if there is any fence completed
+                        // mark it as 0 and reuse it
+                        Recycle( pApi );
+                        // Find first free index
+                        // Index is free when its value is set to 0
+                        // Index is freed when fence is signaled
+                        auto idx = vValues.Find( 0 );
+
+                        if( idx == INVALID_POSITION )
                         {
-                            auto idx2 = vFences.PushBack( {} );
-                            VKE_ASSERT( idx == idx2 );
-                            VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                            SFences&   Fences = vFences.Back();
-                            SFenceDesc FenDesc;
-                            FenDesc.startValue = 0;
-                            FenDesc.SetDebugName( "%s_%d", BaseName.GetData(), idx2 );
-                            Fences.hFence = pApi->CreateFence( FenDesc, nullptr );
-                            SSemaphoreDesc SemDesc;
-                            SemDesc.SetDebugName( FenDesc.GetDebugName() );
-                            Fences.hSemaphore = pApi->CreateSemaphore( SemDesc, nullptr );
-                            return &Fences;
+                            idx = vValues.PushBack( value );
+                            if( vFences.GetCount() <= idx )
+                            {
+                                auto idx2 = vFences.PushBack( {} );
+                                VKE_ASSERT( idx == idx2 );
+                                VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                                SFences&   Fences = vFences.Back();
+                                SFenceDesc FenDesc;
+                                FenDesc.startValue = 0;
+                                FenDesc.SetDebugName( "%s_%d", GetDebugName(), idx2 );
+                                Fences.hFence = pApi->CreateFence( FenDesc, nullptr );
+                                SSemaphoreDesc SemDesc;
+                                SemDesc.SetDebugName( FenDesc.GetDebugName() );
+                                Fences.hSemaphore = pApi->CreateSemaphore( SemDesc, nullptr );
+                                return &Fences;
+                            }
                         }
+                        // Fence must be signaled if it is recycled
+                        const bool signaled = pApi->IsSignaled( vFences[ idx ].hFence );
+                        VKE_ASSERT( signaled );
+                        VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                        pApi->Reset( &vFences[ idx ].hFence );
+                        vValues[ idx ] = value;
+                        return &vFences[ idx ];
                     }
-                    // Fence must be signaled if it is recycled
-                    const bool signaled = pApi->IsSignaled( vFences[ idx ].hFence ); 
-                    VKE_ASSERT( signaled );
-                    VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                    pApi->Reset( &vFences[ idx ].hFence );
-                    vValues[ idx ] = value;
-                    return &vFences[ idx ];
+                    else if( isBinary )
+                    {
+                        pApi->WaitForFence( this, 0 );
+                        pApi->Reset( &vFences[ 0 ].hFence );
+                    }
+                    return &vFences[ 0 ];
                 }
 
                 void Recycle( CDDI* pApi )
@@ -1209,6 +1247,10 @@ namespace VKE
 
                 SFences* GetFences( FenceValue value )
                 {
+                    if( isNativeMonitored || isBinary )
+                    {
+                        return &vFences[0];
+                    }
                     auto idx = vValues.Find( value );
                     return &vFences[ idx ];
                 }
@@ -1582,7 +1624,7 @@ namespace VKE
 
         struct SVulkanNext
         {
-            void** ppNext;
+            const void** ppNext;
 
             ~SVulkanNext()
             {
@@ -1593,8 +1635,13 @@ namespace VKE
             }
 
             template< class T >
-            SVulkanNext( T& Struct ) : ppNext( (void**)&Struct.pNext )
+            SVulkanNext( T& Struct ) //: ppNext( (void**)&Struct.pNext )
             {
+                ppNext = (const void**) & Struct.pNext;
+                while( ppNext && *ppNext )
+                {
+                    ppNext = (const void**) & ( (VkBaseInStructure*)*ppNext )->pNext;
+                }
             }
 
             template< class T >
@@ -1603,7 +1650,7 @@ namespace VKE
                 auto& Struct = *pStruct;
                 Struct       = { type };
                 *ppNext      = &Struct;
-                ppNext       = &Struct.pNext;
+                ppNext       = (const void**) & Struct.pNext;
                 return *this;
             }
 
@@ -1612,7 +1659,7 @@ namespace VKE
             {
                 auto& Struct = *pStruct;
                 *ppNext      = &Struct;
-                ppNext       = (void**)&Struct.pNext;
+                ppNext       = (const void**)&Struct.pNext;
                 return *this;
             }
         };
@@ -1849,6 +1896,25 @@ namespace VKE
                     VKE_LOG_ERR( vNotSupported[ i ] );
                 }
                 return VKE_FAIL;
+            }
+            return VKE_OK;
+        }
+
+        Result EnableDeviceExtensions( const NativeAPI::DDIExtMap& mAllExtensions, NativeAPI::SImplementation::SDeviceFeatures* pFeatures,
+                                       DDIExtNameArray*                             pExtToEnable )
+        {
+            if( !pFeatures->Device12.timelineSemaphore )
+            {
+                auto Itr = mAllExtensions.find( VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME );
+                if( Itr != mAllExtensions.end() )
+                {
+                    const auto& Ext = Itr->second;
+                    if( Ext.supported )
+                    {
+                        pExtToEnable->PushBack( VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME );
+                        pFeatures->Device12.timelineSemaphore = true;
+                    }
+                }
             }
             return VKE_OK;
         }
@@ -2151,7 +2217,6 @@ namespace VKE
                          VK_KHR_MAINTENANCE2_EXTENSION_NAME,
                          VK_KHR_MAINTENANCE3_EXTENSION_NAME,
                          VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
-                         VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
                          VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
                          VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME };
 
@@ -2239,6 +2304,7 @@ namespace VKE
                 pEnableOut->Device12.sType                  = Device12.sType;
                 pEnableOut->Device12.descriptorIndexing     = Device12.descriptorIndexing;
                 pEnableOut->Device12.runtimeDescriptorArray = Device12.runtimeDescriptorArray;
+                pEnableOut->Device12.timelineSemaphore      = Device12.timelineSemaphore;
                 NextFeatures.Add( &pEnableOut->Device12 );
 
                 pSettingsOut->Features.bindlessResourceAccess = (FEATURE_ENABLE_MODE)Device12.descriptorIndexing;
@@ -2300,6 +2366,10 @@ namespace VKE
             }
 
             ret = CheckDeviceExtensions( *pmExts, *pExtOut );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                ret = EnableDeviceExtensions( *pmExts, pEnableOut, pExtOut );
+            }
             return ret;
         }
 
@@ -2840,14 +2910,10 @@ namespace VKE
             
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
             {
-                SSemaphoreDesc SemDesc;
-                SemDesc.SetDebugName( Desc.GetDebugName() );
-                /*pFence->vFences.Resize( 1 );
-                pFence->vFences[ 0 ].hFence = CreateFence( Desc, nullptr );
-                pFence->vFences[ 0 ].hSemaphore = CreateSemaphore( SemDesc, nullptr );
-                pFence->counter                 = Desc.startValue;*/
-                pFence->BaseName = Desc.GetDebugName();
-                pFence->Create( this, Desc.startValue );
+                if( VKE_FAILED( pFence->Create( this, Desc, m_Implementation.Features.Device12.timelineSemaphore ) ) )
+                {
+                    Memory::DestroyObject( &HeapAllocator, &pFence );
+                }
             }
             return pFence;
         }
@@ -2872,10 +2938,22 @@ namespace VKE
         NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator )
         {
             NativeAPI::GPUFence   hSemaphore = NativeAPI::Null;
+            
             VkSemaphoreCreateInfo ci;
             ci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
             ci.pNext = nullptr;
             ci.flags = 0;
+            
+            SVulkanNext Next( ci );
+            if( Desc.startValue != UNDEFINED_U64 )
+            {
+                VkSemaphoreTypeCreateInfo TypeCi;
+                TypeCi.sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+                TypeCi.pNext         = nullptr;
+                TypeCi.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+                TypeCi.initialValue  = Desc.startValue;
+                Next.Add( &TypeCi );
+            }
             VK_ERR( DDI_CREATE_OBJECT( Semaphore, ci, pAllocator, &hSemaphore ) );
             Helper::SetObjectDebugName( this, hSemaphore, VK_OBJECT_TYPE_SEMAPHORE, Desc );
             return hSemaphore;
@@ -4134,7 +4212,13 @@ namespace VKE
 
         NativeAPI::FenceValue CDDI::GetCompletedValue( const NativeAPI::Fence& hFence ) const
         {
-            // handle TDR
+            /// TODO: handle TDR
+            if( hFence->isNativeMonitored )
+            {
+                uint64_t v;
+                m_Implementation.m_ICD.vkGetSemaphoreCounterValue( m_hDevice, hFence->GetFences( 0 )->hSemaphore, &v );
+                return v;
+            }
             return hFence->GetLastSignaledValue( this );
         }
 
@@ -4151,6 +4235,7 @@ namespace VKE
 
         Result CDDI::WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout )
         {
+            VKE_ASSERT( hFence != NativeAPI::Null );
             VkResult res = m_Implementation.m_ICD.vkWaitForFences( m_hDevice, 1, &hFence, VK_TRUE, timeout );
 
             Result ret = VKE_FAIL;
@@ -4172,6 +4257,28 @@ namespace VKE
 
         Result CDDI::WaitForFence( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
         {
+            if( hFence->isNativeMonitored && hFence->isBinary == false )
+            {
+                VkSemaphoreWaitInfo VkWaitInfo;
+                VkWaitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
+                VkWaitInfo.pNext = nullptr;
+                VkWaitInfo.flags = 0;
+                VkWaitInfo.semaphoreCount = 1;
+                VkWaitInfo.pSemaphores    = &hFence->GetFences( value )->hSemaphore;
+                VkWaitInfo.pValues        = &value;
+                VkResult res = m_Implementation.m_ICD.vkWaitSemaphores( m_hDevice, &VkWaitInfo, UINT64_MAX );
+                switch( res )
+                {
+                    case VK_SUCCESS:
+                        return VKE_OK;
+                    case VK_TIMEOUT:
+                        return VKE_TIMEOUT;
+                    case VK_ERROR_DEVICE_LOST:
+                        return VKE_EDEVICELOST;
+                    default:
+                        return VKE_FAIL;
+                };
+            }
             return WaitForFences( hFence->GetFences( value )->hFence, UINT64_MAX );
         }
 
@@ -4464,28 +4571,43 @@ namespace VKE
                         ( Info.signalSemaphoreCount == 0 && Info.hSignalFence == NativeAPI::Null ) );
             //VKE_ASSERT( ( Info.signalSemaphoreCount <= 1 && Info.waitSemaphoreCount <= 1 ) );
 
+            VkSubmitInfo si;
+            si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            si.pNext = nullptr;
+            SVulkanNext Next( si );
+
+            if( Info.hWaitForFence != NativeAPI::Null )
+            {
+                auto pFences        = Info.hWaitForFence->GetFences( Info.waitForFenceValue );
+                phWaitForSemaphores = &pFences->hSemaphore;
+                waitForFenceCount   = phWaitForSemaphores != NativeAPI::Null ? 1 : 0;
+            }
             if(Info.hSignalFence != NativeAPI::Null)
             {
-                const auto pFences = Info.hSignalFence->Create(this, Info.signalFenceValue);
+                const auto pFences = Info.hSignalFence->Signal( this, Info.signalFenceValue );
                 VKE_ASSERT( pFences != nullptr );
                 hSignalFence = pFences->hFence;
                 phSignalSemaphores = &pFences->hSemaphore;
                 signalSemaphoreCount = phSignalSemaphores != NativeAPI::Null ? 1 : 0;
+                if( Info.hSignalFence->isNativeMonitored && Info.hSignalFence->isBinary == false )
+                {
+                    VkTimelineSemaphoreSubmitInfo TimelineInfo;
+                    TimelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+                    TimelineInfo.pNext = nullptr;
+                    TimelineInfo.waitSemaphoreValueCount   = waitForFenceCount;
+                    TimelineInfo.signalSemaphoreValueCount = 1;
+                    TimelineInfo.pSignalSemaphoreValues    = &Info.signalFenceValue;
+                    TimelineInfo.pWaitSemaphoreValues      = &Info.waitForFenceValue;
+                    Next.Add( &TimelineInfo );
+                }
             }
-            if( Info.hWaitForFence != NativeAPI::Null )
-            {
-                auto pFences = Info.hWaitForFence->GetFences( Info.waitForFenceValue );
-                phWaitForSemaphores = &pFences->hSemaphore;
-                waitForFenceCount = phWaitForSemaphores != NativeAPI::Null ? 1 : 0;
-            }
+            
 
-            VkSubmitInfo si;
-            si.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            si.pNext                = nullptr;
+            
             si.pSignalSemaphores    = phSignalSemaphores;
-            si.signalSemaphoreCount = Info.signalSemaphoreCount;
+            si.signalSemaphoreCount = signalSemaphoreCount;
             si.pWaitSemaphores      = phWaitForSemaphores;
-            si.waitSemaphoreCount   = Info.waitSemaphoreCount;
+            si.waitSemaphoreCount   = waitForFenceCount;
             si.pWaitDstStageMask    = vWaitMask.GetData();
             si.commandBufferCount   = Info.commandBufferCount;
             si.pCommandBuffers      = &Info.pDDICommandBuffers[ 0 ];
@@ -4504,12 +4626,17 @@ namespace VKE
             for( uint32_t i = 0; i < Info.vWaitForFenceValues.GetCount(); ++i )
             {
                 auto value = Info.vWaitForFenceValues[ i ];
-                auto hSemaphore = Info.vWaitForFences[ i ]->GetFences( value )->hSemaphore;
-                if( hSemaphore != NativeAPI::Null )
+                const auto& pFences = Info.vWaitForFences[ i ]->GetFences( value );
+                if( pFences->hSemaphore != NativeAPI::Null )
                 {
-                    vWaitSemaphores.PushBack( hSemaphore );
+                    //vWaitSemaphores.PushBack( hSemaphore );
+                }
+                if( pFences->hFence != NativeAPI::Null )
+                {
+                    WaitForFence( Info.vWaitForFences[ i ], Info.vWaitForFenceValues[ i ] );
                 }
             }
+            
             VkPresentInfoKHR pi;
             pi.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             pi.pNext              = nullptr;
@@ -5135,10 +5262,10 @@ namespace VKE
 
             if( Info.hSignalFence )
             {
-                const auto pFences = Info.hSignalFence->Create( this, Info.signalFenceValue );
+                const auto pFences = Info.hSignalFence->Signal( this, Info.signalFenceValue );
                 //hFence              = pFences->hFence;
-                hFence = NativeAPI::Null;
-                hSemaphore = pFences->hSemaphore;
+                hFence = pFences->hFence;
+                hSemaphore = NativeAPI::Null;
                 VKE_ASSERT( hFence != NativeAPI::Null || hSemaphore != NativeAPI::Null );
             }
             VkResult res = m_Implementation.m_ICD.vkAcquireNextImageKHR(

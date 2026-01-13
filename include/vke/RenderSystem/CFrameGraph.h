@@ -279,6 +279,9 @@ namespace VKE::RenderSystem
             return m_isSubpass;
         }
 
+        uint64_t GetFenceValue() const;
+        uint64_t InitFenceValue(uint8_t backBufferIndex);
+
         Scene::ScenePtr GetScene();
 
     protected:
@@ -647,7 +650,12 @@ namespace VKE::RenderSystem
             /// <summary>
             /// Indicates at what value the fence must wait to check if a frame is finished on GPU
             /// </summary>
-            NativeAPI::FenceValue           frameFenceValue = 0;
+            std::atomic_uint64_t           frameFenceValue = 0;
+            /// <summary>
+            /// How many times this back buffer was used.
+            /// This value is mainly use to calculate advancing monitored fence values.
+            /// </summary>
+            uint64_t              localUseIndex   = 1;
             //GPUFenceArray      vGPUFences;
             //CPUFenceArray      vCPUFences;
             ThreadFenceArray   vThreadFences;
@@ -758,12 +766,9 @@ namespace VKE::RenderSystem
             return m_pScene;
         }
 
-        NativeAPI::FenceValue SetFrameFenceValue( uint8_t backBufferIndexx, NativeAPI::FenceValue value )
+        NativeAPI::FenceValue IncrementFrameFenceValue( uint8_t backBufferIndexx )
         {
-            Threads::ScopedLock l( m_SyncObj.FrameFence );
-            auto&               fenceValue = m_aFrameData[ backBufferIndexx ].frameFenceValue;
-            VKE_ASSERT( fenceValue < value );
-            return fenceValue;
+            return ++m_aFrameData[ backBufferIndexx ].frameFenceValue;
         }
 
         NativeAPI::Fence GetFrameFence( uint8_t backBufferIndex )
@@ -798,6 +803,11 @@ namespace VKE::RenderSystem
 
         TextureRefPtr _GetTexture( const SFrameGraphRenderTargetTextureDesc& );
         Rect2DI32     _GetRenderArea( RENDER_PASS_SIZE );
+
+        uint64_t _AdvanceBackBufferFence( uint8_t backBufferIndex )
+        {
+            return m_aFrameData[ backBufferIndex ].frameFenceValue.fetch_add( 1 );
+        }
 
         SBeginRenderPassInfo2* _CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& );
 

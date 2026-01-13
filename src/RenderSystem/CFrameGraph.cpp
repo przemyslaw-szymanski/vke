@@ -442,8 +442,9 @@ namespace VKE::RenderSystem
             }
         }
 
-        _ResetFrameData( &m_aFrameData[m_backBufferIndex] );
-       
+        _ResetFrameData( &m_aFrameData[ m_backBufferIndex ] );
+        m_aFrameData[ m_backBufferIndex ].localUseIndex++;
+
         return ret;
     }
 
@@ -575,10 +576,6 @@ namespace VKE::RenderSystem
 #endif
                         VKE_ASSERT( pExecuteData->SubmitInfo.commandBufferCount );
                         ret = pNode->m_pContext->Execute( pExecuteData->SubmitInfo );
-                        if( VKE_SUCCEEDED( ret ) )
-                        {
-                            this->SetFrameFenceValue( backBufferIndex, pPass->m_fenceValue );
-                        }
                     }
                 }
                 ret = pPass->OnWorkloadEnd( ret );
@@ -637,7 +634,7 @@ namespace VKE::RenderSystem
                         //auto hFrameFence = m_ahFrameCPUFences[ backBufferIdx ];
                         SPresentInfo PresentInfo;
                         PresentInfo.hSignalFence = m_aFrameData[ backBufferIndex ].hFrameFence;
-                        PresentInfo.signalFenceValue = pPass->m_fenceValue;
+                        PresentInfo.signalFenceValue = pPass->GetFenceValue();
                     
                         ret              = pSwpChain->Present( PresentInfo );
                     }
@@ -666,6 +663,7 @@ namespace VKE::RenderSystem
         {
             auto& Data = m_aFrameData[ i ];
             SFenceDesc Desc;
+            Desc.startValue = 0;
             if( Data.hFrameFence == NativeAPI::Null )
             {
                 Desc.SetDebugName( "FrameData%d", i );
@@ -720,6 +718,7 @@ namespace VKE::RenderSystem
 
     void CFrameGraph::_ExecuteNode( CFrameGraphNode* pNode )
     {
+        pNode->InitFenceValue(m_backBufferIndex);
         if( pNode->IsEnabled() )
         {
             pNode->_Run( m_pLastNode );
@@ -1126,6 +1125,17 @@ namespace VKE::RenderSystem
         return ret;
     }
 
+    uint64_t CFrameGraphNode::GetFenceValue() const
+    {
+        return (m_pFrameGraph->m_currentFrameIndex+1) * m_fenceValue;
+    }
+
+    uint64_t CFrameGraphNode::InitFenceValue( uint8_t backBufferIndex )
+    {
+        m_fenceValue = m_pFrameGraph->_AdvanceBackBufferFence(backBufferIndex);
+        return m_fenceValue;
+    }
+
     Result CFrameGraphNode::Wait( const Platform::ThreadFence& hFence, uint32_t value, uint64_t timeout )
     {
         Result ret = VKE_OK;
@@ -1377,23 +1387,23 @@ namespace VKE::RenderSystem
                 // GPU waits on GPU
                 if( WaitInfo.WaitOn == WaitOnBits::GPU_WAITS_FOR_GPU )
                 {
-                    auto waitForValue = WaitInfo.pNode->m_fenceValue;
-                    VKE_ASSERT( waitForValue < m_fenceValue );
+                    auto waitForValue = WaitInfo.pNode->GetFenceValue();
+                    VKE_ASSERT( waitForValue < GetFenceValue() );
                     // Wait for highest value
                     Exe.SubmitInfo.waitForFenceValue = Math::Max( waitForValue, Exe.SubmitInfo.waitForFenceValue );
                 }
                 // CPU waits for GPU
                 if( WaitInfo.WaitOn == WaitOnBits::CPU_WAITS_FOR_GPU )
                 {
-                    auto waitForValue = WaitInfo.pNode->m_fenceValue;
-                    VKE_ASSERT( waitForValue < m_fenceValue );
+                    auto waitForValue = WaitInfo.pNode->GetFenceValue();
+                    VKE_ASSERT( waitForValue < GetFenceValue() );
                     // Wait for highest value
                     Exe.SubmitInfo.waitForFenceValue = Math::Max( waitForValue, Exe.SubmitInfo.waitForFenceValue );
                 }
                 if( WaitInfo.WaitOn == WaitOnBits::CPU_WAITS_FOR_GPU )
                 {
-                    auto waitForValue = WaitInfo.pNode->m_fenceValue;
-                    VKE_ASSERT( waitForValue < m_fenceValue );
+                    auto waitForValue = WaitInfo.pNode->GetFenceValue();
+                    VKE_ASSERT( waitForValue < GetFenceValue() );
                     // Wait for highest value
                     Exe.SubmitInfo.waitForFenceValue = Math::Max( waitForValue, Exe.SubmitInfo.waitForFenceValue );
                 }
@@ -1427,11 +1437,12 @@ namespace VKE::RenderSystem
                 }
             }
         }
-        VKE_ASSERT( m_fenceValue > m_pFrameGraph->m_aFrameData[backBufferIndex].frameFenceValue );
+        //m_fenceValue = m_pFrameGraph->IncrementFrameFenceValue( backBufferIndex );
+        //VKE_ASSERT( m_fenceValue > m_pFrameGraph->m_aFrameData[backBufferIndex].frameFenceValue );
         //m_fenceValue                      = m_pFrameGraph->m_aFrameData[ backBufferIndex ].frameFenceValue + 1;
         Exe.SubmitInfo.commandBufferCount = (uint16_t)Exe.vpCommandBuffers.GetCount();
         Exe.SubmitInfo.pDDICommandBuffers = Exe.vpCommandBuffers.GetData();
-        Exe.SubmitInfo.signalFenceValue   = m_fenceValue;
+        Exe.SubmitInfo.signalFenceValue   = GetFenceValue();
         Exe.SubmitInfo.hSignalFence       = m_pFrameGraph->GetFrameFence( backBufferIndex );
         Exe.SubmitInfo.hDDIQueue          = this->GetContext()->GetNativeQueue();
      
