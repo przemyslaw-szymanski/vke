@@ -1307,7 +1307,7 @@ namespace VKE
             _NativeAPI().DestroyFence( phInOut, nullptr );
         }
 
-        NativeAPI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc )
+        NativeAPI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc ) const
         {
             return _NativeAPI().CreateFence2( Desc );
         }

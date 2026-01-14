@@ -94,6 +94,7 @@ namespace VKE
 
             void   Wait();
             Result Wait( NativeAPI::CPUFence );
+            Result Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value );
 
             Result Execute( const SSubmitInfo& Info );
 

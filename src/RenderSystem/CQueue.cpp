@@ -44,6 +44,11 @@ namespace VKE
             return m_pCtx->NativeAPI().WaitForFences( hFence, UINT64_MAX );
         }
 
+        Result CQueue::Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
+        {
+            return m_pCtx->NativeAPI().WaitForFence( hFence, value );
+        }
+
         Result CQueue::Execute( const SSubmitInfo& Info )
         {
             VKE_ASSERT2( m_pCtx != nullptr, "Device context must be initialized." );

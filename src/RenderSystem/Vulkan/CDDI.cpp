@@ -1153,7 +1153,7 @@ namespace VKE
                 Utils::TCDynamicArray< FenceValue > vValues;
                 Utils::TCDynamicArray< SFences >  vFences;
 
-                VKE::Result Create( CDDI* pApi, const SFenceDesc& Desc, bool nativeMonitored )
+                VKE::Result Create( const CDDI* pApi, const SFenceDesc& Desc, bool nativeMonitored )
                 {
                     isBinary = Desc.startValue == UNDEFINED_U64;
                     isNativeMonitored = nativeMonitored;
@@ -2890,7 +2890,7 @@ namespace VKE
             DDI_DESTROY_OBJECT( Framebuffer, phFramebuffer, pAllocator );
         }
 
-        NativeAPI::CPUFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator )
+        NativeAPI::CPUFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator ) const
         {
             VkFenceCreateInfo ci;
             ci.sType                 = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -2903,7 +2903,7 @@ namespace VKE
             return hObj;
         }
 
-        NativeAPI::Fence CDDI::CreateFence2( const SFenceDesc& Desc )
+        NativeAPI::Fence CDDI::CreateFence2( const SFenceDesc& Desc ) const
         {
             VKE_ASSERT( Desc.IsDebugNameEmpty() == false );
             NativeAPI::SFence* pFence = nullptr;
@@ -2935,7 +2935,7 @@ namespace VKE
             Memory::DestroyObject( &HeapAllocator, phFence );
         }
 
-        NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator )
+        NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator ) const
         {
             NativeAPI::GPUFence   hSemaphore = NativeAPI::Null;
             
@@ -4233,7 +4233,7 @@ namespace VKE
             Fence->Reset( this, value );
         }
 
-        Result CDDI::WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout )
+        Result CDDI::WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const
         {
             VKE_ASSERT( hFence != NativeAPI::Null );
             VkResult res = m_Implementation.m_ICD.vkWaitForFences( m_hDevice, 1, &hFence, VK_TRUE, timeout );
@@ -4255,7 +4255,7 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::WaitForFence( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
+        Result CDDI::WaitForFence( NativeAPI::Fence hFence, NativeAPI::FenceValue value ) const
         {
             if( hFence->isNativeMonitored && hFence->isBinary == false )
             {

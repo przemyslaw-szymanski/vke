@@ -562,17 +562,7 @@ namespace VKE
 
         void CGraphicsContext::_ResizeSwapChainTask( uint32_t width, uint32_t height )
         {
-            m_stopRendering = true;
-            _WaitForFrameToFinish();
-            this->_GetQueue()->m_SyncObj.Lock();
-            this->Execute( ExecuteCommandBufferFlags::END );
-            this->_GetCurrentCommandBuffer();
-            this->_GetQueue()->Wait();
-            GetSwapChain()->Resize( width, height );
-            this->Execute( ExecuteCommandBufferFlags::END );
-            this->_GetQueue()->Wait();
-            this->_GetQueue()->m_SyncObj.Unlock();
-            m_stopRendering = false;
+            VKE_ASSERT( false );
         }
 
         void CGraphicsContext::BindDefaultRenderPass()

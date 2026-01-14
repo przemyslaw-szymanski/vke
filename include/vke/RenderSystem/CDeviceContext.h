@@ -279,7 +279,7 @@ namespace VKE
             void                DestroyGPUFence( NativeAPI::GPUFence* );
             NativeAPI::CPUFence CreateCPUFence( const SFenceDesc& );
             void                DestroyCPUFence( NativeAPI::CPUFence* );
-            NativeAPI::Fence    CreateFence( const SFenceDesc& );
+            NativeAPI::Fence    CreateFence( const SFenceDesc& ) const;
             void                DestroyFence( NativeAPI::Fence* );
             void                Reset( NativeAPI::CPUFence* );
             void                Reset( NativeAPI::Fence* phFence )

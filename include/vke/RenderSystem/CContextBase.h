@@ -102,15 +102,9 @@ namespace VKE
             }
 
             CTransferContext* GetTransferContext() const;
-            // template<EXECUTE_COMMAND_BUFFER_FLAGS Flags = ExecuteCommandBufferFlags::END>
-            Result Execute( EXECUTE_COMMAND_BUFFER_FLAGS flags );
 
             Result Execute( const SSubmitInfo& );
 
-            NativeAPI::GPUFence GetSignaledSemaphore() const
-            {
-                return _GetLastExecutedBatch()->GetSignaledSemaphore();
-            }
 
             Result UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferHandle* phInOut );
             Result UpdateBuffer( CommandBufferPtr, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut );
@@ -167,7 +161,6 @@ namespace VKE
                 return m_CommandBufferSyncObj.IsLocked();
             }
 
-            void SyncExecute( CommandBufferPtr );
             void SignalGPUFence();
 
             template< class T >
@@ -181,29 +174,19 @@ namespace VKE
                 return m_pQueue->Wait( hFence );
             }
 
+            Result Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
+            {
+                return m_pQueue->Wait( hFence, value );
+            }
+
         protected:
             void           _Reset( CCommandBuffer* );
-            SExecuteBatch* _AcquireExecuteBatch();
-            SExecuteBatch* _PushCurrentBatchToExecuteQueue();
-            SExecuteBatch* _PopExecuteBatch();
-            Result         _ExecuteBatch( SExecuteBatch* );
-            SExecuteBatch* _GetExecuteBatch( CommandBufferPtr );
-            Result         _ExecuteAllBatches();
-            SExecuteBatch* _ResetExecuteBatch( uint32_t idx );
-            Result         _CreateNewExecuteBatch();
-            Result         _CreateExecuteBatch( uint32_t batchBufferIndex, uint32_t batchIndex, SExecuteBatch* );
-            Result         _ExecuteDependenciesForBatch( SExecuteBatch* pBatch );
-
+            
             CCommandBuffer* _CreateCommandBuffer();
             Result          _CreateCommandBuffers( const SCreateCommandBufferInfo&, CCommandBuffer** );
             CCommandBuffer* _GetCurrentCommandBuffer();
             Result          _BeginCommandBuffer( CCommandBuffer** ppInOut );
             Result          _EndCommandBuffer( CCommandBuffer** ppInOut );
-
-            CCommandBufferBatch* _GetLastExecutedBatch() const
-            {
-                return m_pLastExecutedBatch;
-            }
 
             /*void                    _DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count );
             void                    _FreeDescriptorSets( DescriptorSetHandle* phSets, uint32_t count );*/
@@ -248,7 +231,7 @@ namespace VKE
             QueueRefPtr           m_pQueue;
             Threads::SyncObject   m_ExecuteBatchSyncObj;
             ExecuteBatchArray     m_vExecuteBatches;
-            SExecuteBatch*        m_pCurrentExecuteBatch = nullptr;
+            //SExecuteBatch*        m_pCurrentExecuteBatch = nullptr;
             ExecuteBatchQueue     m_qExecuteBatches;
             uint32_t              m_currExeBatchIdx = 0;
             CCommandBufferManager m_CmdBuffMgr;
