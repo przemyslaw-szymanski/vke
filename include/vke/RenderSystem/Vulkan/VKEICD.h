@@ -119,6 +119,7 @@ struct VkICD
 #ifndef VKE_DEVICE_ICD
 #   define VKE_DEVICE_ICD(name)
 #   define VKE_DEVICE_EXT_ICD(name)
+#   define VKE_DEVICE_KHR_ICD( name1, name2 )
 #endif
 
 #if VKE_DECLARE_DEVICE_ICD
@@ -275,9 +276,9 @@ struct VkICD
 
         // EXT
         VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksEXT );
-        VKE_DEVICE_EXT_ICD( vkSignalSemaphoreKHR );
-        VKE_DEVICE_EXT_ICD( vkWaitSemaphoresKHR );
-        VKE_DEVICE_EXT_ICD( vkGetSemaphoreCounterValueKHR );
+        VKE_DEVICE_KHR_ICD( vkSignalSemaphore, vkSignalSemaphoreKHR );
+        VKE_DEVICE_KHR_ICD( vkWaitSemaphores, vkWaitSemaphoresKHR );
+        VKE_DEVICE_KHR_ICD( vkGetSemaphoreCounterValue, vkGetSemaphoreCounterValueKHR );
         //VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectEXT );
         //VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectCountEXT );
 

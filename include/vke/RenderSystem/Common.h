@@ -2912,7 +2912,7 @@ namespace VKE
             const NativeAPI::GPUFence* pDDIWaitSemaphores   = nullptr;
             NativeAPI::Fence    hSignalFence         = NativeAPI::Null;
             NativeAPI::Fence          hWaitForFence         = NativeAPI::Null;
-            const NativeAPI::CommandBuffer* pDDICommandBuffers   = nullptr;
+            NativeAPI::CommandBuffer const* pDDICommandBuffers   = nullptr;
             NativeAPI::CPUFence       hDDIFence            = NativeAPI::Null;
             NativeAPI::Queue          hDDIQueue            = NativeAPI::Null;
             NativeAPI::FenceValue     signalFenceValue     = 0;
