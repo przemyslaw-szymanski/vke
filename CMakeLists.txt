@@ -48,10 +48,6 @@ set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
 set(THIRD_PARTY_LIBS)
 set(DLL_DEPENDENCIES )
 
-if(VKE_D3D12_RENDER_SYSTEM)
-
-endif()
-
 find_package(glslang CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
 
@@ -76,14 +72,35 @@ endif()
 find_package(directxmath CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXMath)
 
-if(VKE_VULKAN_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_VULKAN)
     find_package(Vulkan REQUIRED)
     message(STATUS "Found Vulkan: ${Vulkan_LIBRARIES}")
     message(STATUS "Vulkan include dirs: ${Vulkan_INCLUDE_DIRS}")
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Vulkan::Vulkan)
 endif()
 
-if(VKE_D3D12_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_D3D12)
+
+    # Workaround for missing D3D12.LIB in CMake GUI, which is required by Agility SDK in vcpkg.
+    if(NOT CMAKE_WINDOWS_KITS_10_DIR)
+        get_filename_component(CMAKE_WINDOWS_KITS_10_DIR "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SDKs\\Windows\\v10.0;InstallationFolder]" ABSOLUTE CACHE)
+    endif()
+
+    message(STATUS "[WINSDK]: Version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}" )
+    message(STATUS "[WINSDK]: Kits dir: ${CMAKE_WINDOWS_KITS_10_DIR}")
+
+    # Lookout for D3D12 library. If not found then we need to add the Windows SDK Lib path to the search dirs.
+    # This way CMake can find D3D12.LIB required by the DirectX12 Agility SDK without additional manual steps.
+    find_library(D3D12_LIB NAMES d3d12)
+
+    if("${D3D12_LIB}" STREQUAL "D3D12_LIB-NOTFOUND")
+        set(_WIN_SDK_INCLUDE_PATH "${CMAKE_WINDOWS_KITS_10_DIR}/Lib/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/um/x64")
+        message(STATUS "[WINSDK]: Adding Lib dir to include path: ${_WIN_SDK_INCLUDE_PATH}")
+
+        # Add _WIN_SDK_INCLUDE_PATH to the library search path
+        list(APPEND CMAKE_LIBRARY_PATH "${_WIN_SDK_INCLUDE_PATH}")
+    endif()
+
     find_package(directx-headers CONFIG REQUIRED)
     find_package(directx12-agility CONFIG REQUIRED)
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility)

@@ -1,7 +1,7 @@
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/CDDI.h"
 
-#if VKE_D3D12_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_D3D12
 
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"
@@ -2164,4 +2164,4 @@ namespace VKE::RenderSystem
 
 } // namespace VKE::RenderSystem
 
-#endif // VKE_D3D12_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_D3D12

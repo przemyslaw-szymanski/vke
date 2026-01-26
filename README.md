@@ -43,13 +43,13 @@ Configure the project using one of predefined scripts for your platform:
 On Windows, this will create a `solution` directory with a Visual Studio solution file `vkEngine.sln` inside. Open this file with Visual Studio to build and run the project. `Run-Windows.bat` will try to open solution automatically.`
 
 Or you can also create a build directory manually or via cmake GUI. Decide which API you want to use with one of the options:
-- `-DVKE_VULKAN_RENDER_SYSTEM=ON` to use Vulkan API
-- `-DVKE_D3D12_RENDER_SYSTEM=ON` to use DirectX API
+- `-DVKE_RENDER_SYSTEM_VULKAN=ON` to use Vulkan API
+- `-DVKE_RENDER_SYSTEM_D3D12=ON` to use DirectX API
 
 ```bash
 mkdir solution
 cd solution
-cmake ../ -DVKE_VULKAN_RENDER_SYSTEM=ON
+cmake ../ -DVKE_RENDER_SYSTEM_VULKAN=ON
 ```
 
 ### Visual Studio Solution in folder view

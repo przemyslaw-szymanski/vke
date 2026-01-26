@@ -2,7 +2,7 @@
   "configurations": [
     {
       "name": "D3D12-x64-Debug",
-      "generator": "Ninja",
+      "generator": "Visual Studio 17 2022 Win64",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
@@ -12,12 +12,12 @@
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "variables": [
         {
-          "name": "VKE_VULKAN_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_VULKAN",
           "value": "false",
           "type": "BOOL"
         },
         {
-          "name": "VKE_D3D12_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_D3D12",
           "value": "True",
           "type": "BOOL"
         },
@@ -35,7 +35,7 @@
     },
     {
       "name": "VK-x64-Debug",
-      "generator": "Ninja",
+      "generator": "Visual Studio 17 2022 Win64",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
@@ -45,12 +45,12 @@
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "variables": [
         {
-          "name": "VKE_VULKAN_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_VULKAN",
           "value": "True",
           "type": "BOOL"
         },
         {
-          "name": "VKE_D3D12_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_D3D12",
           "value": "false",
           "type": "BOOL"
         },

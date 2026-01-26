@@ -1,6 +1,6 @@
 #pragma once
 
-#if VKE_D3D12_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_D3D12
 #include "Core/Memory/CFreeListPool.h"
 
 #include <directx/d3d12.h>
@@ -740,4 +740,4 @@ struct std::hash< VKE::RenderSystem::NativeAPI::GPUFence >
     }
 };
 
-#endif // VKE_D3D12_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_D3D12

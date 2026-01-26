@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-if(VKE_VULKAN_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_VULKAN)
     set(RENDER_SYSTEM_NAME vkEngineRenderSystem_Vulkan)
 endif()
 
@@ -26,7 +26,7 @@ set(SRC_DIRS
     "${SOURCE_DIR}/RenderSystem/Tasks/*.cpp"
 )
 
-if(VKE_VULKAN_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_VULKAN)
     set(INC_DIRS ${INC_DIRS}
         "${INCLUDE_DIR}/RenderSystem/Vulkan/*.h"
         "${INCLUDE_DIR}/RenderSystem/Vulkan/*.inl"
@@ -44,7 +44,7 @@ if(VKE_VULKAN_RENDER_SYSTEM)
     )
 endif()
 
-if(VKE_D3D12_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_D3D12)
     set(INC_DIRS ${INC_DIRS}
         "${INCLUDE_DIR}/RenderSystem/D3D12/*.h"
         "${INCLUDE_DIR}/RenderSystem/D3D12/*.inl"

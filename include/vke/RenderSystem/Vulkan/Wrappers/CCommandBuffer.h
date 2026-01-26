@@ -1,9 +1,9 @@
 #pragma once
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_VULKAN
 #include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
 } // namespace VKE
 
-#endif // VKE_VULKAN_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_VULKAN

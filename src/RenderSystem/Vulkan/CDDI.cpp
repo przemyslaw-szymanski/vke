@@ -1,6 +1,6 @@
 #include "RenderSystem/CDDI.h"
 
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_VULKAN
 
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"
@@ -5295,4 +5295,4 @@ namespace VKE
 
     } // namespace RenderSystem
 } // namespace VKE
-#endif // VKE_VULKAN_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_VULKAN

@@ -6,10 +6,10 @@
 namespace VKE
 {
 // TODO(blturkot): This should be moved to particular RenderSystem
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_VULKAN
 #define VKE_SHADER_BIN_EXT "spv"
 #define VKE_PSO_CACHE_EXT "pso"
-#elif VKE_D3D12_RENDER_SYSTEM
+#elif VKE_RENDER_SYSTEM_D3D12
 #define VKE_SHADER_BIN_EXT "dxil"
 #define VKE_PSO_CACHE_EXT "pso"
 #endif

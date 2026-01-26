@@ -317,7 +317,7 @@ namespace VKE
 #else
                 vArgs.push_back( L"-O3" );
 #endif
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_VULKAN
                 vArgs.push_back( L"-spirv" );
                 vArgs.push_back( L"-fvk-use-gl-layout" );
                 vArgs.push_back( L"-fspv-target-env=vulkan1.2" );
