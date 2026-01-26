@@ -29,8 +29,14 @@ namespace VKE::RenderSystem
 
             struct SMemory
             {
-                NativeAPI::Texture hDDITexture = NativeAPI::Null;
-                NativeAPI::Buffer  hDDIBuffer  = NativeAPI::Null;
+                /// <summary>
+                /// Deprecated
+                /// </summary>
+                union
+                {
+                    NativeAPI::Texture hDDITexture = NativeAPI::Null;
+                    NativeAPI::Buffer  hDDIBuffer;
+                };
                 uint32_t           size;
                 MEMORY_USAGE       memoryUsages;
             };
@@ -78,12 +84,12 @@ namespace VKE::RenderSystem
 
         void QueryDeviceInfo( SDeviceInfo* pOut );
 
-        NativeAPI::Buffer              CreateBuffer( const SBufferDesc& Desc, const void* );
+        NativeAPI::Buffer              CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo );
         void                           DestroyBuffer( NativeAPI::Buffer* phBuffer, const void* );
         NativeAPI::BufferView          CreateBufferView( const SBufferViewDesc& Desc, const void* );
         void                           DestroyBufferView( NativeAPI::BufferView* phBufferView, const void* );
         Result                         GetTextureFormatProperties( const STextureDesc&, STextureFormatProperties* );
-        NativeAPI::Texture             CreateTexture( const STextureDesc& Desc, const void* );
+        NativeAPI::Texture             CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo );
         void                           DestroyTexture( NativeAPI::Texture* phImage, const void* );
         NativeAPI::TextureView         CreateTextureView( const STextureViewDesc& Desc, const void* );
         void                           DestroyTextureView( NativeAPI::TextureView* phImageView, const void* );
@@ -117,14 +123,13 @@ namespace VKE::RenderSystem
         Result AllocateObjects( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers );
         void   FreeObjects( const SFreeCommandBufferInfo& );
 
-        Result GetBufferMemoryRequirements( const NativeAPI::Buffer& hBuffer, SAllocationMemoryRequirementInfo* pOut );
-        Result GetTextureMemoryRequirements( const NativeAPI::Texture&         hTexture,
+        Result GetBufferMemoryRequirements( const SBufferDesc& Desc, SAllocationMemoryRequirementInfo* pOut );
+        Result GetTextureMemoryRequirements( const STextureDesc& Desc,
                                              SAllocationMemoryRequirementInfo* pOut );
         void   UpdateDesc( SBufferDesc* pInOut );
 
         void GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const;
 
-        Result Bind( RESOURCE_TYPE Type, const SBindMemoryInfo& Info );
         void   Bind( const SBindPipelineInfo& Info );
         void   Bind( const SBindDDIDescriptorSetsInfo& Info );
         void   Bind( const SBindRenderPassInfo& Info );

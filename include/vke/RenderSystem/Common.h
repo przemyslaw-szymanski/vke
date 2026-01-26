@@ -1548,6 +1548,16 @@ namespace VKE
             uint32_t maxResourceSize;
         };
 
+        struct SCreateTextureFlags
+        {
+            enum FLAGS
+            {
+                NONE = 0x0,
+                DEDICATED_MEMORY_ALLOCATION = VKE_BIT(0),
+            };
+        };
+        using CREATE_TEXTURE_FLAGS = uint32_t;
+
         struct STextureDesc
         {
             TextureSize            Size;
@@ -1561,6 +1571,7 @@ namespace VKE
             uint16_t               sliceCount        = 1;               // number of slices in 3d
             NativeAPI::Texture     hNative           = NativeAPI::Null; // create from native
             NativeAPI::TextureView hNativeView       = NativeAPI::Null; // create from native
+            CREATE_TEXTURE_FLAGS   flags             = SCreateTextureFlags::NONE;
             ResourceName           Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
@@ -2960,21 +2971,6 @@ namespace VKE
 
         using MEMORY_HEAP_TYPE = MemoryHeapTypes::TYPE;
 
-        struct SAllocateMemoryData
-        {
-            NativeAPI::Memory hDDIMemory;
-            uint32_t          sizeLeft;
-            MEMORY_HEAP_TYPE  heapType;
-        };
-
-        struct SBindMemoryInfo
-        {
-            NativeAPI::Texture hDDITexture = NativeAPI::Null;
-            NativeAPI::Buffer  hDDIBuffer  = NativeAPI::Null;
-            NativeAPI::Memory  hDDIMemory  = NativeAPI::Null;
-            handle_t           hMemory     = INVALID_HANDLE;
-            uint32_t           offset      = 0;
-        };
 
         using STAGING_BUFFER_FLAGS = uint32_t;
 
@@ -3509,6 +3505,21 @@ namespace VKE
             }
         };
 
+        struct SAllocateMemoryData
+        {
+            NativeAPI::Memory hDDIMemory;
+            uint32_t          sizeLeft;
+            MEMORY_HEAP_TYPE  heapType;
+        };
+
+        struct SBindMemoryInfo
+        {
+            NativeAPI::Memory hDDIMemory = NativeAPI::Null;
+            handle_t          hMemory    = INVALID_HANDLE;
+            handle_t          reserved   = INVALID_HANDLE;
+            uint32_t          offset     = 0;
+        };
+
         struct SMapMemoryInfo
         {
             NativeAPI::Memory hMemory;
@@ -3526,6 +3537,17 @@ namespace VKE
         {
             uint32_t size;
             uint32_t alignment;
+            handle_t reserved;
+            /// <summary>
+            /// If out of memory then new pool could be created, therefore new size is required.
+            /// 0 value is default and memory manager will choose appropriate size.
+            /// </summary>
+            uint32_t     poolSize     = 0;
+            /// <summary>
+            /// Declares and initializes a variable to track memory usage.
+            /// 0 is invalid value. At least texture or buffer usage must be specified.
+            /// </summary>
+            MEMORY_USAGE memoryUsages = 0;
         };
 
         struct SResourceBindingInfo

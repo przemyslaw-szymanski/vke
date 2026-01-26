@@ -517,27 +517,33 @@ namespace VKE
 
             if( pBuffer->GetDDIObject() == NativeAPI::Null )
             {
-                pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, nullptr );
-                if( pBuffer->m_hDDIObject != NativeAPI::Null )
+                SAllocationMemoryRequirementInfo AllocationInfo;
+                if( VKE_SUCCEEDED( m_pCtx->NativeAPI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
                 {
-                    // Create memory for buffer
-                    SAllocateDesc AllocDesc;
-                    AllocDesc.Memory.hDDIBuffer   = pBuffer->GetDDIObject();
-                    AllocDesc.Memory.memoryUsages = Desc.memoryUsage;
-                    AllocDesc.Memory.size         = pBuffer->m_Desc.size;
-                    // AllocDesc.poolSize = 0; // set 0 for default
-#if VKE_RENDER_SYSTEM_MEMORY_DEBUG
-                    AllocDesc.descType    = 2;
-                    AllocDesc.pBufferDesc = &Desc;
-#endif
-                    pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateBuffer( AllocDesc );
-                    if( pBuffer->m_hMemory == INVALID_HANDLE )
+                    AllocationInfo.memoryUsages = Desc.memoryUsage | MemoryUsages::BUFFER;
+                    /// TODO: be smarter than 128mb hardcode!
+                    const uint32_t defaultSize = VKE_MEGABYTES( 128 );
+                    if( AllocationInfo.size > defaultSize )
                     {
+                        VKE_LOG_WARN( "Buffer: " << Desc.GetDebugName()
+                                                 << " is bigger than default device memory allocation size: "
+                                                 << defaultSize );
+                    }
+                    AllocationInfo.poolSize     = Math::Max( AllocationInfo.size, VKE_MEGABYTES( 128 ) );
+                    SBindMemoryInfo BindInfo;
+                    pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateMemory( AllocationInfo, &BindInfo );
+                    pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, BindInfo );
+                    if( pBuffer->m_hDDIObject == NativeAPI::Null )
+                    {
+                        VKE_LOG_ERR( "Unable to create buffer DDI object: " << pBuffer->GetDesc().GetDebugName() );
                         goto ERR;
                     }
+                    VKE_LOG( "Created buffer: " << pBuffer->GetDesc().GetDebugName() << " " << pBuffer->m_hDDIObject );
+                    pBuffer->_AddResourceState( Core::ResourceStates::CREATED );
                 }
                 else
                 {
+                    VKE_LOG_ERR( "Unable to get buffer memory requirements." );
                     goto ERR;
                 }
             }

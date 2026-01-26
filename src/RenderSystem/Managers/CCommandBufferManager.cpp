@@ -29,7 +29,7 @@ namespace VKE
                 }
                 vpPools.Clear();
 #if VKE_DUMP_CB
-                if( m_pFile == nullptr )
+                if( m_pFile != nullptr )
                 {
                     fclose( m_pFile );
                 }

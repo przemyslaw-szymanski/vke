@@ -1791,22 +1791,6 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::Bind( RESOURCE_TYPE Type, const SBindMemoryInfo& Info )
-        {
-            VkResult res = VK_INCOMPLETE;
-            if( Type == ResourceTypes::TEXTURE )
-            {
-                res = m_Implementation.m_ICD.vkBindImageMemory(
-                    m_hDevice, Info.hDDITexture, Info.hDDIMemory, Info.offset );
-            }
-            else if( Type == ResourceTypes::BUFFER )
-            {
-                res = m_Implementation.m_ICD.vkBindBufferMemory(
-                    m_hDevice, Info.hDDIBuffer, Info.hDDIMemory, Info.offset );
-            }
-            return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
-        }
-
         Result CDDI::Load( const SDDILoadInfo& Info, SDriverInfo* pOut )
         {
             Result ret = VKE_OK;
@@ -2515,29 +2499,27 @@ namespace VKE
             }
         }*/
 
-        NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const void* pAllocator )
+        NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
-            VkBufferCreateInfo ci;
-            NativeAPI::Buffer  hBuffer = VK_NULL_HANDLE;
-            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO );
+            VKE_ASSERT( MemInfo.hDDIMemory != NativeAPI::Null );
+            VKE_ASSERT( MemInfo.reserved != INVALID_HANDLE );
+            NativeAPI::Buffer hNativeBuffer = NativeAPI::Null;
             {
-                ci.flags                 = 0;
-                ci.pQueueFamilyIndices   = nullptr;
-                ci.queueFamilyIndexCount = 0;
-                ci.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
-                ci.size                  = Desc.size;
-                ci.usage                 = Convert::BufferUsage( Desc.usage );
-                if( Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
+                hNativeBuffer = reinterpret_cast< NativeAPI::Buffer >( MemInfo.reserved );
+                auto vkRes    = m_Implementation.m_ICD.vkBindBufferMemory(
+                    m_hDevice, hNativeBuffer, MemInfo.hDDIMemory, MemInfo.offset );
+                if( vkRes == VK_SUCCESS )
                 {
-                    ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                    VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+                    SetObjectDebugName( (uint64_t)MemInfo.reserved, VK_OBJECT_TYPE_BUFFER, Desc.GetDebugName() );
                 }
-
-                VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, pAllocator, &hBuffer );
-                VK_ERR( vkRes );
-                VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
-                SetObjectDebugName( (uint64_t)hBuffer, VK_OBJECT_TYPE_BUFFER, Desc.GetDebugName() );
+                else
+                {
+                    m_Implementation.m_ICD.vkDestroyBuffer( m_hDevice, hNativeBuffer, nullptr );
+                    hNativeBuffer = NativeAPI::Null;
+                }
             }
-            return hBuffer;
+            return hNativeBuffer;
         }
 
         void CDDI::DestroyBuffer( NativeAPI::Buffer* phBuffer, const void* pAllocator )
@@ -2570,46 +2552,41 @@ namespace VKE
             DDI_DESTROY_OBJECT( BufferView, phBufferView, pAllocator );
         }
 
-        NativeAPI::Texture CDDI::CreateTexture( const STextureDesc& Desc, const void* pAllocator )
+        NativeAPI::Texture CDDI::CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
-            NativeAPI::Texture hImage = NativeAPI::Null;
-            VkImageCreateInfo  ci;
+            VKE_ASSERT( MemInfo.hDDIMemory != NativeAPI::Null );
+            VKE_ASSERT( MemInfo.reserved != INVALID_HANDLE );
+            NativeAPI::Texture hNativeTexture = NativeAPI::Null;
+            if( MemInfo.hDDIMemory != NativeAPI::Null && MemInfo.reserved != INVALID_HANDLE )
             {
-                ci.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-                ci.pNext                 = nullptr;
-                ci.flags                 = 0;
-                ci.format                = Map::Format( Desc.format );
-                ci.imageType             = Map::ImageType( Desc.type );
-                ci.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
-                ci.mipLevels             = Desc.mipmapCount;
-                ci.samples               = Map::SampleCount( Desc.multisampling );
-                ci.pQueueFamilyIndices   = nullptr;
-                ci.queueFamilyIndexCount = 0;
-                ci.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
-                ci.tiling                = Convert::ImageUsageToTiling( Desc.usage );
-                ci.arrayLayers           = Desc.arrayElementCount;
-                ci.extent.width          = Desc.Size.width;
-                ci.extent.height         = Desc.Size.height;
-                ci.extent.depth          = 1;
-                ci.usage                 = Map::ImageUsage( Desc.usage );
-            }
-            VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, pAllocator, &hImage );
-            VK_ERR( vkRes );
+                hNativeTexture = reinterpret_cast<NativeAPI::Texture>(MemInfo.reserved);
+                auto               res            = m_Implementation.m_ICD.vkBindImageMemory(
+                    m_hDevice, hNativeTexture, MemInfo.hDDIMemory, MemInfo.offset );
+                VK_ERR( res );
+                if( res == VK_SUCCESS )
+                {
+
 #if VKE_RENDER_SYSTEM_DEBUG
-            // VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
-            cstr_t pName;
-            if( strlen( Desc.GetDebugName() ) > 0 )
-            {
-                pName = Desc.GetDebugName();
-            }
-            else
-            {
-                VKE_ASSERT2( !Desc.Name.IsEmpty(), "Name must not be empty" );
-                pName = Desc.Name.GetData();
-            }
-            SetObjectDebugName( (uint64_t)hImage, VK_OBJECT_TYPE_IMAGE, pName );
+                    // VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
+                    cstr_t pName;
+                    if( strlen( Desc.GetDebugName() ) > 0 )
+                    {
+                        pName = Desc.GetDebugName();
+                    }
+                    else
+                    {
+                        VKE_ASSERT2( !Desc.Name.IsEmpty(), "Name must not be empty" );
+                        pName = Desc.Name.GetData();
+                    }
+                    SetObjectDebugName( MemInfo.reserved, VK_OBJECT_TYPE_IMAGE, pName );
 #endif
-            return hImage;
+                }
+                else
+                {
+                    m_Implementation.m_ICD.vkDestroyImage( m_hDevice, hNativeTexture, nullptr );
+                }
+            }
+            return hNativeTexture;
         }
 
         Result CDDI::GetTextureFormatProperties( const STextureDesc& Desc, STextureFormatProperties* pOut )
@@ -3950,24 +3927,78 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::GetTextureMemoryRequirements( const NativeAPI::Texture&         hTexture,
+        Result CDDI::GetTextureMemoryRequirements( const STextureDesc& Desc,
                                                    SAllocationMemoryRequirementInfo* pOut )
         {
+            NativeAPI::Texture hImage = NativeAPI::Null;
+            VkImageCreateInfo  ci;
+            {
+                ci.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                ci.pNext                 = nullptr;
+                ci.flags                 = 0;
+                ci.format                = Map::Format( Desc.format );
+                ci.imageType             = Map::ImageType( Desc.type );
+                ci.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
+                ci.mipLevels             = Desc.mipmapCount;
+                ci.samples               = Map::SampleCount( Desc.multisampling );
+                ci.pQueueFamilyIndices   = nullptr;
+                ci.queueFamilyIndexCount = 0;
+                ci.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+                ci.tiling                = Convert::ImageUsageToTiling( Desc.usage );
+                ci.arrayLayers           = Desc.arrayElementCount;
+                ci.extent.width          = Desc.Size.width;
+                ci.extent.height         = Desc.Size.height;
+                ci.extent.depth          = 1;
+                ci.usage                 = Map::ImageUsage( Desc.usage );
+            }
+            VkResult vkRes = DDI_CREATE_OBJECT( Image, ci, nullptr, &hImage );
+            VK_ERR( vkRes );
+
             VkMemoryRequirements VkReq;
-            m_Implementation.m_ICD.vkGetImageMemoryRequirements( m_hDevice, hTexture, &VkReq );
+            m_Implementation.m_ICD.vkGetImageMemoryRequirements( m_hDevice, hImage, &VkReq );
             pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
             pOut->size      = static_cast< uint32_t >( VkReq.size );
+            pOut->reserved  = reinterpret_cast<handle_t>(hImage); // Return the image handle so we can destroy it later
             return VKE_OK;
         }
 
-        Result CDDI::GetBufferMemoryRequirements( const NativeAPI::Buffer&          hBuffer,
+        Result CDDI::GetBufferMemoryRequirements( const SBufferDesc& Desc,
                                                   SAllocationMemoryRequirementInfo* pOut )
         {
-            VkMemoryRequirements VkReq;
-            m_Implementation.m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
-            pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
-            pOut->size      = static_cast< uint32_t >( VkReq.size );
-            return VKE_OK;
+            Result             ret = VKE_FAIL;
+            VkBufferCreateInfo ci;
+            NativeAPI::Buffer  hBuffer = VK_NULL_HANDLE;
+            Vulkan::InitInfo( &ci, VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO );
+            ci.flags                 = 0;
+            ci.pQueueFamilyIndices   = nullptr;
+            ci.queueFamilyIndexCount = 0;
+            ci.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+            ci.size                  = Desc.size;
+            ci.usage                 = Convert::BufferUsage( Desc.usage );
+            if( Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
+            {
+                ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            }
+
+            VkResult vkRes = DDI_CREATE_OBJECT( Buffer, ci, nullptr, &hBuffer );
+            VK_ERR( vkRes );
+            if( vkRes == VK_SUCCESS )
+            {
+                VkMemoryRequirements VkReq;
+                m_Implementation.m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
+                {
+                    ret             = VKE_OK;
+                    pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
+                    pOut->size      = static_cast< uint32_t >( VkReq.size );
+                    pOut->reserved =
+                        reinterpret_cast< handle_t >( hBuffer ); // Return the buffer handle so we can destroy it later
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR( "Unable to create vkBuffer: " << Desc.GetDebugName() );
+            }
+            return ret;
         }
 
         void CDDI::Free( NativeAPI::Memory* phMemory, const void* pAllocator )

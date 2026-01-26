@@ -170,9 +170,10 @@ namespace VKE
                 BufferDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
                 BufferDesc.Create.stages      = Core::ResourceStages::FULL_LOAD;
                 BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING | MemoryUsages::BUFFER;
-                BufferDesc.Buffer.size        = 0; // Config::RenderSystem::Buffer::STAGING_BUFFER_SIZE;
                 BufferDesc.Buffer.usage       = BufferUsages::TRANSFER_SRC;
                 BufferDesc.Buffer.vRegions    = { SBufferRegion( regionCount, bufferSize ) };
+                BufferDesc.Buffer.size        = regionCount * bufferSize;
+                
 #if VKE_RENDER_SYSTEM_DEBUG
                 char buff[ 128 ];
                 vke_sprintf( buff, 128, "VKE_StagingBuffer%d", m_vpBuffers.GetCount() );

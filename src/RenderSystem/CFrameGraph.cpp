@@ -371,7 +371,10 @@ namespace VKE::RenderSystem
         // Wait for threads and destroy them
         for( uint32_t i = 0; i < m_vpThreads.GetCount(); ++i )
         {
-            m_vpThreads[ i ]->join();
+            if( m_vpThreads[ i ]->joinable() )
+            {
+                m_vpThreads[ i ]->join();
+            }
             Memory::DestroyObject( &HeapAllocator, &m_vpThreads[ i ] );
             Memory::DestroyObject( &HeapAllocator, &m_vpThreadData[ i ] );
         }
@@ -894,7 +897,7 @@ namespace VKE::RenderSystem
             /*if( ThreadData.CondVar.wait_for( l, 2s,
                 [&] { return !ThreadData.qWorkloads.empty(); } ) )*/
             ThreadData.CondVar.wait( l, [ & ] {
-                return !ThreadData.qWorkloads.empty();
+                return !ThreadData.qWorkloads.empty() || ThreadData.needExit;
             } );
             {
                 if( !ThreadData.qWorkloads.empty() )
@@ -908,6 +911,7 @@ namespace VKE::RenderSystem
                 }
             }
         }
+        return;
     }
 
     CFrameGraph::INDEX_TYPE CFrameGraph::_CreateThreadIndex( const std::string_view& ThreadName )
