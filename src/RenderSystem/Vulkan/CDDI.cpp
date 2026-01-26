@@ -4972,7 +4972,7 @@ namespace VKE
             VK_ERR( m_Implementation.m_ICD.vkResetCommandBuffer( hCommandBuffer, flags ) );
         }
 
-        void CDDI::BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer )
+        void CDDI::BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer, const NativeAPI::CommandBufferPool& hCommandBufferPool )
         {
             VkCommandBufferBeginInfo bi;
             bi.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

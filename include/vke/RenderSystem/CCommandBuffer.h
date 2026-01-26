@@ -358,6 +358,11 @@ namespace VKE
                 return m_hPool.value;
             }
 
+            const NativeAPI::CommandBufferPool& getNativeCmdBufferPool() const
+            {
+                return m_hDDICmdBufferPool;
+            }
+
         protected:
             CContextBase*          m_pBaseCtx = nullptr;
             CCommandBufferManager* m_pMgr     = nullptr;

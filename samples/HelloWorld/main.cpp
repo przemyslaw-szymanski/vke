@@ -70,7 +70,7 @@ int main()
 
         // First adapter should be the best.
         DeviceContextDesc.pAdapterInfo = &adapters[ 0 ];
-        
+
         VKE::RenderSystem::CDeviceContext* pDeviceContext = pRenderSystem->CreateDeviceContext( DeviceContextDesc );
         if( !pDeviceContext )
         {
@@ -78,6 +78,35 @@ int main()
             return -1;
         }
 
+        // Create graphics context for the window.
+        VKE::RenderSystem::SGraphicsContextDesc GraphicsDesc;
+        {
+            auto& sc = GraphicsDesc.SwapChainDesc;
+
+            sc.pWindow = pWindow;
+            sc.pWindow->IsVisible( true );
+        }
+
+        VKE::RenderSystem::CGraphicsContext* pGraphicsCtx = pDeviceContext->CreateGraphicsContext( GraphicsDesc );
+
+        if( !pGraphicsCtx )
+        {
+            VKEDestroy();
+            return -1;
+        }
+
+        VKE::RenderSystem::EventListeners::IGraphicsContext* pGfxListener = VKE_NEW SGfxContextListener();
+        pGraphicsCtx->SetEventListener( pGfxListener );
+
+
+        VKE::RenderSystem::SFrameGraphDesc FrameGraphDesc;
+        FrameGraphDesc.Name    = "DefaultMT";
+        FrameGraphDesc.Size    = pGraphicsCtx->GetSwapChain()->GetSize();
+        FrameGraphDesc.pDevice = pDeviceContext;
+        FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::GENERAL ] = pGraphicsCtx;
+
+        VKE::RenderSystem::CFrameGraph* pFrameGraph = pRenderSystem->CreateFrameGraph( FrameGraphDesc );
+        (void)pFrameGraph;
     }
 
     VKEDestroy();

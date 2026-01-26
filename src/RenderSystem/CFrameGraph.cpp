@@ -773,6 +773,7 @@ namespace VKE::RenderSystem
                                     pNode->m_ExecuteName.GetData(),
                                     pNode->m_CommandBufferName.GetData() );
                     vCbs[ i ]->SetDebugName( DbgName.GetData() );
+                    // m_Desc.apContexts[ ctxType ]->Reset( vCbs[ i ] );
                     vCbs[ i ]->Reset();
                     auto& FrameData = m_aFrameData[ i ];
                     ret = (INDEX_TYPE)FrameData.avpCommandBuffers[ ctxType ].PushBack( CommandBufferPtr{ vCbs[ i ] } );

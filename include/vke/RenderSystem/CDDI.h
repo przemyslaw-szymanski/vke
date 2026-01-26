@@ -151,7 +151,7 @@ namespace VKE::RenderSystem
 
         void Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
                     const NativeAPI::CommandBufferPool& hCommandBufferPool );
-        void BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer );
+        void BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer, const NativeAPI::CommandBufferPool& hCommandBufferPool );
         void EndCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer );
 
         void Barrier( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info );

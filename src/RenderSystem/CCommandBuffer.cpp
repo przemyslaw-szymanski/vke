@@ -103,6 +103,8 @@ namespace VKE
 
             // TODO(blturkot): _BeginCommandBuffer calls Reset( CommandBuffer ). Because D3D12 doesn't allow multiple
             // Reset() calls we cannot explicitly call it here. Remove this when samples are confirmed to work.
+            // TODO(blturkot): For some reason after exit() there is a problem withing BeginCommandBuffer() (this was nullptr).
+            // Need to fix this.
             // _Reset();
             // VKE_ASSERT( m_state == CommandBufferStates::RESET );
 
@@ -146,8 +148,12 @@ namespace VKE
         // Remove this once confirmed it's working with samples.
         void CCommandBuffer::Reset()
         {
-            VKE_ASSERT2( false,
-                         "Reset on CCommandBuffer is deprecated. Use ContextBase.Reset( CCommandBuffer ) instead." );
+            // TODO(blturkot): This is a temporary workaround until all samples are confirmed to work without explicit
+            // Reset() calls.
+            _NotifyExecuted();
+            m_pBaseCtx->_Reset( this );
+
+            // Previous code commented out below
             // VKE_ASSERT( m_state != CommandBufferStates::BEGIN );
             //_NotifyExecuted();
             // m_pBaseCtx->_Reset( this );
@@ -176,6 +182,7 @@ namespace VKE
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vMemoryBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
+            ExecuteBarriers();
             VKE_LOG_CB();
             m_pMgr->_LogCommand( this, "Barrier" );
         }
@@ -185,6 +192,7 @@ namespace VKE
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vBufferBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
+            ExecuteBarriers();
             VKE_LOG_CB();
         }
 
@@ -194,6 +202,7 @@ namespace VKE
             m_BarrierInfo.vTextureBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
             VKE_LOG_CB();
+            ExecuteBarriers();
         }
 
         void CCommandBuffer::SetState( TEXTURE_STATE state, TextureHandle* phTexInOut )

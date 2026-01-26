@@ -533,11 +533,20 @@ namespace VKE
         void CContextBase::_Reset( CCommandBuffer* pCmdBuffer )
         {
             VKE_ASSERT( pCmdBuffer->GetState() != CommandBufferStates::BEGIN );
-            VKE_ASSERT2( pCmdBuffer->GetState() != CommandBufferStates::RESET,
-                         "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
 
-            m_pDeviceCtx->NativeAPI().Reset( pCmdBuffer->GetDDIObject(), pCmdBuffer->m_hDDICmdBufferPool );
-            pCmdBuffer->m_state = CCommandBuffer::States::RESET;
+            // Instead of assert we'll skip reset if it's already in reset state.
+            // VKE_ASSERT2( pCmdBuffer->GetState() != CommandBufferStates::RESET,
+            //              "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
+
+            if( pCmdBuffer->m_state == CCommandBuffer::States::RESET )
+            {
+                VKE_LOG_WARN( "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
+            }
+            else
+            {
+                m_pDeviceCtx->NativeAPI().Reset( pCmdBuffer->GetDDIObject(), pCmdBuffer->m_hDDICmdBufferPool );
+                pCmdBuffer->m_state = CCommandBuffer::States::RESET;
+            }
         }
 
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
@@ -547,8 +556,9 @@ namespace VKE
             VKE_ASSERT2( pCb && pCb->m_pBaseCtx, "pCb and context cannot be null" );
 
             _Reset( pCb );
+            pCb->m_hPool;
 
-            m_pDeviceCtx->NativeAPI().BeginCommandBuffer( pCb->GetDDIObject() );
+            m_pDeviceCtx->NativeAPI().BeginCommandBuffer( pCb->GetDDIObject(), pCb->getNativeCmdBufferPool() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
             pCb->m_state             = CCommandBuffer::States::BEGIN;
             return ret;

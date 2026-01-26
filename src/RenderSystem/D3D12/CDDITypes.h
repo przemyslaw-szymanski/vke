@@ -1,6 +1,7 @@
 #pragma once
 
 #if VKE_D3D12_RENDER_SYSTEM
+#include "Core/Memory/CFreeListPool.h"
 
 #include <directx/d3d12.h>
 #include <dxgi1_6.h>
@@ -407,6 +408,124 @@ namespace VKE::RenderSystem
                 SMonitoredFence< SFenceTypes::GPU > GpuFence;
             };
 
+            template< typename D3D12TypeT >
+            struct SD3D12Pointer
+            {
+                D3D12TypeT* pObject = NativeAPI::Null;
+
+                SD3D12Pointer() = default;
+
+                SD3D12Pointer( const D3D12TypeT& Other ) : pObject{ Other }
+                {
+                }
+
+                SD3D12Pointer( decltype( Null ) )
+                    : pObject{ NativeAPI::Null }
+                {
+                }
+
+                SD3D12Pointer& operator=( const SD3D12Pointer& Other )
+                {
+                    pObject = Other.pObject;
+                    return *this;
+                }
+
+                SD3D12Pointer& operator=( const D3D12TypeT& Other )
+                {
+                    pObject = Other;
+                    return *this;
+                }
+
+                SD3D12Pointer& operator=( decltype( Null ) )
+                {
+                    pObject = NativeAPI::Null;
+                    return *this;
+                }
+
+                const bool operator==( decltype( Null ) ) const
+                {
+                    return pObject == NativeAPI::Null;
+                }
+
+                const bool operator!=( decltype( Null ) ) const
+                {
+                    return pObject != NativeAPI::Null;
+                }
+
+                const bool operator==( const SD3D12Pointer& Other ) const
+                {
+                    return pObject == Other;
+                }
+
+                operator D3D12TypeT()
+                {
+                    return pObject;
+                }
+
+                operator const D3D12TypeT() const
+                {
+                    return pObject;
+                }
+            };
+
+            template< typename DescriptorType >
+            struct SDescriptor
+            {
+                DescriptorType Desc;
+
+                SDescriptor() = default;
+
+                SDescriptor( decltype( Null ) )
+                {
+                }
+
+                SDescriptor( const DescriptorType& Other ) : Desc{ Other }
+                {
+                }
+
+                void SetName( cwstr_t pName )
+                {
+                    m_pName = pName;
+                }
+
+            protected:
+                wstr_t m_pName;
+            };
+
+            template< typename DescriptorType >
+            struct SCPUDescriptor : SDescriptor< DescriptorType >
+            {
+                D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle = 0;
+
+                SCPUDescriptor() = default;
+
+                SCPUDescriptor( decltype( Null ) )
+                {
+                }
+
+                SCPUDescriptor( const DescriptorType& Other )
+                {
+                }
+            };
+
+            template< typename DescriptorType, typename ObjType >
+            struct SGPUDescriptor : SDescriptor< DescriptorType >, SD3D12Pointer< ObjType >
+            {
+                D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle = 0;
+
+                SGPUDescriptor() : SD3D12Pointer< ObjType >( Null )
+                {
+                }
+
+                SGPUDescriptor( decltype( Null ) ) : SD3D12Pointer< ObjType >( Null )
+                {
+                }
+
+                SGPUDescriptor( const DescriptorType& Other ) : SDescriptor< DescriptorType >( Other ), SD3D12Pointer< ObjType >( Null )
+                {
+                }
+            };
+
         } // namespace CustomTypes
 
         struct FenceTypes
@@ -470,14 +589,16 @@ namespace VKE::RenderSystem
             // TODO(blturkot): Fill with limits
         };
 
-        using Buffer              = ID3D12Resource*;
-        using Pipeline            = ID3D12PipelineState*;
-        using Texture             = ID3D12Resource*;
+        using Buffer              = CustomTypes::SGPUDescriptor< D3D12_RESOURCE_DESC, ID3D12Resource >*;
+        // using Buffer   = ID3D12Resource*;
+        using Pipeline = ID3D12PipelineState*;
+        using Texture             = CustomTypes::SGPUDescriptor< D3D12_RESOURCE_DESC, ID3D12Resource >*;
+        // using Texture             = ID3D12Resource*;
         using Sampler             = void*;
         using RenderPass          = ID3D12Object*;
         using CommandBuffer       = ID3D12GraphicsCommandList*;
-        using TextureView         = void*;
-        using BufferView          = void*;
+        using TextureView         = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
+        using BufferView          = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
         using CPUFence            = CustomTypes::CPUFence;
         using GPUFence            = CustomTypes::GPUFence;
         using Device              = ID3D12Device10*;
@@ -492,8 +613,8 @@ namespace VKE::RenderSystem
         using ImageType           = D3D12_RESOURCE_DIMENSION;
         using ImageLayout         = D3D12_RESOURCE_FLAGS;
         using ImageUsageFlags     = D3D12_RESOURCE_FLAGS;
-        using Memory              = ID3D12Object*;
-        using PresentSurface      = ID3D12Resource*;
+        using Memory              = ID3D12Heap*;
+        using PresentSurface      = IDXGIOutput6*;
         using SwapChain           = IDXGISwapChain4*;
         using Adapter             = IDXGIAdapter4*;
         using Shader              = CustomTypes::Shader;
@@ -532,7 +653,6 @@ namespace VKE::RenderSystem
             static const uint32_t MAX_MEMORY_HEAPS = 16;
 
             static Factory spFactory;
-            static bool    sTearingSupported;
             static bool    sDebugLayerEnabled;
 
             struct SMemoryHeapProperties
@@ -551,6 +671,7 @@ namespace VKE::RenderSystem
                     {
                         DeviceLimits limits;
                     } properties;
+
                 } Device;
 
                 struct
@@ -559,7 +680,6 @@ namespace VKE::RenderSystem
                     SMemoryHeapProperties HeapProperties[ MAX_MEMORY_HEAPS ];
                     UINT64                localBudget;
                     UINT64                hostBudget;
-                    bool                  UploadHeapSupported;
                 } Memory;
 
                 void* aFormatProperties[ Formats::_MAX_COUNT ];
@@ -567,7 +687,44 @@ namespace VKE::RenderSystem
 
             struct SDeviceFeatures
             {
+                static bool sTearingSupported;
+
+                uint8_t ResourceHeapTier;
+
+                bool BindlessResourceAccessSupported;
+                bool EnhancedBarriersSupported;
+                bool UploadHeapSupported;
+                bool MeshShaderSupported;
+                bool RayTracingSupported;
             } Features; // struct SDeviceFeatures
+
+        private:
+            Threads::SyncObject        m_AllocatorSyncObj;
+            VKE::Memory::CFreeListPool m_ViewDescriptorPool;
+            bool                       m_IsInitialized = false;
+
+            VKE::Memory::CFreeListPool& getViewDescriptorPool()
+            {
+                if( !m_IsInitialized )
+                {
+                    m_ViewDescriptorPool.Create( 100, sizeof( NativeAPI::TextureView ), 1 );
+                }
+
+                return m_ViewDescriptorPool;
+            }
+
+            template< typename DescT >
+            Result _CreateDescriptor( VKE::Memory::CFreeListPool* pPool, DescT* desc )
+            {
+                Threads::ScopedLock l( m_AllocatorSyncObj );
+                return VKE::Memory::CreateObject( pPool, desc );
+            }
+
+        public:
+            vke_force_inline Result CreateView( NativeAPI::TextureView* desc )
+            {
+                return _CreateDescriptor< NativeAPI::TextureView >( &getViewDescriptorPool(), desc );
+            }
         };
 
     } // namespace NativeAPI
