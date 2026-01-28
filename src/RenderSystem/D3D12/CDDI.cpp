@@ -1645,6 +1645,8 @@ namespace VKE::RenderSystem
 
     void* CDDI::MapMemory( const SMapMemoryInfo& Info )
     {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::MapMemory: m_hDevice can't be null" );
+
         UNIMPLEMENTED_D3D12_METHOD();
         return NativeAPI::Null;
     }

@@ -707,7 +707,8 @@ namespace VKE::RenderSystem
             {
                 if( !m_IsInitialized )
                 {
-                    m_ViewDescriptorPool.Create( 100, sizeof( NativeAPI::TextureView ), 1 );
+                    m_ViewDescriptorPool.Create(
+                        100, sizeof( CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC > ), 1 );
                 }
 
                 return m_ViewDescriptorPool;
