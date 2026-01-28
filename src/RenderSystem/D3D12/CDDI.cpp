@@ -286,7 +286,7 @@ namespace VKE::RenderSystem
             return desc;
         }
 
-        D3D12_RESOURCE_FLAGS getResourceFlags( TEXTURE_USAGE usage )
+        D3D12_RESOURCE_FLAGS GetResourceFlags( TEXTURE_USAGE usage )
         {
             D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
@@ -314,6 +314,18 @@ namespace VKE::RenderSystem
                 {
                     flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
                 }
+            }
+
+            return flags;
+        }
+
+        D3D12_RESOURCE_FLAGS GetResourceFlags( BUFFER_USAGE usage )
+        {
+            D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+
+            if( ( usage & BufferUsages::TEXEL_BUFFER ) )
+            {
+                flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }
 
             return flags;
@@ -470,7 +482,28 @@ namespace VKE::RenderSystem
             out.Format     = Convert::getDXGIFormat( Desc.format );
             out.SampleDesc = Convert::getSampleDesc( Desc.multisampling );
             out.Layout     = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-            out.Flags      = Convert::getResourceFlags( Desc.usage );
+            out.Flags      = Convert::GetResourceFlags( Desc.usage );
+
+            return out;
+        }
+
+        D3D12_RESOURCE_DESC GetResourceDesc( const SBufferDesc& Desc )
+        {
+            D3D12_RESOURCE_DESC out;
+
+            out.Dimension        = D3D12_RESOURCE_DIMENSION_BUFFER;
+            out.Alignment        = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+            out.Width            = static_cast< UINT64 >( Desc.size );
+            out.Height           = 1;
+            out.DepthOrArraySize = 1;
+            out.MipLevels        = 1;
+            out.Format           = DXGI_FORMAT_UNKNOWN;
+
+            out.SampleDesc.Count = 1;
+            out.SampleDesc.Quality = 0;
+
+            out.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+            out.Flags  = Convert::GetResourceFlags( Desc.usage );
 
             return out;
         }
@@ -921,8 +954,22 @@ namespace VKE::RenderSystem
 
     NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-        return NativeAPI::Null;
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateTexture: m_hDevice can't be null" );
+
+        D3D12_RESOURCE_DESC texDesc  = Convert::GetResourceDesc( Desc );
+        NativeAPI::Texture  pTexture = NativeAPI::Null;
+
+        if( FAILED( m_hDevice->CreatePlacedResource( MemInfo.hDDIMemory,
+                                                     MemInfo.offset,
+                                                     &texDesc,
+                                                     D3D12_RESOURCE_STATE_COMMON,
+                                                     nullptr,
+                                                     IID_PPV_ARGS( &pTexture ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateTexture: Create texture failure." );
+        }
+
+        return pTexture;
     }
 
     void CDDI::DestroyBuffer( NativeAPI::Buffer* pInOut, const void* pAllocator )
@@ -1416,13 +1463,22 @@ namespace VKE::RenderSystem
 
     Result CDDI::GetBufferMemoryRequirements( const SBufferDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateBuffer.
+        D3D12_RESOURCE_DESC desc = Convert::GetResourceDesc( Desc );
+
+        D3D12_RESOURCE_ALLOCATION_INFO allocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &desc );
+
+        pOut->alignment = static_cast< uint32_t >( allocInfo.Alignment );
+        pOut->size      = static_cast< uint32_t >( allocInfo.SizeInBytes );
+
         return Result::OK;
     }
 
     Result CDDI::GetTextureMemoryRequirements( const STextureDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
     {
-        D3D12_RESOURCE_DESC            desc      = Convert::GetResourceDesc( Desc );
+        // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateTexture.
+        D3D12_RESOURCE_DESC desc = Convert::GetResourceDesc( Desc );
+
         D3D12_RESOURCE_ALLOCATION_INFO allocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &desc );
 
         pOut->alignment = static_cast< uint32_t >( allocInfo.Alignment );
@@ -2041,7 +2097,7 @@ namespace VKE::RenderSystem
     Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
                                             uint32_t* pOut )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        *pOut = static_cast< uint32_t >( SwapChain.hSwapChain->GetCurrentBackBufferIndex() );
         return Result::OK;
     }
 

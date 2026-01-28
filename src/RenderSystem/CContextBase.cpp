@@ -540,7 +540,7 @@ namespace VKE
 
             if( pCmdBuffer->m_state == CCommandBuffer::States::RESET )
             {
-                VKE_LOG_WARN( "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
+                // VKE_LOG_WARN( "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
             }
             else
             {

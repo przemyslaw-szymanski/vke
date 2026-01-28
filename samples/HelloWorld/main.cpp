@@ -22,6 +22,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
     {
     }
 
+    bool Init( VKE::RenderSystem::CFrameGraph* pFrameGraph )
+    {
+        return true;
+    }
+
     bool OnRenderFrame( VKE::RenderSystem::CGraphicsContext* pCtx ) override
     {
         return true;
@@ -95,19 +100,29 @@ int main()
             return -1;
         }
 
-        VKE::RenderSystem::EventListeners::IGraphicsContext* pGfxListener = VKE_NEW SGfxContextListener();
-        pGraphicsCtx->SetEventListener( pGfxListener );
-
+        SGfxContextListener* pGfxListener = VKE_NEW SGfxContextListener();
+        pGraphicsCtx->SetEventListener(
+            reinterpret_cast< VKE::RenderSystem::EventListeners::IGraphicsContext* >( pGfxListener ) );
 
         VKE::RenderSystem::SFrameGraphDesc FrameGraphDesc;
         FrameGraphDesc.Name    = "DefaultMT";
         FrameGraphDesc.Size    = pGraphicsCtx->GetSwapChain()->GetSize();
         FrameGraphDesc.pDevice = pDeviceContext;
+
         FrameGraphDesc.apContexts[ VKE::RenderSystem::ContextTypes::GENERAL ] = pGraphicsCtx;
 
         VKE::RenderSystem::CFrameGraph* pFrameGraph = pRenderSystem->CreateFrameGraph( FrameGraphDesc );
-        (void)pFrameGraph;
-    }
+
+        if( pGfxListener->Init( pFrameGraph ) )
+        {
+            pWindow->IsVisible( true );
+            pWindow->Update();
+
+            pEngine->StartRendering();
+        }
+
+        VKE_DELETE( pGfxListener );
+    } // End engine lifetime
 
     VKEDestroy();
     return 0;
