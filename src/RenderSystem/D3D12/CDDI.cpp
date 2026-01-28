@@ -290,23 +290,29 @@ namespace VKE::RenderSystem
         {
             D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
-            if( ( usage & TextureUsages::STORAGE ) )
-            {
-                flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-            }
-
-            if( ( usage & TextureUsages::COLOR_RENDER_TARGET ) )
-            {
-                flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-            }
-
             if( ( usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET ) )
             {
-                flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+                flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
                 if( ( usage & TextureUsages::SAMPLED ) == 0 )
                 {
                     flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+                }
+            }
+            else
+            {
+                // In DX12 D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL cannot be set with either:
+                // - D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+                // - D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
+                // - D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS
+                if( ( usage & TextureUsages::STORAGE ) )
+                {
+                    flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+                }
+
+                if( ( usage & TextureUsages::COLOR_RENDER_TARGET ) )
+                {
+                    flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
                 }
             }
 
@@ -440,6 +446,33 @@ namespace VKE::RenderSystem
             }
 
             return desc;
+        }
+
+        D3D12_RESOURCE_DESC GetResourceDesc( const STextureDesc& Desc )
+        {
+            D3D12_RESOURCE_DESC out;
+
+            out.Dimension = Map::getResourceDimension( Desc.type );
+            out.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+            out.Width     = static_cast< UINT64 >( Desc.Size.width );
+            out.Height    = static_cast< UINT >( Desc.Size.height );
+
+            if( Desc.type == TEXTURE_TYPE::TEXTURE_3D )
+            {
+                out.DepthOrArraySize = static_cast< UINT16 >( Desc.sliceCount );
+            }
+            else
+            {
+                out.DepthOrArraySize = static_cast< UINT16 >( Desc.arrayElementCount );
+            }
+
+            out.MipLevels  = static_cast< UINT16 >( Desc.mipmapCount );
+            out.Format     = Convert::getDXGIFormat( Desc.format );
+            out.SampleDesc = Convert::getSampleDesc( Desc.multisampling );
+            out.Layout     = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+            out.Flags      = Convert::getResourceFlags( Desc.usage );
+
+            return out;
         }
 
     }; // namespace Convert
@@ -886,7 +919,7 @@ namespace VKE::RenderSystem
         }
     }
 
-    NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const void* pAllocator )
+    NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
         UNIMPLEMENTED_D3D12_METHOD();
         return NativeAPI::Null;
@@ -914,52 +947,37 @@ namespace VKE::RenderSystem
         return Result::OK;
     }
 
-    NativeAPI::Texture CDDI::CreateTexture( const STextureDesc& Desc, const void* pAllocator )
+    NativeAPI::Texture CDDI::CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateTexture: m_hDevice can't be null" );
 
-        D3D12_RESOURCE_DESC texDesc;
-        texDesc.Dimension = Map::getResourceDimension( Desc.type );
-        texDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-        texDesc.Width     = static_cast< UINT64 >( Desc.Size.width );
-        texDesc.Height    = static_cast< UINT >( Desc.Size.height );
+        D3D12_RESOURCE_DESC texDesc  = Convert::GetResourceDesc( Desc );
+        NativeAPI::Texture  pTexture = NativeAPI::Null;
 
-        if( Desc.type == TEXTURE_TYPE::TEXTURE_3D )
+        if( FAILED( m_hDevice->CreatePlacedResource( MemInfo.hDDIMemory,
+                                                     MemInfo.offset,
+                                                     &texDesc,
+                                                     D3D12_RESOURCE_STATE_COMMON,
+                                                     nullptr,
+                                                     IID_PPV_ARGS( &pTexture ) ) ) )
         {
-            texDesc.DepthOrArraySize = static_cast< UINT16 >( Desc.sliceCount );
+            VKE_LOG_ERR( "CDDI::CreateTexture: Create texture failure." );
         }
         else
         {
-            texDesc.DepthOrArraySize = static_cast< UINT16 >( Desc.arrayElementCount );
+            SetObjectDebugName( (const uint64_t)pTexture, ApiObjectTypes::TEXTURE, Desc.Name.GetData() );
+            // Desc.memoryUsage
         }
 
-        texDesc.MipLevels  = static_cast< UINT16 >( Desc.mipmapCount );
-        texDesc.Format     = Convert::getDXGIFormat( Desc.format );
-        texDesc.SampleDesc = Convert::getSampleDesc( Desc.multisampling );
-        texDesc.Layout     = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE; // Reserved resources must use this.
-        texDesc.Flags      = Convert::getResourceFlags( Desc.usage );
-
-        NativeAPI::Texture pTexture = NativeAPI::Null;
-
-        // if( FAILED( m_hDevice->CreateReservedResource(
-        //         &texDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS( &pTexture->pObject ) ) ) )
+        // if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTexture ) ) )
         //{
-        //     VKE_LOG_ERR( "CDDI::CreateTexture: Create texture failure." );
+        //     VKE_LOG_ERR( "CDDI::CreateTexture: Failed to create texture object" );
         // }
         // else
         //{
-        //     SetObjectDebugName( (const uint64_t)pTexture, ApiObjectTypes::TEXTURE, Desc.Name.GetData() );
+        //     // SetObjectDebugName( (const uint64_t)texture, ApiObjectTypes::TEXTURE, Desc.Name );
+        //     // Desc.memoryUsage;
         // }
-
-        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTexture ) ) )
-        {
-            VKE_LOG_ERR( "CDDI::CreateTexture: Failed to create texture object" );
-        }
-        else
-        {
-            // SetObjectDebugName( (const uint64_t)texture, ApiObjectTypes::TEXTURE, Desc.Name );
-            // Desc.memoryUsage;
-        }
 
         return pTexture;
     }
@@ -1396,16 +1414,15 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    Result CDDI::GetBufferMemoryRequirements( const NativeAPI::Buffer& hBuffer, SAllocationMemoryRequirementInfo* pOut )
+    Result CDDI::GetBufferMemoryRequirements( const SBufferDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
     {
         UNIMPLEMENTED_D3D12_METHOD();
         return Result::OK;
     }
 
-    Result CDDI::GetTextureMemoryRequirements( const NativeAPI::Texture&         hTexture,
-                                               SAllocationMemoryRequirementInfo* pOut )
+    Result CDDI::GetTextureMemoryRequirements( const STextureDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
     {
-        D3D12_RESOURCE_DESC            desc      = hTexture->Desc;
+        D3D12_RESOURCE_DESC            desc      = Convert::GetResourceDesc( Desc );
         D3D12_RESOURCE_ALLOCATION_INFO allocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &desc );
 
         pOut->alignment = static_cast< uint32_t >( allocInfo.Alignment );
@@ -1422,12 +1439,6 @@ namespace VKE::RenderSystem
     void CDDI::GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const
     {
         UNIMPLEMENTED_D3D12_METHOD();
-    }
-
-    Result CDDI::Bind( RESOURCE_TYPE Type, const SBindMemoryInfo& Info )
-    {
-        UNIMPLEMENTED_D3D12_METHOD();
-        return Result::OK;
     }
 
     void CDDI::Bind( const SBindPipelineInfo& Info )
@@ -1633,7 +1644,7 @@ namespace VKE::RenderSystem
 
         // Used when Texture was a custom struct.
         // const D3D12_RESOURCE_DESC& desc = Info.hDDITexture->Desc;
-        D3D12_RESOURCE_DESC desc = Info.hDDITexture->Desc;
+        D3D12_RESOURCE_DESC desc = Info.hDDITexture->GetDesc();
 
         UINT textureMipLevels = ( desc.MipLevels > 0 ) ? desc.MipLevels : 1;
         UINT textureArraySize = ( desc.DepthOrArraySize > 0 ) ? desc.DepthOrArraySize : 1;
@@ -1655,7 +1666,7 @@ namespace VKE::RenderSystem
             barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 
             auto& transition       = barrier.Transition;
-            transition.pResource   = Info.hDDITexture->pObject;
+            transition.pResource   = Info.hDDITexture;
             transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             transition.StateBefore = Convert::AccessMaskToResourceState( Info.srcMemoryAccess );
             transition.StateAfter  = Convert::AccessMaskToResourceState( Info.dstMemoryAccess );
@@ -1673,7 +1684,7 @@ namespace VKE::RenderSystem
                     barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 
                     auto& transition     = barrier.Transition;
-                    transition.pResource = Info.hDDITexture->pObject;
+                    transition.pResource = Info.hDDITexture;
                     transition.Subresource =
                         Convert::getSubresourceIndex( Info.SubresourceRange.beginMipmapLevel + mip,
                                                       textureMipLevels,
@@ -1936,12 +1947,12 @@ namespace VKE::RenderSystem
         {
             NativeAPI::Texture bbTexture = NativeAPI::Null;
             // This is required when NativeAPI::Texture is a custom object.
-            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &bbTexture ) ) )
-            {
-                VKE_LOG_ERR( "CDDI::CreateSwapChain: Failed to create back buffer texture object." );
-            }
+            // if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &bbTexture ) ) )
+            //{
+            //    VKE_LOG_ERR( "CDDI::CreateSwapChain: Failed to create back buffer texture object." );
+            //}
 
-            pOut->hSwapChain->GetBuffer( i, IID_PPV_ARGS( &bbTexture->pObject ) );
+            pOut->hSwapChain->GetBuffer( i, IID_PPV_ARGS( &bbTexture ) );
 
             // Create swapchain already creates required resources but doesn't have views.
             // To cheat engine, we can store the texture in vImages and create null views.

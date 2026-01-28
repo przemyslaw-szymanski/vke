@@ -589,10 +589,10 @@ namespace VKE::RenderSystem
             // TODO(blturkot): Fill with limits
         };
 
-        using Buffer              = CustomTypes::SGPUDescriptor< D3D12_RESOURCE_DESC, ID3D12Resource >*;
+        using Buffer              = ID3D12Resource*;
         // using Buffer   = ID3D12Resource*;
         using Pipeline = ID3D12PipelineState*;
-        using Texture             = CustomTypes::SGPUDescriptor< D3D12_RESOURCE_DESC, ID3D12Resource >*;
+        using Texture             = ID3D12Resource*;
         // using Texture             = ID3D12Resource*;
         using Sampler             = void*;
         using RenderPass          = ID3D12Object*;
