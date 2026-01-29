@@ -152,7 +152,7 @@ namespace VKE::RenderSystem
         size_t           GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE ) const;
         size_t           GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE ) const;
         void*            MapMemory( const SMapMemoryInfo& Info );
-        void             UnmapMemory( const NativeAPI::Memory& hDDIMemory );
+        void             UnmapMemory( const SMapMemoryInfo& Info );
 
         void Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
                     const NativeAPI::CommandBufferPool& hCommandBufferPool );

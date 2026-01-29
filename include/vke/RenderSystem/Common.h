@@ -2991,9 +2991,15 @@ namespace VKE
 
         struct SUpdateMemoryInfo
         {
+            union
+            {
+                NativeAPI::Buffer hBuffer = NativeAPI::Null;
+                NativeAPI::Texture hTexture;
+            };
             const void*        pData;
             uint32_t           dataSize;
             uint32_t           dstDataOffset = 0;
+            handle_t           hMemory       = INVALID_HANDLE;
             StagingBufferFlags flags         = 0;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
@@ -3522,9 +3528,24 @@ namespace VKE
 
         struct SMapMemoryInfo
         {
+            union
+            {
+                NativeAPI::Buffer hBuffer = NativeAPI::Null;
+                NativeAPI::Texture hTexture;
+            };
             NativeAPI::Memory hMemory;
             uint32_t          offset;
             uint32_t          size;
+        };
+
+        struct SUnmapMemoryInfo
+        {
+            union
+            {
+                NativeAPI::Buffer hBuffer = NativeAPI::Null;
+                NativeAPI::Texture hTexture;
+            };
+            NativeAPI::Memory hMemory;
         };
 
         struct SAllocateMemoryDesc

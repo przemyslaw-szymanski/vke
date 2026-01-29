@@ -137,19 +137,28 @@ namespace VKE
         void* CBuffer::Map( uint32_t offset, uint32_t size )
         {
             size = Math::Min( m_Desc.size, size );
-            return m_pMgr->LockMemory( offset, size, &m_hMemory );
+            SUpdateMemoryInfo Info;
+            Info.hBuffer = GetDDIObject();
+            Info.dataSize = size;
+            Info.dstDataOffset = offset;
+            Info.hMemory       = m_hMemory;
+            return m_pMgr->LockMemory( Info );
         }
 
         void* CBuffer::MapRegion( uint16_t regionIndex, uint16_t elementIndex )
         {
             auto size   = GetRegionSize( regionIndex ) - ( elementIndex * GetRegionElementSize( regionIndex ) );
             auto offset = CalcAbsoluteOffset( regionIndex, elementIndex );
-            return m_pMgr->LockMemory( offset, size, &m_hMemory );
+            //return m_pMgr->LockMemory( offset, size, &m_hMemory );
+            return Map( offset, size );
         }
 
         void CBuffer::Unmap()
         {
-            m_pMgr->UnlockMemory( &m_hMemory );
+            SUpdateMemoryInfo Info;
+            Info.hBuffer       = GetDDIObject();
+            Info.hMemory       = m_hMemory;
+            m_pMgr->UnlockMemory( Info );
         }
 
     } // namespace RenderSystem

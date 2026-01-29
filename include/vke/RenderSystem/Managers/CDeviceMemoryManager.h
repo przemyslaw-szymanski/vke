@@ -136,11 +136,11 @@ namespace VKE
 
             handle_t AllocateMemory( const SAllocationMemoryRequirementInfo& Info, SBindMemoryInfo* pOut );
 
-            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
-            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
+            //Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
+            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo );
 
-            void* MapMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
-            void  UnmapMemory( const handle_t& hMemory );
+            void* MapMemory( const SUpdateMemoryInfo& DataInfo );
+            void  UnmapMemory( const SUpdateMemoryInfo& DataInfo );
 
             const SSubAllocateMemoryInfo& GetAllocationInfo( const handle_t& hMemory );
 

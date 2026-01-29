@@ -272,9 +272,11 @@ namespace VKE
                 StagingBufferInfo.dataSize      = Info.dataSize;
                 StagingBufferInfo.dstDataOffset = pOut->offset;
                 StagingBufferInfo.pData         = Info.pData;
+                StagingBufferInfo.hBuffer       = pOut->hDDIBuffer;
+                StagingBufferInfo.hMemory       = pOut->hMemory;
 
                 auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
-                ret          = MemMgr.UpdateMemory( StagingBufferInfo, pOut->hMemory );
+                ret          = MemMgr.UpdateMemory( StagingBufferInfo );
             }
             return ret;
         }
@@ -311,7 +313,9 @@ namespace VKE
                         StagingBufferInfo.dataSize      = Info.dataSize;
                         StagingBufferInfo.dstDataOffset = Data.offset;
                         StagingBufferInfo.pData         = Info.pData;
-                        if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo, Data.hMemory ) ) )
+                        StagingBufferInfo.hBuffer       = Data.hDDIBuffer;
+                        StagingBufferInfo.hMemory       = Data.hMemory;
+                        if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo ) ) )
                         {
                             // VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pCmdbuffer, Info );
                             pCmdbuffer->BeginDebugInfo( Info.pDebugInfo );
@@ -353,7 +357,7 @@ namespace VKE
                 }
                 else
                 {
-                    ret = MemMgr.UpdateMemory( Info, pDstBuffer->m_hMemory );
+                    ret = MemMgr.UpdateMemory( Info );
                 }
             }
             return ret;
@@ -383,9 +387,11 @@ namespace VKE
             StagingBufferInfo.dataSize      = maxSize;
             StagingBufferInfo.dstDataOffset = Data.offset;
             StagingBufferInfo.pData         = nullptr;
+            StagingBufferInfo.hBuffer       = Data.hDDIBuffer;
+            StagingBufferInfo.hMemory       = Data.hMemory;
 
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
-            void* pMem   = MemMgr.MapMemory( StagingBufferInfo, Data.hMemory );
+            void* pMem   = MemMgr.MapMemory( StagingBufferInfo );
             if( pMem != nullptr )
             {
                 memset( pMem, 1, maxSize );
@@ -433,9 +439,11 @@ namespace VKE
             VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pTransferCmdBuffer, UnlockInfo );
             uint32_t sizeUsed = Math::Max( UnlockInfo.totalSize, Info.sizeUsed );
             m_pStagingBufferMgr->_UpdateBufferInfo( Info.hStagingBuffer, sizeUsed );
-
+            SUpdateMemoryInfo UnmapInfo;
+            UnmapInfo.hBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
+            UnmapInfo.hMemory = Info.hMemory;
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
-            MemMgr.UnmapMemory( Info.hMemory );
+            MemMgr.UnmapMemory( UnmapInfo );
             /*{
                 const auto* p = (Scene::CTerrainVertexFetchRenderer::SPerDrawConstantBufferData*)Info.pDeviceMemory;
                 p = p;
@@ -581,21 +589,17 @@ namespace VKE
             return pBuffer;
         }
 
-        void* CBufferManager::LockMemory( uint32_t offset, uint32_t size, handle_t* phMemory )
+        void* CBufferManager::LockMemory( const SUpdateMemoryInfo& Info )
         {
-            SUpdateMemoryInfo StagingBufferInfo;
-            StagingBufferInfo.dataSize      = size;
-            StagingBufferInfo.dstDataOffset = offset;
-            StagingBufferInfo.pData         = nullptr;
             auto& MemMgr                    = m_pCtx->_GetDeviceMemoryManager();
-            void* pMem                      = MemMgr.MapMemory( StagingBufferInfo, *phMemory );
+            void* pMem                      = MemMgr.MapMemory( Info );
             return pMem;
         }
 
-        void CBufferManager::UnlockMemory( handle_t* phMemory )
+        void CBufferManager::UnlockMemory( const SUpdateMemoryInfo& Info )
         {
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
-            MemMgr.UnmapMemory( *phMemory );
+            MemMgr.UnmapMemory( Info );
         }
 
         void CBufferManager::FreeUnusedAllocations()

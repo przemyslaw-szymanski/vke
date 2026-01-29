@@ -377,7 +377,7 @@ namespace VKE
             return ret;
         }
 
-        Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo )
+        /*Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo )
         {
             Result         ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
@@ -390,54 +390,69 @@ namespace VKE
                 Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                 ret = VKE_OK;
             }
-            m_pCtx->NativeAPI().UnmapMemory( BindInfo.hDDIMemory );
+
+            m_pCtx->NativeAPI().UnmapMemory( MapInfo );
             return ret;
-        }
+        }*/
 
-        Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory )
+        Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            UAllocationHandle Handle = hMemory;
-
-            const auto&    AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
+            Result              ret    = VKE_ENOMEMORY;
+            UAllocationHandle Handle = DataInfo.hMemory;
+            //Threads::ScopedLock l( m_vSyncObjects[ Handle.hPool ] );
+            void*               pDst = MapMemory( DataInfo );
+            if(pDst != nullptr)
+            {
+                Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
+                UnmapMemory( DataInfo );
+                ret = VKE_OK;
+            }
+            /*const auto&    AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             Result         ret       = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
             MapInfo.hMemory = (NativeAPI::Memory)( AllocInfo.hMemory );
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             {
-                Threads::ScopedLock l( m_vSyncObjects[ Handle.hPool ] );
+                
                 void*               pDst = m_pCtx->NativeAPI().MapMemory( MapInfo );
                 if( pDst != nullptr )
                 {
                     Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                     ret = VKE_OK;
                 }
-                m_pCtx->NativeAPI().UnmapMemory( MapInfo.hMemory );
-            }
+                m_pCtx->NativeAPI().UnmapMemory( MapInfo );
+            }*/
             return ret;
         }
 
-        void* CDeviceMemoryManager::MapMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory )
+        void* CDeviceMemoryManager::MapMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            UAllocationHandle Handle    = hMemory;
+            VKE_ASSERT( DataInfo.hBuffer != NativeAPI::Null );
+            VKE_ASSERT( DataInfo.hMemory != INVALID_HANDLE );
+            UAllocationHandle Handle    = DataInfo.hMemory;
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             SMapMemoryInfo    MapInfo;
             MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
+            MapInfo.hBuffer = DataInfo.hBuffer;
             // Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
             m_vSyncObjects[ Handle.hPool ].Lock();
             void* pRet = m_pCtx->NativeAPI().MapMemory( MapInfo );
             return pRet;
         }
 
-        void CDeviceMemoryManager::UnmapMemory( const handle_t& hMemory )
+        void CDeviceMemoryManager::UnmapMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            UAllocationHandle Handle    = hMemory;
+            UAllocationHandle Handle    = DataInfo.hMemory;
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
-            // Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            SMapMemoryInfo    MapInfo;
+            MapInfo.hBuffer = DataInfo.hBuffer;
+            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
+            MapInfo.offset  = DataInfo.dstDataOffset;
             m_vSyncObjects[ Handle.hPool ].Unlock();
-            m_pCtx->NativeAPI().UnmapMemory( (NativeAPI::Memory)AllocInfo.hMemory );
+            m_pCtx->NativeAPI().UnmapMemory( MapInfo );
         }
 
         const SSubAllocateMemoryInfo& CDeviceMemoryManager::GetAllocationInfo( const handle_t& hMemory )

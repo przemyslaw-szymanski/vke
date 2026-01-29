@@ -4071,9 +4071,9 @@ namespace VKE
             return pData;
         }
 
-        void CDDI::UnmapMemory( const NativeAPI::Memory& hDDIMemory )
+        void CDDI::UnmapMemory( const SMapMemoryInfo& Info )
         {
-            m_Implementation.m_ICD.vkUnmapMemory( m_hDevice, hDDIMemory );
+            m_Implementation.m_ICD.vkUnmapMemory( m_hDevice, Info.hMemory );
         }
 
         void CDDI::Draw( const NativeAPI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
