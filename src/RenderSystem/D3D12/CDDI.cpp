@@ -1,5 +1,4 @@
 #include "RenderSystem/CDDI.h"
-#include "RenderSystem/CDDI.h"
 
 #if VKE_RENDER_SYSTEM_D3D12
 
@@ -499,13 +498,23 @@ namespace VKE::RenderSystem
             out.MipLevels        = 1;
             out.Format           = DXGI_FORMAT_UNKNOWN;
 
-            out.SampleDesc.Count = 1;
+            out.SampleDesc.Count   = 1;
             out.SampleDesc.Quality = 0;
 
             out.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
             out.Flags  = Convert::GetResourceFlags( Desc.usage );
 
             return out;
+        }
+
+        UINT32 GetPixColor( const VKE::RenderSystem::SColor& color )
+        {
+            // Spec URL:
+            // https://devblogs.microsoft.com/pix/winpixeventruntime/
+            // raw DWORD noting that the format is ARGB and the alpha channel value must be 0xff
+            return PIX_COLOR( static_cast< UINT8 >( std::lround( std::clamp( color.r, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( color.g, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( color.b, 0.0f, 1.0f ) * 0xFF ) ) );
         }
 
     }; // namespace Convert
@@ -1179,7 +1188,9 @@ namespace VKE::RenderSystem
                                                                 const void*                   pAllocator )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateCommandBufferPool: m_hDevice can't be null" );
+
         NativeAPI::CommandBufferPool pCommandAllocator = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pCommandAllocator );
 
         D3D12_COMMAND_LIST_TYPE type = Map::getCommandListType( Desc.pContext->m_pQueue->GetType() );
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
@@ -1188,13 +1199,13 @@ namespace VKE::RenderSystem
             return NativeAPI::Null;
         }
 
-        if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator.Obj ) ) ) )
+        if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator->pAllocator ) ) ) )
         {
             VKE_LOG_ERR( "CDDI::CreateCommandBufferPool: Failed to create command allocator" );
         }
 
-        pCommandAllocator.EngineType = Desc.pContext->m_pQueue->GetType();
-        pCommandAllocator.NativeType = type;
+        pCommandAllocator->EngineType = Desc.pContext->m_pQueue->GetType();
+        pCommandAllocator->NativeType = type;
 
         return pCommandAllocator;
     }
@@ -1210,7 +1221,9 @@ namespace VKE::RenderSystem
 
         uint32_t descriptorHeapSizes[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = { 0 };
 
-        NativeAPI::DescriptorPool  pool     = NativeAPI::Null;
+        NativeAPI::DescriptorPool pool = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pool );
+
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
         D3D12_DESCRIPTOR_HEAP_TYPE heapType = {};
 
@@ -1241,7 +1254,7 @@ namespace VKE::RenderSystem
                     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
                 }
 
-                if( FAILED( m_hDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &pool.Heaps[ i ] ) ) ) )
+                if( FAILED( m_hDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &pool->Heaps[ i ] ) ) ) )
                 {
                     VKE_LOG_ERR( "CDDI::CreateDescriptorPool: Failed to create descriptor heap" );
                 }
@@ -1260,9 +1273,11 @@ namespace VKE::RenderSystem
                                                                     const void*                     pAllocator )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateDescriptorSetLayout: m_hDevice can't be null" );
-        NativeAPI::DescriptorSetLayout descriptorSetLayout = NativeAPI::Null;
 
-        NativeAPI::CustomTypes::DDIDescriptorSetLayout& rootParameter = descriptorSetLayout.Obj;
+        NativeAPI::DescriptorSetLayout descriptorSetLayout = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &descriptorSetLayout );
+
+        NativeAPI::CustomTypes::DDIDescriptorSetLayout& rootParameter = descriptorSetLayout->RootParameter;
 
         // Assume shader visibility all, see notes below.
         rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
@@ -1286,11 +1301,11 @@ namespace VKE::RenderSystem
             range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
             range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-            descriptorSetLayout.vDescriptorRanges.PushBack( range );
+            descriptorSetLayout->vDescriptorRanges.PushBack( range );
         }
 
-        rootParameter.DescriptorTable.NumDescriptorRanges = descriptorSetLayout.vDescriptorRanges.GetCount();
-        rootParameter.DescriptorTable.pDescriptorRanges   = descriptorSetLayout.vDescriptorRanges.GetData();
+        rootParameter.DescriptorTable.NumDescriptorRanges = descriptorSetLayout->vDescriptorRanges.GetCount();
+        rootParameter.DescriptorTable.pDescriptorRanges   = descriptorSetLayout->vDescriptorRanges.GetData();
 
         return descriptorSetLayout;
     }
@@ -1330,7 +1345,7 @@ namespace VKE::RenderSystem
         for( auto& layout: Desc.vDescriptorSetLayouts )
         {
             const NativeAPI::DescriptorSetLayout& hDescriptorSetLayout = m_pCtx->GetDescriptorSetLayout( layout );
-            vRootParameters.PushBack( hDescriptorSetLayout.Obj );
+            vRootParameters.PushBack( hDescriptorSetLayout->RootParameter );
         }
 
         // Right now push constants are not being used in Engine. Root signature includes information about push
@@ -1379,8 +1394,11 @@ namespace VKE::RenderSystem
     NativeAPI::Shader CDDI::CreateShader( const SShaderData& Desc, const void* pAllocator )
     {
         NativeAPI::Shader shader;
-        shader.Obj.pShaderBytecode = (BYTE*)Desc.pCode;
-        shader.Obj.BytecodeLength  = Desc.codeSize;
+        Memory::CreateObject( &HeapAllocator, &shader );
+
+        shader->pShaderBytecode = (BYTE*)Desc.pCode;
+        shader->BytecodeLength  = Desc.codeSize;
+
         return shader;
     }
 
@@ -1413,6 +1431,8 @@ namespace VKE::RenderSystem
 
     Result CDDI::AllocateObjects( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
     {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
+
         UNIMPLEMENTED_D3D12_METHOD();
         return Result::OK;
     }
@@ -1428,7 +1448,7 @@ namespace VKE::RenderSystem
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
 
         D3D12_COMMAND_LIST_TYPE type =
-            ( Info.level == COMMAND_BUFFER_LEVEL::PRIMARY ) ? Info.hDDIPool.NativeType : D3D12_COMMAND_LIST_TYPE_BUNDLE;
+            ( Info.level == COMMAND_BUFFER_LEVEL::PRIMARY ) ? Info.hDDIPool->NativeType : D3D12_COMMAND_LIST_TYPE_BUNDLE;
 
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
         {
@@ -1440,7 +1460,7 @@ namespace VKE::RenderSystem
         {
             NativeAPI::CommandBuffer pCommandList = NativeAPI::Null;
             if( FAILED( m_hDevice->CreateCommandList(
-                    0, type, Info.hDDIPool.Obj, NativeAPI::Null, IID_PPV_ARGS( &pCommandList ) ) ) )
+                    0, type, Info.hDDIPool->pAllocator, NativeAPI::Null, IID_PPV_ARGS( &pCommandList ) ) ) )
             {
                 VKE_LOG_ERR( "CDDI::AllocateObjects: Failed to create command list" );
                 result = VKE_FAIL;
@@ -1645,15 +1665,25 @@ namespace VKE::RenderSystem
 
     void* CDDI::MapMemory( const SMapMemoryInfo& Info )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::MapMemory: m_hDevice can't be null" );
+        VKE_ASSERT2( Info.hBuffer != NativeAPI::Null, "CDDI::MapMemory: DX12 can map only resources, not memory." );
 
-        UNIMPLEMENTED_D3D12_METHOD();
-        return NativeAPI::Null;
+        D3D12_RANGE range;
+        range.Begin = Info.offset;
+        range.End   = Info.offset + Info.size;
+
+        void* pData = nullptr;
+        if( FAILED( Info.hBuffer->Map( 0, &range, &pData ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::MapMemory: Failed to map memory" );
+        }
+
+        return pData;
     }
 
-    void CDDI::UnmapMemory( const NativeAPI::Memory& hDDIMemory )
+    void CDDI::UnmapMemory( const SMapMemoryInfo& Info )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        VKE_ASSERT2( Info.hBuffer != NativeAPI::Null, "CDDI::MapMemory: DX12 can map only resources, not memory." );
+        Info.hBuffer->Unmap( 0, nullptr );
     }
 
     void CDDI::Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
@@ -1669,12 +1699,12 @@ namespace VKE::RenderSystem
         // Reset() method. D3D12 doesn't have any additional flags for beginning command buffer recording, just
         // reset()
 
-        if( FAILED( hCommandBufferPool.Obj->Reset() ) )
+        if( FAILED( hCommandBufferPool->pAllocator->Reset() ) )
         {
             VKE_LOG_ERR( "CDDI::Reset: Failed to reset command buffer pool" );
         }
 
-        if( FAILED( hCommandBuffer->Reset( hCommandBufferPool.Obj, NativeAPI::Null ) ) )
+        if( FAILED( hCommandBuffer->Reset( hCommandBufferPool->pAllocator, NativeAPI::Null ) ) )
         {
             VKE_LOG_ERR( "CDDI::Reset: Failed to reset command buffer" );
         }
@@ -1761,7 +1791,25 @@ namespace VKE::RenderSystem
 
     void CreateLegacySubresourceBarriers( const SBufferBarrierInfo& Info, DDIBarrierArray& OutArray )
     {
-        VKE_ASSERT( !"CDDI::CreateLegacySubresourceBarriers: Buffer barriers are not supported in D3D12" );
+        if( Info.srcMemoryAccess == Info.dstMemoryAccess )
+        {
+            // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
+            VKE_LOG_WARN( "CDDI::Barrier: Source and destination memory access masks are the same, DX12 doesn't "
+                          "allow that." );
+            return;
+        }
+
+        D3D12_RESOURCE_BARRIER barrier;
+        barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+        auto& transition       = barrier.Transition;
+        transition.pResource   = Info.hDDIBuffer;
+        transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        transition.StateBefore = Convert::AccessMaskToResourceState( Info.srcMemoryAccess );
+        transition.StateAfter  = Convert::AccessMaskToResourceState( Info.dstMemoryAccess );
+
+        OutArray.PushBack( barrier );
     }
 
     void CDDI::Barrier( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
@@ -1838,7 +1886,11 @@ namespace VKE::RenderSystem
 
     void CDDI::Copy( const NativeAPI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        hCmdBuffer->CopyBufferRegion( Info.pDstBuffer->GetDDIObject(),
+                                      Info.Region.dstBufferOffset,
+                                      Info.hDDISrcBuffer,
+                                      Info.Region.srcBufferOffset,
+                                      Info.Region.size );
     }
 
     void CDDI::Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
@@ -2112,12 +2164,15 @@ namespace VKE::RenderSystem
 
     void CDDI::BeginDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        if( pInfo != nullptr )
+        {
+            PIXBeginEvent( hDDICmdBuff, Convert::GetPixColor( pInfo->Color ), pInfo->pText );
+        }
     }
 
     void CDDI::EndDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        PIXEndEvent( hDDICmdBuff );
     }
 
     void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const
@@ -2169,7 +2224,7 @@ namespace VKE::RenderSystem
                 ( (NativeAPI::Framebuffer)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::COMMAND_POOL:
-                ( (NativeAPI::CommandBufferPool*)handle )->Obj->SetName( buffer );
+                ( (NativeAPI::CommandBufferPool)handle )->pAllocator->SetName( buffer );
                 break;
 
             case ApiObjectTypes::CONTEXT:

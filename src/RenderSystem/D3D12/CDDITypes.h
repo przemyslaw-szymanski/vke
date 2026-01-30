@@ -5,6 +5,7 @@
 
 #include <directx/d3d12.h>
 #include <dxgi1_6.h>
+#include <pix3.h>
 
 namespace VKE::RenderSystem
 {
@@ -198,185 +199,22 @@ namespace VKE::RenderSystem
                 }
             };
 
-            struct CommandBufferPool : TSObjectWrapper< DDICommandBufferPool, std::nullopt_t, CommandBufferPool >
+            struct CommandBufferPool
             {
-                using Wrapper = TSObjectWrapper< DDICommandBufferPool, std::nullopt_t, CommandBufferPool >;
-
+                ID3D12CommandAllocator* pAllocator = nullptr;
                 D3D12_COMMAND_LIST_TYPE NativeType = D3D12_COMMAND_LIST_TYPE_DIRECT;
                 uint8_t                 EngineType = 0;
-
-                CommandBufferPool() = default;
-
-                CommandBufferPool( decltype( Null ) ) : Wrapper( Null )
-                {
-                }
-
-                CommandBufferPool( const DDICommandBufferPool& Other ) : Wrapper( Other )
-                {
-                }
             };
 
-            struct Shader : TSObjectWrapper< DDIShader, std::nullptr_t, Shader >
-            {
-                using Wrapper = TSObjectWrapper< DDIShader, std::nullptr_t, Shader >;
-
-                Shader() = default;
-
-                Shader( decltype( Null ) )
-                {
-                    SetNull();
-                }
-
-                Shader( const DDIShader& Other )
-                {
-                    Assign( Other );
-                }
-
-                void SetNull()
-                {
-                    Obj.pShaderBytecode = nullptr;
-                    Obj.BytecodeLength  = 0;
-                }
-
-                bool IsNull() const
-                {
-                    return Obj.pShaderBytecode == nullptr;
-                }
-
-                void Assign( const DDIShader& Other )
-                {
-                    Obj.pShaderBytecode = Other.pShaderBytecode;
-                    Obj.BytecodeLength  = Other.BytecodeLength;
-                }
-
-                const bool Equals( const DDIShader& Other ) const
-                {
-                    return Obj.pShaderBytecode == Other.pShaderBytecode;
-                }
-            };
-
-            struct SPipelineLayout : TSObjectWrapper< uint32_t, std::nullopt_t, SPipelineLayout, SPipelineLayout >
-            {
-                SPipelineLayout() = default;
-
-                SPipelineLayout( decltype( Null ) )
-                {
-                    SetNull();
-                }
-
-                SPipelineLayout( const SPipelineLayout& Other )
-                {
-                    Assign( Other );
-                }
-
-                static hash_t CalcHash( SPipelineLayout* pLayout )
-                {
-                    return 0;
-                }
-
-                void SetNull()
-                {
-                    Obj = 0;
-                }
-
-                bool IsNull() const
-                {
-                    return Obj == 0;
-                }
-
-                const bool Equals( const uint32_t& Other ) const
-                {
-                    return Obj == Other;
-                }
-            };
-
-            struct SDescriptorPool : TSObjectWrapper< uint32_t, std::nullopt_t, SDescriptorPool >
+            struct SDescriptorPool
             {
                 ID3D12DescriptorHeap* Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
-
-                SDescriptorPool() = default;
-
-                SDescriptorPool( decltype( Null ) )
-                {
-                    SetNull();
-                }
-
-                SDescriptorPool( const SDescriptorPool& Other ) : Heaps{ Null }
-                {
-                    Assign( Other.Obj );
-                }
-
-                // static hash_t CalcHash( SDescriptorPool* pPool )
-                //{
-                //     return 0;
-                // }
-
-                void SetNull()
-                {
-                    Obj = 0;
-                }
-
-                bool IsNull() const
-                {
-                    for( auto& heap: Heaps )
-                    {
-                        if( heap != Null )
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-
-                const bool Equals( const uint32_t& Other ) const
-                {
-                    return Obj == Other;
-                }
             };
 
             struct SDescriptorSetLayout
-                : TSObjectWrapper< DDIDescriptorSetLayout, std::nullptr_t, SDescriptorSetLayout >
             {
-                using Wrapper = TSObjectWrapper< DDIDescriptorSetLayout, std::nullptr_t, SDescriptorSetLayout >;
-
                 Utils::TCDynamicArray< DDIDescriptorSetRange, 32 > vDescriptorRanges;
-
-                SDescriptorSetLayout() = default;
-
-                SDescriptorSetLayout( decltype( Null ) )
-                {
-                    SetNull();
-                }
-
-                SDescriptorSetLayout( const DDIDescriptorSetLayout& Other )
-                {
-                    Assign( Other );
-                }
-
-                void SetNull()
-                {
-                    Obj.DescriptorTable.NumDescriptorRanges = 0;
-                    Obj.DescriptorTable.pDescriptorRanges   = nullptr;
-                }
-
-                bool IsNull() const
-                {
-                    return Obj.DescriptorTable.pDescriptorRanges == nullptr;
-                }
-
-                void Assign( const SDescriptorSetLayout& Other )
-                {
-                    Obj               = Other.Obj;
-                    vDescriptorRanges = Other.vDescriptorRanges;
-
-                    // Update pointer to copied data
-                    Obj.DescriptorTable.pDescriptorRanges = vDescriptorRanges.GetData();
-                }
-
-                const bool Equals( const DDIDescriptorSetLayout& Other ) const
-                {
-                    return memcmp( &Obj, &Other, sizeof( DDIDescriptorSetLayout ) ) == 0;
-                }
+                D3D12_ROOT_PARAMETER1                              RootParameter;
             };
 
             struct SFenceTypes
@@ -419,8 +257,7 @@ namespace VKE::RenderSystem
                 {
                 }
 
-                SD3D12Pointer( decltype( Null ) )
-                    : pObject{ NativeAPI::Null }
+                SD3D12Pointer( decltype( Null ) ) : pObject{ NativeAPI::Null }
                 {
                 }
 
@@ -475,7 +312,7 @@ namespace VKE::RenderSystem
 
                 SDescriptor() = default;
 
-                SDescriptor( decltype( Null ) )
+                SDescriptor( decltype( Null ) ) : Desc{}
                 {
                 }
 
@@ -521,7 +358,8 @@ namespace VKE::RenderSystem
                 {
                 }
 
-                SGPUDescriptor( const DescriptorType& Other ) : SDescriptor< DescriptorType >( Other ), SD3D12Pointer< ObjType >( Null )
+                SGPUDescriptor( const DescriptorType& Other ) :
+                    SDescriptor< DescriptorType >( Other ), SD3D12Pointer< ObjType >( Null )
                 {
                 }
             };
@@ -589,36 +427,33 @@ namespace VKE::RenderSystem
             // TODO(blturkot): Fill with limits
         };
 
-        using Buffer              = ID3D12Resource*;
-        // using Buffer   = ID3D12Resource*;
-        using Pipeline = ID3D12PipelineState*;
-        using Texture             = ID3D12Resource*;
-        // using Texture             = ID3D12Resource*;
-        using Sampler             = void*;
-        using RenderPass          = ID3D12Object*;
-        using CommandBuffer       = ID3D12GraphicsCommandList*;
-        using TextureView         = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
-        using BufferView          = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
-        using CPUFence            = CustomTypes::CPUFence;
-        using GPUFence            = CustomTypes::GPUFence;
-        using Device              = ID3D12Device10*;
-        using DescriptorPool      = CustomTypes::SDescriptorPool;
-        using DescriptorSet       = ID3D12DescriptorHeap*;
-        using DescriptorSetLayout = CustomTypes::SDescriptorSetLayout;
-        using CommandBufferPool   = CustomTypes::CommandBufferPool;
-        using Framebuffer         = ID3D12Resource*;
-        using ClearValue          = SClearValue;
-        using Queue               = ID3D12CommandQueue*;
-        using Format              = DXGI_FORMAT;
-        using ImageType           = D3D12_RESOURCE_DIMENSION;
-        using ImageLayout         = D3D12_RESOURCE_FLAGS;
-        using ImageUsageFlags     = D3D12_RESOURCE_FLAGS;
-        using Memory              = ID3D12Heap*;
-        using PresentSurface      = IDXGIOutput6*;
-        using SwapChain           = IDXGISwapChain4*;
-        using Adapter             = IDXGIAdapter4*;
-        using Shader              = CustomTypes::Shader;
-        // using PipelineLayout        = CustomTypes::SPipelineLayout;
+        using Buffer                = ID3D12Resource*;
+        using Pipeline              = ID3D12PipelineState*;
+        using Texture               = ID3D12Resource*;
+        using Sampler               = void*;
+        using RenderPass            = ID3D12Object*;
+        using CommandBuffer         = ID3D12GraphicsCommandList*;
+        using TextureView           = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
+        using BufferView            = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
+        using CPUFence              = CustomTypes::CPUFence;
+        using GPUFence              = CustomTypes::GPUFence;
+        using Device                = ID3D12Device10*;
+        using DescriptorPool        = CustomTypes::SDescriptorPool*;
+        using DescriptorSet         = ID3D12DescriptorHeap*;
+        using DescriptorSetLayout   = CustomTypes::SDescriptorSetLayout*;
+        using CommandBufferPool     = CustomTypes::CommandBufferPool*;
+        using Framebuffer           = ID3D12Resource*;
+        using ClearValue            = SClearValue;
+        using Queue                 = ID3D12CommandQueue*;
+        using Format                = DXGI_FORMAT;
+        using ImageType             = D3D12_RESOURCE_DIMENSION;
+        using ImageLayout           = D3D12_RESOURCE_FLAGS;
+        using ImageUsageFlags       = D3D12_RESOURCE_FLAGS;
+        using Memory                = ID3D12Heap*;
+        using PresentSurface        = IDXGIOutput6*;
+        using SwapChain             = IDXGISwapChain4*;
+        using Adapter               = IDXGIAdapter4*;
+        using Shader                = D3D12_SHADER_BYTECODE*;
         using PipelineLayout        = ID3D12RootSignature*;
         using DeviceSize            = UINT64;
         using Event                 = HANDLE;

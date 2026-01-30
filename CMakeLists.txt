@@ -103,7 +103,8 @@ if(VKE_RENDER_SYSTEM_D3D12)
 
     find_package(directx-headers CONFIG REQUIRED)
     find_package(directx12-agility CONFIG REQUIRED)
-    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility)
+    find_package(winpixevent CONFIG REQUIRED)
+    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::WinPixEventRuntime)
 endif()
 
 message("Third Party Libs:")
