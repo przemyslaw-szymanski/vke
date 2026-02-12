@@ -61,8 +61,6 @@ namespace VKE
                 uint32_t handleCounter = 0;
             };
 
-            using RenderingPipelineBuffer = SResourceBuffer< CRenderingPipeline* >;
-
             struct ContextTasks
             {
                 enum TASK : uint8_t
@@ -168,8 +166,6 @@ namespace VKE
             template<typename ObjectBufferT>
             void _DestroyObjects( ObjectBufferT* pOut );*/
 
-            CRenderingPipeline* _CreateRenderingPipeline( const SRenderingPipelineDesc& Desc );
-
             void _ResizeSwapChainTask( uint32_t width, uint32_t height );
 
         protected:
@@ -186,9 +182,6 @@ namespace VKE
             EventListeners::IGraphicsContext* m_pEventListener;
             // Tasks::SGraphicsContext     m_Tasks;
             CCommandBufferBatch*    m_pCurrentFrameBatch = nullptr;
-            RenderingPipelineBuffer m_RenderingPipelines;
-            CRenderingPipeline*     m_pCurrRenderingPipeline    = nullptr;
-            CRenderingPipeline*     m_pDefaultRenderingPipeline = nullptr;
             // RenderTargetArray               m_vpRenderTargets;
             RenderState      m_renderState             = RenderState::NO_RENDER;
             uint16_t         m_enabledRenderQueueCount = 0;

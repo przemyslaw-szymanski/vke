@@ -134,7 +134,6 @@ namespace VKE
             void SetParent( PipelinePtr );
 
             void Bind( const RenderPassHandle& );
-            void Bind( RenderPassPtr );
             void Bind( const NativeAPI::RenderPass& );
             void Bind( const CSwapChain* );
 

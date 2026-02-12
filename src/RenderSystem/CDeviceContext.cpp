@@ -7,7 +7,6 @@
 #include "CVkEngine.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Threads/CThreadPool.h"
-#include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderingPipeline.h"
 #include "Core/Memory/CMemoryPoolManager.h"
 #include "RenderSystem/Managers/CShaderManager.h"
@@ -100,8 +99,6 @@ namespace VKE
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
                 // Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pDescSetMgr );
-
-                _DestroyRenderPasses();
 
                 for( auto& pRT: m_vpRenderTargets )
                 {
@@ -564,132 +561,14 @@ namespace VKE
             return m_pPipelineMgr->CreatePipeline( Desc );
         }
 
-        RenderPassHandle CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
+        NativeAPI::RenderPass CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
         {
-            return _CreateRenderPass( Desc, false );
+            return m_DDI.CreateRenderPass( Desc, nullptr );
         }
 
-        RenderPassHandle CDeviceContext::CreateRenderPass( const SSimpleRenderPassDesc& Desc )
+        void CDeviceContext::DestroyRenderPass( NativeAPI::RenderPass* phInOut )
         {
-            return _CreateRenderPass( Desc );
-        }
-
-        RenderPassHandle CDeviceContext::_CreateRenderPass( const SSimpleRenderPassDesc& Desc )
-        {
-            RenderPassHandle hRet = INVALID_HANDLE;
-            CRenderPass*     pPass;
-            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
-            hash_t hash = CRenderPass::CalcHash( Desc );
-            auto   Itr  = m_mRenderPasses.find( hash );
-            if( Itr != m_mRenderPasses.end() )
-            {
-                hRet.handle = hash;
-            }
-            else
-            {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
-                {
-                    m_mRenderPasses[ hash ] = pPass;
-                    Result res              = VKE_FAIL;
-                    {
-                        res = pPass->Create( Desc );
-                    }
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        hRet.handle                               = hash;
-                        pPass->m_hObject                          = hRet;
-                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
-                    }
-                    else
-                    {
-                        Memory::DestroyObject( &HeapAllocator, &pPass );
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for render pass." );
-                }
-            }
-            return hRet;
-        }
-
-        RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool )
-        {
-            CRenderPass*     pPass;
-            RenderPassHandle hRet = INVALID_HANDLE;
-            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
-            hash_t hash = CRenderPass::CalcHash( Desc );
-            auto   Itr  = m_mRenderPasses.find( hash );
-            if( Itr != m_mRenderPasses.end() )
-            {
-                hRet.handle = hash;
-            }
-            else
-            {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
-                {
-                    m_mRenderPasses[ hash ] = pPass;
-
-                    Result res = VKE_FAIL;
-                    {
-                        res = pPass->Create( Desc );
-                    }
-
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        hRet.handle                               = hash;
-                        pPass->m_hObject                          = hRet;
-                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
-                    }
-                    else
-                    {
-                        Memory::DestroyObject( &HeapAllocator, &pPass );
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for render pass." );
-                }
-            }
-            return hRet;
-        }
-
-        void CDeviceContext::_DestroyRenderPasses()
-        {
-            for( auto& Pair: m_mRenderPasses )
-            {
-                auto pCurr = Pair.second.Release();
-                pCurr->_Destroy( true );
-                Memory::DestroyObject( &HeapAllocator, &pCurr );
-            }
-            m_mRenderPassNames.clear();
-            m_mRenderPasses.clear();
-        }
-
-        RenderPassRefPtr CDeviceContext::GetRenderPass( const RenderPassID& ID )
-        {
-            RenderPassRefPtr pRet;
-            switch( ID.type )
-            {
-                case RES_ID_HANDLE:
-                    pRet = GetRenderPass( ID.handle );
-                    break;
-                case RES_ID_NAME:
-                    pRet = m_mRenderPassNames[ ID.name ];
-                    break;
-                case RES_ID_POINTER:
-                    pRet = *(RenderPassRefPtr*)ID.ptr;
-                    break;
-                default:
-                    VKE_LOG_ERR( "RenderPass ID (INDEX) type not supported." );
-                    break;
-            }
-            return pRet;
-        }
-
-        RenderPassRefPtr CDeviceContext::GetRenderPass( const RenderPassHandle& hPass )
-        {
-            return RenderPassRefPtr{ m_mRenderPasses[ (hash_t)hPass.handle ] };
+            m_DDI.DestroyRenderPass( phInOut, nullptr );
         }
 
         RenderTargetRefPtr CDeviceContext::GetRenderTarget( cstr_t pName )

@@ -13,7 +13,6 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CRenderingPipeline.h"
-#include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderQueue.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CSwapChain.h"
@@ -145,7 +144,6 @@ namespace VKE
 
                 FinishRendering();
 
-                Memory::DestroyObject( &HeapAllocator, &m_pDefaultRenderingPipeline );
                 Memory::DestroyObject( &HeapAllocator, &m_pSwapChain );
 
                 m_PipelineMgr.Destroy();
@@ -252,8 +250,6 @@ namespace VKE
                 PassDesc.OnRender = [ & ]( const SRenderingPipelineDesc::SPassDesc& /*PassDesc*/ ) {
 
                 };
-                m_pDefaultRenderingPipeline = _CreateRenderingPipeline( PipelineDesc );
-                m_pCurrRenderingPipeline    = m_pDefaultRenderingPipeline;
             }
             {
                 SPipelineManagerDesc MgrDesc;
@@ -310,22 +306,6 @@ namespace VKE
         ERR:
             Destroy();
             return VKE_FAIL;
-        }
-
-        CRenderingPipeline* CGraphicsContext::_CreateRenderingPipeline( const SRenderingPipelineDesc& Desc )
-        {
-            CRenderingPipeline* pPipeline = nullptr;
-            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPipeline, this ) ) )
-            {
-                if( VKE_SUCCEEDED( pPipeline->Create( Desc ) ) )
-                {
-                }
-                else
-                {
-                    Memory::DestroyObject( &HeapAllocator, &pPipeline );
-                }
-            }
-            return pPipeline;
         }
 
         // const VkICD::Device& CGraphicsContext::_GetICD() const
@@ -558,10 +538,10 @@ namespace VKE
             m_stopRendering = false;
         }
 
-        void CGraphicsContext::BindDefaultRenderPass()
+        /*void CGraphicsContext::BindDefaultRenderPass()
         {
             _GetCurrentCommandBuffer()->Bind( GetSwapChain() );
-        }
+        }*/
 
     } // namespace RenderSystem
 } // namespace VKE

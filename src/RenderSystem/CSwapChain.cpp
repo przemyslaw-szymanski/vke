@@ -6,7 +6,6 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CRenderingPipeline.h"
-#include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CSwapChain.h"
 
@@ -528,19 +527,18 @@ namespace VKE
             // m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
         }
 
-        void CSwapChain::BeginPass( CommandBufferPtr pCb )
-        {
-            VKE_ASSERT2( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
-            pCb->Bind( m_DDISwapChain );
-        }
+        //void CSwapChain::BeginPass( CommandBufferPtr pCb )
+        //{
+        //    pCb->Bind( m_DDISwapChain );
+        //}
 
-        void CSwapChain::EndPass( CommandBufferPtr pCb )
-        {
-            // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
-            // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
-            // m_pCurrAcquireElement->pRenderPass->End( vkCb );
-            pCb->Bind( RenderPassPtr() );
-        }
+        //void CSwapChain::EndPass( CommandBufferPtr pCb )
+        //{
+        //    // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
+        //    // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+        //    // m_pCurrAcquireElement->pRenderPass->End( vkCb );
+        //    pCb->Bind( (NativeAPI::RenderPass)NativeAPI::Null );
+        //}
 
     } // namespace RenderSystem
 } // namespace VKE

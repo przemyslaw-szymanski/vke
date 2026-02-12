@@ -29,13 +29,15 @@ namespace VKE::RenderSystem
 
     namespace NativeAPI
     {
-        static const decltype( VK_NULL_HANDLE ) Null;
+        static decltype( VK_NULL_HANDLE ) Null;
+
+        struct SRenderPass;
 
         using Buffer                = VkBuffer;
         using Pipeline              = VkPipeline;
         using Texture               = VkImage;
         using Sampler               = VkSampler;
-        using RenderPass            = VkRenderPass;
+        using RenderPass            = SRenderPass*;
         using CommandBuffer         = VkCommandBuffer;
         using TextureView           = VkImageView;
         using BufferView            = VkBufferView;

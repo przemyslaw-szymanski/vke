@@ -51,7 +51,6 @@ namespace VKE
         class CViewport;
         class CCommandBuffer;
         class CRenderQueue;
-        class CRenderPass;
         class CPipelineLayout;
         class CSwapChain;
         class CFrameGraph;
@@ -112,7 +111,6 @@ namespace VKE
         VKE_DECL_SMART_PTRS( RenderQueue );
         VKE_DECL_SMART_PTRS( VertexBuffer );
         VKE_DECL_SMART_PTRS( IndexBuffer );
-        VKE_DECL_SMART_PTRS( RenderPass );
         VKE_DECL_SMART_PTRS( PipelineLayout );
     } // namespace RenderSystem
 } // namespace VKE

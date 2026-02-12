@@ -132,7 +132,6 @@ namespace VKE::RenderSystem
 
         void   Bind( const SBindPipelineInfo& Info );
         void   Bind( const SBindDDIDescriptorSetsInfo& Info );
-        void   Bind( const SBindRenderPassInfo& Info );
         void   Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
                      const uint32_t offset );
         void   Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
@@ -173,7 +172,9 @@ namespace VKE::RenderSystem
 
         // Dynamic rendering
         void BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo2& );
-        void EndRenderPass( NativeAPI::CommandBuffer );
+        void BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo& );
+        //void EndRenderPass( NativeAPI::CommandBuffer );
+        void EndRenderPass( NativeAPI::CommandBuffer, NativeAPI::RenderPass );
 
         // Copy
         void Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );

@@ -4,7 +4,6 @@
 #include "CVkEngine.h"
 #include "Core/Threads/CThreadPool.h"
 #include "RenderSystem/Resources/CShader.h"
-#include "RenderSystem/CRenderPass.h"
 #include "Core/Utils/CProfiler.h"
 #include "RenderSystem/CSwapChain.h"
 
@@ -375,7 +374,7 @@ namespace VKE
             // VKE_SIMPLE_PROFILE();
             hash_t hash = 0;
 
-            Utils::Hash::Combine( &hash, Desc.hRenderPass.handle );
+            //Utils::Hash::Combine( &hash, Desc.hRenderPass.handle );
             Utils::Hash::Combine( &hash, Desc.hDDIRenderPass );
             Utils::Hash::Combine( &hash, Desc.hLayout.handle );
             Utils::Hash::Combine( &hash, Desc.hDDILayout );
@@ -637,15 +636,6 @@ namespace VKE
             m_Desc.hDDIParent = m_pParent->GetDDIObject();
         }
 
-        void CPipelineBuilder::Bind( const RenderPassHandle& hPass )
-        {
-            m_Desc.hRenderPass = hPass;
-        }
-
-        void CPipelineBuilder::Bind( RenderPassPtr pPass )
-        {
-            m_Desc.hDDIRenderPass = pPass->GetDDIObject();
-        }
 
         void CPipelineBuilder::Bind( const NativeAPI::RenderPass& hDDIPass )
         {

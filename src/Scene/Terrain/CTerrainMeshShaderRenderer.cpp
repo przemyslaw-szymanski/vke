@@ -281,7 +281,7 @@ namespace VKE::Scene
     {
         const auto& CurrState = pCmdBuff->GetCurrentState();
 
-        if( CurrState.RenderPass.hash != m_renderPassHash )
+        if( CurrState.RenderPass.hNativeRenderPass != m_hNativeRenderPass )
         {
 
             const auto&                                  TerrainDesc = m_pTerrain->m_Desc;
@@ -365,6 +365,7 @@ namespace VKE::Scene
                 Desc.Pipeline.vColorRenderTargetFormats = CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
                 Desc.Pipeline.depthRenderTargetFormat   = CurrState.RenderPass.PipelineInfo.depthRenderTargetFormat;
                 Desc.Pipeline.stencilRenderTargetFormat = CurrState.RenderPass.PipelineInfo.stencilRenderTargetFormat;
+                Desc.Pipeline.hDDIRenderPass            = CurrState.RenderPass.hNativeRenderPass;
                 Desc.Pipeline.Rasterization.Polygon.cullMode  = RenderSystem::CullModes::NONE;
                 Desc.Pipeline.Rasterization.Polygon.frontFace = RenderSystem::FrontFaces::COUNTER_CLOCKWISE;
                 Desc.Pipeline.Rasterization.Polygon.mode      = RenderSystem::PolygonModes::WIREFRAME;
@@ -378,7 +379,7 @@ namespace VKE::Scene
                 m_pCurrPipeline  = m_pColorPipeline;
                 if( m_pColorPipeline.IsValid() )
                 {
-                    m_renderPassHash = CurrState.RenderPass.hash;
+                    m_hNativeRenderPass = CurrState.RenderPass.hNativeRenderPass;
                 }
             }
         }

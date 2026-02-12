@@ -96,7 +96,7 @@ struct SGfxContextListener
     VKE::Scene::TerrainPtr pTerrain;
     SInputListener* pInputListener;
     VKE::RenderSystem::SBeginRenderPassInfo2 m_RenderPassInfo;
-    VKE::RenderSystem::RenderPassRefPtr m_pRenderPass;
+
     VKE::Scene::LightRefPtr m_pLight;
     VKE::WindowPtr pWindow;
     VKE::Utils::CTimer Timer;
@@ -302,14 +302,6 @@ struct SGfxContextListener
             PassDesc.RenderArea.Size = ColorRT.Size;
             PassDesc.Name = "Terrain";
 
-            //m_RenderPassInfo.SetDebugName( "Terrain" );
-            ////m_RenderPassInfo.
-            //m_RenderPassInfo.RenderArea.Position = { 0, 0 };
-            //m_RenderPassInfo.RenderArea.Size = ColorRT.Size;
-            //m_RenderPassInfo.DepthRenderTargetInfo = DepthRTInfo;
-            //m_RenderPassInfo.vColorRenderTargetInfos.PushBack( ColorRTInfo );
-            auto hPass = pDevice->CreateRenderPass( PassDesc );
-            m_pRenderPass = pDevice->GetRenderPass( hPass );
         }
 
         //VKE::Scene::SSceneDesc SceneDesc;

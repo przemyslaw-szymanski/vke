@@ -1206,7 +1206,7 @@ namespace VKE
             using AttachmentArray = Utils::TCDynamicArray< NativeAPI::TextureView, 8 >;
             TextureSize      Size;
             AttachmentArray  vDDIAttachments;
-            RenderPassHandle hRenderPass;
+            NativeAPI::RenderPass hRenderPass;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1279,6 +1279,10 @@ namespace VKE
                 TRANSFER_SRC,
                 TRANSFER_DST,
                 PRESENT,
+                COLOR_RENDER_TARGET_READ,
+                DEPTH_RENDER_TARGET_READ,
+                STENCIL_RENDER_TARGET_READ,
+                DEPTH_STENCIL_RENDER_TARGET_READ,
                 _MAX_COUNT
             };
         };
@@ -1745,6 +1749,7 @@ namespace VKE
             struct VKE_API SRenderTargetDesc
             {
                 TextureViewHandle            hTextureView = INVALID_HANDLE;
+                NativeAPI::TextureView       hNativeView  = NativeAPI::Null;
                 TEXTURE_STATE                beginState   = TextureStates::UNDEFINED;
                 TEXTURE_STATE                endState     = TextureStates::UNDEFINED;
                 RENDER_TARGET_RENDER_PASS_OP usage        = RenderTargetRenderPassOperations::UNDEFINED;
@@ -1771,6 +1776,7 @@ namespace VKE
             AttachmentDescArray   vRenderTargets;
             RenderTargetDescArray vRenderTargetDescs;
             SubpassDescArray      vSubpasses;
+            ExtentI32             PositionOffset = { 0, 0 };
             TextureSize           Size;
             ResourceName          Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -1853,9 +1859,6 @@ namespace VKE
 
         struct SBeginRenderPassInfo
         {
-            using ClearValueArray = Utils::TCDynamicArray< NativeAPI::ClearValue, 8 >;
-            ClearValueArray        vDDIClearValues;
-            NativeAPI::Framebuffer hDDIFramebuffer;
             NativeAPI::RenderPass  hDDIRenderPass;
             Rect2DI32              RenderArea;
         };
@@ -2635,7 +2638,7 @@ namespace VKE
             FORMAT                    stencilRenderTargetFormat = Formats::UNDEFINED;
             PipelineLayoutHandle      hLayout                   = INVALID_HANDLE;
             NativeAPI::PipelineLayout hDDILayout                = NativeAPI::Null;
-            RenderPassHandle          hRenderPass               = INVALID_HANDLE;
+            //RenderPassHandle          hRenderPass               = INVALID_HANDLE;
             NativeAPI::RenderPass     hDDIRenderPass            = NativeAPI::Null;
             NativeAPI::Pipeline       hDDIParent                = NativeAPI::Null;
             PipelinePtr               pDefault;
@@ -3426,10 +3429,11 @@ namespace VKE
         {
             enum OP
             {
-                READ,
-                WRITE,
-                OVERWRITE,
-                READ_WRITE,
+                SHADER_READ,
+                RENDER_PASS_WRITE,
+                RENDER_PASS_OVERWRITE,
+                SHADER_READ_WRITE,
+                RENDER_PASS_READ,
                 _MAX_COUNT,
                 UNKNOWN = _MAX_COUNT
             };

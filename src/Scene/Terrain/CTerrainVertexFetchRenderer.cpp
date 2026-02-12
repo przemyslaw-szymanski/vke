@@ -1232,7 +1232,6 @@ namespace VKE
                 for( uint32_t i = 0; i < Desc.vRenderPasses.GetCount(); ++i )
                 {
                     auto hPass                        = Desc.vRenderPasses[ i ];
-                    PipelineDesc.Pipeline.hRenderPass = hPass;
                     // VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
                     PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
                     pRet = pCtx->CreatePipeline( PipelineDesc );

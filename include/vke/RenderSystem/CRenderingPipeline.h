@@ -6,14 +6,11 @@ namespace VKE
 {
     namespace RenderSystem
     {
-        class CRenderPass;
         class CGraphicsContext;
         class CDeviceContext;
 
         class CRenderingPipeline final
         {
-            friend class CRenderPass;
-            using RenderPassArray = Utils::TCDynamicArray< CRenderPass*, 128 >;
 
         public:
             CRenderingPipeline( CGraphicsContext* pCtx );
@@ -27,7 +24,6 @@ namespace VKE
 
         protected:
             SRenderingPipelineDesc m_Desc;
-            RenderPassArray        m_vpRenderPasses;
             CGraphicsContext*      m_pCtx;
         };
     } // namespace RenderSystem

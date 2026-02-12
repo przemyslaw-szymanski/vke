@@ -34,7 +34,6 @@ namespace VKE
                 TEXTURE_STATE          currentState    = TextureStates::UNDEFINED;
                 TEXTURE_STATE          oldState        = TextureStates::UNDEFINED;
                 NativeAPI::Framebuffer hDDIFramebuffer = NativeAPI::Null;
-                CRenderPass*           pRenderPass     = nullptr;
             };
 
             Threads::SyncObject SyncObj;
@@ -222,7 +221,6 @@ namespace VKE
             SViewportDesc              m_CurrViewport;
             SScissorDesc               m_CurrScissor;
             // SPresentSurfaceCaps         m_PresentSurfaceCaps;
-            RenderPassRefPtr m_pRenderPass;
             // NativeAPI::RenderPass               m_hDDIRenderPass;
             std::atomic< uint32_t > m_acquireCount = 0;
             // uint32_t                    m_currBackBufferIdx = 0;

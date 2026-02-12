@@ -3,7 +3,6 @@
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/CPipeline.h"
-#include "RenderSystem/CRenderPass.h"
 
 namespace VKE
 {
@@ -52,7 +51,6 @@ namespace VKE
                 SPipelineInfo         PipelineInfo;
                 hash_t                hash              = 0;
                 NativeAPI::RenderPass hNativeRenderPass = NativeAPI::Null;
-                RenderPassRefPtr      pRenderPass;
             } RenderPass;
 
             PipelineRefPtr pPipeline;
@@ -181,24 +179,20 @@ namespace VKE
 
             void DrawMesh( uint32_t width, uint32_t height, uint32_t depth );
 
-            void BeginRenderPass( const TexturePtrArray& vColorRenderTargets,
-                                  const TextureRefPtr    pDepthStencilRenderTarget );
+            /*void BeginRenderPass( const TexturePtrArray& vColorRenderTargets,
+                                  const TextureRefPtr    pDepthStencilRenderTarget );*/
             void BeginRenderPass( const SBeginRenderPassInfo2& );
-
-            void BeginRenderPass( RenderPassPtr pPass )
-            {
-                BeginRenderPass( pPass->m_BeginInfo2 );
-            }
+            void BeginRenderPass( const SBeginRenderPassInfo& );
 
             void EndRenderPass();
 
             void Dispatch( uint32_t x, uint32_t y, uint32_t z );
             // Bindings
-            void Bind( RenderPassPtr pRenderPass );
+            //void Bind( NativeAPI::RenderPass hRenderPass );
             void Bind( VertexBufferPtr pBuffer, const uint32_t offset = 0 );
             void Bind( const VertexBufferHandle& hBuffer, const uint32_t offset = 0 );
             void Bind( const IndexBufferHandle& hBuffer, const uint32_t offset = 0 );
-            void Bind( const SDDISwapChain& SwapChain );
+            //void Bind( const SDDISwapChain& SwapChain );
             void Bind( CSwapChain* );
             void Bind( PipelinePtr pPipeline );
             void Bind( const DescriptorSetHandle& hSet, const uint32_t offset );
@@ -411,7 +405,6 @@ namespace VKE
             uint32_t                     m_needNewPipelineLayout : 1;
             uint32_t                     m_needExecuteBarriers : 1;
             uint32_t                     m_needNewRenderPass : 1;
-            uint32_t                     m_isRenderPassBound : 1;
             uint32_t                     m_isPipelineBound : 1;
             uint32_t                     m_isDirty : 1;
             uint32_t                     m_isDebugInfoBegun : 1;
