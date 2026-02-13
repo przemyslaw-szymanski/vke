@@ -2051,7 +2051,7 @@ namespace VKE
         Result EnableDeviceFeatures( VkPhysicalDevice vkPhysicalDevice, SDeviceProperties* pProps,
                                      NativeAPI::DDIExtMap* pmExts, SSettings* pSettingsOut,
                                      NativeAPI::SImplementation::SDeviceFeatures* pEnableOut,
-                                     VkPhysicalDeviceFeatures* pEnabledFeaturesOut, VkDeviceCreateInfo* pOut,
+                                     VkDeviceCreateInfo* pOut,
                                      DDIExtNameArray* pExtOut )
         {
             // Required extensions
@@ -2064,11 +2064,14 @@ namespace VKE
                          VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
                          VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME };
 
+            Memory::Zero( pEnableOut );
+
             Result ret = GetDeviceExtensions( vkPhysicalDevice, pmExts );
             if( VKE_FAILED( ret ) )
             {
                 return ret;
             }
+
             ret = QueryAdapterProperties( vkPhysicalDevice, *pmExts, pProps );
             if( VKE_FAILED( ret ) )
             {
@@ -2083,6 +2086,9 @@ namespace VKE
             auto& DeviceFeatures = Props.Features.Device.features;
             auto& Settings       = *pSettingsOut;
 
+            Features.DynamicRendering.dynamicRendering = GetCommandLineParam< int >(
+                "renderer.vk.dynamicRendering", Features.DynamicRendering.dynamicRendering );
+
             const auto& featureLevelKnob = GetCommandLineParam< int >( "renderer.featureLevel", Settings.featureLevel );
 
             auto deviceFeatureLevel = ConvertVulkanAPIToFeatureLevel( Device.properties.apiVersion );
@@ -2093,24 +2099,24 @@ namespace VKE
                 pSettingsOut->featureLevel = deviceFeatureLevel;
             }
 
-            pEnabledFeaturesOut->robustBufferAccess = VKE_RENDER_SYSTEM_DEBUG && DeviceFeatures.robustBufferAccess;
+            pEnableOut->Device.features.robustBufferAccess = VKE_RENDER_SYSTEM_DEBUG && DeviceFeatures.robustBufferAccess;
 
             VkDeviceCreateInfo& Info = *pOut;
             SVulkanNext         NextFeatures( Info );
 
             if( requestedLevel >= FeatureLevels::LEVEL_1_0 )
             {
-                pEnabledFeaturesOut->geometryShader     = DeviceFeatures.geometryShader;
-                pEnabledFeaturesOut->tessellationShader = DeviceFeatures.tessellationShader;
-                pEnabledFeaturesOut->fillModeNonSolid   = DeviceFeatures.fillModeNonSolid;
+                pEnableOut->Device.features.geometryShader = DeviceFeatures.geometryShader;
+                pEnableOut->Device.features.tessellationShader = DeviceFeatures.tessellationShader;
+                pEnableOut->Device.features.fillModeNonSolid   = DeviceFeatures.fillModeNonSolid;
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_1 )
             {
-                pEnabledFeaturesOut->sparseBinding          = DeviceFeatures.sparseBinding;
-                pEnabledFeaturesOut->sparseResidencyBuffer  = DeviceFeatures.sparseResidencyBuffer;
-                pEnabledFeaturesOut->sparseResidencyAliased = DeviceFeatures.sparseResidencyAliased;
-                pEnabledFeaturesOut->sparseResidencyImage2D = DeviceFeatures.sparseResidencyImage2D;
-                pEnabledFeaturesOut->sparseResidencyImage3D = DeviceFeatures.sparseResidencyImage3D;
+                pEnableOut->Device.features.sparseBinding   = DeviceFeatures.sparseBinding;
+                pEnableOut->Device.features.sparseResidencyBuffer = DeviceFeatures.sparseResidencyBuffer;
+                pEnableOut->Device.features.sparseResidencyAliased = DeviceFeatures.sparseResidencyAliased;
+                pEnableOut->Device.features.sparseResidencyImage2D = DeviceFeatures.sparseResidencyImage2D;
+                pEnableOut->Device.features.sparseResidencyImage3D = DeviceFeatures.sparseResidencyImage3D;
 
                 if( !Device11.shaderDrawParameters )
                 {
@@ -2123,12 +2129,6 @@ namespace VKE
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_2 )
             {
-                if( !Features.DynamicRendering.dynamicRendering )
-                {
-                    VKE_LOG_ERR( "Required device feature: 'Dynamic Rendering' is not supported." );
-                    ret = VKE_FAIL;
-                }
-
                 pEnableOut->DynamicRendering = Features.DynamicRendering;
                 NextFeatures.Add( &pEnableOut->DynamicRendering );
 
@@ -2239,14 +2239,11 @@ namespace VKE
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
 
-            VkPhysicalDeviceFeatures                    VkEnabledFeatures = {};
-            NativeAPI::SImplementation::SDeviceFeatures EnableFeatures    = {};
             if( VKE_FAILED( EnableDeviceFeatures( m_hAdapter,
                                                   &m_DeviceProperties,
                                                   &m_Implementation.m_mExtensions,
                                                   &m_pCtx->m_Features,
-                                                  &EnableFeatures,
-                                                  &VkEnabledFeatures,
+                                                  &m_Implementation.Features,
                                                   &di,
                                                   &vDDIExtNames ) ) )
             {
@@ -2277,7 +2274,7 @@ namespace VKE
 
             di.enabledExtensionCount   = vDDIExtNames.GetCount();
             di.enabledLayerCount       = 0;
-            di.pEnabledFeatures        = &VkEnabledFeatures;
+            di.pEnabledFeatures        = &m_Implementation.Features.Device.features;
             di.ppEnabledExtensionNames = vDDIExtNames.GetData();
             di.ppEnabledLayerNames     = nullptr;
             di.pQueueCreateInfos       = &vQis[ 0 ];
