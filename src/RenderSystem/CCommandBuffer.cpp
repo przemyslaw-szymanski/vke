@@ -104,8 +104,8 @@ namespace VKE
             // Reset() calls we cannot explicitly call it here. Remove this when samples are confirmed to work.
             // TODO(blturkot): For some reason after exit() there is a problem withing BeginCommandBuffer() (this was nullptr).
             // Need to fix this.
-            // _Reset();
-            // VKE_ASSERT( m_state == CommandBufferStates::RESET );
+            _Reset();
+            VKE_ASSERT( m_state == CommandBufferStates::RESET );
 
             auto pThis = this;
             m_pBaseCtx->_BeginCommandBuffer( &pThis );

@@ -16,6 +16,9 @@
 
 namespace VKE::RenderSystem
 {
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Macros to help D3D12 DDI development.
 #define TRACK_CALL_ONCE( msg )                                                                                         \
     static bool s_called = false;                                                                                      \
     if( s_called )                                                                                                     \
@@ -26,21 +29,84 @@ namespace VKE::RenderSystem
 
 #define UNIMPLEMENTED_D3D12_METHOD() VKE_ASSERT2( false, "D3D12 Render System: Unimplemented method" )
 
-    namespace NativeAPI
-    {
-        // Init static members
-        Factory SImplementation::spFactory                          = NativeAPI::Null;
-        bool    SImplementation::sDebugLayerEnabled                 = false;
-        bool    SImplementation::SDeviceFeatures::sTearingSupported = false;
-    }; // namespace NativeAPI
+    // -----------------------------------------------------------------------------------------------------------------
+    // Initialization of static members.
+    NativeAPI::D3D12Factory* NativeAPI::SImplementation::spFactory = NativeAPI::Null;
+
+    bool NativeAPI::SImplementation::sDebugLayerEnabled                 = false;
+    bool NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported = false;
 
     CDDI::AdapterArray CDDI::svAdapters;
 
+    typedef Utils::TCDynamicArray< D3D12_RESOURCE_BARRIER > DDIBarrierArray;
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Implementation functions.
+    // These functions are specific to D3D12 implementation that requires long lasting members, which are members of
+    // SImplementation class.
+    namespace NativeAPI
+    {
+        SImplementation::SDescriptorHeapInfo* SImplementation::CreateDescriptorHeap( const NativeAPI::Device&   pDevice,
+                                                                                     D3D12_DESCRIPTOR_HEAP_TYPE Type,
+                                                                                     D3D12_DESCRIPTOR_HEAP_FLAGS Flags )
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC Desc;
+            Desc.Type           = Type;
+            Desc.NumDescriptors = SDescriptorHeapInfo::scMaxDescriptorsInHeap;
+            Desc.Flags          = Flags;
+            Desc.NodeMask       = 0;
+
+            SDescriptorHeapInfo HeapInfo;
+            HeapInfo.pDescriptorHeap = nullptr;
+
+            uint32_t Index;
+
+            if( FAILED( pDevice->CreateDescriptorHeap( &Desc, IID_PPV_ARGS( &HeapInfo.pDescriptorHeap ) ) ) )
+            {
+                VKE_ASSERT2( false, "Failed to create descriptor heap" );
+                return nullptr;
+            }
+            else
+            {
+                Index = m_vDescriptorHeapPool.PushBack( HeapInfo );
+            }
+
+            
+            return &m_vDescriptorHeapPool[ Index ];
+        }
+
+        SImplementation::SDescriptorHeapInfo* SImplementation::GetDescriptorHeap( const NativeAPI::Device&    pDevice,
+                                                                                  D3D12_DESCRIPTOR_HEAP_TYPE  Type,
+                                                                                  D3D12_DESCRIPTOR_HEAP_FLAGS Flags )
+        {
+            SDescriptorHeapInfo* pDescriptorHeap = nullptr;
+            for( auto& HeapInfo: m_vDescriptorHeapPool )
+            {
+                if( pDescriptorHeap->Matches( Type, Flags ) && !pDescriptorHeap->IsFull() )
+                {
+                    pDescriptorHeap = &HeapInfo;
+                    break;
+                }
+            }
+
+            if( pDescriptorHeap == nullptr )
+            {
+                pDescriptorHeap = CreateDescriptorHeap( pDevice, Type, Flags );
+            }
+
+            return pDescriptorHeap;
+        }
+    } // namespace NativeAPI
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Map functions.
+    // These are specific functions that has easy mapping Engine types to Native types. If there is more complex
+    // functions, like switch/case, if/else, loops they should go to Convert namespace.
     namespace Map
     {
-        D3D12_COMMAND_LIST_TYPE getCommandListType( QUEUE_TYPE type )
+        D3D12_COMMAND_LIST_TYPE GetCommandListType( QUEUE_TYPE Type )
         {
-            VKE_ASSERT2( type < QUEUE_TYPE::_MAX_COUNT, "Invalid queue type" );
+            VKE_ASSERT2( Type < QUEUE_TYPE::_MAX_COUNT, "Invalid queue type" );
 
             static const D3D12_COMMAND_LIST_TYPE vFamilyMap[] = {
                 D3D12_COMMAND_LIST_TYPE_DIRECT,  // GENERAL
@@ -50,10 +116,10 @@ namespace VKE::RenderSystem
                 D3D12_COMMAND_LIST_TYPE_NONE,    // PRESENT - not supported in DX12
             };
 
-            return vFamilyMap[ static_cast< size_t >( type ) ];
+            return vFamilyMap[ static_cast< size_t >( Type ) ];
         }
 
-        D3D12_DESCRIPTOR_HEAP_TYPE getDescriptorHeapType( DESCRIPTOR_SET_TYPE type )
+        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( DESCRIPTOR_SET_TYPE Type )
         {
             static const D3D12_DESCRIPTOR_HEAP_TYPE vMap[] = {
                 D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // SAMPLER
@@ -70,19 +136,19 @@ namespace VKE::RenderSystem
                 D3D12_DESCRIPTOR_HEAP_TYPE_DSV,         // DEPTH_STENCIL
             };
 
-            return vMap[ static_cast< size_t >( type ) ];
+            return vMap[ static_cast< size_t >( Type ) ];
         }
 
-        DXGI_COLOR_SPACE_TYPE getDXGIColorSpace( COLOR_SPACE colorSpace )
+        DXGI_COLOR_SPACE_TYPE getDXGIColorSpace( COLOR_SPACE ColorSpace )
         {
             static const DXGI_COLOR_SPACE_TYPE vMap[] = {
                 DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709, // SRGB
                 // DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709, // SRGB_LINEAR
             };
-            return vMap[ static_cast< size_t >( colorSpace ) ];
+            return vMap[ static_cast< size_t >( ColorSpace ) ];
         }
 
-        D3D12_SRV_DIMENSION getSRVDimension( TEXTURE_VIEW_TYPE type )
+        D3D12_SRV_DIMENSION GetSRVDimension( TEXTURE_VIEW_TYPE Type )
         {
             static const D3D12_SRV_DIMENSION vMap[] = {
                 D3D12_SRV_DIMENSION_TEXTURE1D,        // VIEW_1D
@@ -93,32 +159,148 @@ namespace VKE::RenderSystem
                 D3D12_SRV_DIMENSION_TEXTURE2DARRAY,   // VIEW_2D_ARRAY
                 D3D12_SRV_DIMENSION_TEXTURECUBEARRAY, // VIEW_CUBE_ARRAY
             };
-            return vMap[ static_cast< size_t >( type ) ];
+            return vMap[ static_cast< size_t >( Type ) ];
         }
 
-        D3D12_RESOURCE_DIMENSION getResourceDimension( TEXTURE_TYPE type )
+        D3D12_RTV_DIMENSION GetRTVDimension( TEXTURE_VIEW_TYPE Type )
+        {
+            static const D3D12_RTV_DIMENSION vMap[] = {
+                D3D12_RTV_DIMENSION_TEXTURE1D,      // VIEW_1D
+                D3D12_RTV_DIMENSION_TEXTURE2D,      // VIEW_2D
+                D3D12_RTV_DIMENSION_TEXTURE3D,      // VIEW_3D
+                D3D12_RTV_DIMENSION_UNKNOWN,        // VIEW_CUBE
+                D3D12_RTV_DIMENSION_TEXTURE1DARRAY, // VIEW_1D_ARRAY
+                D3D12_RTV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
+                D3D12_RTV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
+            };
+            return vMap[ static_cast< size_t >( Type ) ];
+        }
+
+        D3D12_UAV_DIMENSION GetUAVDimension( TEXTURE_VIEW_TYPE Type )
+        {
+            static const D3D12_UAV_DIMENSION vMap[] = {
+                D3D12_UAV_DIMENSION_TEXTURE1D,      // VIEW_1D
+                D3D12_UAV_DIMENSION_TEXTURE2D,      // VIEW_2D
+                D3D12_UAV_DIMENSION_TEXTURE3D,      // VIEW_3D
+                D3D12_UAV_DIMENSION_UNKNOWN,        // VIEW_CUBE
+                D3D12_UAV_DIMENSION_TEXTURE1DARRAY, // VIEW_1D_ARRAY
+                D3D12_UAV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
+                D3D12_UAV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
+            };
+            return vMap[ static_cast< size_t >( Type ) ];
+        }
+
+        D3D12_RESOURCE_DIMENSION GetResourceDimension( TEXTURE_TYPE Type )
         {
             // TODO(blturkot): Add support for TEXTURE_TYPE::TEX_2D_ARRAY and TEX_CUBE
-            static const D3D12_RESOURCE_DIMENSION vMap[] = {
+            static const D3D12_RESOURCE_DIMENSION vMap[ TEXTURE_TYPE::_MAX_COUNT ] = {
                 D3D12_RESOURCE_DIMENSION_TEXTURE1D, // TEX_1D
                 D3D12_RESOURCE_DIMENSION_TEXTURE2D, // TEX_2D
                 D3D12_RESOURCE_DIMENSION_TEXTURE3D, // TEX_3D
                 D3D12_RESOURCE_DIMENSION_UNKNOWN,
             };
 
-            VKE_ASSERT2( _countof( vMap ) == TEXTURE_TYPE::_MAX_COUNT,
-                         "Texture type map is not coherent with engine texture types" );
+            return vMap[ static_cast< size_t >( Type ) ];
+        }
 
-            return vMap[ static_cast< size_t >( type ) ];
+        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( D3D12_DESCRIPTOR_RANGE_TYPE Range )
+        {
+            static const D3D12_DESCRIPTOR_HEAP_TYPE vMap[] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_SRV
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_UAV
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_CBV
+            };
+
+            return vMap[ static_cast< size_t >( Range ) ];
+        }
+
+        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE State )
+        {
+            static const D3D12_RESOURCE_STATES vMap[ TextureStates::_MAX_COUNT ] = {
+                D3D12_RESOURCE_STATE_COMMON,              // UNDEFINED,
+                D3D12_RESOURCE_STATE_COMMON,              // GENERAL,
+                D3D12_RESOURCE_STATE_RENDER_TARGET,       // COLOR_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE,         // DEPTH_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE,         // STENCIL_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE,         // DEPTH_STENCIL_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_BUFFER,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // STENCIL_BUFFER,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_STENCIL_BUFFER,
+                D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, // SHADER_READ,
+                D3D12_RESOURCE_STATE_COPY_SOURCE,         // TRANSFER_SRC,
+                D3D12_RESOURCE_STATE_COPY_DEST,           // TRANSFER_DST,
+                D3D12_RESOURCE_STATE_PRESENT,             // PRESENT,
+            };
+
+            return vMap[ State ];
+        }
+
+        D3D12_DESCRIPTOR_RANGE_TYPE GetDescriptorRangeType( BINDING_TYPE Type )
+        {
+            static const D3D12_DESCRIPTOR_RANGE_TYPE vMap[] = {
+                D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // SAMPLER
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // TEXTURE
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // SAMPLER_AND_TEXTURE     : not supported in DX12
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // STORAGE_TEXTURE
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_WRITE_TEXEL_BUFFER : basically R/W UAV
+                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // CONSTANT_BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // DYNAMIC_CONSTANT_BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // DYNAMIC_BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // RENDER_TARGET
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // DEPTH_STENCIL
+            };
+
+            return vMap[ Type ];
+        }
+
+        D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE GetRenderPassBeginningAccessType( RENDER_TARGET_RENDER_PASS_OP Op )
+        {
+            static const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE
+                aMap[ RenderTargetRenderPassOperations::_MAX_COUNT ] = {
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // COLOR, // load = dont't care, store = don't care
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR, // COLOR_CLEAR, // load = clear, store = dont't care
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // COLOR_STORE, // load = don't care, store = store
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR, // COLOR_CLEAR_STORE, // load = clear, store = store
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // DEPTH_STENCIL,
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,   // DEPTH_STENCIL_CLEAR,
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // DEPTH_STENCIL_STORE,
+                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,   // DEPTH_STENCIL_CLEAR_STORE,
+                };
+
+            return aMap[ Op ];
+        }
+
+        D3D12_RENDER_PASS_ENDING_ACCESS_TYPE GetRenderPassEndingAccessType( RENDER_TARGET_RENDER_PASS_OP Op )
+        {
+            static const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE aMap[ RenderTargetRenderPassOperations::_MAX_COUNT ] = {
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR, // load = dont't care, store = don't care
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR_CLEAR, // load = clear, store = dont't care
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_STORE, // load = don't care, store = store
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_CLEAR_STORE, // load = clear, store = store
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL,
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL_CLEAR,
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_STORE,
+                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_CLEAR_STORE,
+            };
+
+            return aMap[ Op ];
         }
 
     }; // namespace Map
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // Convert functions.
+    // These are specific functions that has complex mapping from Engine types to Native types.
     namespace Convert
     {
-        D3D12_SHADER_VISIBILITY getShaderVisibility( uint16_t type )
+        D3D12_SHADER_VISIBILITY GetShaderVisibility( uint16_t Type )
         {
-            switch( type )
+            switch( Type )
             {
                 case PipelineStages::TYPE::VERTEX:
                     return D3D12_SHADER_VISIBILITY_VERTEX;
@@ -146,157 +328,142 @@ namespace VKE::RenderSystem
             }
         }
 
-        D3D12_DESCRIPTOR_RANGE_TYPE getDescriptorRangeType( BINDING_TYPE type )
-        {
-            static const D3D12_DESCRIPTOR_RANGE_TYPE vMap[] = {
-                D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // SAMPLER
-                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // TEXTURE
-                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // SAMPLER_AND_TEXTURE     : not supported in DX12
-                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // STORAGE_TEXTURE
-                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
-                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_WRITE_TEXEL_BUFFER : basically R/W UAV
-                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // CONSTANT_BUFFER
-                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // BUFFER
-                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // DYNAMIC_CONSTANT_BUFFER
-                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // DYNAMIC_BUFFER
-                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // RENDER_TARGET
-                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // DEPTH_STENCIL
-            };
-
-            return vMap[ type ];
-        }
-
-        DXGI_FORMAT getDXGIFormat( FORMAT engineFormat )
+        DXGI_FORMAT GetDXGIFormat( FORMAT EngineFormat )
         {
             VKE_ASSERT2( _countof( VKE::RenderSystem::D3D12::g_aFormats ) == FORMAT::_MAX_COUNT,
                          "DX12 format map is not coherent with engine formats" );
 
-            uint32_t formatIndex = static_cast< size_t >( engineFormat );
+            uint32_t formatIndex = static_cast< size_t >( EngineFormat );
             return VKE::RenderSystem::D3D12::g_aFormats[ formatIndex ];
         }
 
-        D3D12_RESOURCE_STATES AccessMaskToResourceState( MEMORY_ACCESS_TYPE mask )
+        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE State, MEMORY_ACCESS_TYPE Mask )
         {
-            D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
+            D3D12_RESOURCE_STATES OutState = Map::GetResourceState( State );
 
-            if( mask & ( MemoryAccessTypes::CPU_MEMORY_READ | MemoryAccessTypes::CPU_MEMORY_WRITE |
+            // TODO(blturkot): Consider Mask for more accurate resource state.
+            // OutState |= Convert::GetResourceState( Mask );
+
+            return OutState;
+        }
+
+        D3D12_RESOURCE_STATES GetResourceState( MEMORY_ACCESS_TYPE Mask )
+        {
+            D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
+
+            if( Mask & ( MemoryAccessTypes::CPU_MEMORY_READ | MemoryAccessTypes::CPU_MEMORY_WRITE |
                          MemoryAccessTypes::GPU_MEMORY_READ | MemoryAccessTypes::GPU_MEMORY_WRITE ) )
             {
                 // DX12 requires CPU access to be in COMMON state.
-                return state;
+                return State;
             }
 
-            if( mask & MemoryAccessTypes::INDIRECT_BUFFER_READ )
+            if( Mask & MemoryAccessTypes::INDIRECT_BUFFER_READ )
             {
-                state |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+                State |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
             }
 
-            if( mask & MemoryAccessTypes::INDEX_READ )
+            if( Mask & MemoryAccessTypes::INDEX_READ )
             {
-                state |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+                State |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
             }
 
-            if( mask & ( MemoryAccessTypes::VERTEX_ATTRIBUTE_READ | MemoryAccessTypes::VS_UNIFORM_READ |
+            if( Mask & ( MemoryAccessTypes::VERTEX_ATTRIBUTE_READ | MemoryAccessTypes::VS_UNIFORM_READ |
                          MemoryAccessTypes::PS_UNIFORM_READ | MemoryAccessTypes::GS_UNIFORM_READ |
                          MemoryAccessTypes::TS_UNIFORM_READ | MemoryAccessTypes::CS_UNIFORM_READ |
                          MemoryAccessTypes::MS_UNIFORM_READ | MemoryAccessTypes::RT_UNIFORM_READ ) )
             {
-                state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+                State |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
             }
 
-            if( mask & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
+            if( Mask & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
             {
-                state |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+                State |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             }
 
             // Is this actually UAV?
-            if( mask & ( MemoryAccessTypes::VS_SHADER_READ | MemoryAccessTypes::GS_SHADER_READ |
+            if( Mask & ( MemoryAccessTypes::VS_SHADER_READ | MemoryAccessTypes::GS_SHADER_READ |
                          MemoryAccessTypes::TS_SHADER_READ | MemoryAccessTypes::CS_SHADER_READ |
                          MemoryAccessTypes::MS_SHADER_READ | MemoryAccessTypes::RS_SHADER_READ ) )
             {
-                state |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                State |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
             }
             // And this?
-            if( mask & MemoryAccessTypes::PS_SHADER_READ )
+            if( Mask & MemoryAccessTypes::PS_SHADER_READ )
             {
-                state |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+                State |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             }
 
-            if( mask & ( MemoryAccessTypes::VS_SHADER_WRITE | MemoryAccessTypes::GS_SHADER_WRITE |
+            if( Mask & ( MemoryAccessTypes::VS_SHADER_WRITE | MemoryAccessTypes::GS_SHADER_WRITE |
                          MemoryAccessTypes::TS_SHADER_WRITE | MemoryAccessTypes::CS_SHADER_WRITE |
                          MemoryAccessTypes::MS_SHADER_WRITE | MemoryAccessTypes::RS_SHADER_WRITE |
                          MemoryAccessTypes::PS_SHADER_WRITE ) )
             {
-                state |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                State |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
             }
 
-            if( mask &
+            if( Mask &
                 ( MemoryAccessTypes::COLOR_RENDER_TARGET_READ | MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ ) )
             {
-                state |= D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+                State |= D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
             }
 
-            if( mask & ( MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE |
+            if( Mask & ( MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE |
                          MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_WRITE ) )
             {
-                state |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+                State |= D3D12_RESOURCE_STATE_RENDER_TARGET;
             }
 
-            if( mask & ( MemoryAccessTypes::DATA_TRANSFER_READ ) )
+            if( Mask & ( MemoryAccessTypes::DATA_TRANSFER_READ ) )
             {
-                state |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+                State |= D3D12_RESOURCE_STATE_COPY_SOURCE;
             }
 
-            if( mask & ( MemoryAccessTypes::DATA_TRANSFER_WRITE ) )
+            if( Mask & ( MemoryAccessTypes::DATA_TRANSFER_WRITE ) )
             {
-                state |= D3D12_RESOURCE_STATE_COPY_DEST;
+                State |= D3D12_RESOURCE_STATE_COPY_DEST;
             }
 
-            return state;
+            return State;
         }
 
 #if 0
         // This is for enhanced barriers. Need to check capabilities and add another path for barriers.
-        vke_force_inline D3D12_BARRIER_SUBRESOURCE_RANGE getSubresourceIndex( NativeAPI::Texture              hTexture,
-                                                                              const STextureSubresourceRange& range )
+        vke_force_inline D3D12_BARRIER_SUBRESOURCE_RANGE GetSubresourceIndex( NativeAPI::Texture              hTexture,
+                                                                              const STextureSubresourceRange& Range )
         {
             D3D12_BARRIER_SUBRESOURCE_RANGE ddiRange;
-            ddiRange.IndexOrFirstMipLevel = range.beginMipmapLevel;
-            ddiRange.NumMipLevels         = range.mipmapLevelCount;
-            ddiRange.FirstArraySlice      = range.beginArrayLayer;
-            ddiRange.NumArraySlices       = range.layerCount;
+            ddiRange.IndexOrFirstMipLevel = Range.beginMipmapLevel;
+            ddiRange.NumMipLevels         = Range.mipmapLevelCount;
+            ddiRange.FirstArraySlice      = Range.beginArrayLayer;
+            ddiRange.NumArraySlices       = Range.layerCount;
             ddiRange.FirstPlane           = 0;
             ddiRange.NumPlanes            = 1;
 
             return ddiRange;
         }
 #endif
-        vke_force_inline UINT getSubresourceIndex( UINT mipLevel, UINT mipCount, UINT arraySlice, UINT arraySliceCount,
-                                                   UINT plane )
+        vke_force_inline UINT GetSubresourceIndex( UINT MipLevel, UINT MipCount, UINT ArraySlice, UINT ArraySliceCount,
+                                                   UINT Plane )
         {
-            return mipLevel + ( arraySlice * mipCount ) + ( plane * mipCount * arraySliceCount );
+            return MipLevel + ( ArraySlice * MipCount ) + ( Plane * MipCount * ArraySliceCount );
         }
 
-        DXGI_SAMPLE_DESC getSampleDesc( SAMPLE_COUNT count )
+        DXGI_SAMPLE_DESC GetSampleDesc( SAMPLE_COUNT Count )
         {
-            DXGI_SAMPLE_DESC desc;
-            desc.Count   = ( 1 << count );
-            desc.Quality = 0;
-            return desc;
+            DXGI_SAMPLE_DESC Desc;
+            Desc.Count   = ( 1 << Count );
+            Desc.Quality = 0;
+            return Desc;
         }
 
-        D3D12_RESOURCE_FLAGS GetResourceFlags( TEXTURE_USAGE usage )
+        D3D12_RESOURCE_FLAGS GetResourceFlags( TEXTURE_USAGE Usage )
         {
-            D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+            D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
 
-            if( ( usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET ) )
+            if( ( Usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET ) )
             {
-                flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-                if( ( usage & TextureUsages::SAMPLED ) == 0 )
-                {
-                    flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-                }
+                Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
             }
             else
             {
@@ -304,35 +471,45 @@ namespace VKE::RenderSystem
                 // - D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
                 // - D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
                 // - D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS
-                if( ( usage & TextureUsages::STORAGE ) )
+                if( ( Usage & TextureUsages::STORAGE ) )
                 {
-                    flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+                    Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
                 }
 
-                if( ( usage & TextureUsages::COLOR_RENDER_TARGET ) )
+                if( ( Usage & TextureUsages::COLOR_RENDER_TARGET ) )
                 {
-                    flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+                    Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
                 }
             }
 
-            return flags;
-        }
-
-        D3D12_RESOURCE_FLAGS GetResourceFlags( BUFFER_USAGE usage )
-        {
-            D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-
-            if( ( usage & BufferUsages::TEXEL_BUFFER ) )
+            if( ( Usage & TextureUsages::SAMPLED ) == 0 )
             {
-                flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+                Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
             }
 
-            return flags;
+            return Flags;
         }
 
-        D3D12_HEAP_DESC GetMemoryHeapDesc( MEMORY_USAGE usage, bool HeapTier2 )
+        D3D12_RESOURCE_FLAGS GetResourceFlags( BUFFER_USAGE Usage )
         {
-            static const MEMORY_USAGE accessMaskBits = MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS |
+            D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
+
+            if( ( Usage & BufferUsages::TEXEL_BUFFER ) )
+            {
+                Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            }
+
+            if( ( Usage & TextureUsages::SAMPLED ) == 0 )
+            {
+                Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+            }
+
+            return Flags;
+        }
+
+        D3D12_HEAP_DESC GetMemoryHeapDesc( MEMORY_USAGE Usage, bool HeapTier2 )
+        {
+            static const MEMORY_USAGE AccessMaskBits = MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS |
                                                        MemoryUsages::CPU_CACHED | MemoryUsages::CPU_NO_FLUSH;
 
             static const MEMORY_USAGE vPreconfiguredHeaps[] = {
@@ -344,20 +521,20 @@ namespace VKE::RenderSystem
                 MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS | MemoryUsages::CPU_CACHED,
             };
 
-            bool AllowBuffers  = usage & MemoryUsages::BUFFER;
-            bool AllowTextures = usage & MemoryUsages::TEXTURE;
-            bool CPUAccess     = usage & MemoryUsages::CPU_ACCESS;
-            bool GPUAccess     = usage & MemoryUsages::GPU_ACCESS;
-            bool IsWriteback   = usage & MemoryUsages::CPU_CACHED;
-            bool IsUpload      = usage & MemoryUsages::CPU_NO_FLUSH;
+            bool AllowBuffers  = Usage & MemoryUsages::BUFFER;
+            bool AllowTextures = Usage & MemoryUsages::TEXTURE;
+            bool CPUAccess     = Usage & MemoryUsages::CPU_ACCESS;
+            bool GPUAccess     = Usage & MemoryUsages::GPU_ACCESS;
+            bool IsWriteback   = Usage & MemoryUsages::CPU_CACHED;
+            bool IsUpload      = Usage & MemoryUsages::CPU_NO_FLUSH;
 
-            D3D12_HEAP_DESC desc;
-            desc.SizeInBytes = 0;                                          // To be filled later
-            desc.Alignment   = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // Default alignment
+            D3D12_HEAP_DESC Desc;
+            Desc.SizeInBytes = 0;                                          // To be filled later
+            Desc.Alignment   = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // Default alignment
 
             // Reset node mask
-            desc.Properties.CreationNodeMask = 0;
-            desc.Properties.VisibleNodeMask  = 0;
+            Desc.Properties.CreationNodeMask = 0;
+            Desc.Properties.VisibleNodeMask  = 0;
 
             if( GPUAccess && !CPUAccess )
             {
@@ -365,11 +542,11 @@ namespace VKE::RenderSystem
                 // read and write to the memory from this pool, and resource transition barriers may be changed. The
                 // majority of heaps and resources are expected to be located here, and are typically populated through
                 // resources in upload heaps.
-                desc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+                Desc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
             }
             else if( GPUAccess && CPUAccess )
             {
-                if( usage & MemoryUsages::CPU_NO_FLUSH )
+                if( Usage & MemoryUsages::CPU_NO_FLUSH )
                 {
                     // This heap type has CPU access optimized for uploading to the GPU, but does not experience the
                     // maximum amount of bandwidth for the GPU. This heap type is best for CPU-write-once, GPU-read-once
@@ -380,9 +557,9 @@ namespace VKE::RenderSystem
 
                     // Resources in this heap must be created with D3D12_RESOURCE_STATE_GENERIC_READ and cannot be
                     // changed away from this. The CPU address for such heaps is commonly not efficient for CPU reads.
-                    desc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+                    Desc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
                 }
-                else if( usage & MemoryUsages::CPU_CACHED )
+                else if( Usage & MemoryUsages::CPU_CACHED )
                 {
                     // Specifies a heap used for reading back. This heap type has CPU access optimized for reading data
                     // back from the GPU, but does not experience the maximum amount of bandwidth for the GPU. This heap
@@ -391,193 +568,561 @@ namespace VKE::RenderSystem
 
                     // Resources in this heap must be created with D3D12_RESOURCE_STATE_COPY_DEST,
                     // and cannot be changed away from this.
-                    desc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+                    Desc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
                 }
                 else
                 {
                     // The application may specify the memory pool and CPU cache properties directly, which can be
                     // useful for UMA optimizations, multi-engine, multi-adapter, or other special cases. To do so, the
                     // application is expected to understand the adapter architecture to make the right choice.
-                    desc.Properties.Type = D3D12_HEAP_TYPE_CUSTOM;
+                    Desc.Properties.Type = D3D12_HEAP_TYPE_CUSTOM;
                 }
             }
             else
             {
-                desc.Properties.Type = D3D12_HEAP_TYPE_CUSTOM;
+                Desc.Properties.Type = D3D12_HEAP_TYPE_CUSTOM;
             }
 
             // Reset remaining fields from descriptor. Predefined heaps already have correct properties and API requires
             // to set UNKNOWN for them. Otherwise it will report runtime error.
-            desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+            Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+            Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
             // Custom heaps requires overriding.
-            if( desc.Properties.Type == D3D12_HEAP_TYPE_CUSTOM )
+            if( Desc.Properties.Type == D3D12_HEAP_TYPE_CUSTOM )
             {
                 if( !CPUAccess )
                 {
                     // No CPU access, acts like DEFAULT heap.
-                    desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
-                    desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
+                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
+                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
                 }
                 else if( CPUAccess && IsWriteback )
                 {
-                    desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-                    desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
                 }
                 else if( CPUAccess && IsUpload )
                 {
-                    desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
-                    desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
                 }
             }
 
             // TODO(szymansk): I've added this flag assuming engine will handle not zeroed resources. Or should we allow
             // API to zero?
             // desc.Flags = D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
-            desc.Flags = D3D12_HEAP_FLAG_NONE;
+            Desc.Flags = D3D12_HEAP_FLAG_NONE;
 
             if( ( AllowBuffers && AllowTextures ) || HeapTier2 )
             {
                 // TODO(blturkot): This allows all buffers and textures but it is only required when HW supports Tier2
                 // heaps.
-                desc.Flags |= D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
+                Desc.Flags |= D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
             }
             else
             {
                 if( !AllowBuffers )
                 {
-                    desc.Flags |= D3D12_HEAP_FLAG_DENY_BUFFERS;
+                    Desc.Flags |= D3D12_HEAP_FLAG_DENY_BUFFERS;
                 }
 
                 if( !AllowTextures )
                 {
-                    desc.Flags |= D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES;
+                    Desc.Flags |= D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES;
                 }
             }
 
-            return desc;
+            return Desc;
         }
 
-        D3D12_RESOURCE_DESC GetResourceDesc( const STextureDesc& Desc )
+        NativeAPI::D3D12ResourceDesc GetResourceDesc( const STextureDesc&                                Desc,
+                                                      const NativeAPI::SImplementation::SDeviceFeatures& Features )
         {
-            D3D12_RESOURCE_DESC out;
+            NativeAPI::D3D12ResourceDesc OutDesc;
 
-            out.Dimension = Map::getResourceDimension( Desc.type );
-            out.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-            out.Width     = static_cast< UINT64 >( Desc.Size.width );
-            out.Height    = static_cast< UINT >( Desc.Size.height );
+            OutDesc.Dimension = Map::GetResourceDimension( Desc.type );
+            OutDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+            OutDesc.Width     = static_cast< UINT64 >( Desc.Size.width );
+            OutDesc.Height    = static_cast< UINT >( Desc.Size.height );
 
             if( Desc.type == TEXTURE_TYPE::TEXTURE_3D )
             {
-                out.DepthOrArraySize = static_cast< UINT16 >( Desc.sliceCount );
+                OutDesc.DepthOrArraySize = static_cast< UINT16 >( Desc.sliceCount );
             }
             else
             {
-                out.DepthOrArraySize = static_cast< UINT16 >( Desc.arrayElementCount );
+                OutDesc.DepthOrArraySize = static_cast< UINT16 >( Desc.arrayElementCount );
             }
 
-            out.MipLevels  = static_cast< UINT16 >( Desc.mipmapCount );
-            out.Format     = Convert::getDXGIFormat( Desc.format );
-            out.SampleDesc = Convert::getSampleDesc( Desc.multisampling );
-            out.Layout     = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-            out.Flags      = Convert::GetResourceFlags( Desc.usage );
+            OutDesc.MipLevels  = static_cast< UINT16 >( Desc.mipmapCount );
+            OutDesc.Format     = Convert::GetDXGIFormat( Desc.format );
+            OutDesc.SampleDesc = Convert::GetSampleDesc( Desc.multisampling );
+            OutDesc.Layout     = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+            OutDesc.Flags      = Convert::GetResourceFlags( Desc.usage );
 
-            return out;
+            if( Features.TightAlignmentSupported )
+            {
+                OutDesc.Alignment  = 0;
+                OutDesc.Flags     |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
+            }
+
+            return OutDesc;
         }
 
-        D3D12_RESOURCE_DESC GetResourceDesc( const SBufferDesc& Desc )
+        NativeAPI::D3D12ResourceDesc GetResourceDesc( const SBufferDesc&                                 Desc,
+                                                      const NativeAPI::SImplementation::SDeviceFeatures& Features )
         {
-            D3D12_RESOURCE_DESC out;
+            NativeAPI::D3D12ResourceDesc OutDesc;
 
-            out.Dimension        = D3D12_RESOURCE_DIMENSION_BUFFER;
-            out.Alignment        = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-            out.Width            = static_cast< UINT64 >( Desc.size );
-            out.Height           = 1;
-            out.DepthOrArraySize = 1;
-            out.MipLevels        = 1;
-            out.Format           = DXGI_FORMAT_UNKNOWN;
+            OutDesc.Dimension        = D3D12_RESOURCE_DIMENSION_BUFFER;
+            OutDesc.Alignment        = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+            OutDesc.Width            = static_cast< UINT64 >( Desc.size );
+            OutDesc.Height           = 1;
+            OutDesc.DepthOrArraySize = 1;
+            OutDesc.MipLevels        = 1;
+            OutDesc.Format           = DXGI_FORMAT_UNKNOWN;
 
-            out.SampleDesc.Count   = 1;
-            out.SampleDesc.Quality = 0;
+            OutDesc.SampleDesc.Count   = 1;
+            OutDesc.SampleDesc.Quality = 0;
 
-            out.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-            out.Flags  = Convert::GetResourceFlags( Desc.usage );
+            OutDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+            OutDesc.Flags  = Convert::GetResourceFlags( Desc.usage );
 
-            return out;
+            if( Features.TightAlignmentSupported )
+            {
+                OutDesc.Alignment  = 0;
+                OutDesc.Flags     |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
+            }
+
+            return OutDesc;
         }
 
-        UINT32 GetPixColor( const VKE::RenderSystem::SColor& color )
+        UINT32 GetPixColor( const VKE::RenderSystem::SColor& Color )
         {
             // Spec URL:
             // https://devblogs.microsoft.com/pix/winpixeventruntime/
             // raw DWORD noting that the format is ARGB and the alpha channel value must be 0xff
-            return PIX_COLOR( static_cast< UINT8 >( std::lround( std::clamp( color.r, 0.0f, 1.0f ) * 0xFF ) ),
-                              static_cast< UINT8 >( std::lround( std::clamp( color.g, 0.0f, 1.0f ) * 0xFF ) ),
-                              static_cast< UINT8 >( std::lround( std::clamp( color.b, 0.0f, 1.0f ) * 0xFF ) ) );
+            return PIX_COLOR( static_cast< UINT8 >( std::lround( std::clamp( Color.r, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( Color.g, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( Color.b, 0.0f, 1.0f ) * 0xFF ) ) );
+        }
+
+        D3D12_CLEAR_VALUE GetClearValue( const SRenderTargetInfo& Info )
+        {
+            D3D12_CLEAR_VALUE ClearValue;
+            ClearValue.Format = Convert::GetDXGIFormat( Info.format );
+
+            ClearValue.Color[ 0 ] = Info.ClearColor.Color.r;
+            ClearValue.Color[ 1 ] = Info.ClearColor.Color.g;
+            ClearValue.Color[ 2 ] = Info.ClearColor.Color.b;
+            ClearValue.Color[ 3 ] = Info.ClearColor.Color.a;
+
+            return ClearValue;
+        }
+
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC GetRenderPassRenderTargetDesc( const SRenderTargetInfo& Info )
+        {
+            D3D12_RENDER_PASS_RENDER_TARGET_DESC Desc;
+            Desc.cpuDescriptor        = Info.hDDIView->RenderTargetView;
+            Desc.BeginningAccess.Type = Map::GetRenderPassBeginningAccessType( Info.renderPassOp );
+            Desc.EndingAccess.Type    = Map::GetRenderPassEndingAccessType( Info.renderPassOp );
+
+            if( Desc.BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR )
+            {
+                Desc.BeginningAccess.Clear.ClearValue = Convert::GetClearValue( Info );
+            }
+
+            if( Desc.EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE )
+            {
+                Desc.EndingAccess.PreserveLocal.AdditionalWidth  = 0;
+                Desc.EndingAccess.PreserveLocal.AdditionalHeight = 0;
+            }
+
+            return Desc;
+        }
+
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC GetRenderPassDepthStencilDesc( const SRenderTargetInfo& Depth,
+                                                                            const SRenderTargetInfo& Stencil )
+        {
+            bool HasDepth   = Depth.hDDIView != NativeAPI::Null;
+            bool HasStencil = Stencil.hDDIView != NativeAPI::Null;
+
+            if( HasDepth && HasStencil )
+            {
+                VKE_ASSERT2(
+                    Depth.hDDIView == Stencil.hDDIView,
+                    "CDDI::Convert::GetRenderPassDepthStencilDesc: Unable to bind separate Depth/Stencil View" );
+            }
+
+            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC Desc;
+            Desc.DepthBeginningAccess.Type   = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+            Desc.DepthEndingAccess.Type      = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+            Desc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+            Desc.StencilEndingAccess.Type    = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+
+            if( HasDepth )
+            {
+                Desc.cpuDescriptor             = Depth.hDDIView->DepthStencilView;
+                Desc.DepthBeginningAccess.Type = Map::GetRenderPassBeginningAccessType( Depth.renderPassOp );
+                Desc.DepthEndingAccess.Type    = Map::GetRenderPassEndingAccessType( Depth.renderPassOp );
+
+                if( Desc.DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR )
+                {
+                    Desc.DepthBeginningAccess.Clear.ClearValue = Convert::GetClearValue( Depth );
+                }
+
+                if( Desc.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE )
+                {
+                    Desc.DepthEndingAccess.PreserveLocal.AdditionalWidth  = 0;
+                    Desc.DepthEndingAccess.PreserveLocal.AdditionalHeight = 0;
+                }
+            }
+
+            if( HasStencil )
+            {
+                Desc.cpuDescriptor               = Stencil.hDDIView->DepthStencilView;
+                Desc.StencilBeginningAccess.Type = Map::GetRenderPassBeginningAccessType( Stencil.renderPassOp );
+                Desc.StencilEndingAccess.Type    = Map::GetRenderPassEndingAccessType( Stencil.renderPassOp );
+
+                if( Desc.StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR )
+                {
+                    Desc.StencilBeginningAccess.Clear.ClearValue = Convert::GetClearValue( Stencil );
+                }
+
+                if( Desc.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE )
+                {
+                    Desc.StencilEndingAccess.PreserveLocal.AdditionalWidth  = 0;
+                    Desc.StencilEndingAccess.PreserveLocal.AdditionalHeight = 0;
+                }
+            }
+
+            return Desc;
         }
 
     }; // namespace Convert
 
-    // Static methods
-
-    UINT getNodeMask()
+    // -----------------------------------------------------------------------------------------------------------------
+    // Helper functions.
+    // These are not directly to translate but have common code across multiple CDDI functions. This is just to prevent
+    // duplicated code and work on function that has to be easy to refactor.
+    namespace Helper
     {
-        // TODO(blturkot): Implement node mask when engine enable multi adapter rendering.
-        return 0;
-    }
 
-    D3D_FEATURE_LEVEL getMaxFeatureLevel( IDXGIAdapter1* pAdapter )
-    {
-        static const D3D_FEATURE_LEVEL featureLevels[] = {
-            D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
-            D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
-        };
-
-        D3D_FEATURE_LEVEL maxLevel = featureLevels[ _countof( featureLevels ) - 1 ];
-
-        ID3D12Device* device = NativeAPI::Null;
-        HRESULT       result = S_OK;
-
-        for( auto level: featureLevels )
+        D3D_FEATURE_LEVEL GetMaxFeatureLevel( IDXGIAdapter1* pAdapter )
         {
-            result = D3D12CreateDevice( pAdapter, level, IID_PPV_ARGS( &device ) );
+            static const D3D_FEATURE_LEVEL vFeatureLevels[] = {
+                D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
+                D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
+            };
 
-            if( SUCCEEDED( result ) )
+            D3D_FEATURE_LEVEL MaxLevel = vFeatureLevels[ _countof( vFeatureLevels ) - 1 ];
+
+            ID3D12Device* pDevice = NativeAPI::Null;
+            HRESULT       Result  = S_OK;
+
+            for( auto Level: vFeatureLevels )
             {
-                maxLevel = level;
-                device->Release();
-                break;
+                Result = D3D12CreateDevice( pAdapter, Level, IID_PPV_ARGS( &pDevice ) );
+
+                if( SUCCEEDED( Result ) )
+                {
+                    MaxLevel = Level;
+                    pDevice->Release();
+                    break;
+                }
+            }
+
+            return MaxLevel;
+        }
+
+        UINT GetNodeMask()
+        {
+            // TODO(blturkot): Implement node mask when engine enable multi adapter rendering.
+            return 0;
+        }
+
+        Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter, SDeviceProperties* pOut )
+        {
+            Memory::Zero( &pOut->Features );
+            Memory::Zero( &pOut->Limits );
+            Memory::Zero( &pOut->Properties );
+
+            // Query memory properties
+            DXGI_QUERY_VIDEO_MEMORY_INFO VideoMemoryInfo = {};
+
+            HRESULT hr;
+            if( FAILED( hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &VideoMemoryInfo ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::QueryDeviceInfo: QueryVideoMemoryInfo failed with error code " +
+                             std::to_string( hr ) );
+            }
+
+            pOut->Properties.Memory.localBudget = VideoMemoryInfo.Budget;
+
+            if( FAILED(
+                    hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &VideoMemoryInfo ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::QueryDeviceInfo: QueryVideoMemoryInfo failed with error code " +
+                             std::to_string( hr ) );
+            }
+
+            pOut->Properties.Memory.hostBudget = VideoMemoryInfo.Budget;
+
+            return Result::OK;
+        }
+
+        bool ValidateBarrier( const D3D12_RESOURCE_BARRIER& Barrier, MEMORY_ACCESS_TYPE SrcAccessType,
+                              MEMORY_ACCESS_TYPE DstAccessType )
+        {
+            bool IsValid = true;
+
+            if( Barrier.Transition.StateBefore == Barrier.Transition.StateAfter )
+            {
+                VKE_LOG_WARN( "CDDI::ValidateBarrier: Translation resulted in no transition." );
+                IsValid = false;
+            }
+
+            if( IsValid == false )
+            {
+                std::stringstream src;
+                std::stringstream dst;
+
+                src << "SrcAccessType: ";
+                dst << "DstAccessType: ";
+
+                for( uint32_t i = 1; i < MemoryAccessTypes::_MAX_COUNT; i++ )
+                {
+                    if( SrcAccessType & ( 1ull << i ) )
+                    {
+                        src << i << " ";
+                    }
+                    if( DstAccessType & ( 1ull << i ) )
+                    {
+                        dst << i << " ";
+                    }
+                }
+                VKE_LOG_WARN( src.str() );
+                VKE_LOG_WARN( dst.str() );
+            }
+
+            return IsValid;
+        }
+
+        void CreateLegacySubresourceBarriers( const STextureBarrierInfo& Info, DDIBarrierArray& OutArray )
+        {
+            if( Info.currentState == Info.newState && Info.srcMemoryAccess == Info.dstMemoryAccess )
+            {
+                // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
+                VKE_LOG_WARN( "CDDI::Barrier: Source and destination memory access masks are the same, DX12 doesn't "
+                              "allow that." );
+                return;
+            }
+
+            // Used when Texture was a custom struct.
+            // const NativeAPI::D3D12ResourceDesc& desc = Info.hDDITexture->Desc;
+            NativeAPI::D3D12ResourceDesc desc = Info.hDDITexture->GetDesc();
+
+            UINT textureMipLevels = ( desc.MipLevels > 0 ) ? desc.MipLevels : 1;
+            UINT textureArraySize = ( desc.DepthOrArraySize > 0 ) ? desc.DepthOrArraySize : 1;
+
+            if( desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D )
+            {
+                textureArraySize = 1;
+            }
+
+            auto& range          = Info.SubresourceRange;
+            bool  isFullResource = ( textureMipLevels == range.mipmapLevelCount ) &&
+                                  ( textureArraySize == range.layerCount ) && ( range.beginArrayLayer == 0 ) &&
+                                  ( range.beginMipmapLevel == 0 );
+
+            if( isFullResource )
+            {
+                D3D12_RESOURCE_BARRIER barrier;
+                barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+                auto& transition       = barrier.Transition;
+                transition.pResource   = Info.hDDITexture;
+                transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                transition.StateBefore = Convert::GetResourceState( Info.currentState, Info.srcMemoryAccess );
+                transition.StateAfter  = Convert::GetResourceState( Info.newState, Info.dstMemoryAccess );
+
+                if( ValidateBarrier( barrier, Info.srcMemoryAccess, Info.dstMemoryAccess ) )
+                {
+                    OutArray.PushBack( barrier );
+                }
+            }
+            else
+            {
+                for( uint32_t layer = 0; layer < Info.SubresourceRange.layerCount; layer++ )
+                {
+                    for( uint32_t mip = 0; mip < Info.SubresourceRange.mipmapLevelCount; mip++ )
+                    {
+                        D3D12_RESOURCE_BARRIER barrier;
+                        barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+                        auto& transition     = barrier.Transition;
+                        transition.pResource = Info.hDDITexture;
+                        transition.Subresource =
+                            Convert::GetSubresourceIndex( Info.SubresourceRange.beginMipmapLevel + mip,
+                                                          textureMipLevels,
+                                                          Info.SubresourceRange.beginArrayLayer + layer,
+                                                          textureArraySize,
+                                                          1 );
+
+                        transition.StateBefore = Convert::GetResourceState( Info.currentState, Info.srcMemoryAccess );
+                        transition.StateAfter  = Convert::GetResourceState( Info.newState, Info.dstMemoryAccess );
+
+                        if( ValidateBarrier( barrier, Info.srcMemoryAccess, Info.dstMemoryAccess ) )
+                        {
+                            OutArray.PushBack( barrier );
+                        }
+                    }
+                }
             }
         }
 
-        return maxLevel;
-    }
+        void CreateLegacySubresourceBarriers( const SBufferBarrierInfo& Info, DDIBarrierArray& OutArray )
+        {
+            if( Info.srcMemoryAccess == Info.dstMemoryAccess )
+            {
+                // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
+                VKE_LOG_WARN( "CDDI::Barrier: Source and destination memory access masks are the same, DX12 doesn't "
+                              "allow that." );
+                return;
+            }
+
+            D3D12_RESOURCE_BARRIER barrier;
+            barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+            auto& transition       = barrier.Transition;
+            transition.pResource   = Info.hDDIBuffer;
+            transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            transition.StateBefore = Convert::GetResourceState( Info.srcMemoryAccess );
+            transition.StateAfter  = Convert::GetResourceState( Info.dstMemoryAccess );
+
+            if( ValidateBarrier( barrier, Info.srcMemoryAccess, Info.dstMemoryAccess ) )
+            {
+                OutArray.PushBack( barrier );
+            }
+        }
+
+        template< typename ViewDimensionType >
+        void SetCommonMipParams( ViewDimensionType& Type, const STextureSubresourceRange& SubresourceRange )
+        {
+            Type.MostDetailedMip     = SubresourceRange.beginMipmapLevel;
+            Type.MipLevels           = SubresourceRange.mipmapLevelCount;
+            Type.ResourceMinLODClamp = 0.0f;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE CreateShaderResourceView( const NativeAPI::Device&         pDevice,
+                                                              NativeAPI::D3D12Resource* const& pResource,
+                                                              const STextureViewDesc&          Desc,
+                                                              NativeAPI::D3D12DescriptorHeap*  pHeap )
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+            SRVDesc.Format                  = Convert::GetDXGIFormat( Desc.format );
+            SRVDesc.ViewDimension           = Map::GetSRVDimension( Desc.type );
+            SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+            switch( SRVDesc.ViewDimension )
+            {
+                case D3D12_SRV_DIMENSION_TEXTURE1D:
+                    SetCommonMipParams( SRVDesc.Texture1D, Desc.SubresourceRange );
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE2D:
+                    SetCommonMipParams( SRVDesc.Texture2D, Desc.SubresourceRange );
+                    SRVDesc.Texture2D.PlaneSlice = 0;
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE3D:
+                    SetCommonMipParams( SRVDesc.Texture3D, Desc.SubresourceRange );
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURECUBE:
+                    SetCommonMipParams( SRVDesc.TextureCube, Desc.SubresourceRange );
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
+                    SetCommonMipParams( SRVDesc.Texture1DArray, Desc.SubresourceRange );
+                    SRVDesc.Texture1DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
+                    SRVDesc.Texture1DArray.ArraySize       = Desc.SubresourceRange.layerCount;
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+                    SetCommonMipParams( SRVDesc.Texture2DArray, Desc.SubresourceRange );
+                    SRVDesc.Texture2DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
+                    SRVDesc.Texture2DArray.ArraySize       = Desc.SubresourceRange.layerCount;
+                    SRVDesc.Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
+                    SetCommonMipParams( SRVDesc.TextureCubeArray, Desc.SubresourceRange );
+                    SRVDesc.TextureCubeArray.First2DArrayFace = Desc.SubresourceRange.beginArrayLayer;
+                    SRVDesc.TextureCubeArray.NumCubes         = Desc.SubresourceRange.layerCount;
+                    break;
+            }
+
+            D3D12_CPU_DESCRIPTOR_HANDLE Handle{};
+            //pDevice->CreateShaderResourceView( pResource, &SRVDesc,  )
+            return Handle;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE CreateRenderTargetView( const NativeAPI::Device&         pDevice,
+                                                            NativeAPI::D3D12Resource* const& pResource,
+                                                            const STextureViewDesc&          Desc,
+                                                            NativeAPI::D3D12DescriptorHeap*  pHeap )
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE Handle = {};
+
+            D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+            (void)RTVDesc;
+
+            return Handle;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE CreateUnorderedAccessView( const NativeAPI::Device&         pDevice,
+                                                               NativeAPI::D3D12Resource* const& pResource,
+                                                               const STextureViewDesc&          Desc,
+                                                               NativeAPI::D3D12DescriptorHeap*  pHeap )
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE Handle = {};
+
+            return Handle;
+        }
+
+    }; // namespace Helper
+
+    // Static methods
 
     Result CDDI::QueryAdapters( AdapterInfoArray* pOut )
     {
         static const size_t MAX_ADAPTERS = 5;
-        auto                factory      = NativeAPI::SImplementation::spFactory;
+        auto                pFactory     = NativeAPI::SImplementation::spFactory;
 
-        if( factory == NativeAPI::Null )
+        if( pFactory == NativeAPI::Null )
         {
             VKE_LOG_ERR( "CDDI::QueryAdapters: DXGI Factory is null" );
             return VKE_FAIL;
         }
 
-        UINT    index  = 0;
-        HRESULT result = S_OK;
+        UINT    Index  = 0;
+        HRESULT Result = S_OK;
 
         // Limit adapters by high performance preference
-        while( index < MAX_ADAPTERS )
+        while( Index < MAX_ADAPTERS )
         {
             IDXGIAdapter1*     pAdapter1 = NativeAPI::Null;
             NativeAPI::Adapter pAdapter  = NativeAPI::Null;
 
-            result = factory->EnumAdapterByGpuPreference(
-                index++, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS( &pAdapter1 ) );
+            Result = pFactory->EnumAdapterByGpuPreference(
+                Index++, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS( &pAdapter1 ) );
 
-            if( result == DXGI_ERROR_NOT_FOUND )
+            if( Result == DXGI_ERROR_NOT_FOUND )
             {
                 break;
             }
@@ -587,60 +1132,61 @@ namespace VKE::RenderSystem
                 VKE_LOG_ERR( "CDDI::QueryAdapters: Query NativeAPI::Adapter failed" );
             }
 
-            DXGI_ADAPTER_DESC3 adapterDesc;
-            if( FAILED( pAdapter->GetDesc3( &adapterDesc ) ) )
+            DXGI_ADAPTER_DESC3 AdapterDesc;
+            if( FAILED( pAdapter->GetDesc3( &AdapterDesc ) ) )
             {
                 VKE_LOG_ERR( "CDDI::QueryAdapters: Fail getting descriptor" );
             }
 
-            VKE::RenderSystem::SAdapterInfo info = {};
+            VKE::RenderSystem::SAdapterInfo AdapterInfo = {};
 
-            info.deviceID   = static_cast< uint32_t >( adapterDesc.DeviceId );           // from: UINT
-            info.vendorID   = static_cast< uint32_t >( adapterDesc.VendorId );           // from: UINT
-            info.apiVersion = static_cast< uint32_t >( getMaxFeatureLevel( pAdapter ) ); // from: D3D_FEATURE_LEVEL
+            AdapterInfo.deviceID = static_cast< uint32_t >( AdapterDesc.DeviceId ); // from: UINT
+            AdapterInfo.vendorID = static_cast< uint32_t >( AdapterDesc.VendorId ); // from: UINT
+            AdapterInfo.apiVersion =
+                static_cast< uint32_t >( Helper::GetMaxFeatureLevel( pAdapter ) ); // from: D3D_FEATURE_LEVEL
 
-            info.hDDIAdapter = reinterpret_cast< handle_t >( pAdapter );
+            AdapterInfo.hDDIAdapter = reinterpret_cast< handle_t >( pAdapter );
 
-            LARGE_INTEGER driverVersion = {};
-            if( SUCCEEDED( pAdapter->CheckInterfaceSupport( __uuidof( IDXGIDevice ), &driverVersion ) ) )
+            LARGE_INTEGER DriverVersion = {};
+            if( SUCCEEDED( pAdapter->CheckInterfaceSupport( __uuidof( IDXGIDevice ), &DriverVersion ) ) )
             {
                 // Intel UHD eg: 30.0.101.1273
                 // Nvidia eg: 31.0.15.3742
-                WORD major = driverVersion.QuadPart >> 48;
-                WORD minor = ( driverVersion.QuadPart >> 32 ) & 0xFFFF;
-                WORD patch = ( driverVersion.QuadPart >> 16 ) & 0xFFFF;
-                WORD build = driverVersion.QuadPart & 0xFFFF;
+                WORD VersionMajor = DriverVersion.QuadPart >> 48;
+                WORD VersionMinor = ( DriverVersion.QuadPart >> 32 ) & 0xFFFF;
+                WORD VersionPatch = ( DriverVersion.QuadPart >> 16 ) & 0xFFFF;
+                WORD VersionBuild = DriverVersion.QuadPart & 0xFFFF;
 
-                char output[ 128 ];
-                sprintf_s( &output[ 0 ], 128, "%u.%u.%u.%u", major, minor, patch, build );
-                VKE_LOG( output );
+                char Buffer[ 128 ];
+                sprintf_s( &Buffer[ 0 ], 128, "%u.%u.%u.%u", VersionMajor, VersionMinor, VersionPatch, VersionBuild );
+                VKE_LOG( Buffer );
 
-                info.driverVersion = ( major << 16 ) | patch;
+                AdapterInfo.driverVersion = ( VersionMajor << 16 ) | VersionPatch;
             }
 
-            if( (UINT)adapterDesc.Flags & (UINT)DXGI_ADAPTER_FLAG_SOFTWARE )
+            if( (UINT)AdapterDesc.Flags & (UINT)DXGI_ADAPTER_FLAG_SOFTWARE )
             {
-                info.type = VKE::RenderSystem::ADAPTER_TYPE::VIRTUAL;
+                AdapterInfo.type = VKE::RenderSystem::ADAPTER_TYPE::VIRTUAL;
             }
-            else if( adapterDesc.DedicatedVideoMemory == 0 )
+            else if( AdapterDesc.DedicatedVideoMemory == 0 )
             {
-                info.type = VKE::RenderSystem::ADAPTER_TYPE::INTEGRATED;
+                AdapterInfo.type = VKE::RenderSystem::ADAPTER_TYPE::INTEGRATED;
             }
             else
             {
-                info.type = VKE::RenderSystem::ADAPTER_TYPE::DISCRETE;
+                AdapterInfo.type = VKE::RenderSystem::ADAPTER_TYPE::DISCRETE;
             }
 
             // Discrepancy between Vulkan and DX12 - Vk reports char[] while DX12 wchar[] in unicode.
             // To store info.name, conversion is needed.
-            size_t maxSize = std::min( _countof( info.name ), _countof( adapterDesc.Description ) );
-            size_t infoSize;
-            wcstombs_s( &infoSize, info.name, adapterDesc.Description, maxSize );
+            size_t MaxSize = std::min( _countof( AdapterInfo.name ), _countof( AdapterDesc.Description ) );
+            size_t InfoSize;
+            wcstombs_s( &InfoSize, AdapterInfo.name, AdapterDesc.Description, MaxSize );
 
-            pOut->PushBack( info );
+            pOut->PushBack( AdapterInfo );
         }
 
-        pOut->Resize( index - 1 );
+        pOut->Resize( Index - 1 );
 
         return Result::OK;
     }
@@ -662,69 +1208,27 @@ namespace VKE::RenderSystem
         }
 
         // DX12 doesn't actually have a driver to load, just create the DXGI Factory via DXGI.
-        Result            res = VKE_OK;
-        NativeAPI::Result nativeRes;
+        Result Res = VKE_OK;
 
-        UINT flags = Info.enableDebugMode ? DXGI_CREATE_FACTORY_DEBUG : 0;
-        nativeRes  = CreateDXGIFactory2( flags, IID_PPV_ARGS( &NativeAPI::SImplementation::spFactory ) );
+        UINT Flags = Info.enableDebugMode ? DXGI_CREATE_FACTORY_DEBUG : 0;
 
-        if( FAILED( nativeRes ) )
+        if( FAILED( CreateDXGIFactory2( Flags, IID_PPV_ARGS( &NativeAPI::SImplementation::spFactory ) ) ) )
         {
             VKE_LOG_ERR( "CDDI::Load: Failed to create DXGI Factory" );
             return VKE_FAIL;
         }
 
-        BOOL allowTearing = FALSE;
+        BOOL AllowTearing = FALSE;
         if( FAILED( NativeAPI::SImplementation::spFactory->CheckFeatureSupport(
-                DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof( allowTearing ) ) ) )
+                DXGI_FEATURE_PRESENT_ALLOW_TEARING, &AllowTearing, sizeof( AllowTearing ) ) ) )
         {
             VKE_LOG_ERR( "CDDI::QueryAdapters: Check tearing support failed" );
             return VKE_FAIL;
         }
 
-        NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported = ( allowTearing == TRUE );
+        NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported = ( AllowTearing == TRUE );
 
-        return res;
-    }
-
-    template< typename FeatureOption >
-    FeatureOption GetFeatureOption( NativeAPI::Device pDevice, D3D12_FEATURE Feature )
-    {
-        FeatureOption option = {};
-
-        if( FAILED( pDevice->CheckFeatureSupport( Feature, &option, sizeof( option ) ) ) )
-        {
-            VKE_LOG_ERR( "CDDI::CheckForFeature: CheckFeatureSupport failed" );
-        }
-
-        return option;
-    }
-
-    Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter, SDeviceProperties* pOut )
-    {
-        Memory::Zero( &pOut->Features );
-        Memory::Zero( &pOut->Limits );
-        Memory::Zero( &pOut->Properties );
-
-        // Query memory properties
-        DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = {};
-
-        HRESULT hr;
-        if( FAILED( hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo ) ) )
-        {
-            VKE_LOG_ERR( "CDDI::QueryDeviceInfo: QueryVideoMemoryInfo failed with error code " + std::to_string( hr ) );
-        }
-
-        pOut->Properties.Memory.localBudget = videoMemoryInfo.Budget;
-
-        if( FAILED( hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &videoMemoryInfo ) ) )
-        {
-            VKE_LOG_ERR( "CDDI::QueryDeviceInfo: QueryVideoMemoryInfo failed with error code " + std::to_string( hr ) );
-        }
-
-        pOut->Properties.Memory.hostBudget = videoMemoryInfo.Budget;
-
-        return Result::OK;
+        return Res;
     }
 
     // Object methods
@@ -735,14 +1239,14 @@ namespace VKE::RenderSystem
         m_pCtx     = pCtx;
 
         VKE_ASSERT2( m_hAdapter != NativeAPI::Null, "CDDI::CreateDevice: Adapter is null" );
-        VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter, &m_DeviceProperties ) );
+        VKE_RETURN_IF_FAILED( Helper::QueryAdapterProperties( m_hAdapter, &m_DeviceProperties ) );
 
-        // Compare pCtx->m_Desc.pAdapterInfo->apiVersion with Info.Settings.Features
+        // TODO(blturkot): Compare pCtx->m_Desc.pAdapterInfo->apiVersion with Info.Settings.Features
 
-        HRESULT result = D3D12CreateDevice( m_hAdapter,
+        HRESULT Result = D3D12CreateDevice( m_hAdapter,
                                             static_cast< D3D_FEATURE_LEVEL >( pCtx->m_Desc.pAdapterInfo->apiVersion ),
                                             IID_PPV_ARGS( &m_hDevice ) );
-        if( FAILED( result ) )
+        if( FAILED( Result ) )
         {
             VKE_LOG_ERR( "CDDI::CreateDevice: D3D12CreateDevice failed" );
             return VKE_FAIL;
@@ -757,66 +1261,31 @@ namespace VKE::RenderSystem
             }
             else
             {
-                // Suppress messages about unrecognized format support queries
-                D3D12_MESSAGE_SEVERITY severities[] = {
-                    D3D12_MESSAGE_SEVERITY_INFO,
-                };
-
-                D3D12_MESSAGE_ID denyIds[] = {
-                    D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
-                    D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
-                };
-
-                D3D12_INFO_QUEUE_FILTER filter = {};
-                filter.DenyList.NumSeverities  = _countof( severities );
-                filter.DenyList.pSeverityList  = severities;
-                filter.DenyList.NumIDs         = _countof( denyIds );
-                filter.DenyList.pIDList        = denyIds;
-
-                if( FAILED( pInfoQueue->PushStorageFilter( &filter ) ) )
-                {
-                    VKE_LOG_ERR( "CDDI::CreateDevice: PushStorageFilter failed" );
-                }
-
+                pInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE );
+                pInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_ERROR, TRUE );
+                pInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_WARNING, TRUE );
                 pInfoQueue->Release();
             }
         }
 
-        {
-            D3D12_FEATURE_DATA_D3D12_OPTIONS options = GetFeatureOption< D3D12_FEATURE_DATA_D3D12_OPTIONS >(
-                m_hDevice, D3D12_FEATURE::D3D12_FEATURE_D3D12_OPTIONS );
-            m_Implementation.Features.BindlessResourceAccessSupported =
-                options.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3;
-            m_Implementation.Features.ResourceHeapTier = static_cast< uint8_t >( options.ResourceBindingTier );
-        }
+        CD3DX12FeatureSupport FeatureSupport;
+        FeatureSupport.Init( m_hDevice );
 
-        {
-            D3D12_FEATURE_DATA_D3D12_OPTIONS5 options =
-                GetFeatureOption< D3D12_FEATURE_DATA_D3D12_OPTIONS5 >( m_hDevice, D3D12_FEATURE_D3D12_OPTIONS5 );
-            m_Implementation.Features.RayTracingSupported =
-                options.RaytracingTier != D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
-        }
+        auto& Features = m_Implementation.Features;
 
-        {
-            D3D12_FEATURE_DATA_D3D12_OPTIONS7 options =
-                GetFeatureOption< D3D12_FEATURE_DATA_D3D12_OPTIONS7 >( m_hDevice, D3D12_FEATURE_D3D12_OPTIONS7 );
-            m_Implementation.Features.MeshShaderSupported =
-                options.MeshShaderTier != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
-        }
+        Features.TightAlignmentSupported =
+            ( FeatureSupport.TightAlignmentSupportTier() != D3D12_TIGHT_ALIGNMENT_TIER_NOT_SUPPORTED );
 
-        {
-            D3D12_FEATURE_DATA_D3D12_OPTIONS12 options = GetFeatureOption< D3D12_FEATURE_DATA_D3D12_OPTIONS12 >(
-                m_hDevice, D3D12_FEATURE::D3D12_FEATURE_D3D12_OPTIONS12 );
+        Features.BindlessResourceAccessSupported =
+            ( FeatureSupport.ResourceBindingTier() >= D3D12_RESOURCE_BINDING_TIER_3 );
 
-            m_Implementation.Features.EnhancedBarriersSupported = options.EnhancedBarriersSupported;
-        }
+        Features.ResourceHeapTier = static_cast< uint8_t >( FeatureSupport.ResourceHeapTier() );
 
-        {
-            D3D12_FEATURE_DATA_D3D12_OPTIONS16 options = GetFeatureOption< D3D12_FEATURE_DATA_D3D12_OPTIONS16 >(
-                m_hDevice, D3D12_FEATURE::D3D12_FEATURE_D3D12_OPTIONS16 );
+        Features.RayTracingSupported = ( FeatureSupport.RaytracingTier() != D3D12_RAYTRACING_TIER_NOT_SUPPORTED );
+        Features.MeshShaderSupported = ( FeatureSupport.MeshShaderTier() != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED );
 
-            m_Implementation.Features.UploadHeapSupported = options.GPUUploadHeapSupported;
-        }
+        Features.EnhancedBarriersSupported = FeatureSupport.EnhancedBarriersSupported();
+        Features.UploadHeapSupported       = FeatureSupport.GPUUploadHeapSupported();
 
         for( UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i++ )
         {
@@ -857,17 +1326,17 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeAPI::Queue CreateCommandQueue( NativeAPI::Device pDevice, D3D12_COMMAND_LIST_TYPE type,
-                                         bool required = false )
+    NativeAPI::Queue CreateCommandQueue( NativeAPI::Device pDevice, D3D12_COMMAND_LIST_TYPE Type,
+                                         bool Required = false )
     {
-        D3D12_COMMAND_QUEUE_DESC desc = {};
-        desc.Type                     = type;
-        desc.Priority                 = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        desc.Flags                    = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        desc.NodeMask                 = getNodeMask();
+        D3D12_COMMAND_QUEUE_DESC Desc = {};
+        Desc.Type                     = Type;
+        Desc.Priority                 = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+        Desc.Flags                    = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        Desc.NodeMask                 = Helper::GetNodeMask();
 
         NativeAPI::Queue pQueue = NativeAPI::Null;
-        if( FAILED( pDevice->CreateCommandQueue( &desc, IID_PPV_ARGS( &pQueue ) ) ) && required )
+        if( FAILED( pDevice->CreateCommandQueue( &Desc, IID_PPV_ARGS( &pQueue ) ) ) && Required )
         {
             VKE_LOG_ERR( "CDDI::CreateCommandQueue: Failed to create command queue" );
         }
@@ -934,51 +1403,70 @@ namespace VKE::RenderSystem
         {
             NativeAPI::Queue pQueue = NativeAPI::Null;
 
-            SQueueFamilyInfo queueInfo = {};
+            SQueueFamilyInfo QueueInfo = {};
 
-            queueInfo.index = i;
-            queueInfo.type  = static_cast< QUEUE_TYPE >( i );
+            QueueInfo.index = i;
+            QueueInfo.type  = static_cast< QUEUE_TYPE >( i );
 
-            D3D12_COMMAND_LIST_TYPE type = Map::getCommandListType( queueInfo.type );
+            D3D12_COMMAND_LIST_TYPE Type = Map::GetCommandListType( QueueInfo.type );
 
-            if( type != D3D12_COMMAND_LIST_TYPE_NONE )
+            if( Type != D3D12_COMMAND_LIST_TYPE_NONE )
             {
-                pQueue = CreateCommandQueue( m_hDevice, type, type == D3D12_COMMAND_LIST_TYPE_DIRECT );
+                pQueue = CreateCommandQueue( m_hDevice, Type, Type == D3D12_COMMAND_LIST_TYPE_DIRECT );
             }
 
             if( pQueue != NativeAPI::Null )
             {
-                queueInfo.vQueues.PushBack( pQueue );
-                queueInfo.vPriorities.PushBack( 1.0f );
+                QueueInfo.vQueues.PushBack( pQueue );
+                QueueInfo.vPriorities.PushBack( 1.0f );
             }
             else
             {
-                queueInfo.vQueues.Resize( 0 );
-                queueInfo.vPriorities.Resize( 0 );
+                QueueInfo.vQueues.Resize( 0 );
+                QueueInfo.vPriorities.Resize( 0 );
             }
 
-            m_DeviceProperties.vQueueFamilies.PushBack( queueInfo );
+            m_DeviceProperties.vQueueFamilies.PushBack( QueueInfo );
         }
+    }
+
+    NativeAPI::D3D12Resource* CreateResource( NativeAPI::Device                   pDevice,
+                                              const NativeAPI::D3D12ResourceDesc& ResourceDesc,
+                                              const SBindMemoryInfo&              MemInfo )
+    {
+        NativeAPI::D3D12Resource* pResource = NativeAPI::Null;
+
+        if( FAILED( pDevice->CreatePlacedResource( MemInfo.hDDIMemory,
+                                                   MemInfo.offset,
+                                                   &ResourceDesc,
+                                                   D3D12_RESOURCE_STATE_COMMON,
+                                                   nullptr,
+                                                   IID_PPV_ARGS( &pResource ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateResource: Create resource failure." );
+        }
+        else
+        {
+            VKE_LOG( std::format( "CDDI::CreateResource: Placed resource created at GPU VA: {}",
+                                  pResource->GetGPUVirtualAddress() ) );
+        }
+
+        return pResource;
     }
 
     NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateTexture: m_hDevice can't be null" );
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateBuffer: m_hDevice can't be null" );
 
-        D3D12_RESOURCE_DESC texDesc  = Convert::GetResourceDesc( Desc );
-        NativeAPI::Texture  pTexture = NativeAPI::Null;
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_Implementation.Features );
+        NativeAPI::Buffer            pBuffer      = CreateResource( m_hDevice, ResourceDesc, MemInfo );
 
-        if( FAILED( m_hDevice->CreatePlacedResource( MemInfo.hDDIMemory,
-                                                     MemInfo.offset,
-                                                     &texDesc,
-                                                     D3D12_RESOURCE_STATE_COMMON,
-                                                     nullptr,
-                                                     IID_PPV_ARGS( &pTexture ) ) ) )
+        if( pBuffer != NativeAPI::Null )
         {
-            VKE_LOG_ERR( "CDDI::CreateTexture: Create texture failure." );
+            SetObjectDebugName( (const uint64_t)pBuffer, ApiObjectTypes::BUFFER, "Unnamed buffer" );
         }
 
-        return pTexture;
+        return pBuffer;
     }
 
     void CDDI::DestroyBuffer( NativeAPI::Buffer* pInOut, const void* pAllocator )
@@ -1007,33 +1495,13 @@ namespace VKE::RenderSystem
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateTexture: m_hDevice can't be null" );
 
-        D3D12_RESOURCE_DESC texDesc  = Convert::GetResourceDesc( Desc );
-        NativeAPI::Texture  pTexture = NativeAPI::Null;
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_Implementation.Features );
+        NativeAPI::Texture           pTexture     = CreateResource( m_hDevice, ResourceDesc, MemInfo );
 
-        if( FAILED( m_hDevice->CreatePlacedResource( MemInfo.hDDIMemory,
-                                                     MemInfo.offset,
-                                                     &texDesc,
-                                                     D3D12_RESOURCE_STATE_COMMON,
-                                                     nullptr,
-                                                     IID_PPV_ARGS( &pTexture ) ) ) )
-        {
-            VKE_LOG_ERR( "CDDI::CreateTexture: Create texture failure." );
-        }
-        else
+        if( pTexture != NativeAPI::Null )
         {
             SetObjectDebugName( (const uint64_t)pTexture, ApiObjectTypes::TEXTURE, Desc.Name.GetData() );
-            // Desc.memoryUsage
         }
-
-        // if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTexture ) ) )
-        //{
-        //     VKE_LOG_ERR( "CDDI::CreateTexture: Failed to create texture object" );
-        // }
-        // else
-        //{
-        //     // SetObjectDebugName( (const uint64_t)texture, ApiObjectTypes::TEXTURE, Desc.Name );
-        //     // Desc.memoryUsage;
-        // }
 
         return pTexture;
     }
@@ -1047,63 +1515,37 @@ namespace VKE::RenderSystem
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
 
-        // Initialize empty view on memory heap to defer creation.
-        NativeAPI::TextureView srv = NativeAPI::Null;
-        m_Implementation.CreateView( &srv );
-        srv->CpuHandle.ptr = 0;
+        NativeAPI::TextureView pTextureView = NativeAPI::Null;
+        m_Implementation.CreateView( &pTextureView );
 
-        // Fill descriptor params
-        auto& srvDesc = srv->Desc;
+        NativeAPI::Texture           pTexture     = m_pCtx->GetTexture( Desc.hTexture )->GetDDIObject();
+        NativeAPI::D3D12ResourceDesc ResourceDesc = pTexture->GetDesc();
 
-        srvDesc.Format                  = Convert::getDXGIFormat( Desc.format );
-        srvDesc.ViewDimension           = Map::getSRVDimension( Desc.type );
-        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-#define SET_COMMON_MIP_FIELDS( view )                                                                                  \
-    view.MostDetailedMip     = Desc.SubresourceRange.beginMipmapLevel;                                                 \
-    view.MipLevels           = Desc.SubresourceRange.mipmapLevelCount;                                                 \
-    view.ResourceMinLODClamp = 0.0f;
-
-        switch( srvDesc.Format )
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
         {
-            case D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE1D:
-                SET_COMMON_MIP_FIELDS( srvDesc.Texture1D );
-                break;
-
-            case D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D:
-                SET_COMMON_MIP_FIELDS( srvDesc.Texture2D );
-                srvDesc.Texture2D.PlaneSlice = 0;
-                break;
-
-            case D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE3D:
-                SET_COMMON_MIP_FIELDS( srvDesc.Texture3D );
-                break;
-
-            case D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURECUBE:
-                SET_COMMON_MIP_FIELDS( srvDesc.TextureCube );
-                break;
-
-            case D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
-                SET_COMMON_MIP_FIELDS( srvDesc.Texture1DArray );
-                srvDesc.Texture1DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
-                srvDesc.Texture1DArray.ArraySize       = Desc.SubresourceRange.layerCount;
-                break;
-
-            case D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
-                SET_COMMON_MIP_FIELDS( srvDesc.Texture2DArray );
-                srvDesc.Texture2DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
-                srvDesc.Texture2DArray.ArraySize       = Desc.SubresourceRange.layerCount;
-                srvDesc.Texture2DArray.PlaneSlice      = 0;
-                break;
-
-            case D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
-                SET_COMMON_MIP_FIELDS( srvDesc.TextureCubeArray );
-                srvDesc.TextureCubeArray.First2DArrayFace = Desc.SubresourceRange.beginArrayLayer;
-                srvDesc.TextureCubeArray.NumCubes         = Desc.SubresourceRange.layerCount;
-                break;
+            auto DescriptorHeapInfo = m_Implementation.GetDescriptorHeap(
+                m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE );
+            pTextureView->ShaderResourceView =
+                Helper::CreateShaderResourceView( m_hDevice, pTexture, Desc, DescriptorHeapInfo->pDescriptorHeap );
         }
 
-        return srv;
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ) != 0 )
+        {
+            auto DescriptorHeapInfo = m_Implementation.GetDescriptorHeap(
+                m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+            pTextureView->RenderTargetView =
+                Helper::CreateRenderTargetView( m_hDevice, pTexture, Desc, DescriptorHeapInfo->pDescriptorHeap );
+        }
+
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS ) != 0 )
+        {
+            auto DescriptorHeapInfo = m_Implementation.GetDescriptorHeap(
+                m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+            pTextureView->UnorderedAccessView =
+                Helper::CreateUnorderedAccessView( m_hDevice, pTexture, Desc, DescriptorHeapInfo->pDescriptorHeap );
+        }
+
+        return pTextureView;
     }
 
     void CDDI::DestroyTextureView( NativeAPI::TextureView* pInOut, const void* pAllocator )
@@ -1125,26 +1567,28 @@ namespace VKE::RenderSystem
     NativeAPI::CPUFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
-        NativeAPI::CPUFence fence;
 
-        D3D12_FENCE_FLAGS flags = D3D12_FENCE_FLAG_NONE;
+        NativeAPI::CPUFence pFence = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pFence );
 
-        if( FAILED( m_hDevice->CreateFence( 0, flags, IID_PPV_ARGS( &fence.Obj ) ) ) )
+        D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
+
+        if( FAILED( m_hDevice->CreateFence( 0, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
             VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
         }
 
         if( Desc.isSignaled )
         {
-            fence.Obj->Signal( 1 );
-            fence.Value = 1;
+            pFence->pObject->Signal( 1 );
+            pFence->Value = 1;
         }
         else
         {
-            fence.Value = 0;
+            pFence->Value = 0;
         }
 
-        return fence;
+        return pFence;
     }
 
     void CDDI::DestroyFence( NativeAPI::CPUFence* pInOut, const void* pAllocator )
@@ -1155,17 +1599,19 @@ namespace VKE::RenderSystem
     NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
-        NativeAPI::GPUFence fence;
 
-        D3D12_FENCE_FLAGS flags = D3D12_FENCE_FLAG_NONE;
+        NativeAPI::GPUFence pFence;
+        Memory::CreateObject( &HeapAllocator, &pFence );
 
-        if( FAILED( m_hDevice->CreateFence( 0, flags, IID_PPV_ARGS( &fence.Obj ) ) ) )
+        D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
+
+        if( FAILED( m_hDevice->CreateFence( 0, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
             VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
         }
 
-        fence.Value = 0;
-        return fence;
+        pFence->Value = 0;
+        return pFence;
     }
 
     void CDDI::DestroySemaphore( NativeAPI::GPUFence* pInOut, const void* pAllocator )
@@ -1189,25 +1635,25 @@ namespace VKE::RenderSystem
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateCommandBufferPool: m_hDevice can't be null" );
 
-        NativeAPI::CommandBufferPool pCommandAllocator = NativeAPI::Null;
-        Memory::CreateObject( &HeapAllocator, &pCommandAllocator );
+        NativeAPI::CommandBufferPool pCommandBufferPool = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pCommandBufferPool );
 
-        D3D12_COMMAND_LIST_TYPE type = Map::getCommandListType( Desc.pContext->m_pQueue->GetType() );
+        D3D12_COMMAND_LIST_TYPE type = Map::GetCommandListType( Desc.pContext->m_pQueue->GetType() );
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
         {
             VKE_LOG_ERR( "CDDI::CreateCommandBufferPool: Unsupported command list type" );
             return NativeAPI::Null;
         }
 
-        if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator->pAllocator ) ) ) )
-        {
-            VKE_LOG_ERR( "CDDI::CreateCommandBufferPool: Failed to create command allocator" );
-        }
+        // if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator->pAllocator ) ) ) )
+        //{
+        //     VKE_LOG_ERR( "CDDI::CreateCommandBufferPool: Failed to create command allocator" );
+        // }
 
-        pCommandAllocator->EngineType = Desc.pContext->m_pQueue->GetType();
-        pCommandAllocator->NativeType = type;
+        pCommandBufferPool->EngineType = Desc.pContext->m_pQueue->GetType();
+        pCommandBufferPool->NativeType = type;
 
-        return pCommandAllocator;
+        return pCommandBufferPool;
     }
 
     void CDDI::DestroyCommandBufferPool( NativeAPI::CommandBufferPool* pInOut, const void* pAllocator )
@@ -1223,18 +1669,29 @@ namespace VKE::RenderSystem
 
         NativeAPI::DescriptorPool pool = NativeAPI::Null;
         Memory::CreateObject( &HeapAllocator, &pool );
+        pool->vPartitionMap.Resize( BindingTypes::_MAX_COUNT );
 
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
         D3D12_DESCRIPTOR_HEAP_TYPE heapType = {};
 
         for( auto& poolSize: Desc.vPoolSizes )
         {
-            if( poolSize.type == DESCRIPTOR_SET_TYPE::SAMPLER_AND_TEXTURE )
+            if( poolSize.type == DescriptorSetTypes::SAMPLER_AND_TEXTURE )
             {
                 VKE_LOG_WARN( "CDDI::CreateDescriptorPool: DESCRIPTOR_SET_TYPE::SAMPLER_AND_TEXTURE is not "
                               "supported in D3D12" );
             }
-            heapType                         = Map::getDescriptorHeapType( poolSize.type );
+
+            heapType = Map::GetDescriptorHeapType( poolSize.type );
+
+            // Store mapping info in custom object, ince we're creating one descriptor heap per DX12 type.
+            NativeAPI::CustomTypes::SDescriptorPool::SDescriptorPoolPartition Partition;
+            Partition.HeapType = static_cast< uint8_t >( heapType );
+            Partition.Offset   = descriptorHeapSizes[ heapType ];
+            Partition.Count    = poolSize.count;
+            pool->vPartitionMap.PushBack( Partition );
+
+            // Accumulate total number of descriptors for creation.
             descriptorHeapSizes[ heapType ] += poolSize.count;
         }
 
@@ -1245,7 +1702,7 @@ namespace VKE::RenderSystem
 
                 heapDesc.Type           = static_cast< D3D12_DESCRIPTOR_HEAP_TYPE >( i );
                 heapDesc.NumDescriptors = descriptorHeapSizes[ i ];
-                heapDesc.NodeMask       = getNodeMask();
+                heapDesc.NodeMask       = Helper::GetNodeMask();
                 heapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
                 if( heapDesc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ||
@@ -1277,7 +1734,7 @@ namespace VKE::RenderSystem
         NativeAPI::DescriptorSetLayout descriptorSetLayout = NativeAPI::Null;
         Memory::CreateObject( &HeapAllocator, &descriptorSetLayout );
 
-        NativeAPI::CustomTypes::DDIDescriptorSetLayout& rootParameter = descriptorSetLayout->RootParameter;
+        NativeAPI::D3D12RootParameter& rootParameter = descriptorSetLayout->RootParameter;
 
         // Assume shader visibility all, see notes below.
         rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
@@ -1289,9 +1746,9 @@ namespace VKE::RenderSystem
             // example range with visibility PIXEL, VERTEX. But it still won't match Vulkan as theres no possibility
             // for combining like PIXEL | VERTEX. D3D12_SHADER_VISIBILITY visibility = Convert::getShaderVisibility(
             // binding.stages );
-            NativeAPI::CustomTypes::DDIDescriptorSetRange range;
+            NativeAPI::D3D12DescriptorRange range;
 
-            range.RangeType          = Convert::getDescriptorRangeType( binding.type );
+            range.RangeType          = Map::GetDescriptorRangeType( binding.type );
             range.NumDescriptors     = binding.count;
             range.BaseShaderRegister = binding.idx;
             range.RegisterSpace      = 0;
@@ -1373,9 +1830,9 @@ namespace VKE::RenderSystem
             VKE_LOG_ERR( "CDDI::CreatePipelineLayout: Unable to serialize root signature." );
         }
 
-        ID3D12RootSignature* pRootSignature;
+        NativeAPI::D3D12RootSignature* pRootSignature;
 
-        if( FAILED( m_hDevice->CreateRootSignature( getNodeMask(),
+        if( FAILED( m_hDevice->CreateRootSignature( Helper::GetNodeMask(),
                                                     pSignatureBlob->GetBufferPointer(),
                                                     pSignatureBlob->GetBufferSize(),
                                                     IID_PPV_ARGS( &pRootSignature ) ) ) )
@@ -1433,7 +1890,27 @@ namespace VKE::RenderSystem
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
 
-        UNIMPLEMENTED_D3D12_METHOD();
+        for( uint32_t LayoutIndex = 0; LayoutIndex < Info.count; LayoutIndex++ )
+        {
+            const NativeAPI::DescriptorSetLayout& layout = Info.phLayouts[ LayoutIndex ];
+            (void)layout;
+
+            NativeAPI::DescriptorSet& CurrentSet = pSets[ LayoutIndex ];
+            Memory::CreateObject( &HeapAllocator, &CurrentSet );
+
+            CurrentSet->Pool = Info.hPool;
+
+            // for( auto& range: layout->vDescriptorRanges )
+            //{
+            //     // Check which descriptor heap will be used for this range and assign it to the descriptor set.
+            //     auto& HeapMap  = Info.hPool->aMap[ range.RangeType ];
+
+            //    D3D12_DESCRIPTOR_HEAP_TYPE HeapType = Map::GetDescriptorHeapType( range.RangeType );
+
+            //    CurrentSet->Heaps[ HeapType ] = Info.hPool->Heaps[ HeapType ];
+            //}
+        }
+
         return Result::OK;
     }
 
@@ -1447,8 +1924,8 @@ namespace VKE::RenderSystem
         Result result = VKE_OK;
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
 
-        D3D12_COMMAND_LIST_TYPE type =
-            ( Info.level == COMMAND_BUFFER_LEVEL::PRIMARY ) ? Info.hDDIPool->NativeType : D3D12_COMMAND_LIST_TYPE_BUNDLE;
+        D3D12_COMMAND_LIST_TYPE type = ( Info.level == COMMAND_BUFFER_LEVEL::PRIMARY ) ? Info.hDDIPool->NativeType
+                                                                                       : D3D12_COMMAND_LIST_TYPE_BUNDLE;
 
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
         {
@@ -1458,9 +1935,17 @@ namespace VKE::RenderSystem
 
         for( uint32_t i = 0; i < Info.count; i++ )
         {
-            NativeAPI::CommandBuffer pCommandList = NativeAPI::Null;
+            NativeAPI::CustomTypes::SCommandBufferPool::SCommandListWithAllocator Pair;
+
+            if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &Pair.pAllocator ) ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::AllocateObjects: Failed to create command allocator" );
+                result = VKE_FAIL;
+                break;
+            }
+
             if( FAILED( m_hDevice->CreateCommandList(
-                    0, type, Info.hDDIPool->pAllocator, NativeAPI::Null, IID_PPV_ARGS( &pCommandList ) ) ) )
+                    0, type, Pair.pAllocator, NativeAPI::Null, IID_PPV_ARGS( &Pair.pCmdList ) ) ) )
             {
                 VKE_LOG_ERR( "CDDI::AllocateObjects: Failed to create command list" );
                 result = VKE_FAIL;
@@ -1469,8 +1954,10 @@ namespace VKE::RenderSystem
 
             // CreateCommandList always create command list in open state. In order to allocate more objects
             // every command list needs to be in closed state.
-            pCommandList->Close();
-            pBuffers[ i ] = pCommandList;
+            Pair.pCmdList->Close();
+            pBuffers[ i ] = Pair.pCmdList;
+
+            Info.hDDIPool->vCommandListsWithAllocators.PushBack( Pair );
         }
 
         return result;
@@ -1481,15 +1968,21 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    Result CDDI::GetBufferMemoryRequirements( const SBufferDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
+    Result CDDI::GetBufferMemoryRequirements( const SBufferDesc& InDesc, SAllocationMemoryRequirementInfo* pOut )
     {
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateBuffer.
-        D3D12_RESOURCE_DESC desc = Convert::GetResourceDesc( Desc );
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( InDesc, m_Implementation.Features );
 
-        D3D12_RESOURCE_ALLOCATION_INFO allocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &desc );
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
 
-        pOut->alignment = static_cast< uint32_t >( allocInfo.Alignment );
-        pOut->size      = static_cast< uint32_t >( allocInfo.SizeInBytes );
+        pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
+        pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
+
+        // Constants buffers in D3D12 has to be aligned to 256B.
+        if( InDesc.usage & BufferUsages::CONSTANT_BUFFER )
+        {
+            pOut->alignment = 256u;
+        }
 
         return Result::OK;
     }
@@ -1497,12 +1990,12 @@ namespace VKE::RenderSystem
     Result CDDI::GetTextureMemoryRequirements( const STextureDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
     {
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateTexture.
-        D3D12_RESOURCE_DESC desc = Convert::GetResourceDesc( Desc );
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_Implementation.Features );
 
-        D3D12_RESOURCE_ALLOCATION_INFO allocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &desc );
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
 
-        pOut->alignment = static_cast< uint32_t >( allocInfo.Alignment );
-        pOut->size      = static_cast< uint32_t >( allocInfo.SizeInBytes );
+        pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
+        pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
 
         return Result::OK;
     }
@@ -1571,7 +2064,78 @@ namespace VKE::RenderSystem
 
     void CDDI::Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() == 0,
+                     "CDDI::Update: Sampler and texture heaps are not supported in DX12" );
+
+        for( auto& Binding: Info.vRTs )
+        {
+            NativeAPI::D3D12DescriptorHeap* DescriptorHeap = hDDISet->Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
+            VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
+            Binding.ahHandles;
+            Binding.binding;
+            Binding.count;
+            Binding.type;
+
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        for( auto& Binding: Info.vTexs )
+        {
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        for( auto& Binding: Info.vTexViews )
+        {
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        for( auto& Binding: Info.vSamplers )
+        {
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        for( auto& Binding: Info.vBuffers )
+        {
+            auto& Pool = hDDISet->Pool;
+            auto& Map  = Pool->vPartitionMap[ Binding.type ];
+
+            NativeAPI::D3D12DescriptorHeap* DescriptorHeap = Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ];
+            UINT DescriptorSize = m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
+            uint32_t BaseOffset = Map.Offset * DescriptorSize;
+
+            VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
+
+            auto pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ 0 ] );
+
+            if( Binding.type == BindingTypes::CONSTANT_BUFFER || Binding.type == BindingTypes::DYNAMIC_CONSTANT_BUFFER )
+            {
+                for( uint32_t i = 0; i < Binding.count; i++ )
+                {
+                    auto& BufferHandle = Binding.ahHandles[ i ];
+
+                    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+                    cbvDesc.BufferLocation =
+                        m_pCtx->GetBuffer( BufferHandle )->GetDDIObject()->GetGPUVirtualAddress() + Binding.offset;
+                    cbvDesc.SizeInBytes = Binding.range;
+
+                    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle  = DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                    cpuHandle.ptr                         += BaseOffset + ( Binding.binding * DescriptorSize );
+                    m_hDevice->CreateConstantBufferView( &cbvDesc, cpuHandle );
+                }
+            }
+            else if( Binding.type == BindingTypes::READ_ONLY_TEXEL_BUFFER ||
+                     Binding.type == BindingTypes::READ_WRITE_TEXEL_BUFFER )
+            {
+                UNIMPLEMENTED_D3D12_METHOD();
+            }
+            else
+            {
+                VKE_LOG_ERR( "CDDI::Update: Unsupported buffer binding type." );
+            }
+        }
     }
 
     void CDDI::Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut )
@@ -1588,8 +2152,8 @@ namespace VKE::RenderSystem
         heapDesc.SizeInBytes = Desc.size;
 
         // TODO(any): For multi-adapter systems, need to set proper masks.
-        heapDesc.Properties.CreationNodeMask = getNodeMask();
-        heapDesc.Properties.VisibleNodeMask  = getNodeMask();
+        heapDesc.Properties.CreationNodeMask = Helper::GetNodeMask();
+        heapDesc.Properties.VisibleNodeMask  = Helper::GetNodeMask();
 
         Result  res = Result::OK;
         HRESULT hr  = S_OK;
@@ -1695,16 +2259,15 @@ namespace VKE::RenderSystem
     void CDDI::BeginCommandBuffer( const NativeAPI::CommandBuffer&     hCommandBuffer,
                                    const NativeAPI::CommandBufferPool& hCommandBufferPool )
     {
-        // CommandAllocator and CommandList should be in reset state before calling this method, which is done by
-        // Reset() method. D3D12 doesn't have any additional flags for beginning command buffer recording, just
-        // reset()
+        NativeAPI::D3D12CommandAllocator* pCommandAllocator = hCommandBufferPool->getAllocator( hCommandBuffer );
+        VKE_ASSERT( pCommandAllocator != nullptr );
 
-        if( FAILED( hCommandBufferPool->pAllocator->Reset() ) )
+        if( FAILED( pCommandAllocator->Reset() ) )
         {
             VKE_LOG_ERR( "CDDI::Reset: Failed to reset command buffer pool" );
         }
 
-        if( FAILED( hCommandBuffer->Reset( hCommandBufferPool->pAllocator, NativeAPI::Null ) ) )
+        if( FAILED( hCommandBuffer->Reset( pCommandAllocator, NativeAPI::Null ) ) )
         {
             VKE_LOG_ERR( "CDDI::Reset: Failed to reset command buffer" );
         }
@@ -1716,100 +2279,6 @@ namespace VKE::RenderSystem
         {
             VKE_LOG_ERR( "CDDI::EndCommandBuffer: Failed to close command buffer" );
         }
-    }
-
-    typedef Utils::TCDynamicArray< D3D12_RESOURCE_BARRIER > DDIBarrierArray;
-
-    void CreateLegacySubresourceBarriers( const STextureBarrierInfo& Info, DDIBarrierArray& OutArray )
-    {
-        if( Info.srcMemoryAccess == Info.dstMemoryAccess )
-        {
-            // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
-            VKE_LOG_WARN( "CDDI::Barrier: Source and destination memory access masks are the same, DX12 doesn't "
-                          "allow that." );
-            return;
-        }
-
-        // Used when Texture was a custom struct.
-        // const D3D12_RESOURCE_DESC& desc = Info.hDDITexture->Desc;
-        D3D12_RESOURCE_DESC desc = Info.hDDITexture->GetDesc();
-
-        UINT textureMipLevels = ( desc.MipLevels > 0 ) ? desc.MipLevels : 1;
-        UINT textureArraySize = ( desc.DepthOrArraySize > 0 ) ? desc.DepthOrArraySize : 1;
-
-        if( desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D )
-        {
-            textureArraySize = 1;
-        }
-
-        auto& range          = Info.SubresourceRange;
-        bool  isFullResource = ( textureMipLevels == range.mipmapLevelCount ) &&
-                              ( textureArraySize == range.layerCount ) && ( range.beginArrayLayer == 0 ) &&
-                              ( range.beginMipmapLevel == 0 );
-
-        if( isFullResource )
-        {
-            D3D12_RESOURCE_BARRIER barrier;
-            barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-
-            auto& transition       = barrier.Transition;
-            transition.pResource   = Info.hDDITexture;
-            transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-            transition.StateBefore = Convert::AccessMaskToResourceState( Info.srcMemoryAccess );
-            transition.StateAfter  = Convert::AccessMaskToResourceState( Info.dstMemoryAccess );
-
-            OutArray.PushBack( barrier );
-        }
-        else
-        {
-            for( uint32_t layer = 0; layer < Info.SubresourceRange.layerCount; layer++ )
-            {
-                for( uint32_t mip = 0; mip < Info.SubresourceRange.mipmapLevelCount; mip++ )
-                {
-                    D3D12_RESOURCE_BARRIER barrier;
-                    barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-
-                    auto& transition     = barrier.Transition;
-                    transition.pResource = Info.hDDITexture;
-                    transition.Subresource =
-                        Convert::getSubresourceIndex( Info.SubresourceRange.beginMipmapLevel + mip,
-                                                      textureMipLevels,
-                                                      Info.SubresourceRange.beginArrayLayer + layer,
-                                                      textureArraySize,
-                                                      1 );
-
-                    transition.StateBefore = Convert::AccessMaskToResourceState( Info.srcMemoryAccess );
-                    transition.StateAfter  = Convert::AccessMaskToResourceState( Info.dstMemoryAccess );
-
-                    OutArray.PushBack( barrier );
-                }
-            }
-        }
-    }
-
-    void CreateLegacySubresourceBarriers( const SBufferBarrierInfo& Info, DDIBarrierArray& OutArray )
-    {
-        if( Info.srcMemoryAccess == Info.dstMemoryAccess )
-        {
-            // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
-            VKE_LOG_WARN( "CDDI::Barrier: Source and destination memory access masks are the same, DX12 doesn't "
-                          "allow that." );
-            return;
-        }
-
-        D3D12_RESOURCE_BARRIER barrier;
-        barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-
-        auto& transition       = barrier.Transition;
-        transition.pResource   = Info.hDDIBuffer;
-        transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        transition.StateBefore = Convert::AccessMaskToResourceState( Info.srcMemoryAccess );
-        transition.StateAfter  = Convert::AccessMaskToResourceState( Info.dstMemoryAccess );
-
-        OutArray.PushBack( barrier );
     }
 
     void CDDI::Barrier( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
@@ -1824,12 +2293,12 @@ namespace VKE::RenderSystem
 
         for( auto& barrier: Info.vTextureBarriers )
         {
-            CreateLegacySubresourceBarriers( barrier, vBarriers );
+            Helper::CreateLegacySubresourceBarriers( barrier, vBarriers );
         }
 
         for( auto& barrier: Info.vBufferBarriers )
         {
-            CreateLegacySubresourceBarriers( barrier, vBarriers );
+            Helper::CreateLegacySubresourceBarriers( barrier, vBarriers );
         }
 
         if( vBarriers.GetCount() > 0 )
@@ -1869,14 +2338,30 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo2& )
+    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer pCommandBuffer, const SBeginRenderPassInfo2& Info )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        UINT NumRenderTargets = Info.vColorRenderTargetInfos.GetCount();
+
+        Utils::TCDynamicArray< D3D12_RENDER_PASS_RENDER_TARGET_DESC, 1u > vRenderTargetsDescs;
+        vRenderTargetsDescs.Resize( NumRenderTargets );
+
+        D3D12_RENDER_PASS_FLAGS Flags = D3D12_RENDER_PASS_FLAG_NONE;
+
+        for( uint32_t i = 0; i < NumRenderTargets; i++ )
+        {
+            vRenderTargetsDescs[ i ] = Convert::GetRenderPassRenderTargetDesc( Info.vColorRenderTargetInfos[ i ] );
+        }
+
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DepthStencilDesc =
+            Convert::GetRenderPassDepthStencilDesc( Info.DepthRenderTargetInfo, Info.StencilRenderTargetInfo );
+
+        pCommandBuffer->BeginRenderPass(
+            vRenderTargetsDescs.GetCount(), vRenderTargetsDescs.GetData(), &DepthStencilDesc, Flags );
     }
 
-    void CDDI::EndRenderPass( NativeAPI::CommandBuffer )
+    void CDDI::EndRenderPass( NativeAPI::CommandBuffer pCommandBuffer )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        pCommandBuffer->EndRenderPass();
     }
 
     void CDDI::Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
@@ -1933,7 +2418,8 @@ namespace VKE::RenderSystem
 
     Result CDDI::Submit( const SSubmitInfo& Info )
     {
-        ID3D12CommandList* const* ppCommandLists = (ID3D12CommandList* const*)&Info.pDDICommandBuffers[ 0 ];
+        NativeAPI::D3D12CommandList* const* ppCommandLists =
+            (NativeAPI::D3D12CommandList* const*)&Info.pDDICommandBuffers[ 0 ];
         Info.hDDIQueue->ExecuteCommandLists( Info.commandBufferCount, ppCommandLists );
         return Result::OK;
     }
@@ -1962,7 +2448,7 @@ namespace VKE::RenderSystem
             return Result::NOT_SUPPORTED;
         }
 
-        auto dxgiFormat = Convert::getDXGIFormat( Desc.format );
+        auto dxgiFormat = Convert::GetDXGIFormat( Desc.format );
         if( dxgiFormat == DXGI_FORMAT_UNKNOWN )
         {
             VKE_LOG_ERR( "CDDI::CreateSwapChain: Unsupported swapchain format (no matching engine with DXGI format)." );
@@ -2191,13 +2677,13 @@ namespace VKE::RenderSystem
                 ( (NativeAPI::Device)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::GPU_FENCE:
-                ( (NativeAPI::GPUFence*)handle )->Obj->SetName( buffer );
+                ( (NativeAPI::GPUFence)handle )->pObject->SetName( buffer );
                 break;
             case ApiObjectTypes::COMMAND_BUFFER:
                 ( (NativeAPI::CommandBuffer)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::CPU_FENCE:
-                ( (NativeAPI::CPUFence*)handle )->Obj->SetName( buffer );
+                ( (NativeAPI::CPUFence)handle )->pObject->SetName( buffer );
                 break;
             case ApiObjectTypes::BUFFER:
                 ( (NativeAPI::Buffer)handle )->SetName( buffer );
@@ -2224,7 +2710,7 @@ namespace VKE::RenderSystem
                 ( (NativeAPI::Framebuffer)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::COMMAND_POOL:
-                ( (NativeAPI::CommandBufferPool)handle )->pAllocator->SetName( buffer );
+                ( (NativeAPI::CommandBufferPool)handle )->SetName( buffer );
                 break;
 
             case ApiObjectTypes::CONTEXT:
@@ -2256,13 +2742,15 @@ namespace VKE::RenderSystem
     bool CDDI::IsSignaled( const NativeAPI::CPUFence& hFence ) const
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::IsSignaled: m_hDevice is null" );
-        return hFence.Obj->GetCompletedValue() >= hFence.Value;
+        return hFence->pObject->GetCompletedValue() >= hFence->Value;
     }
 
     void CDDI::Reset( NativeAPI::CPUFence* phFence )
     {
-        phFence->Value = 0;
-        if( FAILED( phFence->Obj->Signal( 0 ) ) )
+        NativeAPI::CPUFence pFence = *phFence;
+        pFence->Value              = 0;
+
+        if( FAILED( pFence->pObject->Signal( 0 ) ) )
         {
             VKE_LOG_ERR( "CDDI::Reset: Failed to reset fence" );
         }

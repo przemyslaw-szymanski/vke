@@ -442,7 +442,7 @@ namespace VKE
             SUpdateMemoryInfo UnmapInfo;
             UnmapInfo.hBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
             UnmapInfo.hMemory = Info.hMemory;
-            auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
+            auto& MemMgr      = m_pCtx->_GetDeviceMemoryManager();
             MemMgr.UnmapMemory( UnmapInfo );
             /*{
                 const auto* p = (Scene::CTerrainVertexFetchRenderer::SPerDrawConstantBufferData*)Info.pDeviceMemory;
@@ -526,7 +526,8 @@ namespace VKE
             if( pBuffer->GetDDIObject() == NativeAPI::Null )
             {
                 SAllocationMemoryRequirementInfo AllocationInfo;
-                if( VKE_SUCCEEDED( m_pCtx->NativeAPI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
+                if( VKE_SUCCEEDED(
+                        m_pCtx->NativeAPI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
                 {
                     AllocationInfo.memoryUsages = Desc.memoryUsage | MemoryUsages::BUFFER;
                     /// TODO: be smarter than 128mb hardcode!
@@ -537,10 +538,16 @@ namespace VKE
                                                  << " is bigger than default device memory allocation size: "
                                                  << defaultSize );
                     }
-                    AllocationInfo.poolSize     = Math::Max( AllocationInfo.size, VKE_MEGABYTES( 128 ) );
+                    AllocationInfo.poolSize = Math::Max( AllocationInfo.size, VKE_MEGABYTES( 128 ) );
                     SBindMemoryInfo BindInfo;
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateMemory( AllocationInfo, &BindInfo );
+
+                    // Update size from requirements.
+                    pBuffer->m_Desc.size = AllocationInfo.size;
+                    pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
+
                     pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, BindInfo );
+
                     if( pBuffer->m_hDDIObject == NativeAPI::Null )
                     {
                         VKE_LOG_ERR( "Unable to create buffer DDI object: " << pBuffer->GetDesc().GetDebugName() );
@@ -591,8 +598,8 @@ namespace VKE
 
         void* CBufferManager::LockMemory( const SUpdateMemoryInfo& Info )
         {
-            auto& MemMgr                    = m_pCtx->_GetDeviceMemoryManager();
-            void* pMem                      = MemMgr.MapMemory( Info );
+            auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
+            void* pMem   = MemMgr.MapMemory( Info );
             return pMem;
         }
 

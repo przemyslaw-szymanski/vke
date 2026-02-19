@@ -4,6 +4,7 @@
 #include "Core/Memory/CFreeListPool.h"
 
 #include <directx/d3d12.h>
+#include <directx/d3dx12.h>
 #include <dxgi1_6.h>
 #include <pix3.h>
 
@@ -29,294 +30,101 @@ namespace VKE::RenderSystem
 
     namespace NativeAPI
     {
+        // DirectX 12 have multiple structures for the same thing but with different feature sets. To prevent huge pain
+        // in the butt when refactoring code due to higher struct / pointer number, we'll have one place to refactor
+        // whole CDDI.
+        using D3D12Fence               = ID3D12Fence1;
+        using D3D12CommandAllocator    = ID3D12CommandAllocator;
+        using D3D12CommandList         = ID3D12CommandList;
+        using D3D12GraphicsCommandList = ID3D12GraphicsCommandList4;
+        using D3D12Shader              = D3D12_SHADER_BYTECODE;
+        using D3D12RootParameter       = D3D12_ROOT_PARAMETER1;
+        using D3D12DescriptorRange     = D3D12_DESCRIPTOR_RANGE1;
+        using D3D12Resource            = ID3D12Resource;
+        using D3D12PipelineState       = ID3D12PipelineState;
+        using D3D12Device              = ID3D12Device10;
+        using D3D12CommandQueue        = ID3D12CommandQueue;
+        using D3D12Heap                = ID3D12Heap;
+        using D3D12Output              = IDXGIOutput6;
+        using D3D12SwapChain           = IDXGISwapChain4;
+        using D3D12Adapter             = IDXGIAdapter4;
+        using D3D12RootSignature       = ID3D12RootSignature;
+        using D3D12Factory             = IDXGIFactory7;
+        using D3D12DescriptorHeap      = ID3D12DescriptorHeap;
+        using D3D12ResourceDesc        = D3D12_RESOURCE_DESC;
+
         static const decltype( nullptr ) Null;
 
         template< class ObjT >
         concept Nullable = std::is_pointer_v< ObjT >;
 
-        template< class T >
-        struct TSSimpleHashT
-        {
-            static hash_t CalcHash( const T& Obj )
-            {
-                return std::hash< T >{}( Obj );
-            }
-        };
-
-        template< class D3D12TypeT, class DefaultT, class ChildObjectT, class HashTraitT = TSSimpleHashT< D3D12TypeT > >
-        struct TSObjectWrapper
-        {
-            D3D12TypeT Obj;
-
-            TSObjectWrapper() = default;
-
-            TSObjectWrapper( const D3D12TypeT& Other ) : Obj{ Other }
-            {
-            }
-
-            TSObjectWrapper( decltype( Null ) )
-                //    requires std::is_pointer_v< D3D12TypeT >
-                : Obj{ Null }
-            {
-            }
-
-            ChildObjectT& Reinterpret()
-            {
-                return reinterpret_cast< ChildObjectT& >( *this );
-            }
-
-            ChildObjectT& Reinterpret( const TSObjectWrapper& pOther )
-            {
-                return reinterpret_cast< ChildObjectT& >( const_cast< TSObjectWrapper& >( pOther ) );
-            }
-
-            const ChildObjectT& Reinterpret() const
-            {
-                return reinterpret_cast< const ChildObjectT& >( *this );
-            }
-
-            TSObjectWrapper& operator=( const TSObjectWrapper& Other )
-            {
-                auto& ref = Reinterpret();
-                ref.Assign( Reinterpret( Other ) );
-                return *this;
-            }
-
-            TSObjectWrapper& operator=( const D3D12TypeT& Other )
-            {
-                auto& ref = Reinterpret();
-                ref.Assign( Other );
-                return *this;
-            }
-
-            TSObjectWrapper& operator=( decltype( Null ) )
-            {
-                auto& ref = Reinterpret();
-                ref.SetNull( Null );
-                return *this;
-            }
-
-            const bool operator==( decltype( Null ) ) const
-            {
-                auto& ref = Reinterpret();
-                return ref.IsNull();
-            }
-
-            const bool operator!=( decltype( Null ) ) const
-            {
-                auto& ref = Reinterpret();
-                return !ref.IsNull();
-            }
-
-            const bool operator==( const TSObjectWrapper& Other ) const
-            {
-                auto& ref = Reinterpret();
-                return ref.Equals( Other.Obj );
-            }
-
-            operator D3D12TypeT()
-            {
-                return Obj;
-            }
-
-            operator const D3D12TypeT() const
-            {
-                return Obj;
-            }
-
-            static hash_t CalcHash( const D3D12TypeT& Obj )
-            {
-                return HashTraitT::CalcHash( Obj );
-            }
-
-            void Assign( const TSObjectWrapper& Other )
-            {
-                Obj = Other.Obj;
-            }
-
-            void Assign( const D3D12TypeT& Other )
-            {
-                Obj = Other;
-            }
-
-            void SetNull()
-            {
-                Obj = Null;
-            }
-
-            bool IsNull() const
-            {
-                return Obj == Null;
-            }
-
-            const bool Equals( const D3D12TypeT& Other ) const
-            {
-                return Obj == Other;
-            }
-        };
-
         namespace CustomTypes
         {
-            using DDIFence               = ID3D12Fence1*;
-            using DDICommandBufferPool   = ID3D12CommandAllocator*;
-            using DDIShader              = D3D12_SHADER_BYTECODE;
-            using DDIDescriptorSetLayout = D3D12_ROOT_PARAMETER1;
-            using DDIDescriptorSetRange  = D3D12_DESCRIPTOR_RANGE1;
-
-            struct CPUFence : TSObjectWrapper< DDIFence, std::nullopt_t, CPUFence >
+            struct SFence
             {
-                using Wrapper = TSObjectWrapper< DDIFence, std::nullopt_t, CPUFence >;
-
-                HANDLE hEvent = nullptr;
-                UINT64 Value  = 0;
-
-                CPUFence() = default;
-
-                CPUFence( decltype( Null ) ) : Wrapper( Null )
-                {
-                }
-
-                CPUFence( const DDIFence& Other ) : Wrapper( Other )
-                {
-                }
+                NativeAPI::D3D12Fence* pObject = nullptr;
+                HANDLE                 hEvent  = nullptr;
+                UINT64                 Value   = 0;
             };
 
-            struct GPUFence : TSObjectWrapper< DDIFence, std::nullopt_t, GPUFence >
+            struct SCPUFence : public SFence
             {
-                using Wrapper = TSObjectWrapper< DDIFence, std::nullopt_t, GPUFence >;
-
-                HANDLE hEvent = nullptr;
-                UINT64 Value  = 0;
-
-                GPUFence() = default;
-
-                GPUFence( decltype( Null ) ) : Wrapper( Null )
-                {
-                }
-
-                GPUFence( const DDIFence& Other ) : Wrapper( Other )
-                {
-                }
             };
 
-            struct CommandBufferPool
+            struct SGPUFence : public SFence
             {
-                ID3D12CommandAllocator* pAllocator = nullptr;
+            };
+
+            struct SCommandBufferPool
+            {
                 D3D12_COMMAND_LIST_TYPE NativeType = D3D12_COMMAND_LIST_TYPE_DIRECT;
                 uint8_t                 EngineType = 0;
+
+                struct SCommandListWithAllocator
+                {
+                    NativeAPI::D3D12CommandAllocator*    pAllocator = nullptr;
+                    NativeAPI::D3D12GraphicsCommandList* pCmdList   = nullptr;
+                };
+
+                Utils::TCDynamicArray< SCommandListWithAllocator, 32 > vCommandListsWithAllocators;
+
+                NativeAPI::D3D12CommandAllocator* getAllocator( NativeAPI::D3D12GraphicsCommandList* pCommandList )
+                {
+                    NativeAPI::D3D12CommandAllocator* out = nullptr;
+                    for( auto& Pair: vCommandListsWithAllocators )
+                    {
+                        if( Pair.pCmdList == pCommandList )
+                        {
+                            out = Pair.pAllocator;
+                            break;
+                        }
+                    }
+                    return out;
+                }
+
+                void SetName( cwstr_t pName )
+                {
+                    m_pName = pName;
+                }
+
+            protected:
+                wstr_t m_pName;
             };
 
             struct SDescriptorPool
             {
-                ID3D12DescriptorHeap* Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
-            };
-
-            struct SDescriptorSetLayout
-            {
-                Utils::TCDynamicArray< DDIDescriptorSetRange, 32 > vDescriptorRanges;
-                D3D12_ROOT_PARAMETER1                              RootParameter;
-            };
-
-            struct SFenceTypes
-            {
-                struct GPU
+                struct SDescriptorPoolPartition
                 {
+                    uint8_t  HeapType;
+                    uint32_t Offset;
+                    uint32_t Count;
                 };
 
-                struct CPU
-                {
-                };
-            };
+                NativeAPI::D3D12DescriptorHeap* Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
 
-            template< class TypeT >
-            struct SMonitoredFence
-            {
-                TypeT Type;
+                Utils::TCDynamicArray< SDescriptorPoolPartition, 1 > vPartitionMap;
 
-                ID3D12Fence1* pFence;
-                HANDLE        hHandle;
-                UINT64        counter = 0;
-            };
-
-            struct SCommandQueue
-            {
-                static Utils::TCDynamicArray< SCommandQueue > s_QueuePool;
-
-                ID3D12CommandQueue*                 pQueue = nullptr;
-                SMonitoredFence< SFenceTypes::GPU > GpuFence;
-            };
-
-            template< typename D3D12TypeT >
-            struct SD3D12Pointer
-            {
-                D3D12TypeT* pObject = NativeAPI::Null;
-
-                SD3D12Pointer() = default;
-
-                SD3D12Pointer( const D3D12TypeT& Other ) : pObject{ Other }
-                {
-                }
-
-                SD3D12Pointer( decltype( Null ) ) : pObject{ NativeAPI::Null }
-                {
-                }
-
-                SD3D12Pointer& operator=( const SD3D12Pointer& Other )
-                {
-                    pObject = Other.pObject;
-                    return *this;
-                }
-
-                SD3D12Pointer& operator=( const D3D12TypeT& Other )
-                {
-                    pObject = Other;
-                    return *this;
-                }
-
-                SD3D12Pointer& operator=( decltype( Null ) )
-                {
-                    pObject = NativeAPI::Null;
-                    return *this;
-                }
-
-                const bool operator==( decltype( Null ) ) const
-                {
-                    return pObject == NativeAPI::Null;
-                }
-
-                const bool operator!=( decltype( Null ) ) const
-                {
-                    return pObject != NativeAPI::Null;
-                }
-
-                const bool operator==( const SD3D12Pointer& Other ) const
-                {
-                    return pObject == Other;
-                }
-
-                operator D3D12TypeT()
-                {
-                    return pObject;
-                }
-
-                operator const D3D12TypeT() const
-                {
-                    return pObject;
-                }
-            };
-
-            template< typename DescriptorType >
-            struct SDescriptor
-            {
-                DescriptorType Desc;
-
-                SDescriptor() = default;
-
-                SDescriptor( decltype( Null ) ) : Desc{}
-                {
-                }
-
-                SDescriptor( const DescriptorType& Other ) : Desc{ Other }
+                SDescriptorPool() : Heaps{ NativeAPI::Null }
                 {
                 }
 
@@ -329,51 +137,47 @@ namespace VKE::RenderSystem
                 wstr_t m_pName;
             };
 
-            template< typename DescriptorType >
-            struct SCPUDescriptor : SDescriptor< DescriptorType >
+            struct SDescriptorSet
             {
-                D3D12_CPU_DESCRIPTOR_HANDLE CpuHandle = 0;
+                SDescriptorPool* Pool;
 
-                SCPUDescriptor() = default;
-
-                SCPUDescriptor( decltype( Null ) )
+                void SetName( cwstr_t pName )
                 {
+                    m_pName = pName;
                 }
 
-                SCPUDescriptor( const DescriptorType& Other )
-                {
-                }
+            protected:
+                wstr_t m_pName;
             };
 
-            template< typename DescriptorType, typename ObjType >
-            struct SGPUDescriptor : SDescriptor< DescriptorType >, SD3D12Pointer< ObjType >
+            struct SDescriptorSetLayout
             {
-                D3D12_GPU_DESCRIPTOR_HANDLE GpuHandle = 0;
+                Utils::TCDynamicArray< D3D12_DESCRIPTOR_RANGE1, 32 > vDescriptorRanges;
+                NativeAPI::D3D12RootParameter                        RootParameter;
+            };
 
-                SGPUDescriptor() : SD3D12Pointer< ObjType >( Null )
-                {
-                }
+            struct SCommandQueue
+            {
+                static Utils::TCDynamicArray< SCommandQueue > s_QueuePool;
 
-                SGPUDescriptor( decltype( Null ) ) : SD3D12Pointer< ObjType >( Null )
-                {
-                }
+                NativeAPI::D3D12CommandQueue* pQueue = nullptr;
+                SGPUFence                     GpuFence;
+            };
 
-                SGPUDescriptor( const DescriptorType& Other ) :
-                    SDescriptor< DescriptorType >( Other ), SD3D12Pointer< ObjType >( Null )
+            struct SResourceViews
+            {
+                D3D12_CPU_DESCRIPTOR_HANDLE ShaderResourceView  = {};
+                D3D12_CPU_DESCRIPTOR_HANDLE UnorderedAccessView = {};
+                D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView    = {};
+                D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView    = {};
+
+                void SetName( cwstr_t pName )
                 {
+                    // stub function for now
                 }
             };
 
         } // namespace CustomTypes
-
-        struct FenceTypes
-        {
-            enum TYPE
-            {
-                CPU,
-                GPU
-            };
-        };
 
         struct SClearValue : D3D12_CLEAR_VALUE
         {
@@ -427,41 +231,40 @@ namespace VKE::RenderSystem
             // TODO(blturkot): Fill with limits
         };
 
-        using Buffer                = ID3D12Resource*;
-        using Pipeline              = ID3D12PipelineState*;
-        using Texture               = ID3D12Resource*;
+        using Buffer                = D3D12Resource*;
+        using Pipeline              = D3D12PipelineState*;
+        using Texture               = D3D12Resource*;
         using Sampler               = void*;
         using RenderPass            = ID3D12Object*;
-        using CommandBuffer         = ID3D12GraphicsCommandList*;
-        using TextureView           = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
-        using BufferView            = CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC >*;
-        using CPUFence              = CustomTypes::CPUFence;
-        using GPUFence              = CustomTypes::GPUFence;
-        using Device                = ID3D12Device10*;
+        using CommandBuffer         = D3D12GraphicsCommandList*;
+        using TextureView           = CustomTypes::SResourceViews*;
+        using BufferView            = CustomTypes::SResourceViews*;
+        using CPUFence              = CustomTypes::SCPUFence*;
+        using GPUFence              = CustomTypes::SGPUFence*;
+        using Device                = D3D12Device*;
         using DescriptorPool        = CustomTypes::SDescriptorPool*;
-        using DescriptorSet         = ID3D12DescriptorHeap*;
+        using DescriptorSet         = CustomTypes::SDescriptorSet*;
         using DescriptorSetLayout   = CustomTypes::SDescriptorSetLayout*;
-        using CommandBufferPool     = CustomTypes::CommandBufferPool*;
-        using Framebuffer           = ID3D12Resource*;
+        using CommandBufferPool     = CustomTypes::SCommandBufferPool*;
+        using Framebuffer           = D3D12Resource*;
         using ClearValue            = SClearValue;
-        using Queue                 = ID3D12CommandQueue*;
+        using Queue                 = D3D12CommandQueue*;
         using Format                = DXGI_FORMAT;
         using ImageType             = D3D12_RESOURCE_DIMENSION;
         using ImageLayout           = D3D12_RESOURCE_FLAGS;
         using ImageUsageFlags       = D3D12_RESOURCE_FLAGS;
-        using Memory                = ID3D12Heap*;
-        using PresentSurface        = IDXGIOutput6*;
-        using SwapChain             = IDXGISwapChain4*;
-        using Adapter               = IDXGIAdapter4*;
-        using Shader                = D3D12_SHADER_BYTECODE*;
-        using PipelineLayout        = ID3D12RootSignature*;
+        using Memory                = D3D12Heap*;
+        using PresentSurface        = D3D12Output*;
+        using SwapChain             = D3D12SwapChain*;
+        using Adapter               = D3D12Adapter*;
+        using Shader                = D3D12Shader*;
+        using PipelineLayout        = D3D12RootSignature*;
         using DeviceSize            = UINT64;
         using Event                 = HANDLE;
         using QueueFamilyProperties = void*;
         using DeviceLimits          = SDeviceLimits;
 
-        using Result  = HRESULT;
-        using Factory = IDXGIFactory7*;
+        using Result = HRESULT;
 
         enum ImageViewType
         {
@@ -478,17 +281,12 @@ namespace VKE::RenderSystem
             D3D12_VIEW_TYPE_RT_ACC_STRUCT,
         };
 
-        static vke_force_inline hash_t CalcHash( const GPUFence& Fence )
-        {
-            return GPUFence::CalcHash( Fence );
-        }
-
         struct SImplementation
         {
             static const uint32_t MAX_MEMORY_HEAPS = 16;
 
-            static Factory spFactory;
-            static bool    sDebugLayerEnabled;
+            static NativeAPI::D3D12Factory* spFactory;
+            static bool                     sDebugLayerEnabled;
 
             struct SMemoryHeapProperties
             {
@@ -531,49 +329,83 @@ namespace VKE::RenderSystem
                 bool UploadHeapSupported;
                 bool MeshShaderSupported;
                 bool RayTracingSupported;
+                bool TightAlignmentSupported;
             } Features; // struct SDeviceFeatures
 
+            struct SDescriptorHeapInfo
+            {
+                static const size_t scMaxDescriptorsInHeap = 1000;
+
+                NativeAPI::D3D12DescriptorHeap* pDescriptorHeap;
+                D3D12_DESCRIPTOR_HEAP_TYPE      Type;
+                D3D12_DESCRIPTOR_HEAP_FLAGS     Flags;
+                SIZE_T                          NumDescriptors = 0;
+                SIZE_T                          DescriptorSize;
+
+                bool IsFull() const
+                {
+                    return NumDescriptors >= scMaxDescriptorsInHeap;
+                }
+
+                bool HasSpace( uint32_t Count = 0 ) const
+                {
+                    return ( NumDescriptors + Count ) <= scMaxDescriptorsInHeap;
+                }
+
+                bool Matches( D3D12_DESCRIPTOR_HEAP_TYPE InType, D3D12_DESCRIPTOR_HEAP_FLAGS InFlags ) const
+                {
+                    return this->Type == InType && this->Flags == InFlags;
+                }
+
+                D3D12_CPU_DESCRIPTOR_HANDLE Reserve()
+                {
+                    D3D12_CPU_DESCRIPTOR_HANDLE Handle  = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                    Handle.ptr                         += NumDescriptors * DescriptorSize;
+                    NumDescriptors++;
+                    return Handle;
+                }
+            };
+
+            SDescriptorHeapInfo* CreateDescriptorHeap( const NativeAPI::Device&    pDevice,
+                                                       D3D12_DESCRIPTOR_HEAP_TYPE  Type,
+                                                       D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
+
+            SDescriptorHeapInfo* GetDescriptorHeap( const NativeAPI::Device& pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type,
+                                                    D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
+
         private:
+            Utils::TCDynamicArray< SDescriptorHeapInfo, 32 > m_vDescriptorHeapPool;
+
             Threads::SyncObject        m_AllocatorSyncObj;
             VKE::Memory::CFreeListPool m_ViewDescriptorPool;
             bool                       m_IsInitialized = false;
 
-            VKE::Memory::CFreeListPool& getViewDescriptorPool()
+            VKE::Memory::CFreeListPool& GetViewDescriptorPool()
             {
                 if( !m_IsInitialized )
                 {
-                    m_ViewDescriptorPool.Create(
-                        100, sizeof( CustomTypes::SCPUDescriptor< D3D12_SHADER_RESOURCE_VIEW_DESC > ), 1 );
+                    m_ViewDescriptorPool.Create( 100, sizeof( CustomTypes::SResourceViews ), 1 );
                 }
 
                 return m_ViewDescriptorPool;
             }
 
             template< typename DescT >
-            Result _CreateDescriptor( VKE::Memory::CFreeListPool* pPool, DescT* desc )
+            Result _CreateDescriptor( VKE::Memory::CFreeListPool* pPool, DescT* Desc )
             {
                 Threads::ScopedLock l( m_AllocatorSyncObj );
-                return VKE::Memory::CreateObject( pPool, desc );
+                return VKE::Memory::CreateObject( pPool, Desc );
             }
 
         public:
-            vke_force_inline Result CreateView( NativeAPI::TextureView* desc )
+            vke_force_inline Result CreateView( NativeAPI::TextureView* Desc )
             {
-                return _CreateDescriptor< NativeAPI::TextureView >( &getViewDescriptorPool(), desc );
+                return _CreateDescriptor< NativeAPI::TextureView >( &GetViewDescriptorPool(), Desc );
             }
         };
 
     } // namespace NativeAPI
 
 } // namespace VKE::RenderSystem
-
-template<>
-struct std::hash< VKE::RenderSystem::NativeAPI::GPUFence >
-{
-    std::size_t operator()( const VKE::RenderSystem::NativeAPI::GPUFence& Fence ) const
-    {
-        return VKE::RenderSystem::NativeAPI::CalcHash( Fence );
-    }
-};
 
 #endif // VKE_RENDER_SYSTEM_D3D12
