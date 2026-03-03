@@ -190,6 +190,18 @@ namespace VKE::RenderSystem
             return vMap[ static_cast< size_t >( Type ) ];
         }
 
+        D3D12_UAV_DIMENSION GetUAVDimension( D3D12_RESOURCE_DIMENSION dim )
+        {
+            static const D3D12_UAV_DIMENSION vMap[] = {
+                D3D12_UAV_DIMENSION_UNKNOWN,        // unknown
+                D3D12_UAV_DIMENSION_BUFFER,         // buffer
+                D3D12_UAV_DIMENSION_TEXTURE1D,      // VIEW_1D
+                D3D12_UAV_DIMENSION_TEXTURE2D,      // VIEW_2D
+                D3D12_UAV_DIMENSION_TEXTURE3D,      // VIEW_3D
+            };
+            return vMap[ dim ];
+        }
+
         D3D12_RESOURCE_DIMENSION GetResourceDimension( TEXTURE_TYPE Type )
         {
             // TODO(blturkot): Add support for TEXTURE_TYPE::TEX_2D_ARRAY and TEX_CUBE
@@ -724,7 +736,7 @@ namespace VKE::RenderSystem
         D3D12_RENDER_PASS_RENDER_TARGET_DESC GetRenderPassRenderTargetDesc( const SRenderTargetInfo& Info )
         {
             D3D12_RENDER_PASS_RENDER_TARGET_DESC Desc;
-            Desc.cpuDescriptor        = Info.hDDIView->RenderTargetView;
+            /*Desc.cpuDescriptor        = Info.hDDIView->RenderTargetView;
             Desc.BeginningAccess.Type = Map::GetRenderPassBeginningAccessType( Info.renderPassOp );
             Desc.EndingAccess.Type    = Map::GetRenderPassEndingAccessType( Info.renderPassOp );
 
@@ -737,7 +749,7 @@ namespace VKE::RenderSystem
             {
                 Desc.EndingAccess.PreserveLocal.AdditionalWidth  = 0;
                 Desc.EndingAccess.PreserveLocal.AdditionalHeight = 0;
-            }
+            }*/
 
             return Desc;
         }
@@ -756,7 +768,7 @@ namespace VKE::RenderSystem
             }
 
             D3D12_RENDER_PASS_DEPTH_STENCIL_DESC Desc;
-            Desc.DepthBeginningAccess.Type   = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+            /*Desc.DepthBeginningAccess.Type   = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
             Desc.DepthEndingAccess.Type      = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
             Desc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
             Desc.StencilEndingAccess.Type    = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
@@ -795,7 +807,7 @@ namespace VKE::RenderSystem
                     Desc.StencilEndingAccess.PreserveLocal.AdditionalWidth  = 0;
                     Desc.StencilEndingAccess.PreserveLocal.AdditionalHeight = 0;
                 }
-            }
+            }*/
 
             return Desc;
         }
@@ -1511,6 +1523,192 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
+    namespace Helper
+    {
+
+        void InitUAVDesc( const STextureViewDesc& Desc,
+                          D3D12_UNORDERED_ACCESS_VIEW_DESC* pOut )
+        {
+            pOut->Format                           = Convert::GetDXGIFormat(Desc.format);
+            pOut->ViewDimension                    = Map::GetUAVDimension( Desc.type );
+
+            switch( pOut->ViewDimension )
+            {
+                case D3D12_UAV_DIMENSION_TEXTURE1D:
+                    pOut->Texture1D.MipSlice = Desc.SubresourceRange.beginMipmapLevel;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE2D:
+                    pOut->Texture2D.MipSlice   = Desc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2D.PlaneSlice = 0;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE3D:
+                    pOut->Texture3D.MipSlice    = Desc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture3D.FirstWSlice = Desc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture3D.WSize       = Desc.SubresourceRange.layerCount;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
+                    pOut->Texture1DArray.MipSlice        = Desc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture1DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = Desc.SubresourceRange.layerCount;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+                    pOut->Texture2DArray.MipSlice          = Desc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2DArray.FirstArraySlice   = Desc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture2DArray.ArraySize       = Desc.SubresourceRange.layerCount;
+                    pOut->Texture2DArray.PlaneSlice        = 0;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "Not supported UAV ViewDimmension: " << pOut->ViewDimension );
+            }
+        }
+
+        void InitUAVDesc( const NativeAPI::D3D12ResourceDesc& Desc, D3D12_UNORDERED_ACCESS_VIEW_DESC* pOut )
+        {
+            pOut->Format        = Desc.Format;
+            pOut->ViewDimension = Map::GetUAVDimension( Desc.Dimension );
+
+            switch( pOut->ViewDimension )
+            {
+                case D3D12_UAV_DIMENSION_TEXTURE1D:
+                    pOut->Texture1D.MipSlice = 0;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE2D:
+                    pOut->Texture2D.MipSlice   = 0;
+                    pOut->Texture2D.PlaneSlice = 0;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE3D:
+                    pOut->Texture3D.MipSlice    = 0;
+                    pOut->Texture3D.FirstWSlice = 0;
+                    pOut->Texture3D.WSize       = Desc.DepthOrArraySize;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
+                    pOut->Texture1DArray.MipSlice        = 0;
+                    pOut->Texture1DArray.FirstArraySlice = 0;
+                    pOut->Texture1DArray.ArraySize       = Desc.DepthOrArraySize;
+                    break;
+
+                case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+                    pOut->Texture2DArray.MipSlice        = 0;
+                    pOut->Texture2DArray.FirstArraySlice = 0;
+                    pOut->Texture2DArray.ArraySize       = Desc.DepthOrArraySize;
+                    pOut->Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "Not supported UAV ViewDimmension: " << pOut->ViewDimension );
+            }
+        }
+
+        void InitSRVDesc( const NativeAPI::D3D12ResourceDesc& NativeDesc, const STextureViewDesc& Desc,
+                          D3D12_SHADER_RESOURCE_VIEW_DESC* pOut )
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC& SRVDesc = *pOut;
+            SRVDesc.Format                  = NativeDesc.Format;
+            SRVDesc.ViewDimension           = Map::GetSRVDimension( Desc.type );
+            SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+            switch( SRVDesc.ViewDimension )
+            {
+                case D3D12_SRV_DIMENSION_TEXTURE1D:
+                    Helper::SetCommonMipParams( SRVDesc.Texture1D, Desc.SubresourceRange );
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE2D:
+                    Helper::SetCommonMipParams( SRVDesc.Texture2D, Desc.SubresourceRange );
+                    SRVDesc.Texture2D.PlaneSlice = 0;
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE3D:
+                    Helper::SetCommonMipParams( SRVDesc.Texture3D, Desc.SubresourceRange );
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURECUBE:
+                    Helper::SetCommonMipParams( SRVDesc.TextureCube, Desc.SubresourceRange );
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
+                    Helper::SetCommonMipParams( SRVDesc.Texture1DArray, Desc.SubresourceRange );
+                    SRVDesc.Texture1DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
+                    SRVDesc.Texture1DArray.ArraySize       = Desc.SubresourceRange.layerCount;
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+                    Helper::SetCommonMipParams( SRVDesc.Texture2DArray, Desc.SubresourceRange );
+                    SRVDesc.Texture2DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
+                    SRVDesc.Texture2DArray.ArraySize       = Desc.SubresourceRange.layerCount;
+                    SRVDesc.Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
+                    Helper::SetCommonMipParams( SRVDesc.TextureCubeArray, Desc.SubresourceRange );
+                    SRVDesc.TextureCubeArray.First2DArrayFace = Desc.SubresourceRange.beginArrayLayer;
+                    SRVDesc.TextureCubeArray.NumCubes         = Desc.SubresourceRange.layerCount;
+                    break;
+            }
+
+
+        }
+    } // namespace Helper
+
+    namespace Map
+    {
+        D3D12_UAV_DIMENSION DimmensionToUAVDimmension( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_UAV_DIMENSION cValues[] = {
+                D3D12_UAV_DIMENSION_UNKNOWN,   // unknown
+                D3D12_UAV_DIMENSION_BUFFER,    // buffer
+                D3D12_UAV_DIMENSION_TEXTURE1D, // texture 1d
+                D3D12_UAV_DIMENSION_TEXTURE2D, // texture 2d
+                D3D12_UAV_DIMENSION_TEXTURE3D, // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_UAV_DIMENSION DimmensionToUAVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_UAV_DIMENSION cValues[] = {
+                D3D12_UAV_DIMENSION_UNKNOWN,        // unknown
+                D3D12_UAV_DIMENSION_BUFFER,         // buffer
+                D3D12_UAV_DIMENSION_TEXTURE1DARRAY, // texture 1d
+                D3D12_UAV_DIMENSION_TEXTURE2DARRAY, // texture 2d
+                D3D12_UAV_DIMENSION_TEXTURE3D,      // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_SRV_DIMENSION DimmensionToSRVDimmension( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_SRV_DIMENSION cValues[] = {
+                D3D12_SRV_DIMENSION_UNKNOWN,   // unknown
+                D3D12_SRV_DIMENSION_BUFFER,    // buffer
+                D3D12_SRV_DIMENSION_TEXTURE1D, // texture 1d
+                D3D12_SRV_DIMENSION_TEXTURE2D, // texture 2d
+                D3D12_SRV_DIMENSION_TEXTURE3D, // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_SRV_DIMENSION DimmensionToSRVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_SRV_DIMENSION cValues[] = {
+                D3D12_SRV_DIMENSION_UNKNOWN,        // unknown
+                D3D12_SRV_DIMENSION_BUFFER,         // buffer
+                D3D12_SRV_DIMENSION_TEXTURE1DARRAY, // texture 1d
+                D3D12_SRV_DIMENSION_TEXTURE2DARRAY, // texture 2d
+                D3D12_SRV_DIMENSION_TEXTURE3D,      // texture 3d
+            };
+            return cValues[ dim ];
+        }
+    } // namespace Map
+    
     NativeAPI::TextureView CDDI::CreateTextureView( const STextureViewDesc& Desc, const void* pAllocator )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
@@ -1521,7 +1719,7 @@ namespace VKE::RenderSystem
         NativeAPI::Texture           pTexture     = m_pCtx->GetTexture( Desc.hTexture )->GetDDIObject();
         NativeAPI::D3D12ResourceDesc ResourceDesc = pTexture->GetDesc();
 
-        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
+        /*if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
         {
             auto DescriptorHeapInfo = m_Implementation.GetDescriptorHeap(
                 m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE );
@@ -1543,6 +1741,26 @@ namespace VKE::RenderSystem
                 m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
             pTextureView->UnorderedAccessView =
                 Helper::CreateUnorderedAccessView( m_hDevice, pTexture, Desc, DescriptorHeapInfo->pDescriptorHeap );
+        }*/
+
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
+        {
+            auto& SrvDesc = pTextureView->aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ];
+            Helper::InitSRVDesc( ResourceDesc, Desc, &SrvDesc );
+        }
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ) )
+        {
+            auto& SrvDesc = pTextureView->aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
+            Helper::InitSRVDesc( ResourceDesc, Desc, &SrvDesc );
+        }
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL ) )
+        {
+            auto& SrvDesc = pTextureView->aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_DSV ];
+            Helper::InitSRVDesc( ResourceDesc, Desc, &SrvDesc );
+        }
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS ) )
+        {
+            Helper::InitUAVDesc( Desc, &pTextureView->UAVDesc );
         }
 
         return pTextureView;
@@ -1669,7 +1887,6 @@ namespace VKE::RenderSystem
 
         NativeAPI::DescriptorPool pool = NativeAPI::Null;
         Memory::CreateObject( &HeapAllocator, &pool );
-        pool->vPartitionMap.Resize( BindingTypes::_MAX_COUNT );
 
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
         D3D12_DESCRIPTOR_HEAP_TYPE heapType = {};
@@ -1684,12 +1901,12 @@ namespace VKE::RenderSystem
 
             heapType = Map::GetDescriptorHeapType( poolSize.type );
 
-            // Store mapping info in custom object, ince we're creating one descriptor heap per DX12 type.
-            NativeAPI::CustomTypes::SDescriptorPool::SDescriptorPoolPartition Partition;
-            Partition.HeapType = static_cast< uint8_t >( heapType );
-            Partition.Offset   = descriptorHeapSizes[ heapType ];
-            Partition.Count    = poolSize.count;
-            pool->vPartitionMap.PushBack( Partition );
+            //// Store mapping info in custom object, ince we're creating one descriptor heap per DX12 type.
+            //NativeAPI::CustomTypes::SDescriptorPool::SDescriptorPoolPartition Partition;
+            //Partition.HeapType = static_cast< uint8_t >( heapType );
+            //Partition.Offset   = descriptorHeapSizes[ heapType ];
+            //Partition.Count    = poolSize.count;
+            //pool->vPartitionMap.PushBack( Partition );
 
             // Accumulate total number of descriptors for creation.
             descriptorHeapSizes[ heapType ] += poolSize.count;
@@ -1699,7 +1916,6 @@ namespace VKE::RenderSystem
         {
             if( descriptorHeapSizes[ i ] )
             {
-
                 heapDesc.Type           = static_cast< D3D12_DESCRIPTOR_HEAP_TYPE >( i );
                 heapDesc.NumDescriptors = descriptorHeapSizes[ i ];
                 heapDesc.NodeMask       = Helper::GetNodeMask();
@@ -1715,8 +1931,17 @@ namespace VKE::RenderSystem
                 {
                     VKE_LOG_ERR( "CDDI::CreateDescriptorPool: Failed to create descriptor heap" );
                 }
+
+                /// TODO: do it smarter
+                // Allocate memory for descriptor ranges (number of descriptor sets / tables).
+                // This estimation assumes that single set has up to 10 descriptors.
+                uint32_t count = descriptorHeapSizes[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ] / 10 + 1;
+                pool->avFreeRanges[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ].Reserve( count );
+                // Add free range. First range covers whole set. Every CreateDescriptorSet will split this range to smaller ones.
+                pool->avFreeRanges[ i ].PushBack( { 0, descriptorHeapSizes[ i ] } );
             }
         }
+        
 
         return pool;
     }
@@ -1768,6 +1993,225 @@ namespace VKE::RenderSystem
     }
 
     void CDDI::DestroyDescriptorSetLayout( NativeAPI::DescriptorSetLayout* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    uint32_t GetDescriptorHeapRange( const NativeAPI::DescriptorPool      pPool,
+                                     const NativeAPI::DescriptorSetLayout pLayout, D3D12_DESCRIPTOR_HEAP_TYPE heapType)
+    {
+        /*uint32_t rangeIndex = UNDEFINED_U32;
+        for( uint32_t r = 0; r < pPool->avFreeRanges[ heapType ].GetCount(); ++r )
+        {
+            auto& vRange = pPool->avFreeRanges[ heapType ][ r ];
+            if( vRange.max >= pLayout->aNumSlots[heapType] )
+            {
+                return r;
+            }
+        }*/
+        return UNDEFINED_U32;       
+    }
+
+    Result CDDI::AllocateObjects( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
+        auto     pPool         = Info.hPool;
+        Result ret   = VKE_OK;
+        for( uint32_t LayoutIndex = 0; LayoutIndex < Info.count; LayoutIndex++ )
+        {
+            NativeAPI::DescriptorSet& CurrentSet = pSets[ LayoutIndex ];
+            CurrentSet                           = NativeAPI::Null;
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                Memory::CreateObject( &HeapAllocator, &CurrentSet );
+
+                const NativeAPI::DescriptorSetLayout& layout = Info.phLayouts[ LayoutIndex ];
+                for( uint32_t t = 0; t < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++t )
+                {
+                    uint32_t numSlots = layout->aNumSlots[ t ];
+                    if( numSlots )
+                    {
+                        auto rangeIndex = GetDescriptorHeapRange( pPool, layout, (D3D12_DESCRIPTOR_HEAP_TYPE)t );
+                        if( rangeIndex != UNDEFINED_U32 )
+                        {
+                            auto& vRanges = pPool->avFreeRanges[ t ];
+                            auto& Range   = vRanges[ rangeIndex ];
+                            // Shrink
+                            if( numSlots <= Range.max )
+                            {
+                                CurrentSet->aUsedSlots[ t ]  = { Range.begin, numSlots };
+                                Range.begin += numSlots;
+                                Range.max   -= numSlots;
+                            }
+                            // Whole range is used, remove it
+                            if( Range.begin == Range.max )
+                            {
+                                vRanges.RemoveFast( rangeIndex );
+                            }
+                        }
+                        else
+                        {
+                            ret = VKE_ENOMEMORY;
+                            break;
+                        }
+                    }
+                }
+
+                CurrentSet->Pool = Info.hPool;
+            }
+        }
+        if( VKE_FAILED( ret ) )
+        {
+            FreeDescs::SDescSet Free;
+            Free.hPool  = Info.hPool;
+            Free.phSets = pSets;
+            Free.count  = Info.count;
+            FreeObjects( Free );
+        }
+        return ret;
+    }
+
+    void CDDI::FreeObjects( const FreeDescs::SDescSet& )
+    {
+        // Must add freed ranges to heaps
+        // The best option would be to not destroy memory directly but to place objects to some free list instead
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Update( const SUpdateBufferDescriptorSetInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Update( const SUpdateTextureDescriptorSetInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
+    {
+        VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() == 0,
+                     "CDDI::Update: Sampler and texture heaps are not supported in DX12" );
+        
+        auto& Pool = hDDISet->Pool;
+        NativeAPI::D3D12DescriptorHeap* DescriptorHeap = Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ];
+        const UINT                      srvDescriptorSize =
+            m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
+        (void)srvDescriptorSize;
+        (void)DescriptorHeap;
+
+        for( auto& Binding: Info.vRTs )
+        {
+            (void)Binding;
+            /*NativeAPI::D3D12DescriptorHeap* DescriptorHeap = hDDISet->Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
+            VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
+            Binding.ahHandles;
+            Binding.binding;
+            Binding.count;
+            Binding.type;*/
+
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        // Texture is meant to be write
+        for( auto& Binding: Info.vTexs )
+        {
+            
+            VKE_ASSERT( Binding.type != BindingTypes::STORAGE_TEXTURE );
+
+            if( Binding.count == 1 )
+            {
+                const auto                       pTexture   = m_pCtx->GetTexture( Binding.ahHandles[ 0 ] );
+                const auto                       pTexView   = pTexture->GetView();
+                const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
+                D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
+                UavDesc.Format        = pTexture->GetDDIObject()->GetDesc().Format; /// TODO: handle typeless format
+                UavDesc.ViewDimension = Map::DimmensionToUAVDimmension( pTexture->GetDDIObject()->GetDesc().Dimension );
+                Helper::InitUAVDesc( NativeDesc, &UavDesc );
+            }
+            else
+            {
+                for( uint32_t i = 0; i < Binding.count; ++i )
+                {
+                    D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
+                    const auto                       pTexture = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
+                    const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
+                    Helper::InitUAVDesc( NativeDesc, &UavDesc );
+                }
+            }
+            
+        }
+
+        for( auto& Binding: Info.vTexViews )
+        {
+            /*if( Binding.count == 1 )
+            {
+                const auto  pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ 0 ] );
+                const auto& TexViewDesc = pTexView->GetDesc();
+                const auto  pNativeView = pTexView->GetDDIObject();    
+            }
+            else
+            {
+                for( uint32_t i = 0; i < Binding.count; ++i )
+                {
+                    const auto  pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
+                    const auto& TexViewDesc = pTexView->GetDesc();
+                    const auto  pNativeView = pTexView->GetDDIObject();
+
+                    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                }
+            }*/
+            (void)Binding;
+        }
+
+        for( auto& Binding: Info.vSamplers )
+        {
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        for( auto& Binding: Info.vBuffers )
+        {
+            (void)Binding;
+            /*auto& Map  = Pool->vPartitionMap[ Binding.type ];
+
+            NativeAPI::D3D12DescriptorHeap* DescriptorHeap = Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ];
+            UINT DescriptorSize = m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
+            uint32_t BaseOffset = Map.Offset * DescriptorSize;
+
+            VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
+
+            auto pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ 0 ] );
+
+            if( Binding.type == BindingTypes::CONSTANT_BUFFER || Binding.type == BindingTypes::DYNAMIC_CONSTANT_BUFFER )
+            {
+                for( uint32_t i = 0; i < Binding.count; i++ )
+                {
+                    auto& BufferHandle = Binding.ahHandles[ i ];
+
+                    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+                    cbvDesc.BufferLocation =
+                        m_pCtx->GetBuffer( BufferHandle )->GetDDIObject()->GetGPUVirtualAddress() + Binding.offset;
+                    cbvDesc.SizeInBytes = Binding.range;
+
+                    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle  = DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                    cpuHandle.ptr                         += BaseOffset + ( Binding.binding * DescriptorSize );
+                    m_hDevice->CreateConstantBufferView( &cbvDesc, cpuHandle );
+                }
+            }
+            else if( Binding.type == BindingTypes::READ_ONLY_TEXEL_BUFFER ||
+                     Binding.type == BindingTypes::READ_WRITE_TEXEL_BUFFER )
+            {
+                UNIMPLEMENTED_D3D12_METHOD();
+            }
+            else
+            {
+                VKE_LOG_ERR( "CDDI::Update: Unsupported buffer binding type." );
+            }*/
+        }
+    }
+
+    void CDDI::Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -1886,39 +2330,6 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    Result CDDI::AllocateObjects( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
-    {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
-
-        for( uint32_t LayoutIndex = 0; LayoutIndex < Info.count; LayoutIndex++ )
-        {
-            const NativeAPI::DescriptorSetLayout& layout = Info.phLayouts[ LayoutIndex ];
-            (void)layout;
-
-            NativeAPI::DescriptorSet& CurrentSet = pSets[ LayoutIndex ];
-            Memory::CreateObject( &HeapAllocator, &CurrentSet );
-
-            CurrentSet->Pool = Info.hPool;
-
-            // for( auto& range: layout->vDescriptorRanges )
-            //{
-            //     // Check which descriptor heap will be used for this range and assign it to the descriptor set.
-            //     auto& HeapMap  = Info.hPool->aMap[ range.RangeType ];
-
-            //    D3D12_DESCRIPTOR_HEAP_TYPE HeapType = Map::GetDescriptorHeapType( range.RangeType );
-
-            //    CurrentSet->Heaps[ HeapType ] = Info.hPool->Heaps[ HeapType ];
-            //}
-        }
-
-        return Result::OK;
-    }
-
-    void CDDI::FreeObjects( const FreeDescs::SDescSet& )
-    {
-        UNIMPLEMENTED_D3D12_METHOD();
-    }
-
     Result CDDI::AllocateObjects( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers )
     {
         Result result = VKE_OK;
@@ -2020,10 +2431,10 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CDDI::Bind( const SBindRenderPassInfo& Info )
+    /*void CDDI::Bind( const SBindRenderPassInfo& Info )
     {
         UNIMPLEMENTED_D3D12_METHOD();
-    }
+    }*/
 
     void CDDI::Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
                      const uint32_t offset )
@@ -2048,97 +2459,6 @@ namespace VKE::RenderSystem
     }
 
     void CDDI::Free( NativeAPI::Memory* phMemory, const void* )
-    {
-        UNIMPLEMENTED_D3D12_METHOD();
-    }
-
-    void CDDI::Update( const SUpdateBufferDescriptorSetInfo& Info )
-    {
-        UNIMPLEMENTED_D3D12_METHOD();
-    }
-
-    void CDDI::Update( const SUpdateTextureDescriptorSetInfo& Info )
-    {
-        UNIMPLEMENTED_D3D12_METHOD();
-    }
-
-    void CDDI::Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
-    {
-        VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() == 0,
-                     "CDDI::Update: Sampler and texture heaps are not supported in DX12" );
-
-        for( auto& Binding: Info.vRTs )
-        {
-            NativeAPI::D3D12DescriptorHeap* DescriptorHeap = hDDISet->Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
-            VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
-            Binding.ahHandles;
-            Binding.binding;
-            Binding.count;
-            Binding.type;
-
-            UNIMPLEMENTED_D3D12_METHOD();
-        }
-
-        for( auto& Binding: Info.vTexs )
-        {
-            (void)Binding;
-            UNIMPLEMENTED_D3D12_METHOD();
-        }
-
-        for( auto& Binding: Info.vTexViews )
-        {
-            (void)Binding;
-            UNIMPLEMENTED_D3D12_METHOD();
-        }
-
-        for( auto& Binding: Info.vSamplers )
-        {
-            (void)Binding;
-            UNIMPLEMENTED_D3D12_METHOD();
-        }
-
-        for( auto& Binding: Info.vBuffers )
-        {
-            auto& Pool = hDDISet->Pool;
-            auto& Map  = Pool->vPartitionMap[ Binding.type ];
-
-            NativeAPI::D3D12DescriptorHeap* DescriptorHeap = Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ];
-            UINT DescriptorSize = m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
-            uint32_t BaseOffset = Map.Offset * DescriptorSize;
-
-            VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
-
-            auto pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ 0 ] );
-
-            if( Binding.type == BindingTypes::CONSTANT_BUFFER || Binding.type == BindingTypes::DYNAMIC_CONSTANT_BUFFER )
-            {
-                for( uint32_t i = 0; i < Binding.count; i++ )
-                {
-                    auto& BufferHandle = Binding.ahHandles[ i ];
-
-                    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-                    cbvDesc.BufferLocation =
-                        m_pCtx->GetBuffer( BufferHandle )->GetDDIObject()->GetGPUVirtualAddress() + Binding.offset;
-                    cbvDesc.SizeInBytes = Binding.range;
-
-                    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle  = DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-                    cpuHandle.ptr                         += BaseOffset + ( Binding.binding * DescriptorSize );
-                    m_hDevice->CreateConstantBufferView( &cbvDesc, cpuHandle );
-                }
-            }
-            else if( Binding.type == BindingTypes::READ_ONLY_TEXEL_BUFFER ||
-                     Binding.type == BindingTypes::READ_WRITE_TEXEL_BUFFER )
-            {
-                UNIMPLEMENTED_D3D12_METHOD();
-            }
-            else
-            {
-                VKE_LOG_ERR( "CDDI::Update: Unsupported buffer binding type." );
-            }
-        }
-    }
-
-    void CDDI::Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -2359,7 +2679,12 @@ namespace VKE::RenderSystem
             vRenderTargetsDescs.GetCount(), vRenderTargetsDescs.GetData(), &DepthStencilDesc, Flags );
     }
 
-    void CDDI::EndRenderPass( NativeAPI::CommandBuffer pCommandBuffer )
+    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo& )
+    {
+
+    }
+
+    void CDDI::EndRenderPass( NativeAPI::CommandBuffer pCommandBuffer, NativeAPI::RenderPass )
     {
         pCommandBuffer->EndRenderPass();
     }
@@ -2691,21 +3016,21 @@ namespace VKE::RenderSystem
             case ApiObjectTypes::TEXTURE:
                 ( (NativeAPI::Texture)handle )->SetName( buffer );
                 break;
-            case ApiObjectTypes::BUFFER_VIEW:
+            /*case ApiObjectTypes::BUFFER_VIEW:
                 ( (NativeAPI::BufferView)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::TEXTURE_VIEW:
                 ( (NativeAPI::BufferView)handle )->SetName( buffer );
-                break;
+                break;*/
             case ApiObjectTypes::PIPELINE_LAYOUT:
                 ( (NativeAPI::PipelineLayout)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::PIPELINE:
                 ( (NativeAPI::Pipeline)handle )->SetName( buffer );
                 break;
-            case ApiObjectTypes::DESCRIPTOR_SET:
+           /* case ApiObjectTypes::DESCRIPTOR_SET:
                 ( (NativeAPI::DescriptorSet)handle )->SetName( buffer );
-                break;
+                break;*/
             case ApiObjectTypes::FRAMEBUFFER:
                 ( (NativeAPI::Framebuffer)handle )->SetName( buffer );
                 break;

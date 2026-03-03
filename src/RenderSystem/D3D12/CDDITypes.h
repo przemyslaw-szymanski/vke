@@ -111,49 +111,75 @@ namespace VKE::RenderSystem
                 wstr_t m_pName;
             };
 
+            template<typename ChunkSizeT>
+            struct SSlotPool
+            {
+                using ChunkType = Utils::TCBitset<ChunkSizeT>;
+                using ChunkArray = Utils::TCDynamicArray< ChunkType >;
+                using UintArray = Utils::TCDynamicArray< uint32_t >;
+                static constexpr uint32_t   BitsPerChunk = sizeof( ChunkSizeT ) * 8;
+                static constexpr ChunkSizeT AllBitsSet   = std::numeric_limits< ChunkSizeT >::max();
+
+                ChunkArray vBitPool;
+                ChunkArray vFreeBitIndices;
+
+                handle_t AllocateSlots( uint32_t numSlots )
+                {
+                    // Find enouth space to allocate
+                    for( uint32_t i = 0; i < vFreeBitIndices.GetCount(); ++i )
+                    {
+                        // Get absolute bit index
+                        auto idx = vFreeBitIndices[ i ];
+                        // Get chunk index
+                        auto  chunkIdx = idx / BitsPerChunk;
+                        auto  bitIndexInChunk = idx % BitsPerChunk;
+                        auto& Chunk = vBitPool[ chunkIdx ];
+                        bool  bitAllocated    = Chunk.IsBitSet( bitIndexInChunk );
+                        uint32_t numFreeSlots    = !bitAllocated;
+
+                        while( !bitAllocated )
+                        {
+                            if( ++bitIndexInChunk < BitsPerChunk )
+                            {
+                                // Bit allocated
+                                bitAllocated = Chunk.IsBitSet( bitIndexInChunk );
+                                // Add free slots if bit is not set to 1
+                                numFreeSlots += !bitAllocated;
+                            }
+                            else
+                            {
+                                // If current bit index is higher than num bits in chunk move to next chunk
+                                Chunk = vBitPool[ ++chunkIdx ];
+                                // Check if while chunk is allocated
+                                bitAllocated = Chunk.Get() == AllBitsSet;
+                            }
+                        }
+                        if( numFreeSlots >= numSlots )
+                        {
+                            break;
+                        }
+                    }
+                }
+            };
+
             struct SDescriptorPool
             {
-                struct SDescriptorPoolPartition
-                {
-                    uint8_t  HeapType;
-                    uint32_t Offset;
-                    uint32_t Count;
-                };
-
+                using RangeArray = Utils::TCDynamicArray<ExtentU32, 1>;
                 NativeAPI::D3D12DescriptorHeap* Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
-
-                Utils::TCDynamicArray< SDescriptorPoolPartition, 1 > vPartitionMap;
-
-                SDescriptorPool() : Heaps{ NativeAPI::Null }
-                {
-                }
-
-                void SetName( cwstr_t pName )
-                {
-                    m_pName = pName;
-                }
-
-            protected:
-                wstr_t m_pName;
+                RangeArray                      avFreeRanges[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
             };
 
             struct SDescriptorSet
             {
                 SDescriptorPool* Pool;
-
-                void SetName( cwstr_t pName )
-                {
-                    m_pName = pName;
-                }
-
-            protected:
-                wstr_t m_pName;
+                ExtentU32        aUsedSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = { { UNDEFINED_U32 } };
             };
 
             struct SDescriptorSetLayout
             {
                 Utils::TCDynamicArray< D3D12_DESCRIPTOR_RANGE1, 32 > vDescriptorRanges;
                 NativeAPI::D3D12RootParameter                        RootParameter;
+                uint16_t                                             aNumSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];                
             };
 
             struct SCommandQueue
@@ -164,17 +190,22 @@ namespace VKE::RenderSystem
                 SGPUFence                     GpuFence;
             };
 
-            struct SResourceViews
+            struct ResourceViewTypes
             {
-                D3D12_CPU_DESCRIPTOR_HANDLE ShaderResourceView  = {};
-                D3D12_CPU_DESCRIPTOR_HANDLE UnorderedAccessView = {};
-                D3D12_CPU_DESCRIPTOR_HANDLE RenderTargetView    = {};
-                D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView    = {};
-
-                void SetName( cwstr_t pName )
+                enum TYPE
                 {
-                    // stub function for now
-                }
+                    SRV,
+                    UAV,
+                    RTV,
+                    DSV,
+                    _MAX_COUNT
+                };
+            };
+
+            struct SResourceView
+            {
+                D3D12_SHADER_RESOURCE_VIEW_DESC  aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = {};
+                D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
             };
 
         } // namespace CustomTypes
@@ -237,8 +268,8 @@ namespace VKE::RenderSystem
         using Sampler               = void*;
         using RenderPass            = ID3D12Object*;
         using CommandBuffer         = D3D12GraphicsCommandList*;
-        using TextureView           = CustomTypes::SResourceViews*;
-        using BufferView            = CustomTypes::SResourceViews*;
+        using TextureView           = CustomTypes::SResourceView*;
+        using BufferView            = CustomTypes::SResourceView*;
         using CPUFence              = CustomTypes::SCPUFence*;
         using GPUFence              = CustomTypes::SGPUFence*;
         using Device                = D3D12Device*;
@@ -384,7 +415,7 @@ namespace VKE::RenderSystem
             {
                 if( !m_IsInitialized )
                 {
-                    m_ViewDescriptorPool.Create( 100, sizeof( CustomTypes::SResourceViews ), 1 );
+                    m_ViewDescriptorPool.Create( 100, sizeof( CustomTypes::SResourceView ), 1 );
                 }
 
                 return m_ViewDescriptorPool;

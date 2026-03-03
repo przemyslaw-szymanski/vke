@@ -110,7 +110,7 @@ namespace VKE::RenderSystem
             return m_state;
         }
 
-        TextureViewRefPtr  GetView();
+        TextureViewRefPtr  GetView() const;
         SamplerRefPtr      GetSampler();
         NativeAPI::Sampler GetDDISampler();
 
