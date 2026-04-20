@@ -2,7 +2,7 @@
   "configurations": [
     {
       "name": "D3D12-x64-Debug",
-      "generator": "Visual Studio 17 2022 Win64",
+      "generator": "Ninja",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
@@ -35,7 +35,7 @@
     },
     {
       "name": "VK-x64-Debug",
-      "generator": "Visual Studio 17 2022 Win64",
+      "generator": "Ninja",
       "configurationType": "Debug",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",

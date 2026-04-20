@@ -105,6 +105,16 @@ if(VKE_RENDER_SYSTEM_D3D12)
     find_package(directx12-agility CONFIG REQUIRED)
     find_package(winpixevent CONFIG REQUIRED)
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::WinPixEventRuntime)
+
+    set(_AGILITY_BIN_DIR     "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
+    set(_AGILITY_DBG_BIN_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/bin")
+
+    # D3D12Core.dll exists in both bin/ and debug/bin; pick by config at build time.
+    # d3d12SDKLayers.dll only ships in debug/bin, so it is only copied for Debug builds.
+    set(D3D12_AGILITY_DLLS
+        "$<IF:$<CONFIG:Debug>,${_AGILITY_DBG_BIN_DIR},${_AGILITY_BIN_DIR}>/D3D12Core.dll"
+        "$<$<CONFIG:Debug>:${_AGILITY_DBG_BIN_DIR}/d3d12SDKLayers.dll>"
+    )
 endif()
 
 message("Third Party Libs:")
@@ -147,6 +157,17 @@ foreach(DLL_PATH IN LISTS DLL_DEPENDENCIES)
         "${DLL_PATH}"
         $<TARGET_FILE_DIR:vkEngine>)
 endforeach()
+
+if(VKE_RENDER_SYSTEM_D3D12)
+    foreach(DLL_PATH IN LISTS D3D12_AGILITY_DLLS)
+        add_custom_command(TARGET vkEngine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:vkEngine>/D3D12"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${DLL_PATH}"
+            "$<TARGET_FILE_DIR:vkEngine>/D3D12")
+    endforeach()
+endif()
 
 target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngineScene ${LINK_LIBS})
 include(LinkSettings.cmake NO_POLICY_SCOPE)
