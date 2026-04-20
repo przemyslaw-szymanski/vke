@@ -476,6 +476,11 @@ namespace VKE::RenderSystem
             if( ( Usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET ) )
             {
                 Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+                if( ( Usage & TextureUsages::SAMPLED ) == 0 )
+                {
+                    Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+                }
             }
             else
             {
@@ -492,11 +497,6 @@ namespace VKE::RenderSystem
                 {
                     Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
                 }
-            }
-
-            if( ( Usage & TextureUsages::SAMPLED ) == 0 )
-            {
-                Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
             }
 
             return Flags;
@@ -1459,8 +1459,16 @@ namespace VKE::RenderSystem
         }
         else
         {
-            VKE_LOG( std::format( "CDDI::CreateResource: Placed resource created at GPU VA: {}",
-                                  pResource->GetGPUVirtualAddress() ) );
+            if( ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER )
+            {
+                VKE_LOG( std::format( "CDDI::CreateResource: Placed resource created at GPU VA: {}",
+                                      pResource->GetGPUVirtualAddress() ) );
+            }
+            else
+            {
+                VKE_LOG( std::format( "CDDI::CreateResource: Placed resource created in heap: {:#018x} at offset: {:#010x}",
+                                      reinterpret_cast< uint64_t >( MemInfo.hDDIMemory ), MemInfo.offset ) );
+            }
         }
 
         return pResource;
@@ -1839,7 +1847,7 @@ namespace VKE::RenderSystem
 
     NativeAPI::RenderPass CDDI::CreateRenderPass( const SRenderPassDesc& Desc, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        // UNIMPLEMENTED_D3D12_METHOD();
         return NativeAPI::Null;
     }
 
