@@ -1737,7 +1737,7 @@ namespace VKE::RenderSystem
             return cValues[ dim ];
         }
 
-        D3D12_DESCRIPTOR_HEAP_TYPE ToDescriptorHeapType( RenderSystem::DESCRIPTOR_POOL_TYPE type )
+        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorPoolTypeToDescriptorHeapType( RenderSystem::DESCRIPTOR_POOL_TYPE type )
         {
             /*
             struct DescriptorPoolTypes
@@ -1893,8 +1893,18 @@ namespace VKE::RenderSystem
 
     NativeAPI::RenderPass CDDI::CreateRenderPass( const SRenderPassDesc& Desc, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-        return NativeAPI::Null;
+        NativeAPI::RenderPass pPass;
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPass ) ) )
+        {
+            VKE_LOG_ERR( "Unable to allocate memory for RenderPass: " << Desc.Name );
+            return NativeAPI::Null;
+        }
+        for( uint32_t r = 0; r < Desc.vRenderTargetDescs.GetCount(); ++r )
+        {
+            const auto& RTDesc = Desc.vRenderTargetDescs[ r ];
+            
+        }
+        return pPass;
     }
 
     void CDDI::DestroyRenderPass( NativeAPI::RenderPass* pInOut, const void* pAllocator )

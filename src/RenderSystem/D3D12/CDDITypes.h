@@ -180,6 +180,13 @@ namespace VKE::RenderSystem
                 D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
             };
 
+            struct SRenderPass
+            {
+                D3D12_CPU_DESCRIPTOR_HANDLE aColorRenderTargets[ Config::RenderSystem::RenderTarget::MAX_COUNT ];
+                D3D12_CPU_DESCRIPTOR_HANDLE hDepthStencilRenderTarget;
+                uint32_t                    colorRenderTargetCount;
+            };
+
         } // namespace CustomTypes
 
         struct SClearValue : D3D12_CLEAR_VALUE
@@ -238,7 +245,7 @@ namespace VKE::RenderSystem
         using Pipeline              = D3D12PipelineState*;
         using Texture               = D3D12Resource*;
         using Sampler               = void*;
-        using RenderPass            = ID3D12Object*;
+        using RenderPass            = CustomTypes::SRenderPass*;
         using CommandBuffer         = D3D12GraphicsCommandList*;
         using TextureView           = CustomTypes::SResourceView*;
         using BufferView            = CustomTypes::SResourceView*;
