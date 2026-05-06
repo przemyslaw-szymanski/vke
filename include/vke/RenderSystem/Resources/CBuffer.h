@@ -140,14 +140,7 @@ namespace VKE
             VKE_DECL_BASE_OBJECT( BufferHandle );
             VKE_DECL_BASE_RESOURCE();
 
-            struct SRegion
-            {
-                uint32_t offset;
-                uint32_t size;
-                uint32_t elemSize; // includes size requested and required alignment
-            };
-
-            using RegionArray = Utils::TCDynamicArray< SRegion, 8 >;
+            using RegionArray = Utils::TCDynamicArray< SBufferRegion, 8 >;
 
             enum
             {
@@ -165,7 +158,7 @@ namespace VKE
 
             uint32_t GetSize() const
             {
-                return m_Desc.size;
+                return m_size;
             }
 
             const SBufferDesc& GetDesc() const
@@ -193,19 +186,19 @@ namespace VKE
             /// <returns></returns>
             uint32_t CalcRelativeOffset( const uint16_t& region, const uint32_t& elemIdx ) const;
 
-            uint32_t GetRegionElementSize( const uint16_t& region ) const
+            const SBufferRegion& GetRegion( const uint16_t& region ) const
             {
-                return m_vRegions[ region ].elemSize;
+                return m_Desc.vRegions[ region ];
             }
 
             uint32_t GetRegionSize( const uint16_t& region ) const
             {
-                return m_vRegions[ region ].size;
+                return m_Desc.vRegions[ region ].elementCount * m_Desc.vRegions[ region ].elementSize;
             }
 
             uint32_t GetRegionCount() const
             {
-                return m_vRegions.GetCount();
+                return m_Desc.vRegions.GetCount();
             }
 
             handle_t GetMemory() const
@@ -243,9 +236,10 @@ namespace VKE
             CBufferManager*      m_pMgr;
             handle_t             m_hMemory;
             SResourceBindingInfo m_ResourceBindingInfo;
+            uint32_t             m_size      = 0;
             uint16_t             m_alignment      = 1;
+            uint16_t             pad0;
             CBuffer*             m_pStagingBuffer = nullptr;
-            RegionArray          m_vRegions;
         };
 
         using BufferPtr    = Utils::TCWeakPtr< CBuffer >;

@@ -115,7 +115,7 @@ namespace VKE
                 SetDesc.hPool     = Pool.hDDIObject;
                 SetDesc.phLayouts = &Layout.hDDILayout;
                 SetDesc.SetDebugName( Desc.GetDebugName() );
-                Result res = m_pCtx->NativeAPI().AllocateObjects( SetDesc, &hDDISet );
+                Result res = m_pCtx->NativeAPI().CreateDescriptorSets( SetDesc, &hDDISet );
                 if( VKE_SUCCEEDED( res ) )
                 {
                     SDescriptorSet Set;
@@ -134,7 +134,7 @@ namespace VKE
                 {
                     // Create new pool
                     auto hTmpPool = CreatePool( m_DefaultPoolDesc );
-                    res           = m_pCtx->NativeAPI().AllocateObjects( SetDesc, &hDDISet );
+                    res           = m_pCtx->NativeAPI().CreateDescriptorSets( SetDesc, &hDDISet );
 
                     if( VKE_SUCCEEDED( res ) )
                     {

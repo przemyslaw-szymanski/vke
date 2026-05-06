@@ -32,7 +32,7 @@ namespace VKE
             };
         };
 
-        using LoggerModeFlags = Utils::TCBitset< LOGGER_MODE_FLAGS >;
+        using LoggerModeFlags = TCBitset< LOGGER_MODE_FLAGS >;
 
         class VKE_API CLogger
         {
@@ -334,6 +334,14 @@ namespace VKE
         VKE_LOGGER_END;                                                                                                \
     }                                                                                                                  \
     while( 0, 0 )
+#define VKE_LOGGER_LOGF( _type, _msg, ... )                                                                            \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        VKE_LOGGER_BEGIN( _type );                                                                                     \
+        VKE_LOGGER << std::format( _msg, __VA_ARGS__ );                                                                \
+        VKE_LOGGER_END;                                                                                                \
+    }                                                                                                                  \
+    while( 0, 0 )
 #define VKE_LOGGER_LOG_NO_SYNC( _type, _msg )                                                                          \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -344,6 +352,7 @@ namespace VKE
     while( 0, 0 )
 #define VKE_LOGGER_LOG_BEGIN VKE_LOGGER_BEGIN( "[INFO]" )
 #define VKE_LOGGER_LOG_ERROR( _err, _msg ) VKE_LOGGER_LOG( "[ERROR]", _msg )
+#define VKE_LOGGER_LOG_ERRORF( _err, _msg, ... ) VKE_LOGGER_LOGF( "[ERROR]", _msg, __VA_ARGS__ )
 #define VKE_LOGGER_LOG_WARNING( _msg ) VKE_LOGGER_LOG( "[WARNING]", _msg )
 #define VKE_LOGGER_SIZE_MB( _bytes ) ( (float)( _bytes ) / 1024 / 1024 ) << " MB"
 #define VKE_LOG_MEM_SIZE( _bytes ) ( _bytes ) << " bytes (" << (float)( ( _bytes ) / 1024 / 1024 ) << " MB)"
@@ -364,8 +373,12 @@ namespace VKE
 #define VKE_LOG_ERR( _msg )                                                                                            \
     VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg );                                                                            \
     VKE_ASSERT( 0 )
+#define VKE_LOG_ERRF( _msg, ... )                                                                                      \
+    VKE_LOGGER_LOG_ERRORF( VKE_FAIL, _msg, __VA_ARGS__ );                                                              \
+    VKE_ASSERT( 0 )
 #else
 #define VKE_LOG_ERR( _msg ) VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg )
+#define VKE_LOG_ERRF( _msg, ... ) VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg, __VA_ARGS__ )
 #endif // VKE_LOG_ERR_ENABLE
 #else
 #define VKE_LOG_ERR( _msg )

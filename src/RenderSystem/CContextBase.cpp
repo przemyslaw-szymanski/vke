@@ -64,16 +64,6 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddBinding( const SSamplerTextureBinding& Binding )
-        {
-            SDescriptorSetLayoutDesc::SBinding BindInfo;
-            BindInfo.count  = Binding.count;
-            BindInfo.idx    = Binding.index;
-            BindInfo.stages = Binding.stages;
-            BindInfo.type   = BindingTypes::SAMPLER_AND_TEXTURE;
-            LayoutDesc.vBindings.PushBack( BindInfo );
-        }
-
         void SCreateBindingDesc::AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
@@ -132,16 +122,6 @@ namespace VKE
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::SAMPLER;
-            LayoutDesc.vBindings.PushBack( BindInfo );
-        }
-
-        void SCreateBindingDesc::AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages )
-        {
-            SDescriptorSetLayoutDesc::SBinding BindInfo;
-            BindInfo.count  = 1;
-            BindInfo.idx    = index;
-            BindInfo.stages = stages;
-            BindInfo.type   = BindingTypes::SAMPLER_AND_TEXTURE;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 

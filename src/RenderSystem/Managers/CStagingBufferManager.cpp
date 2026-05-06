@@ -171,8 +171,7 @@ namespace VKE
                 BufferDesc.Create.stages      = Core::ResourceStages::FULL_LOAD;
                 BufferDesc.Buffer.memoryUsage = MemoryUsages::STAGING | MemoryUsages::BUFFER;
                 BufferDesc.Buffer.usage       = BufferUsages::TRANSFER_SRC;
-                BufferDesc.Buffer.vRegions    = { SBufferRegion( regionCount, bufferSize ) };
-                BufferDesc.Buffer.size        = regionCount * bufferSize;
+                BufferDesc.Buffer.vRegions    = { SBufferRegion( bufferSize, regionCount ) };
                 
 #if VKE_RENDER_SYSTEM_DEBUG
                 char buff[ 128 ];

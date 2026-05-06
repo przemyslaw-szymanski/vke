@@ -227,7 +227,7 @@ namespace VKE
                 Info.count    = count;
                 Info.hDDIPool = pPool->hDDIPool;
                 Info.level    = CommandBufferLevels::PRIMARY;
-                ret           = DDI.AllocateObjects( Info, &vTmps[ 0 ] );
+                ret           = DDI.CreateCommandBuffers( Info, &vTmps[ 0 ] );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     // SSemaphoreDesc SemaphoreDesc;

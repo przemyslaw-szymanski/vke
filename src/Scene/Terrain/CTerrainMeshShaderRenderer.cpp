@@ -87,16 +87,24 @@ namespace VKE::Scene
 
         auto                                pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
         RenderSystem::SUpdateBindingsHelper UpdateInfo;
+        UpdateInfo.AddBinding( 0u,
+                               m_pVertexBuffer->GetRegion(0),
+                               m_pVertexBuffer->GetHandle(),
+                               RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBinding( 1u,
+                               m_pTriangleBuffer->GetRegion(0),
+                               m_pTriangleBuffer->GetHandle(),
+                               RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBinding( 2u,
+                               m_pMeshletBuffer->GetRegion(0),
+                               m_pMeshletBuffer->GetHandle(),
+                               RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBinding( 3u,
+                               m_pTileBuffer->GetRegion(0),
+                               m_pTileBuffer->GetHandle(),
+                               RenderSystem::BindingTypes::BUFFER );
         UpdateInfo.AddBinding(
-            0u, 0u, m_pVertexBuffer->GetSize(), m_pVertexBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            1u, 0u, m_pTriangleBuffer->GetSize(), m_pTriangleBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            2u, 0u, m_pMeshletBuffer->GetSize(), m_pMeshletBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            3u, 0u, m_pTileBuffer->GetSize(), m_pTileBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            4u, 0u, m_pDebugBuffer->GetSize(), m_pDebugBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
+            4u, m_pDebugBuffer->GetRegion( 0 ), m_pDebugBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
         pDevice->UpdateDescriptorSet( UpdateInfo, &m_hTileDescSet );
 
         return ret;
@@ -168,7 +176,8 @@ namespace VKE::Scene
             Desc.Buffer.memoryUsage =
                 RenderSystem::MemoryUsages::STATIC_BUFFER | RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST;
-            Desc.Buffer.size  = bufferSize;
+            //Desc.Buffer.size  = bufferSize;
+            Desc.Buffer.vRegions = { { bufferSize, 1u } };
             Desc.Buffer.SetDebugName( "MeshletBuffer" );
             auto pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
             auto hBuffer = pDevice->CreateBuffer( Desc );
@@ -229,7 +238,7 @@ namespace VKE::Scene
             Desc.Buffer.memoryUsage =
                 RenderSystem::MemoryUsages::STATIC_BUFFER | RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST;
-            Desc.Buffer.size  = bufferSize;
+            Desc.Buffer.vRegions = { { bufferSize, 1 } };
             auto hBuffer      = pDevice->CreateBuffer( Desc );
             if( hBuffer != INVALID_HANDLE )
             {
@@ -238,7 +247,7 @@ namespace VKE::Scene
             }
         }
 
-        if( !m_vTileData.IsEmpty() )
+        if( !m_vTileData.IsEmpty() && m_pTileBuffer.IsValid() )
         {
             RenderSystem::SUpdateMemoryInfo Update;
             Update.dataSize      = sizeof( STileGPUBindingData ) * m_vTileData.GetCount();
@@ -454,14 +463,15 @@ namespace VKE::Scene
         BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
         BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
         BuffDesc.Buffer.usage       = RenderSystem::BufferUsages::BUFFER;
-        BuffDesc.Buffer.size        = vVertices.GetCount() * sizeof( SVertex );
+        //BuffDesc.Buffer.size        = vVertices.GetCount() * sizeof( SVertex );
+        BuffDesc.Buffer.vRegions = { { sizeof( SVertex ), vVertices.GetCount() } };
         BuffDesc.Buffer.SetDebugName( "VertexBuffer" );
         auto hBuffer = ( pCtx->CreateBuffer( BuffDesc ) );
         if( hBuffer != INVALID_HANDLE )
         {
             m_pVertexBuffer = pCtx->GetBuffer( hBuffer );
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
-            UpdateInfo.dataSize      = BuffDesc.Buffer.size;
+            UpdateInfo.dataSize      = BuffDesc.Buffer.CalcSize();
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData         = vVertices.GetData();
 #if VKE_RENDER_SYSTEM_DEBUG
@@ -600,14 +610,15 @@ namespace VKE::Scene
         BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
         BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
         BuffDesc.Buffer.usage       = RenderSystem::BufferUsages::BUFFER;
-        BuffDesc.Buffer.size        = vTriangles.GetCount() * DataSize;
+        //BuffDesc.Buffer.size        = vTriangles.GetCount() * DataSize;
+        BuffDesc.Buffer.vRegions = { RenderSystem::SBufferRegion( DataSize, vTriangles.GetCount() ) };
         BuffDesc.Buffer.SetDebugName( "TriangleBuffer" );
         auto hBuffer = ( pCtx->CreateBuffer( BuffDesc ) );
         if( hBuffer != INVALID_HANDLE )
         {
             m_pTriangleBuffer = pCtx->GetBuffer( hBuffer );
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
-            UpdateInfo.dataSize      = BuffDesc.Buffer.size;
+            UpdateInfo.dataSize      = BuffDesc.Buffer.CalcSize();
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData         = vTriangles.GetData();
 #if VKE_RENDER_SYSTEM_DEBUG
@@ -618,8 +629,9 @@ namespace VKE::Scene
             ret = pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
             if( VKE_SUCCEEDED( ret ) )
             {
-                BuffDesc.Buffer.size =
-                    sizeof( float ) * 4 * m_SubTileDesc.totalMeshletCount * m_TaskDesc.totalSubTileCount;
+                /*BuffDesc.Buffer.size =
+                    sizeof( float ) * 4 * m_SubTileDesc.totalMeshletCount * m_TaskDesc.totalSubTileCount;*/
+                BuffDesc.Buffer.vRegions    = { { sizeof(float)*4, m_SubTileDesc.totalMeshletCount * m_TaskDesc.totalSubTileCount } };
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::CPU_READ | RenderSystem::MemoryUsages::BUFFER;
                 hBuffer                     = pCtx->CreateBuffer( BuffDesc );
                 m_pDebugBuffer              = pCtx->GetBuffer( hBuffer );
@@ -743,7 +755,7 @@ namespace VKE::Scene
         BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
         BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
         BuffDesc.Buffer.usage       = RenderSystem::BufferUsages::BUFFER;
-        BuffDesc.Buffer.size        = vIndices.GetCount() * sizeof( IndexType );
+        BuffDesc.Buffer.vRegions    = { { sizeof( IndexType ), vIndices.GetCount() } };
         BuffDesc.Buffer.SetDebugName( "IndexBuffer" );
         auto pContext = pCmdBuffer->GetContext();
         auto pDevice  = pContext->GetDeviceContext();
@@ -752,7 +764,7 @@ namespace VKE::Scene
         {
             m_pIndexBuffer = pDevice->GetBuffer( hBuffer );
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
-            UpdateInfo.dataSize      = BuffDesc.Buffer.size;
+            UpdateInfo.dataSize      = BuffDesc.Buffer.CalcSize();
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData         = vIndices.GetData();
             ret                      = pContext->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );

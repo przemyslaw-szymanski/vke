@@ -543,7 +543,7 @@ namespace VKE
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateMemory( AllocationInfo, &BindInfo );
 
                     // Update size from requirements.
-                    pBuffer->m_Desc.size = AllocationInfo.size;
+                    //pBuffer->m_Desc.size = AllocationInfo.size;
                     pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
 
                     pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, BindInfo );
@@ -568,20 +568,10 @@ namespace VKE
                 StagingDesc.SetDebugName( std::format( "{}_staging", Desc.GetDebugName() ).data() );
                 StagingDesc.memoryUsage = MemoryUsages::STAGING_BUFFER;
                 StagingDesc.usage       = BufferUsages::UPLOAD;
-                StagingDesc.size        = 0;
-                if( !Desc.vRegions.IsEmpty() )
+                //StagingDesc.size        = 0;
+                for( uint32_t i = 0; i < Desc.stagingBufferRegionCount; ++i )
                 {
-                    for( uint32_t i = 0; i < Desc.stagingBufferRegionCount; ++i )
-                    {
-                        StagingDesc.vRegions.Append( Desc.vRegions );
-                    }
-                }
-                else
-                {
-                    SBufferRegion Region;
-                    Region.elementCount = 1;
-                    Region.elementSize  = Desc.size;
-                    StagingDesc.vRegions.Resize( Desc.stagingBufferRegionCount, Region );
+                    StagingDesc.vRegions.Append( Desc.vRegions );
                 }
                 pBuffer->m_pStagingBuffer = _CreateBufferTask( StagingDesc );
                 VKE_ASSERT2( pBuffer->m_pStagingBuffer != nullptr, "" );

@@ -2,6 +2,7 @@
 
 #if VKE_RENDER_SYSTEM_D3D12
 #include "Core/Memory/CFreeListPool.h"
+#include "Core/Utils/TCBitPool.h"
 
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
@@ -111,76 +112,47 @@ namespace VKE::RenderSystem
                 wstr_t m_pName;
             };
 
-            template<typename ChunkSizeT>
-            struct SSlotPool
-            {
-                using ChunkType = Utils::TCBitset<ChunkSizeT>;
-                using ChunkArray = Utils::TCDynamicArray< ChunkType >;
-                using UintArray = Utils::TCDynamicArray< uint32_t >;
-                static constexpr uint32_t   BitsPerChunk = sizeof( ChunkSizeT ) * 8;
-                static constexpr ChunkSizeT AllBitsSet   = std::numeric_limits< ChunkSizeT >::max();
-
-                ChunkArray vBitPool;
-                ChunkArray vFreeBitIndices;
-
-                handle_t AllocateSlots( uint32_t numSlots )
-                {
-                    // Find enouth space to allocate
-                    for( uint32_t i = 0; i < vFreeBitIndices.GetCount(); ++i )
-                    {
-                        // Get absolute bit index
-                        auto idx = vFreeBitIndices[ i ];
-                        // Get chunk index
-                        auto  chunkIdx = idx / BitsPerChunk;
-                        auto  bitIndexInChunk = idx % BitsPerChunk;
-                        auto& Chunk = vBitPool[ chunkIdx ];
-                        bool  bitAllocated    = Chunk.IsBitSet( bitIndexInChunk );
-                        uint32_t numFreeSlots    = !bitAllocated;
-
-                        while( !bitAllocated )
-                        {
-                            if( ++bitIndexInChunk < BitsPerChunk )
-                            {
-                                // Bit allocated
-                                bitAllocated = Chunk.IsBitSet( bitIndexInChunk );
-                                // Add free slots if bit is not set to 1
-                                numFreeSlots += !bitAllocated;
-                            }
-                            else
-                            {
-                                // If current bit index is higher than num bits in chunk move to next chunk
-                                Chunk = vBitPool[ ++chunkIdx ];
-                                // Check if while chunk is allocated
-                                bitAllocated = Chunk.Get() == AllBitsSet;
-                            }
-                        }
-                        if( numFreeSlots >= numSlots )
-                        {
-                            break;
-                        }
-                    }
-                }
-            };
-
-            struct SDescriptorPool
-            {
-                using RangeArray = Utils::TCDynamicArray<ExtentU32, 1>;
-                NativeAPI::D3D12DescriptorHeap* Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
-                RangeArray                      avFreeRanges[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
-            };
-
-            struct SDescriptorSet
-            {
-                SDescriptorPool* Pool;
-                ExtentU32        aUsedSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = { { UNDEFINED_U32 } };
-            };
-
             struct SDescriptorSetLayout
             {
                 Utils::TCDynamicArray< D3D12_DESCRIPTOR_RANGE1, 32 > vDescriptorRanges;
                 NativeAPI::D3D12RootParameter                        RootParameter;
-                uint16_t                                             aNumSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];                
+                uint16_t                                             aNumSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
             };
+
+            struct SDescriptorPool
+            {
+                using SlotPool = Utils::TCBitPool<uint8_t>;
+                NativeAPI::D3D12DescriptorHeap* pHeap;
+                SlotPool                        SlotMgr;
+                uint32_t                        descriptorSize;
+                Memory::CFreeListPool           DescriptorSetMemMgr;
+                D3D12_DESCRIPTOR_HEAP_TYPE      type;
+            };
+
+            struct SDescriptorSet
+            {
+                uint64_t                       descTableCPUStartAddr;
+                uint64_t                       descTableGPUStartAddr;
+                SDescriptorPool*               pPool;
+                //ExtentU32        aUsedSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = { { UNDEFINED_U32 } };
+                ExtentU32                      PoolSlots = { UNDEFINED_U32 };
+                SDescriptorSetLayout* pLayout;
+
+                D3D12_CPU_DESCRIPTOR_HANDLE GetCpuDescriptorHandle( uint32_t slotIndexOffset ) const
+                {
+                    return { pPool->pHeap->GetCPUDescriptorHandleForHeapStart().ptr +
+                             ( PoolSlots.begin + slotIndexOffset ) * pPool->descriptorSize };
+                }
+
+                D3D12_GPU_DESCRIPTOR_HANDLE GetGpuDescriptorHandle( uint32_t slotIndexOffset ) const
+                {
+                    return { pPool->pHeap->GetGPUDescriptorHandleForHeapStart().ptr +
+                             ( PoolSlots.begin + slotIndexOffset ) * pPool->descriptorSize };
+                }
+                
+            };
+
+            
 
             struct SCommandQueue
             {
@@ -372,6 +344,7 @@ namespace VKE::RenderSystem
                 D3D12_DESCRIPTOR_HEAP_FLAGS     Flags;
                 SIZE_T                          NumDescriptors = 0;
                 SIZE_T                          DescriptorSize;
+                Utils::TCBitPool< uint8_t >     SlootPool;
 
                 bool IsFull() const
                 {
@@ -388,12 +361,23 @@ namespace VKE::RenderSystem
                     return this->Type == InType && this->Flags == InFlags;
                 }
 
-                D3D12_CPU_DESCRIPTOR_HANDLE Reserve()
+                D3D12_CPU_DESCRIPTOR_HANDLE Allocate(uint32_t numDescriptors)
                 {
-                    D3D12_CPU_DESCRIPTOR_HANDLE Handle  = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-                    Handle.ptr                         += NumDescriptors * DescriptorSize;
-                    NumDescriptors++;
+                    uint32_t firstSlotIndex = SlootPool.AllocateSlots( numDescriptors );
+                    D3D12_CPU_DESCRIPTOR_HANDLE Handle         = {};
+                    if( firstSlotIndex != UNDEFINED_U32 )
+                    {
+                        Handle  = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                        Handle.ptr                         += firstSlotIndex * DescriptorSize;
+                        NumDescriptors                      += numDescriptors;
+                    }
                     return Handle;
+                }
+
+                void Free( size_t firstSlotPtr, uint32_t numDescriptors )
+                {
+                    uint32_t firstSlotIndex = static_cast<uint32_t>(firstSlotPtr / DescriptorSize);
+                    SlootPool.FreeSlots( firstSlotIndex, numDescriptors );
                 }
             };
 

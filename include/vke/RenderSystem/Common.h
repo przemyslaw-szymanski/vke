@@ -912,7 +912,6 @@ namespace VKE
             {
                 SAMPLER,             // only sampler
                 TEXTURE,             // only texture without sampler
-                SAMPLER_AND_TEXTURE, // texture with sampler
                 STORAGE_TEXTURE,
                 READ_ONLY_TEXEL_BUFFER,
                 READ_WRITE_TEXEL_BUFFER,
@@ -931,6 +930,53 @@ namespace VKE
         using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
         using DescriptorSetTypes  = BindingTypes;
         using DescriptorSetCounts = uint16_t[ DescriptorSetTypes::_MAX_COUNT ];
+
+        struct DescriptorPoolTypes
+        {
+            enum TYPE
+            {
+                TEXTURE_BUFFER_CBUFFER,
+                SAMPLER,
+                _MAX_COUNT
+            };
+        };
+        using DESCRIPTOR_POOL_TYPE = DescriptorPoolTypes::TYPE;
+
+        vke_force_inline DESCRIPTOR_POOL_TYPE BindingTypeToPoolType( DESCRIPTOR_SET_TYPE bindingType )
+        {
+            /*
+             struct BindingTypes
+        {
+            enum TYPE : uint8_t
+            {
+                SAMPLER,             // only sampler
+                TEXTURE,             // only texture without sampler
+                STORAGE_TEXTURE,
+                READ_ONLY_TEXEL_BUFFER,
+                READ_WRITE_TEXEL_BUFFER,
+                CONSTANT_BUFFER,
+                BUFFER,
+                DYNAMIC_CONSTANT_BUFFER,
+                DYNAMIC_BUFFER,
+                RENDER_TARGET,
+                DEPTH_STENCIL,
+                _MAX_COUNT,
+                UNKNOWN = _MAX_COUNT
+            };
+        };*/
+            static const DESCRIPTOR_POOL_TYPE ascValues[ BindingTypes::_MAX_COUNT ] = {
+                DescriptorPoolTypes::SAMPLER,                // sampler
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // texture
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // storage tex
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // ro tex buff
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // rw tex buff
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // cbuffer
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // buffer
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // dyn cbuffer
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // dyn buffer
+            };
+            return ascValues[ bindingType ];
+        }
 
         struct SResourceBinding
         {
@@ -997,6 +1043,42 @@ namespace VKE
 
             BindingArray vBindings;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+
+            bool IsValid() const
+            {
+                VKE_ASSERT( vBindings.GetCount() > 0 );
+                auto currType = BindingTypeToPoolType( vBindings[ 0 ].type );
+                for( uint32_t i = 1; i < vBindings.GetCount(); ++i )
+                {
+                    const auto newType = BindingTypeToPoolType( vBindings[ i ].type );
+                    if( currType != newType )
+                    {
+                        VKE_LOG_ERRF( "It is not possible to mix different DescriptorPool types: {} and {}", (uint32_t)currType, (uint32_t)newType );
+                        return false;
+                    }
+                }
+                return true;
+            }
+        };
+
+        struct SBufferRegion
+        {
+            SBufferRegion()
+            {
+            }
+
+            SBufferRegion( size_t elemSize, uint32_t elemCount ) : elementSize( (uint32_t)elemSize ),
+                elementCount{ elemCount }
+            {
+            }
+
+            explicit SBufferRegion( size_t elemSize ) : SBufferRegion( elemSize, 1 )
+            {
+            }
+
+            uint32_t elementSize;
+            uint32_t elementCount = 1;
+            uint32_t offset       = 0;
         };
 
         struct SUpdateBindingsHelper
@@ -1013,7 +1095,8 @@ namespace VKE
             struct SBufferBinding : TSBinding< BufferHandle >
             {
                 uint32_t offset;
-                uint32_t range;
+                uint32_t elementSize;
+                uint32_t elementCount;
             };
 
             struct SSamplerAndTextureBinding
@@ -1062,19 +1145,14 @@ namespace VKE
                 vSamplers.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const SamplerHandle* ahSamplers, const TextureViewHandle* ahTexViews,
-                             const uint16_t count )
+
+            void AddBinding( uint8_t binding, const SBufferRegion& BufferRegion,
+                const BufferHandle& hBuffer, BINDING_TYPE type )
             {
-                SSamplerAndTextureBinding Binding;
-                Binding.ahSamplers = ahSamplers;
-                Binding.ahTexViews = ahTexViews;
-                Binding.count      = count;
-                Binding.binding    = binding;
-                Binding.type       = BindingTypes::SAMPLER_AND_TEXTURE;
-                vSamplerAndTextures.PushBack( Binding );
+                AddBinding( binding, BufferRegion.offset, BufferRegion.elementSize, BufferRegion.elementCount, hBuffer, type );
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range, const BufferHandle& hBuffer,
+            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t elementSize, uint32_t elementCount, const BufferHandle& hBuffer,
                              BINDING_TYPE type )
             {
                 SBufferBinding Binding;
@@ -1082,7 +1160,8 @@ namespace VKE
                 Binding.count     = 1;
                 Binding.binding   = binding;
                 Binding.offset    = offset;
-                Binding.range     = range;
+                Binding.elementSize     = elementSize;
+                Binding.elementCount = elementCount;
                 Binding.type      = type;
                 vBuffers.PushBack( Binding );
             }
@@ -2690,19 +2769,6 @@ namespace VKE
 
         using BUFFER_USAGE = uint32_t;
 
-        struct SBufferRegion
-        {
-            SBufferRegion() = default;
-
-            SBufferRegion( const uint32_t& elemCount, const uint32_t& elemSize ) :
-                elementCount{ elemCount }, elementSize{ elemSize }
-            {
-            }
-
-            uint32_t elementCount; // max number of elements
-            uint32_t elementSize;  // size of one element
-        };
-
         struct SBufferDesc
         {
             using BufferRegions = Utils::TCDynamicArray< SBufferRegion, 8 >;
@@ -2710,13 +2776,22 @@ namespace VKE
             MEMORY_USAGE memoryUsage = MemoryUsages::DEFAULT;
             BUFFER_USAGE usage       = BufferUsages::UNDEFINED;
             INDEX_TYPE   indexType;
-            uint32_t     size; // if 0, size is  calculated based on vRegions
             /// <summary>
             /// if stagingBufferRegionCount > 0 then a separate staging buffer will be created
             /// with size = (SBufferDesc::size * stagingBufferRegionCount)
             /// </summary>
             uint32_t      stagingBufferRegionCount = 0;
             BufferRegions vRegions;
+            uint32_t      CalcSize() const
+            {
+                uint32_t ret = 0;
+                for( uint32_t i = 0; i < vRegions.GetCount(); ++i )
+                {
+                    ret += vRegions[ i ].elementCount * vRegions[ i ].elementSize;
+                }
+                VKE_ASSERT( ret > 0 );
+                return ret;
+            }
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -3093,6 +3168,19 @@ namespace VKE
             uint32_t maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
             SizeVec  vPoolSizes;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+
+            bool IsValid() const
+            {
+                // DX12 spec distinguish these resource types
+                Utils::TCBitset< uint8_t > TypeBits   = 0;
+
+                for( uint32_t i = 0; i < vPoolSizes.GetCount(); ++i )
+                {
+                    auto dspType = BindingTypeToPoolType( vPoolSizes[ i ].type );
+                    TypeBits.Add( (uint8_t)dspType );
+                }
+                return TypeBits.CalcSetBitCount() == 1;
+            }
         };
 
         struct ExecuteCommandBufferFlags

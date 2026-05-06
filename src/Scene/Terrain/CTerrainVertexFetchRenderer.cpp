@@ -283,12 +283,13 @@ namespace VKE
             BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
             BuffDesc.Buffer.usage       = RenderSystem::BufferUsages::VERTEX_BUFFER;
-            BuffDesc.Buffer.size        = vVertices.GetCount() * sizeof( SVertex );
+            //BuffDesc.Buffer.size        = vVertices.GetCount() * sizeof( SVertex );
+            BuffDesc.Buffer.vRegions = { { sizeof( SVertex ), vVertices.GetCount() } };
             BuffDesc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_VertexBuffer" );
             m_ahVertexBuffers[ DrawTypes::TRIANGLES ] =
                 HandleCast< RenderSystem::VertexBufferHandle >( pCtx->CreateBuffer( BuffDesc ) );
             RenderSystem::SUpdateMemoryInfo UpdateInfo;
-            UpdateInfo.dataSize      = BuffDesc.Buffer.size;
+            UpdateInfo.dataSize      = BuffDesc.Buffer.CalcSize();
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData         = vVertices.GetData();
             Result ret               = pCommandBuffer->GetContext()->UpdateBuffer(
@@ -554,14 +555,15 @@ namespace VKE
                     BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
                     BuffDesc.Buffer.memoryUsage =
                         RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
-                    BuffDesc.Buffer.size      = vTriIndices.GetCount() * sizeof( IndexType );
+                    //BuffDesc.Buffer.size      = vTriIndices.GetCount() * sizeof( IndexType );
+                    BuffDesc.Buffer.vRegions  = { { sizeof( IndexType ), vTriIndices.GetCount() } };
                     BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
                     BuffDesc.Buffer.SetDebugName( "VKE_Scene_TerrainVertexFetch_IndexBuffer" );
                     BuffDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                     // BuffDesc.Create.pfnCallback = [ & ]( const void*, void* ) {};
                     m_ahIndexBuffers[ DrawTypes::TRIANGLES ] =
                         HandleCast< RenderSystem::IndexBufferHandle >( pCtx->CreateBuffer( BuffDesc ) );
-                    UpdateInfo.dataSize = BuffDesc.Buffer.size;
+                    UpdateInfo.dataSize = BuffDesc.Buffer.CalcSize();
                     UpdateInfo.pData    = vTriIndices.GetData();
                     pCommandBuffer->GetContext()->UpdateBuffer(
                         pCommandBuffer,
@@ -569,10 +571,11 @@ namespace VKE
                         (RenderSystem::BufferHandle*)&m_ahIndexBuffers[ DrawTypes::TRIANGLES ] );
                 }
                 {
-                    BuffDesc.Buffer.size = vQuadIndices.GetCount() * sizeof( IndexType );
+                    //BuffDesc.Buffer.size = vQuadIndices.GetCount() * sizeof( IndexType );
+                    BuffDesc.Buffer.vRegions = { { sizeof( IndexType ), vQuadIndices.GetCount() } };
                     m_ahIndexBuffers[ DrawTypes::QUADS ] =
                         HandleCast< RenderSystem::IndexBufferHandle >( pCtx->CreateBuffer( BuffDesc ) );
-                    UpdateInfo.dataSize = BuffDesc.Buffer.size;
+                    UpdateInfo.dataSize = BuffDesc.Buffer.CalcSize();
                     UpdateInfo.pData    = vQuadIndices.GetData();
                     pCommandBuffer->GetContext()->UpdateBuffer(
                         pCommandBuffer,
@@ -682,8 +685,7 @@ namespace VKE
                         {
                             UpdateInfo.Reset();
                             UpdateInfo.AddBinding( 0,
-                                                   m_pConstantBuffer->CalcAbsoluteOffset( 0, 0 ),
-                                                   m_pConstantBuffer->GetRegionElementSize( 0 ),
+                                                   m_pConstantBuffer->GetRegion( 0 ),
                                                    m_pConstantBuffer->GetHandle(),
                                                    RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                             pDevice->UpdateDescriptorSet( UpdateInfo, &m_ahPerFrameDescSets[ f ] );
@@ -747,8 +749,7 @@ namespace VKE
                 auto&                               hBindings = vTileBindings[ i ];
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
                 UpdateInfo.AddBinding( 0,
-                                       m_pConstantBuffer->CalcAbsoluteOffset( 1, 0 ),
-                                       m_pConstantBuffer->GetRegionElementSize( 1 ),
+                                       m_pConstantBuffer->GetRegion( 1 ),
                                        m_pConstantBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
@@ -778,17 +779,14 @@ namespace VKE
             {
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
                 auto&                               hDescSet = m_ahPerInstancedDrawDescSets[ backBufferIndex ];
-                uint32_t lodRangeSize = m_pInstacingDataBuffer->GetSize() / CTerrainQuadTree::MAX_LOD_COUNT;
-                uint32_t offset       = 0;
+                //uint32_t lodRangeSize = m_pInstacingDataBuffer->GetSize() / CTerrainQuadTree::MAX_LOD_COUNT;
                 UpdateInfo.Reset();
                 UpdateInfo.AddBinding( 0,
-                                       0,
-                                       m_pConstantBuffer->GetSize(),
+                                       m_pConstantBuffer->GetRegion(0),
                                        m_pConstantBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 1,
-                                       offset,
-                                       lodRangeSize,
+                                       m_pInstacingDataBuffer->GetRegion(0),
                                        m_pInstacingDataBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapSampler, 1 );
@@ -949,12 +947,11 @@ namespace VKE
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::BUFFER;
             Desc.Buffer.usage       = RenderSystem::BufferUsages::CONSTANT_BUFFER;
 #if VKE_TERRAIN_INSTANCING_RENDERING
-            Desc.Buffer.size = sizeof( SConstantBuffer );
+            Desc.Buffer.vRegions = { RenderSystem::SBufferRegion( sizeof(SConstantBuffer), 1 ) };
 #else
-            Desc.Buffer.size     = 0;
             Desc.Buffer.vRegions = { // RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerFrameConstantBuffer ) ),
-                                     RenderSystem::SBufferRegion( m_pTerrain->m_TerrainInfo.maxNodeCount,
-                                                                  (uint16_t)sizeof( SPerDrawConstantBufferData ) )
+                                     RenderSystem::SBufferRegion( (uint16_t)sizeof( SPerDrawConstantBufferData ),
+                                                                  m_pTerrain->m_TerrainInfo.maxNodeCount )
             };
 #endif
             Desc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_ConstantBuffer" );
@@ -988,7 +985,7 @@ namespace VKE
             // for( uint32_t i = 0; i < 1; ++i )
             {
                 Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER;
-                Desc.Buffer.size  = 0;
+
                 /*Desc.Buffer.vRegions.Resize(
                     CTerrainQuadTree::MAX_LOD_COUNT,
                     RenderSystem::SBufferRegion( maxTileCountForOneLOD, ( uint16_t )sizeof( SPerDrawConstantBufferData )
@@ -998,7 +995,7 @@ namespace VKE
                 auto maxCount = CTerrainQuadTree::MAX_LOD_COUNT * maxTileCountForOneLOD;
                 maxCount      = m_pTerrain->m_TerrainInfo.maxNodeCount;
                 Desc.Buffer.vRegions.Resize(
-                    1, RenderSystem::SBufferRegion( maxCount, (uint32_t)sizeof( SPerDrawConstantBufferData ) ) );
+                    1, RenderSystem::SBufferRegion( (uint32_t)sizeof( SPerDrawConstantBufferData ), maxCount ) );
                 Desc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_InstancingDataBuffer" );
                 Desc.Buffer.stagingBufferRegionCount = MAX_FRAME_COUNT;
                 hBuffer                              = pCtx->CreateBuffer( Desc );
@@ -1435,7 +1432,7 @@ namespace VKE
                         // VKE_ASSERT2( VKE_SUCCEEDED( res ), "" );
                         Info.instanceCount++;
                         pStagingBufferData++;
-                        sizeWritten += pStagingBuffer->GetRegionElementSize( 0u );
+                        sizeWritten += pStagingBuffer->GetRegion( 0u ).elementSize;
                     }
                     // Add last LOD
                     if( currLod == prevLod && Info.instanceCount > 0 )
@@ -1526,7 +1523,7 @@ namespace VKE
 
                         UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcAbsoluteOffset( 1, i );
                         // UpdateInfo.stagingBufferOffset = m_pConstantBuffer->CalcOffsetInRegion(1u, i);
-                        UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegionElementSize( 1u );
+                        UpdateInfo.dataAlignedSize = m_pConstantBuffer->GetRegion( 1u ).elementSize;
                         UpdateInfo.dataSize        = sizeof( SPerDrawConstantBufferData );
                         UpdateInfo.pSrcData        = &PerDrawData;
 

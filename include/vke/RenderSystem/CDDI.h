@@ -118,9 +118,14 @@ namespace VKE::RenderSystem
         NativeAPI::Event          CreateEvent( const SEventDesc& Desc, const void* );
         void                      DestroyEvent( NativeAPI::Event* phEvent, const void* );
 
-        Result AllocateObjects( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets );
+        Result CreateDescriptorSets( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets );
         void   FreeObjects( const FreeDescs::SDescSet& );
-        Result AllocateObjects( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers );
+        void   Update( const SUpdateBufferDescriptorSetInfo& Info );
+        void   Update( const SUpdateTextureDescriptorSetInfo& Info );
+        void   Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
+        void   Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut );
+
+        Result CreateCommandBuffers( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers );
         void   FreeObjects( const SFreeCommandBufferInfo& );
 
         Result GetBufferMemoryRequirements( const SBufferDesc& Desc, SAllocationMemoryRequirementInfo* pOut );
@@ -141,10 +146,7 @@ namespace VKE::RenderSystem
 
         void Free( NativeAPI::Memory* phMemory, const void* = nullptr );
 
-        void Update( const SUpdateBufferDescriptorSetInfo& Info );
-        void Update( const SUpdateTextureDescriptorSetInfo& Info );
-        void Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
-        void Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut );
+        
 
         Result           Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
         MEMORY_HEAP_TYPE GetMemoryHeapType( MEMORY_USAGE usage ) const;

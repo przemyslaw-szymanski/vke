@@ -457,17 +457,40 @@ namespace VKE
 
             VkDescriptorType DescriptorType( const RenderSystem::DESCRIPTOR_SET_TYPE& type )
             {
-                static const VkDescriptorType aVkDescriptorType[] = { VK_DESCRIPTOR_TYPE_SAMPLER,
-                                                                      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                                      VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                                                      VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                                                      VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-                                                                      VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-                                                                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                                                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-                                                                      VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
-                                                                      VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT };
+                /*
+                struct BindingTypes
+                {
+                    enum TYPE : uint8_t
+                    {
+                        SAMPLER,             // only sampler
+                        TEXTURE,             // only texture without sampler
+                        STORAGE_TEXTURE,
+                        READ_ONLY_TEXEL_BUFFER,
+                        READ_WRITE_TEXEL_BUFFER,
+                        CONSTANT_BUFFER,
+                        BUFFER,
+                        DYNAMIC_CONSTANT_BUFFER,
+                        DYNAMIC_BUFFER,
+                        RENDER_TARGET,
+                        DEPTH_STENCIL,
+                        _MAX_COUNT,
+                        UNKNOWN = _MAX_COUNT
+                    };
+                };
+                */
+                static const VkDescriptorType aVkDescriptorType[BindingTypes::_MAX_COUNT] =
+                {
+                    VK_DESCRIPTOR_TYPE_SAMPLER,
+                    VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                    VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                    VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+                    VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+                };
                 return aVkDescriptorType[ type ];
             }
 
@@ -3561,6 +3584,10 @@ namespace VKE
         NativeAPI::DescriptorSetLayout CDDI::CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc,
                                                                         const void*                     pAllocator )
         {
+            if( !Desc.IsValid() )
+            {
+                return NativeAPI::Null;
+            }
             NativeAPI::DescriptorSetLayout hLayout = NativeAPI::Null;
 
             VkDescriptorSetLayoutCreateInfo ci;
@@ -3780,7 +3807,7 @@ namespace VKE
                     VkDescriptorBufferInfo VkInfo;
                     VkInfo.buffer = m_pCtx->GetBuffer( Curr.ahHandles[ j ] )->GetDDIObject();
                     VkInfo.offset = Curr.offset;
-                    VkInfo.range  = Curr.range;
+                    VkInfo.range  = Curr.elementSize * Curr.elementCount;
                     vVkBuffInfos.PushBack( VkInfo );
                 }
 
@@ -3919,7 +3946,7 @@ namespace VKE
             DDI_DESTROY_OBJECT( Event, phEvent, pAllocator );
         }
 
-        Result CDDI::AllocateObjects( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
+        Result CDDI::CreateDescriptorSets( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
         {
             Result                      ret = VKE_FAIL;
             VkDescriptorSetAllocateInfo ai;
@@ -3960,7 +3987,7 @@ namespace VKE
             m_Implementation.m_ICD.vkFreeDescriptorSets( m_hDevice, Desc.hPool, Desc.count, Desc.phSets );
         }
 
-        Result CDDI::AllocateObjects( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers )
+        Result CDDI::CreateCommandBuffers( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers )
         {
             Result                      ret = VKE_FAIL;
             VkCommandBufferAllocateInfo ai;
@@ -4136,7 +4163,7 @@ namespace VKE
             ci.pQueueFamilyIndices   = nullptr;
             ci.queueFamilyIndexCount = 0;
             ci.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
-            ci.size                  = Desc.size;
+            ci.size                  = Desc.CalcSize();
             ci.usage                 = Convert::BufferUsage( Desc.usage );
             if( Desc.memoryUsage & MemoryUsages::GPU_ACCESS )
             {
