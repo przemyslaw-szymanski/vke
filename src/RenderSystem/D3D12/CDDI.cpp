@@ -1901,7 +1901,7 @@ namespace VKE::RenderSystem
         }
         for( uint32_t r = 0; r < Desc.vRenderTargetDescs.GetCount(); ++r )
         {
-            const auto& RTDesc = Desc.vRenderTargetDescs[ r ];
+            //const auto& RTDesc = Desc.vRenderTargetDescs[ r ];
             
         }
         return pPass;
@@ -1975,7 +1975,7 @@ namespace VKE::RenderSystem
         }
 
         {
-            auto nativePoolType   = Map::ToDescriptorHeapType( poolType );
+            auto nativePoolType   = Map::DescriptorPoolTypeToDescriptorHeapType( poolType );
             pPool->descriptorSize = m_hDevice->GetDescriptorHandleIncrementSize( nativePoolType );
             if( pPool->descriptorSize )
             {
