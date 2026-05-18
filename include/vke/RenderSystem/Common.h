@@ -2658,7 +2658,7 @@ namespace VKE
 
         struct BufferUsages
         {
-            enum BITS
+            enum BITS : uint32_t
             {
                 UNDEFINED       = 0,
                 TRANSFER_SRC    = VKE_BIT( 1 ),
@@ -2673,7 +2673,7 @@ namespace VKE
             };
         };
 
-        using BUFFER_USAGE = uint32_t;
+        using BUFFER_USAGE = BufferUsages::BITS;
 
         struct SBufferRegion
         {
