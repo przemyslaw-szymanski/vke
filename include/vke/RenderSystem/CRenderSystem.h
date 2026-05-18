@@ -4,6 +4,7 @@
 #include "Core/Utils/TCSmartPtr.h"
 
 #include "RenderSystem/Common.h"
+#include "RenderSystem/CommonEnumStrings.h"
 #include "RenderSystem/CDDI.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 

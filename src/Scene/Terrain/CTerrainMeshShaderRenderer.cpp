@@ -167,7 +167,7 @@ namespace VKE::Scene
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Buffer.memoryUsage =
                 RenderSystem::MemoryUsages::STATIC_BUFFER | RenderSystem::MemoryUsages::GPU_ACCESS;
-            Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST;
+            Desc.Buffer.usage = RenderSystem::BUFFER_USAGE( RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST );
             Desc.Buffer.size  = bufferSize;
             Desc.Buffer.SetDebugName( "MeshletBuffer" );
             auto pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
@@ -180,6 +180,7 @@ namespace VKE::Scene
                 UpdateInfo.pData    = vMeshlets.GetData();
                 ret                 = pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
             }
+
         }
         else
         {
@@ -228,7 +229,7 @@ namespace VKE::Scene
             Desc.Buffer.SetDebugName( "MeshShaderTerrainTileData" );
             Desc.Buffer.memoryUsage =
                 RenderSystem::MemoryUsages::STATIC_BUFFER | RenderSystem::MemoryUsages::GPU_ACCESS;
-            Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST;
+            Desc.Buffer.usage = RenderSystem::BUFFER_USAGE( RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST );
             Desc.Buffer.size  = bufferSize;
             auto hBuffer      = pDevice->CreateBuffer( Desc );
             if( hBuffer != INVALID_HANDLE )

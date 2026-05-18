@@ -1197,7 +1197,7 @@ namespace VKE
 
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-            Desc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER | RenderSystem::BufferUsages::INDEX_BUFFER;
+            Desc.Buffer.usage = RenderSystem::BUFFER_USAGE( RenderSystem::BufferUsages::VERTEX_BUFFER | RenderSystem::BufferUsages::INDEX_BUFFER );
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.indexType   = RenderSystem::IndexTypes::UINT16;
             Desc.Buffer.size        = MAX_INSTANCING_DATA_PER_BUFFER * sizeof( SBatch::SVertex ) * vertexCount +

@@ -334,6 +334,14 @@ namespace VKE
         VKE_LOGGER_END;                                                                                                \
     }                                                                                                                  \
     while( 0, 0 )
+#define VKE_LOGGER_LOGF( _type, _fmt, ... )                                                                            \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        VKE_LOGGER_BEGIN( _type );                                                                                     \
+        VKE_LOGGER << std::format( _fmt, __VA_ARGS__ );                                                                \
+        VKE_LOGGER_END;                                                                                                \
+    }                                                                                                                  \
+    while( 0, 0 )
 #define VKE_LOGGER_LOG_NO_SYNC( _type, _msg )                                                                          \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -342,17 +350,29 @@ namespace VKE
         VKE_LOGGER_END_NO_SYNC;                                                                                        \
     }                                                                                                                  \
     while( 0, 0 )
+#define VKE_LOGGER_LOGF_NO_SYNC( _type, _fmt, ... )                                                                    \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        VKE_LOGGER_BEGIN_NO_SYNC( _type );                                                                             \
+        VKE_LOGGER << std::format( _fmt, __VA_ARGS__ );                                                                \
+        VKE_LOGGER_END_NO_SYNC;                                                                                        \
+    }                                                                                                                  \
+    while( 0, 0 )
 #define VKE_LOGGER_LOG_BEGIN VKE_LOGGER_BEGIN( "[INFO]" )
 #define VKE_LOGGER_LOG_ERROR( _err, _msg ) VKE_LOGGER_LOG( "[ERROR]", _msg )
+#define VKE_LOGGER_LOG_ERRORF( _err, _fmt, ... ) VKE_LOGGER_LOGF( "[ERROR]", _fmt, __VA_ARGS__ )
 #define VKE_LOGGER_LOG_WARNING( _msg ) VKE_LOGGER_LOG( "[WARNING]", _msg )
+#define VKE_LOGGER_LOG_WARNINGF( _fmt, ... ) VKE_LOGGER_LOGF( "[WARNING]", _fmt, __VA_ARGS__ )
 #define VKE_LOGGER_SIZE_MB( _bytes ) ( (float)( _bytes ) / 1024 / 1024 ) << " MB"
 #define VKE_LOG_MEM_SIZE( _bytes ) ( _bytes ) << " bytes (" << (float)( ( _bytes ) / 1024 / 1024 ) << " MB)"
 
 #if VKE_LOG_ENABLE
 #define VKE_LOG( _msg ) VKE_LOGGER_LOG( "[INFO]", _msg )
-#define VKE_LOG_NO_SYNC( _msg ) VKE_LOGGER_LOG_NO_SYNC( "[INFO]", _msg )
+#define VKE_LOGF( _fmt, ... ) VKE_LOGGER_LOGF( "[INFO]", _fmt, __VA_ARGS__ )
+#define VKE_LOGF_NO_SYNC( _fmt, ... ) VKE_LOGGER_LOGF_NO_SYNC( "[INFO]", _fmt, __VA_ARGS__ )
 #else
-#define VKE_LOG( _msg )
+#define VKE_LOG( ... )
+#define VKE_LOGF( ... )
 #endif
 #if VKE_DBG_LOG_ENABLE
 #define VKE_DBG_LOG( _msg ) VKE_CODE( VKE_LOGGER.Begin(); VKE_LOGGER << _msg; VKE_LOGGER.Flush(); VKE_LOGGER.End(); )
@@ -364,16 +384,23 @@ namespace VKE
 #define VKE_LOG_ERR( _msg )                                                                                            \
     VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg );                                                                            \
     VKE_ASSERT( 0 )
+#define VKE_LOG_ERRF( _fmt, ... )                                                                                      \
+    VKE_LOGGER_LOG_ERRORF( VKE_FAIL, _fmt, __VA_ARGS__ );                                                              \
+    VKE_ASSERT( 0 )
 #else
 #define VKE_LOG_ERR( _msg ) VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg )
+#define VKE_LOG_ERRF( ... ) VKE_LOGGER_LOG_ERRORF( VKE_FAIL, _fmt, __VA_ARGS__ )
 #endif // VKE_LOG_ERR_ENABLE
 #else
 #define VKE_LOG_ERR( _msg )
+#define VKE_LOG_ERRF( ... )
 #endif
 #if VKE_LOG_WARN_ENABLE
 #define VKE_LOG_WARN( _msg ) VKE_LOGGER_LOG_WARNING( _msg )
+#define VKE_LOG_WARNF( _fmt, ... ) VKE_LOGGER_LOG_WARNINGF( _fmt, __VA_ARGS__ )
 #else
-#define VKE_LOG_WARN( _msg )
+#define VKE_LOG_WARN( ... )
+#define VKE_LOG_WARNF( ... )
 #endif
 
 #define VKE_LOG_RET( _ret, _msg ) VKE_CODE( VKE_LOGGER_LOG_MSG( ( _ret ), _msg ); return ( _ret ); )
