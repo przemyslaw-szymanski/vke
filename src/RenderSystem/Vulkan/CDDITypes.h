@@ -31,6 +31,8 @@ namespace VKE::RenderSystem
     {
         static const decltype( VK_NULL_HANDLE ) Null;
 
+        struct SFence;
+
         using Buffer                = VkBuffer;
         using Pipeline              = VkPipeline;
         using Texture               = VkImage;
@@ -41,6 +43,7 @@ namespace VKE::RenderSystem
         using BufferView            = VkBufferView;
         using CPUFence              = VkFence;
         using GPUFence              = VkSemaphore;
+        using Fence                 = SFence*;
         using Device                = VkDevice;
         using DescriptorPool        = VkDescriptorPool;
         using DescriptorSet         = VkDescriptorSet;
@@ -65,6 +68,7 @@ namespace VKE::RenderSystem
         using QueueFamilyProperties = VkQueueFamilyProperties;
         using DeviceLimits          = VkPhysicalDeviceLimits;
         using Result                = VkResult;
+        using FenceValue = uint64_t;
 
         struct VKE_API SDDIExtension
         {

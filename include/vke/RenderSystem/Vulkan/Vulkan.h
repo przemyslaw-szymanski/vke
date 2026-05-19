@@ -24,17 +24,20 @@ extern "C"
 #endif
 #define VKE_AUTO_ICD 1
 #define VK_EXPORTED_FUNCTION( name ) PFN_##name name
+#define VK_EXPORTED_FUNCTION_KHR( name ) PFN_##name name
 #define VKE_ICD_GLOBAL( name ) VK_EXPORTED_FUNCTION( name )
 #define VKE_INSTANCE_ICD( name ) VK_EXPORTED_FUNCTION( name )
 #define VKE_INSTANCE_EXT_ICD( name ) VK_EXPORTED_FUNCTION( name )
 #define VKE_DEVICE_ICD( name ) VK_EXPORTED_FUNCTION( name )
 #define VKE_DEVICE_EXT_ICD( name ) VK_EXPORTED_FUNCTION( name )
+#define VKE_DEVICE_KHR_ICD( _baseName, _khrName ) PFN_##_khrName _khrName = nullptr
 #define VKE_DECLARE_GLOBAL_ICD 1
 #define VKE_DECLARE_INSTANCE_ICD 1
 #define VKE_DECLARE_DEVICE_ICD 1
 #include "RenderSystem/vulkan/VKEICD.h"
 #undef VKE_DEVICE_ICD
 #undef VKE_DEVICE_EXT_ICD
+#undef VKE_DEVICE_KHR_ICD
 #undef VKE_INSTANCE_ICD
 #undef VKE_INSTANCE_EXT_ICD
 #undef VKE_ICD_GLOBAL

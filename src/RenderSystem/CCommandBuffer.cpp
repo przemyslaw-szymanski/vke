@@ -1140,13 +1140,6 @@ namespace VKE
             ClearStagingBufferAllocations();
         }
 
-        void CCommandBuffer::Sync( CommandBufferPtr pCmdBuffer )
-        {
-            VKE_ASSERT( pCmdBuffer->m_pExecuteBatch != nullptr );
-            VKE_ASSERT( m_pExecuteBatch != pCmdBuffer->m_pExecuteBatch );
-            GetContext()->SyncExecute( pCmdBuffer );
-        }
-
         void CCommandBuffer::SetDebugName( cstr_t pDbgName )
         {
 #if VKE_RENDER_SYSTEM_DEBUG

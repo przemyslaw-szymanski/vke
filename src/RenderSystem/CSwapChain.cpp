@@ -154,15 +154,18 @@ namespace VKE
                             SSemaphoreDesc Desc;
                             SFenceDesc     FenceDesc;
                             Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
-                            FenceDesc.SetDebugName( std::format( "VKE_SwapChain_CPUFence{}", i ).data() );
+                            FenceDesc.SetDebugName( std::format( "VKE_SwapChain_Fence{}", i ).data() );
                             BackBuffer.hDDIPresentImageReadySemaphore =
                                 m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
                             BackBuffer.hDDIQueueFinishedSemaphore =
                                 m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
+                            
+                            InternalBackBuffer.hFence    = m_pCtx->GetDeviceContext()->CreateFence( FenceDesc );
                             if( BackBuffer.hDDIPresentImageReadySemaphore == NativeAPI::Null ||
-                                BackBuffer.hDDIQueueFinishedSemaphore == NativeAPI::Null )
+                                BackBuffer.hDDIQueueFinishedSemaphore == NativeAPI::Null ||
+                                InternalBackBuffer.hFence == NativeAPI::Null )
                             {
                                 ret = VKE_FAIL;
                                 break;
@@ -391,7 +394,7 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
+                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
             // In case when there are more frames rendered than it can be presented
@@ -402,15 +405,71 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
+                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             VKE_ASSERT( VKE_SUCCEEDED( ret ) );
             if( VKE_SUCCEEDED( ret ) )
             {
                 // VKE_LOG( "Acquire with m_qAcquiredBuffers: " << m_qAcquiredBuffers.size()
                 //                                              << " img idx: " << Buffer.swapChainBufferIndex );
-                Buffer.PresentInfo.pSwapChain = this;
-                Buffer.PresentInfo.imageIndex = Buffer.swapChainBufferIndex;
+                m_qAcquiredBuffers.push( m_backBufferIdx );
+                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetDDIObject(),
+                                              Buffer.swapChainBufferIndex );*/
+            }
+            return ret;
+        }
+
+        Result CSwapChain::SwapBuffers( NativeAPI::Fence hFrameFence )
+        {
+            Result ret = VKE_FAIL;
+            while( m_qAcquiredBuffers.size() > m_qPresentFrameFences.size() )
+            {
+                Platform::ThisThread::Pause();
+            }
+            if( !m_qPresentFrameFences.empty() )
+            {
+                m_qPresentFrameFences.pop_front();
+            }
+            const auto& PrevBuffer = m_vInternalBackBufers[ m_backBufferIdx ];
+            (void)PrevBuffer;
+
+            m_backBufferIdx          = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
+            auto& Buffer             = m_vInternalBackBufers[ m_backBufferIdx ];
+            Buffer.hFence            = hFrameFence != NativeAPI::Null ? hFrameFence : Buffer.hFence;
+            // Get new texture present index
+            SDDIGetBackBufferInfo Info;
+            Info.hSignalFence      = Buffer.hFence;
+            Info.waitTimeout     = UINT64_MAX;
+            Info.signalFenceValue  = Buffer.fenceValue++;
+            Buffer.PresentInfo.hWaitForFence = Info.hSignalFence;
+            Buffer.PresentInfo.waitForFenceValue = Info.signalFenceValue;
+            Buffer.PresentInfo.hSwapChain        = this->GetDDIObject();
+            // std::unique_lock<std::mutex> l( m_mutex );
+            //  This sync is workaround of validation error when swapchain is
+            //  used in more threads.
+            //  Present and get next image can be used in parallel.
+
+            {
+                Threads::ScopedLock l( m_SyncObj );
+                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
+            }
+            // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
+            // In case when there are more frames rendered than it can be presented
+            // a driver can return not_ready result as the present surface is still to be
+            // presented. Brute-force query for the surface instead of return fail.
+            /// TODO: implement timeout to not get into endless loop.
+            while( ret == VKE_ENOTREADY )
+            {
+                Threads::ScopedLock l( m_SyncObj );
+                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
+            }
+            VKE_ASSERT( VKE_SUCCEEDED( ret ) );
+            if( VKE_SUCCEEDED( ret ) )
+            {
+                // VKE_LOG( "Acquire with m_qAcquiredBuffers: " << m_qAcquiredBuffers.size()
+                //                                              << " img idx: " << Buffer.swapChainBufferIndex );
                 m_qAcquiredBuffers.push( m_backBufferIdx );
                 /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetDDIObject(),
                                               Buffer.swapChainBufferIndex );*/
@@ -420,13 +479,13 @@ namespace VKE
 
         Result CSwapChain::SwapBuffers()
         {
-            auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
-            return SwapBuffers( Buffer.hGPUFence, NativeAPI::Null );
+            //auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
+            return SwapBuffers( NativeAPI::Null );
         }
 
         TextureRefPtr CSwapChain::GetBackBufferTexture()
         {
-            auto bufferIndex = m_vInternalBackBufers[ m_backBufferIdx ].swapChainBufferIndex;
+            auto bufferIndex = m_vInternalBackBufers[ m_backBufferIdx ].PresentInfo.presentImageIndex;
             // VKE_LOG( "swpchainIdx: " << bufferIndex );
             return m_aSwapChainBuffers[ bufferIndex ].pTexture;
         }
@@ -436,7 +495,7 @@ namespace VKE
             return m_vInternalBackBufers[ m_backBufferIdx ].hGPUFence;
         }
 
-        Result CSwapChain::Present( NativeAPI::GPUFence hWaitOnGPUFence, NativeAPI::CPUFence hFrameFence )
+        Result CSwapChain::Present( const SPresentInfo& Info )
         {
             Result ret = VKE_ENOTREADY;
             if( m_qAcquiredBuffers.size() > 0 )
@@ -445,20 +504,13 @@ namespace VKE
                 m_qAcquiredBuffers.pop();
                 auto& Buffer = m_vInternalBackBufers[ backBufferIndex ];
                 VKE_ASSERT( backBufferIndex == Buffer.index );
-                Buffer.PresentInfo.hDDIWaitSemaphore = hWaitOnGPUFence;
-                // VKE_LOG( "present img idx: " << Buffer.PresentInfo.imageIndex << " push frame fence: " << hFrameFence
-                // );
-                //    This sync is workaround of validation error when swapchain is
-                //   used in more threads.
-                //   Present and get next image can be used in parallel.
+                
                 Threads::ScopedLock l( m_SyncObj );
-                // VKE_LOG( "presentImgIndex: " << Buffer.PresentInfo.imageIndex );
-                /*Platform::Debug::PrintOutput( "Present: %d, %d\n",
-                    hWaitOnGPUFence, Buffer.PresentInfo.imageIndex );*/
+              
                 ret = m_pCtx->Present( Buffer.PresentInfo );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    m_qPresentFrameFences.push_back( hWaitOnGPUFence );
+                    m_qPresentFrameFences.push_back( Info.hWaitForFence );
                 }
             }
             return ret;
