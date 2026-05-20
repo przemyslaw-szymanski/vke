@@ -170,6 +170,16 @@ namespace VKE
         VKE_LOG_WARN( "Unable to load EXT function: " << #_name );                                                     \
     }
 
+#define VKE_EXPORT_KHR_FUNC( _baseName, _khrName, _handle, _getProcAddr )                                                            \
+    if( pOut->_baseName == nullptr ) \
+    {                                                                                                                  \
+        pOut->_baseName = ( PFN_##_khrName )( _getProcAddr( ( _handle ), #_khrName ) ); \
+        if( !pOut->_baseName ) \
+        { \
+            VKE_LOG_WARN( "Unable to load KHR function: " << #_khrName ); \
+        } \
+    }
+
         Result LoadGlobalFunctions( handle_t hLib, VkICD::Global* pOut )
         {
             Result err = VKE_OK;
@@ -207,6 +217,7 @@ namespace VKE
 #include "RenderSystem/Vulkan/VKEICD.h"
 #undef VKE_INSTANCE_ICD
 #undef VKE_INSTANCE_EXT_ICD
+#undef VKE_DEVICE_KHR_ICD
 #else  // VKE_AUTO_ICD
             pOut->vkDestroySurfaceKHR = reinterpret_cast< PFN_vkDestroySurfaceKHR >(
                 Global.vkGetInstanceProcAddr( vkInstance, "vkDestroySurfaceKHR" ) );
@@ -220,11 +231,14 @@ namespace VKE
 #if VKE_AUTO_ICD
 #undef VKE_DEVICE_ICD
 #undef VKE_DEVICE_EXT_ICD
+#undef VKE_DEVICE_KHR_ICD
 #define VKE_DEVICE_ICD( _name ) VKE_EXPORT_FUNC( _name, vkDevice, Instance.vkGetDeviceProcAddr )
-#define VKE_DEVICE_EXT_ICD( _name ) VKE_EXPORT_EXT_FUNC( _name, vkDevice, Instance.vkGetDeviceProcAddr );
+#define VKE_DEVICE_EXT_ICD( _name ) VKE_EXPORT_EXT_FUNC( _name, vkDevice, Instance.vkGetDeviceProcAddr )
+#define VKE_DEVICE_KHR_ICD( _baseName, _khrName ) VKE_EXPORT_KHR_FUNC( _baseName, _khrName, vkDevice, Instance.vkGetDeviceProcAddr )
 #include "RenderSystem/Vulkan/VKEICD.h"
 #undef VKE_DEVICE_ICD
 #undef VKE_DEVICE_EXT_ICD
+#undef VKE_DEVICE_KHR_ICD
 #else // VKE_AUTO_ICD
 
 #endif // VKE_AUTO_ICD

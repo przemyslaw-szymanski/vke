@@ -402,15 +402,8 @@ namespace VKE
                                                 // Mimpams must be generated on 3d queue
                                                 if( pTex->GetDesc().mipmapCount > 1 )
                                                 {
-                                                    auto pCmdBuffer =
-                                                        m_pDevice->GetGraphicsContext( 0 )->GetCommandBuffer();
-                                                    if( pTex->GetCommandBuffer()!= nullptr )
-                                                    {
-                                                        pCmdBuffer->Sync( pTex->GetCommandBuffer() );
-                                                    }
-                                                    // pCmdBuffer = m_pDevice->GetTransferContext( 0
-                                                    // )->GetCommandBuffer();
-                                                    res = _GenerateMipmapsOnGPU( pCmdBuffer, &pTex );
+                                                    /// TODO: support for mipmap generation
+                                                    VKE_ASSERT( false );
                                                 }
                                                 Ret = TaskResults::OK;
                                             }
@@ -834,7 +827,7 @@ namespace VKE
 
             if( Features.blitDst && Features.blitSrc )
             {
-                pCmdBuffer->Sync( pTex->GetCommandBuffer() );
+                
                 pTex->SetCommandBuffer( pCmdBuffer );
                 SBlitTextureInfo BlitInfo;
                 BlitInfo.hAPISrcTexture  = pTex->GetDDIObject();
