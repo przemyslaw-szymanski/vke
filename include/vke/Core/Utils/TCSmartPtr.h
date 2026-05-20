@@ -53,6 +53,16 @@ namespace VKE
             inline bool operator==( const T* ) const;
             inline bool operator!=( const T* ) const;
 
+            explicit operator bool() const noexcept
+            {
+                return m_pPtr != nullptr;
+            }
+
+            bool operator!() const noexcept
+            {
+                return m_pPtr == nullptr;
+            }
+
             inline T* Get()
             {
                 return m_pPtr;
@@ -65,7 +75,7 @@ namespace VKE
 
             inline T* Release();
 
-            inline bool IsNull() const
+            /*inline bool IsNull() const
             {
                 return Get() == nullptr;
             }
@@ -73,7 +83,7 @@ namespace VKE
             inline bool IsValid() const
             {
                 return !IsNull();
-            }
+            }*/
 
             inline T* operator->()
             {

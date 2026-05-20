@@ -39,7 +39,7 @@ namespace VKE::Core
 
             auto pPtr = m_Engine.GetRenderSystem()->GetDeviceContext()->CreateShader( Desc );
 
-            if( pPtr.IsValid() && pPtr->IsResourceReady() )
+            if( pPtr!= nullptr && pPtr->IsResourceReady() )
             {
                 if( Desc.Create.OnCreate )
                 {
@@ -80,7 +80,7 @@ namespace VKE::Core
             Desc.Create.stages                      = ResourceStages::FULL_LOAD;
             Desc.Create.flags                       = CreateResourceFlags::DEFAULT;
             auto pPtr = m_Engine.GetRenderSystem()->GetDeviceContext()->CreatePipeline( Desc );
-            if( pPtr.IsValid() && pPtr->IsResourceReady() )
+            if( pPtr!= nullptr && pPtr->IsResourceReady() )
             {
                 if( Desc.Create.OnCreate )
                 {

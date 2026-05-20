@@ -227,7 +227,7 @@ namespace VKE
             Result            ret = VKE_OK;
             RenderTargetPtr   pRT = _GetRenderTarget( Info.RenderTarget );
             SRenderTargetInfo RTInfo;
-            VKE_ASSERT2( pRT.IsValid(), "" );
+            VKE_ASSERT2( pRT!= nullptr, "" );
             if( idx < MAX_RT_COUNT )
             {
                 TexturePtr pTex     = m_pCtx->GetTexture( pRT->GetTexture() );

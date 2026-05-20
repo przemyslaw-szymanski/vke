@@ -90,7 +90,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         for( uint32_t i = 0; i < Desc.customWindowCount; ++i )
         {
             auto pWnd = m_pEngine->CreateRenderWindow( Desc.pCustomWindows[ i ] );
-            if( pWnd.IsNull() )
+            if( pWnd== nullptr )
             {
                 goto ERR;
             }
@@ -106,7 +106,7 @@ bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
         WndInfos[0].pTitle = Desc.pWndName;
         WndInfos[0].Size = Desc.WindowSize;
         auto pWnd1 = m_pEngine->CreateRenderWindow( WndInfos[0] );
-        if( pWnd1.IsNull() )
+        if( pWnd1== nullptr )
         {
             goto ERR;
         }
@@ -263,7 +263,7 @@ bool CreateSimpleTriangle( ContextType* pCtx,
         { "Position", VKE::RenderSystem::Formats::R32G32B32_SFLOAT, 0u }
     };
 
-    return pVb.IsValid();
+    return pVb!= nullptr;
 }
 
 struct SSimpleDrawData

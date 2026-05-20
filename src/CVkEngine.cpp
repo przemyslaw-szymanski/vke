@@ -261,10 +261,10 @@ ERR:
     WindowPtr CVkEngine::_CreateWindow( const SWindowDesc& Desc )
     {
         auto pWnd = FindWindow( Desc.pTitle );
-        if( pWnd.IsNull() )
+        if( pWnd== nullptr )
         {
             pWnd = WindowPtr( VKE_NEW VKE::CWindow( this ) );
-            if( pWnd.IsNull() )
+            if( pWnd== nullptr )
             {
                 return WindowPtr();
             }
@@ -283,7 +283,7 @@ ERR:
             m_pPrivate->mWindows.insert( SInternal::WndMap::value_type( pWnd->GetDesc().hWnd, pWnd.Get() ) );
             m_pPrivate->mWindows2.insert( SInternal::WndMap2::value_type( Desc.pTitle, pWnd.Get() ) );
             m_WindowSyncObj.Unlock();
-            if( m_pCurrentWindow.IsNull() )
+            if( m_pCurrentWindow== nullptr )
             {
                 m_currWndHandle = pWnd->GetDesc().hWnd;
                 m_pCurrentWindow = pWnd;
@@ -298,7 +298,7 @@ ERR:
                 WindowPtr* ppWnd = ( WindowPtr* )pData;
                 WindowPtr pWnd = *ppWnd;
                 TASK_RESULT ret = TaskResults::OK;
-                if( pWnd.IsValid() )
+                if( pWnd!= nullptr )
                 {
                     auto thisWorkerIndex = Platform::ThisThread::GetID();
                     auto wndId = pWnd->GetThreadId();

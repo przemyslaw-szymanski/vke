@@ -796,7 +796,7 @@ namespace VKE::RenderSystem
     /*CommandBufferPtr CFrameGraph::_GetCommandBuffer( const SGetCommandBufferInfo& Info )
     {
         CommandBufferPtr pRet = m_pCurrentFrameData->avpCommandBuffers[ Info.contextType ][ Info.commandBufferIndex ];
-        VKE_ASSERT( pRet.IsValid() );
+        VKE_ASSERT( pRet!= nullptr );
         return pRet;
     }*/
     CommandBufferRefPtr CFrameGraph::_GetCommandBuffer( const CFrameGraphNode* const pNode, uint8_t backBufferIdx )
@@ -1020,7 +1020,7 @@ namespace VKE::RenderSystem
                     // TEXTURE_STATE state = FrameGraphPassOpToColorTextureState();
                     m_pCommandBuffer->SetState( m_BeginRenderPassInfo.vColorRenderTargetInfos[ i ].state, &pTex );
                 }
-                if( m_pDepthStencilRenderTarget.IsValid() )
+                if( m_pDepthStencilRenderTarget!= nullptr )
                 {
                     m_pCommandBuffer->SetState( m_BeginRenderPassInfo.DepthRenderTargetInfo.state,
                                                 &m_pDepthStencilRenderTarget );
@@ -1196,7 +1196,7 @@ namespace VKE::RenderSystem
     FORMAT CFrameGraphNode::GetDepthRenderTargetFormat() const
     {
         FORMAT ret = Formats::UNDEFINED;
-        if( m_pDepthStencilRenderTarget.IsValid() )
+        if( m_pDepthStencilRenderTarget!= nullptr )
         {
             ret = m_pDepthStencilRenderTarget->GetDesc().format;
         }
@@ -1310,7 +1310,7 @@ namespace VKE::RenderSystem
         {
             const SFrameGraphRenderTargetTextureDesc& RTDesc   = Desc.vRenderTargets[ i ];
             TexturePtr                                pTexture = m_pFrameGraph->_GetTexture( RTDesc );
-            if( pTexture.IsValid() )
+            if( pTexture!= nullptr )
             {
                 writeCount           += ( RTDesc.operation == FrameGraphPassOperations::WRITE ||
                                 RTDesc.operation == FrameGraphPassOperations::OVERWRITE ||
@@ -1415,7 +1415,7 @@ namespace VKE::RenderSystem
             if( pNode->IsEnabled() )
             {
                 auto pCb = pNode->GetCommandBuffer( backBufferIndex );
-                if( pCb.IsValid() && pCb->GetState() == CommandBufferStates::BEGIN )
+                if( pCb!= nullptr && pCb->GetState() == CommandBufferStates::BEGIN )
                 {
                     if( VKE_SUCCEEDED(pCb->End()))
                     {

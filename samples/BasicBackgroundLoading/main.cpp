@@ -117,7 +117,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     Info.pData = ( const void* )vertexData;
                     Info.dataSize = sizeof( vertexData );
                     pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, Info, &hVb );
-                    return pVb.IsValid();
+                    return pVb!= nullptr;
                 },
                 &UploadVertexDataResult );
 
@@ -179,8 +179,8 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "BasicBackgroundLoading" } );
 
         pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {
-            if( pPSO.IsValid() && pPSO->IsResourceReady() &&
-                pVb.IsValid() && pVb->IsResourceReady() )
+            if( pPSO!= nullptr && pPSO->IsResourceReady() &&
+                pVb!= nullptr && pVb->IsResourceReady() )
             {
                 auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
                 pCmdBuffer->Bind( pPSO );
