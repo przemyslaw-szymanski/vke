@@ -210,7 +210,7 @@ namespace VKE
             }
             VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
 
-            VKE_ASSERT( pCmdBuffer!= nullptr && pExecute != nullptr );
+            VKE_ASSERT( pCmdBuffer != nullptr );
 
             if( VKE_SUCCEEDED( res ) )
             {
