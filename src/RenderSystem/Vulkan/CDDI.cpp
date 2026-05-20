@@ -2652,7 +2652,7 @@ namespace VKE
                 Convert::TextureSubresourceRange( &ci.subresourceRange, Desc.SubresourceRange );
                 VKE_ASSERT2( Desc.hTexture != INVALID_HANDLE, "" );
                 TextureRefPtr pTex = m_pCtx->GetTexture( Desc.hTexture );
-                VKE_ASSERT2( pTex.IsValid(), "" );
+                VKE_ASSERT2( pTex!= nullptr, "" );
                 ci.components = DefaultMapping;
                 ci.flags      = 0;
                 ci.format     = Map::Format( Desc.format );
@@ -3001,7 +3001,7 @@ namespace VKE
 
             // Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState,
             // Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
-            const bool isGraphics = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ].IsNull();
+            const bool isGraphics = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ]== nullptr;
 
             VkGraphicsPipelineCreateInfo VkGraphicsInfo = {};
             VkComputePipelineCreateInfo  VkComputeInfo  = {};
@@ -3166,7 +3166,7 @@ namespace VKE
                 {
                     for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                     {
-                        if( Desc.Shaders.apShaders[ i ].IsValid() )
+                        if( Desc.Shaders.apShaders[ i ]!= nullptr )
                         {
                             auto pShader =
                                 Desc.Shaders.apShaders[ i ]; // m_pCtx->GetShader( Desc.Shaders.apShaders[i] );
@@ -4365,7 +4365,7 @@ namespace VKE
             VkSwapchainKHR            hSwapChain   = NativeAPI::Null;
 
             ExtentU16 Size = Desc.Size;
-            if( Desc.pWindow.IsValid() )
+            if( Desc.pWindow!= nullptr )
             {
                 Size = Desc.pWindow->GetDesc().Size;
             }

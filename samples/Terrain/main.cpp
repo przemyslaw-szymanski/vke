@@ -427,7 +427,7 @@ struct SGfxContextListener
             TerrainDesc.Renderer.pDesc = &MSTerrainDesc;
             TerrainDesc.vertexDistance = 0.1f;
             pTerrain = pScene->CreateTerrain( TerrainDesc, pCmdBuffer );
-            if (pTerrain.IsValid())
+            if (pTerrain!= nullptr)
             {
                 VKE::Scene::SLoadTerrainTileInfo TileInfo;
                 TileInfo.Position = { 0, 0 };
@@ -458,7 +458,7 @@ struct SGfxContextListener
         //pCmdBuffer->End( VKE::RenderSystem::ExecuteCommandBufferFlags::END, nullptr );
         Timer.Start();
         return true;
-        //return pTerrain.IsValid();
+        //return pTerrain!= nullptr;
     }
 
     float GetFrameTimeSeconds()

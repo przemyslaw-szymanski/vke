@@ -835,7 +835,7 @@ namespace VKE
         void CTerrainQuadTree::_SetDrawDataForNode( CTerrainQuadTree::SNode* pInOut )
         {
             auto pPipeline = this->m_pTerrain->_GetPipelineForLOD( pInOut->Handle.level );
-            VKE_ASSERT2( pPipeline.IsValid(), "Pipeline must not be null at this stage" );
+            VKE_ASSERT2( pPipeline!= nullptr, "Pipeline must not be null at this stage" );
             pInOut->DrawData.pPipeline     = pPipeline;
             pInOut->DrawData.vecPosition.x = pInOut->AABB.Center.x - pInOut->AABB.Extents.x;
             pInOut->DrawData.vecPosition.y = pInOut->AABB.Center.y;
@@ -1818,7 +1818,7 @@ namespace VKE
             {
                 /*SLODData Data;
                 Data.lod = highestLod - ( uint8_t )hCurrNode.level;
-                VKE_ASSERT2( CurrNode.DrawData.pPipeline.IsValid(), "" );
+                VKE_ASSERT2( CurrNode.DrawData.pPipeline!= nullptr, "" );
                 Data.DrawData = CurrNode.DrawData;
                 Data.idx = MapPositionTo1DArrayIndex( Data.DrawData.vecPosition,
                 m_tileSize, m_terrainHalfSize, m_tileInRowCount );

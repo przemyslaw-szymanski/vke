@@ -65,7 +65,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             auto hUBO = pDeviceCtx->CreateBuffer( Desc );
             pUBO = pDeviceCtx->GetBuffer( hUBO );
             
-            if( pUBO.IsValid() )
+            if( pUBO!= nullptr )
             {
                 UBO.Color = VKE::RenderSystem::SColor( 0u );
 

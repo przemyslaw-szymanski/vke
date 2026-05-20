@@ -35,7 +35,7 @@ namespace VKE
                 // Create default scene
                 SSceneDesc Scene;
                 auto       pScene = CreateScene( Scene );
-                if( pScene.IsValid() )
+                if( pScene!= nullptr )
                 {
                     SetScene( pScene );
                     ret = VKE_OK;

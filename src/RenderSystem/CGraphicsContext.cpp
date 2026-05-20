@@ -123,7 +123,7 @@ namespace VKE
         // void CGraphicsContext::Destroy()
         //{
         //     assert( /*m_BaseCtx.*/m_pDeviceCtx );
-        //     if( /*m_BaseCtx.*/m_pQueue.IsValid() )
+        //     if( /*m_BaseCtx.*/m_pQueue!= nullptr )
         //     {
         //         CGraphicsContext* pCtx = this;
         //         /*m_BaseCtx.*/m_pDeviceCtx->DestroyGraphicsContext( &pCtx );
@@ -132,7 +132,7 @@ namespace VKE
 
         void CGraphicsContext::_Destroy()
         {
-            if( /*m_BaseCtx.*/ m_pDeviceCtx && /*m_BaseCtx.*/ m_pQueue.IsValid() )
+            if( /*m_BaseCtx.*/ m_pDeviceCtx && /*m_BaseCtx.*/ m_pQueue!= nullptr )
             {
                 Threads::ScopedLock l( m_SyncObj );
 
@@ -205,7 +205,7 @@ namespace VKE
                 }
             }
             VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
-            VKE_ASSERT( pCmdBuffer.IsValid() && pExecute != nullptr );
+            VKE_ASSERT( pCmdBuffer!= nullptr && pExecute != nullptr );
             if( VKE_SUCCEEDED( res ) )
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;

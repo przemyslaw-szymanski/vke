@@ -1589,7 +1589,7 @@ namespace VKE::RenderSystem
     //            Convert::TextureSubresourceRange(&ci.subresourceRange, Desc.SubresourceRange);
     //            VKE_ASSERT2(Desc.hTexture != INVALID_HANDLE, "");
     //            TextureRefPtr pTex = m_pCtx->GetTexture(Desc.hTexture);
-    //            VKE_ASSERT2(pTex.IsValid(), "");
+    //            VKE_ASSERT2(pTex!= nullptr, "");
     //            ci.components = DefaultMapping;
     //            ci.flags      = 0;
     //            ci.format     = Map::Format(Desc.format);
@@ -2794,7 +2794,7 @@ namespace VKE::RenderSystem
     //        uint16_t                  elementCount = Desc.backBufferCount;
     //        VkSwapchainKHR            hSwapChain   = NativeAPI::Null;
     //        ExtentU16                 Size         = Desc.Size;
-    //        if (Desc.pWindow.IsValid())
+    //        if (Desc.pWindow!= nullptr)
     //        {
     //            Size = Desc.pWindow->GetDesc().Size;
     //        }

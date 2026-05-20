@@ -75,7 +75,7 @@ namespace VKE
                     VKE_LOG_ERR( "Unable to create memory for CFile object." );
                 }
             }
-            if( pRet.IsValid() )
+            if( pRet!= nullptr )
             {
                 pFile = pRet.Get();
                 // const uint32_t resState = pFile->GetResourceState();

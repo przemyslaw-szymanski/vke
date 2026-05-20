@@ -44,7 +44,7 @@ namespace VKE
             m_Desc          = Desc;
             m_Desc.pPrivate = &m_DDIDesc;
 
-            if( m_Desc.pWindow.IsNull() )
+            if( m_Desc.pWindow== nullptr )
             {
                 // auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
                 // m_Desc.pWindow = pEngine->GetWindow();
@@ -536,7 +536,7 @@ namespace VKE
 
         void CSwapChain::BeginPass( CommandBufferPtr pCb )
         {
-            VKE_ASSERT2( m_pRenderPass.IsValid(), "SwapChain RenderPass must be created." );
+            VKE_ASSERT2( m_pRenderPass!= nullptr, "SwapChain RenderPass must be created." );
             pCb->Bind( m_DDISwapChain );
         }
 

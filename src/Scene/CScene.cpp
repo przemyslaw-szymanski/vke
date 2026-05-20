@@ -89,7 +89,7 @@ namespace VKE
         void CScene::_Destroy()
         {
             _DestroyDebugView();
-            if( m_pTerrain.IsValid() )
+            if( m_pTerrain!= nullptr )
             {
                 m_pTerrain->_Destroy();
                 auto pTmp = m_pTerrain.Release();
@@ -181,7 +181,7 @@ namespace VKE
                     m_pConstantBufferCPU = m_pDeviceCtx->GetBuffer( hBuffer );
                 }
             }
-            if( m_pConstantBufferCPU.IsValid() && m_pConstantBufferGPU.IsValid() )
+            if( m_pConstantBufferCPU!= nullptr && m_pConstantBufferGPU!= nullptr )
             {
                 ret = VKE_OK;
             }
@@ -268,7 +268,7 @@ namespace VKE
 
         TerrainPtr CScene::CreateTerrain( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr pCmdBuff )
         {
-            if( m_pTerrain.IsValid() )
+            if( m_pTerrain!= nullptr )
             {
                 DestroyTerrain( &m_pTerrain );
             }
@@ -289,7 +289,7 @@ namespace VKE
 
             return m_pTerrain;
         ERR:
-            if( m_pTerrain.IsValid() )
+            if( m_pTerrain!= nullptr )
             {
                 DestroyTerrain( &m_pTerrain );
             }
@@ -434,7 +434,7 @@ namespace VKE
 
         void CScene::Update( const SUpdateSceneInfo& Info )
         {
-            VKE_ASSERT2( Info.pCommandBuffer.IsValid(), "Command buffer must be a valid pointer." );
+            VKE_ASSERT2( Info.pCommandBuffer!= nullptr, "Command buffer must be a valid pointer." );
             m_pCurrentCamera->Update( 0 );
             if( m_pCurrentCamera != m_pViewCamera )
             {
@@ -443,7 +443,7 @@ namespace VKE
             _UpdateConstantBuffers( Info.pCommandBuffer );
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
-            if( m_pTerrain.IsValid() )
+            if( m_pTerrain!= nullptr )
             {
                 m_pTerrain->Update( Info.pCommandBuffer );
             }
@@ -452,7 +452,7 @@ namespace VKE
         void CScene::Render( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
             _Draw( pCmdBuff );
-            if( m_pTerrain.IsValid() )
+            if( m_pTerrain!= nullptr )
             {
                 m_pTerrain->Render( pCmdBuff );
             }
@@ -635,7 +635,7 @@ namespace VKE
 
                 auto pPS = m_pDeviceCtx->CreateShader( PSDesc );
 
-                while( pVS.IsNull() || pPS.IsNull() )
+                while( pVS== nullptr || pPS== nullptr )
                 {
                 }
                 while( !pVS->IsResourceReady() || !pPS->IsResourceReady() )
@@ -836,7 +836,7 @@ namespace VKE
         {
             bool ret = false;
             // Create per frame constant buffer
-            if( pPerFrameConstantBuffer.IsNull() )
+            if( pPerFrameConstantBuffer== nullptr )
             {
                 RenderSystem::SCreateBufferDesc BuffDesc;
                 BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
@@ -859,7 +859,7 @@ namespace VKE
             BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
             RenderSystem::BufferHandle hInstanceDataBuffer = pCtx->CreateBuffer( BuffDesc );
 
-            if( pPerFrameConstantBuffer.IsValid() && hInstanceDataBuffer != INVALID_HANDLE )
+            if( pPerFrameConstantBuffer!= nullptr && hInstanceDataBuffer != INVALID_HANDLE )
             {
                 // auto pCBuffer = pCtx->GetBuffer( hPerFrameConstantBuffer );
                 auto pSBuffer = pCtx->GetBuffer( hInstanceDataBuffer );
@@ -1234,7 +1234,7 @@ namespace VKE
 
             if( hPerFrameDescSet == INVALID_HANDLE )
             {
-                if( pPerFrameConstantBuffer.IsNull() )
+                if( pPerFrameConstantBuffer== nullptr )
                 {
                     RenderSystem::SCreateBufferDesc BuffDesc;
                     BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
@@ -1461,7 +1461,7 @@ namespace VKE
 
         void CScene::SDebugView::UploadBatchData( RenderSystem::CommandBufferPtr pCmdBuffer, const CCamera* pCamera )
         {
-            VKE_ASSERT2( pPerFrameConstantBuffer.IsValid(), "" );
+            VKE_ASSERT2( pPerFrameConstantBuffer!= nullptr, "" );
             SPerFrameShaderData Data;
             Data.mtxViewProj = pCamera->GetViewProjectionMatrix();
 
@@ -1497,14 +1497,14 @@ namespace VKE
                         }
                     }
                     auto& Batch = aBatches[ BatchTypes::AABB ];
-                    if( Batch.pPipeline.IsNull() || needNewPipeline )
+                    if( Batch.pPipeline== nullptr || needNewPipeline )
                     {
                         BatchPipelineTemplate.Pipeline.hDDIRenderPass = CurrState.RenderPass.hNativeRenderPass;
                         Batch.pPipeline =
                             pCmdBuff->GetContext()->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
                     }
 
-                    if( Batch.pPipeline.IsValid() && Batch.pPipeline->IsResourceReady() )
+                    if( Batch.pPipeline!= nullptr && Batch.pPipeline->IsResourceReady() )
                     {
                         pCmdBuff->Bind( Batch.pPipeline );
                         const uint32_t descSetOffset = 0;
@@ -1566,7 +1566,7 @@ namespace VKE
                                 RenderSystem::SPipelineLayoutDesc LayoutDesc;
                                 LayoutDesc.vDescriptorSetLayouts = { pDevCtx->GetDescriptorSetLayout( hDescSet ) };
                                 const auto& pLayout              = pDevCtx->CreatePipelineLayout( LayoutDesc );
-                                if( pLayout.IsValid() )
+                                if( pLayout!= nullptr )
                                 {
                                     InstancingPipelineTemplate.Pipeline.hLayout = pLayout->GetHandle();
                                 }
@@ -1579,7 +1579,7 @@ namespace VKE
                             pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
                         }
 
-                        if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
+                        if( pPipeline!= nullptr && pPipeline->IsResourceReady() )
                         {
                             pCmdBuff->Bind( pPipeline );
 

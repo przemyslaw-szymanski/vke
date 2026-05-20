@@ -851,7 +851,7 @@ namespace VKE
         handle_t  handle  = reinterpret_cast< handle_t >( hWnd );
         WindowPtr pWnd    = pEngine->FindWindowTS( handle );
 
-        if( pWnd.IsValid() )
+        if( pWnd!= nullptr )
         {
             return pWnd->WndProc( hWnd, msg, (uint64_t)wparam, (uint64_t)lparam );
         }

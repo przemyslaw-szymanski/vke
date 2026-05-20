@@ -112,7 +112,7 @@ namespace VKE
 
         void CShader::_SetFile( Core::FilePtr pFile )
         {
-            VKE_ASSERT2( m_pFile.IsNull(), "File already set. Be sure a shader is properly created." );
+            VKE_ASSERT2( m_pFile== nullptr, "File already set. Be sure a shader is properly created." );
             m_pFile         = pFile;
             m_Data.pCode    = pFile->GetData();
             m_Data.codeSize = pFile->GetDataSize();
@@ -159,7 +159,7 @@ namespace VKE
         //    {
         //        //h2 ^= ( CalcHash( Desc.apEntryPoints[ i ] ) << 1 );
         //        Hash += Desc.apEntryPoints[ i ];
-        //        if( Desc.apShaders[ i ].IsValid() )
+        //        if( Desc.apShaders[ i ]!= nullptr )
         //        {
         //            //h3 ^= ( Desc.apShaders[ i ]->GetHandle() << 1 );
         //            Hash += Desc.apShaders[ i ]->GetHandle().handle;

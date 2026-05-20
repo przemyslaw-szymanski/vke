@@ -67,7 +67,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Info.dataSize = sizeof( vertexData );
         pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, Info, &hVb );
 
-        if (!pVb.IsValid())
+        if (!pVb!= nullptr)
         {
             return false;
         }
@@ -98,7 +98,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         
         auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "Triangle" } );
         pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {
-            if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
+            if( pPipeline!= nullptr && pPipeline->IsResourceReady() )
             {
                 auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
                 pCmdBuffer->Bind( pPipeline );
@@ -122,7 +122,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         /*
         auto pCmdBuffer = pCtx->BeginFrame();
 
-        if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
+        if( pPipeline!= nullptr && pPipeline->IsResourceReady() )
         {
             pCmdBuffer->Bind( pPipeline );
             pCmdBuffer->Bind( pVb );
