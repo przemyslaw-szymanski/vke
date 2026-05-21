@@ -68,7 +68,8 @@ namespace VKE
 
             struct RenderTarget
             {
-                static const uint32_t MAX_COUNT = 128;
+                static const uint32_t MAX_COUNT                = 128;
+                static const uint32_t MAX_COUNT_IN_RENDER_PASS = 8;
             };
 
             struct Sampler

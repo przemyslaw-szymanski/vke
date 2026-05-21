@@ -59,6 +59,14 @@ namespace VKE::RenderSystem
         template< class ObjT >
         concept Nullable = std::is_pointer_v< ObjT >;
 
+        enum struct ResourceViewTypes : uint32_t
+        {
+            SRV = VKE_BIT( 1 ),
+            UAV = VKE_BIT( 2 ),
+            RTV = VKE_BIT( 3 ),
+            DSV = VKE_BIT( 4 ),
+        };
+
         namespace CustomTypes
         {
             struct SFence
@@ -121,7 +129,7 @@ namespace VKE::RenderSystem
 
             struct SDescriptorPool
             {
-                using SlotPool = Utils::TCBitPool<uint8_t>;
+                using SlotPool = Utils::TCBitPool< uint8_t >;
                 NativeAPI::D3D12DescriptorHeap* pHeap;
                 SlotPool                        SlotMgr;
                 uint32_t                        descriptorSize;
@@ -131,11 +139,11 @@ namespace VKE::RenderSystem
 
             struct SDescriptorSet
             {
-                uint64_t                       descTableCPUStartAddr;
-                uint64_t                       descTableGPUStartAddr;
-                SDescriptorPool*               pPool;
-                //ExtentU32        aUsedSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = { { UNDEFINED_U32 } };
-                ExtentU32                      PoolSlots = { UNDEFINED_U32 };
+                uint64_t         descTableCPUStartAddr;
+                uint64_t         descTableGPUStartAddr;
+                SDescriptorPool* pPool;
+                // ExtentU32        aUsedSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = { { UNDEFINED_U32 } };
+                ExtentU32             PoolSlots = { UNDEFINED_U32 };
                 SDescriptorSetLayout* pLayout;
 
                 D3D12_CPU_DESCRIPTOR_HANDLE GetCpuDescriptorHandle( uint32_t slotIndexOffset ) const
@@ -149,10 +157,7 @@ namespace VKE::RenderSystem
                     return { pPool->pHeap->GetGPUDescriptorHandleForHeapStart().ptr +
                              ( PoolSlots.begin + slotIndexOffset ) * pPool->descriptorSize };
                 }
-                
             };
-
-            
 
             struct SCommandQueue
             {
@@ -162,31 +167,113 @@ namespace VKE::RenderSystem
                 SGPUFence                     GpuFence;
             };
 
-            struct ResourceViewTypes
-            {
-                enum TYPE
-                {
-                    SRV,
-                    UAV,
-                    RTV,
-                    DSV,
-                    _MAX_COUNT
-                };
-            };
-
             struct SResourceView
             {
-                D3D12_SHADER_RESOURCE_VIEW_DESC  aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = {};
-                D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+                D3D12_SHADER_RESOURCE_VIEW_DESC  ShaderResourceViewDesc;
+                D3D12_RENDER_TARGET_VIEW_DESC    RenderTargetViewDesc;
+                D3D12_UNORDERED_ACCESS_VIEW_DESC UnorderedAccessViewDesc;
+                D3D12_DEPTH_STENCIL_VIEW_DESC    DepthStencilViewDesc;
+
+                D3D12Resource* pResource;
+
+                void Enable( ResourceViewTypes DescType )
+                {
+                    ResourceViewTypesMask |= static_cast< uint32_t >( DescType );
+                }
+
+                bool IsEnabled( ResourceViewTypes DescType ) const
+                {
+                    return ( ResourceViewTypesMask & static_cast< uint32_t >( DescType ) ) != 0;
+                }
+
+            private:
+                uint32_t ResourceViewTypesMask = 0;
+            };
+
+            template< typename T, size_t numElements >
+            struct TSStaticArray
+            {
+                std::array< T, numElements > Data;
+
+                size_t count = 0;
+
+                T& Reserve()
+                {
+                    VKE_ASSERT2( count < numElements, "Out of bounds array access" );
+                    return Data[ count++ ];
+                }
             };
 
             struct SRenderPass
             {
-                D3D12_CPU_DESCRIPTOR_HANDLE aColorRenderTargets[ Config::RenderSystem::RenderTarget::MAX_COUNT ];
-                D3D12_CPU_DESCRIPTOR_HANDLE hDepthStencilRenderTarget;
-                uint32_t                    colorRenderTargetCount;
-            };
+                static const uint32_t MAX_RENDER_TARGETS = Config::RenderSystem::RenderTarget::MAX_COUNT_IN_RENDER_PASS;
 
+                using SRenderPassBarriers = TSStaticArray< D3D12_RESOURCE_BARRIER, MAX_RENDER_TARGETS >;
+
+                struct
+                {
+                    D3D12_CPU_DESCRIPTOR_HANDLE hCPUDescriptor;
+                } DepthStencilView;
+
+                struct SClearArgs
+                {
+                    enum ClearType
+                    {
+                        RENDER_TARGET,
+                        DEPTH_STENCIL_VIEW,
+                    } Type;
+
+                    struct SClearRenderTargetViewArgs
+                    {
+                        D3D12_CPU_DESCRIPTOR_HANDLE hRenderTargetView;
+                        float                       aColorRGBA[ 4 ];
+                        D3D12_RECT                  Rect;
+                    };
+
+                    struct SClearDepthStencilViewArgs
+                    {
+                        D3D12_CPU_DESCRIPTOR_HANDLE hDepthStencilView;
+                        D3D12_CLEAR_FLAGS           ClearFlags;
+                        FLOAT                       depth;
+                        UINT8                       stencil;
+                        D3D12_RECT                  Rect;
+                    };
+
+                    union
+                    {
+                        SClearRenderTargetViewArgs RenderTargetView;
+                        SClearDepthStencilViewArgs DepthStencilView;
+                    };
+                };
+
+                struct SClear : TSStaticArray< SClearArgs, MAX_RENDER_TARGETS >
+                {
+                    SRenderPassBarriers Barriers;
+                };
+
+                struct SSubpass
+                {
+                    SRenderPassBarriers BeginBarriers;
+
+                    struct SSubpassRenderTarget
+                    {
+                        D3D12_CPU_DESCRIPTOR_HANDLE hCPUDescriptor;
+                        D3D12_RESOURCE_STATES       resourceState;
+                    };
+
+                    TSStaticArray< SSubpassRenderTarget, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT > RenderTargetViews;
+                };
+
+                using SSubpassArray = Utils::TCDynamicArray< SSubpass, 1 >;
+
+                TSStaticArray< D3D12_CPU_DESCRIPTOR_HANDLE, MAX_RENDER_TARGETS > RenderTargetViews;
+                SClear                                                           Clear;
+
+                SSubpassArray vSubpasses          = {};
+                uint32_t      currentSubpassIndex = 0;
+
+                SRenderPassBarriers EndBarriers;
+            };
         } // namespace CustomTypes
 
         struct SClearValue : D3D12_CLEAR_VALUE
@@ -351,7 +438,7 @@ namespace VKE::RenderSystem
                 D3D12_DESCRIPTOR_HEAP_FLAGS     Flags;
                 SIZE_T                          NumDescriptors = 0;
                 SIZE_T                          DescriptorSize;
-                Utils::TCBitPool< uint8_t >     SlootPool;
+                Utils::TCBitPool< uint8_t >     SlotPool;
 
                 bool IsFull() const
                 {
@@ -368,23 +455,25 @@ namespace VKE::RenderSystem
                     return this->Type == InType && this->Flags == InFlags;
                 }
 
-                D3D12_CPU_DESCRIPTOR_HANDLE Allocate(uint32_t numDescriptors)
+                D3D12_CPU_DESCRIPTOR_HANDLE Allocate( uint32_t numDescriptors )
                 {
-                    uint32_t firstSlotIndex = SlootPool.AllocateSlots( numDescriptors );
+                    uint32_t                    firstSlotIndex = SlotPool.AllocateSlots( numDescriptors );
                     D3D12_CPU_DESCRIPTOR_HANDLE Handle         = {};
+
                     if( firstSlotIndex != UNDEFINED_U32 )
                     {
-                        Handle  = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-                        Handle.ptr                         += firstSlotIndex * DescriptorSize;
-                        NumDescriptors                      += numDescriptors;
+                        Handle          = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                        Handle.ptr     += firstSlotIndex * DescriptorSize;
+                        NumDescriptors += numDescriptors;
                     }
+
                     return Handle;
                 }
 
                 void Free( size_t firstSlotPtr, uint32_t numDescriptors )
                 {
-                    uint32_t firstSlotIndex = static_cast<uint32_t>(firstSlotPtr / DescriptorSize);
-                    SlootPool.FreeSlots( firstSlotIndex, numDescriptors );
+                    uint32_t firstSlotIndex = static_cast< uint32_t >( firstSlotPtr / DescriptorSize );
+                    SlotPool.FreeSlots( firstSlotIndex, numDescriptors );
                 }
             };
 
@@ -396,34 +485,7 @@ namespace VKE::RenderSystem
                                                     D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
 
         private:
-            Utils::TCDynamicArray< SDescriptorHeapInfo, 32 > m_vDescriptorHeapPool;
-
-            Threads::SyncObject        m_AllocatorSyncObj;
-            VKE::Memory::CFreeListPool m_ViewDescriptorPool;
-            bool                       m_IsInitialized = false;
-
-            VKE::Memory::CFreeListPool& GetViewDescriptorPool()
-            {
-                if( !m_IsInitialized )
-                {
-                    m_ViewDescriptorPool.Create( 100, sizeof( CustomTypes::SResourceView ), 1 );
-                }
-
-                return m_ViewDescriptorPool;
-            }
-
-            template< typename DescT >
-            Result _CreateDescriptor( VKE::Memory::CFreeListPool* pPool, DescT* Desc )
-            {
-                Threads::ScopedLock l( m_AllocatorSyncObj );
-                return VKE::Memory::CreateObject( pPool, Desc );
-            }
-
-        public:
-            vke_force_inline Result CreateView( NativeAPI::TextureView* Desc )
-            {
-                return _CreateDescriptor< NativeAPI::TextureView >( &GetViewDescriptorPool(), Desc );
-            }
+            Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
         };
 
     } // namespace NativeAPI

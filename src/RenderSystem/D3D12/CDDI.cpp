@@ -68,10 +68,12 @@ namespace VKE::RenderSystem
             }
 
             {
-                HeapInfo.SlootPool.Create( Desc.NumDescriptors );
+                HeapInfo.SlotPool.Create( Desc.NumDescriptors );
+                HeapInfo.DescriptorSize = pDevice->GetDescriptorHandleIncrementSize( Type );
+
                 Index = m_vDescriptorHeapPool.PushBack( HeapInfo );
             }
-            
+
             return &m_vDescriptorHeapPool[ Index ];
         }
 
@@ -82,7 +84,7 @@ namespace VKE::RenderSystem
             SDescriptorHeapInfo* pDescriptorHeap = nullptr;
             for( auto& HeapInfo: m_vDescriptorHeapPool )
             {
-                if( pDescriptorHeap->Matches( Type, Flags ) && !pDescriptorHeap->IsFull() )
+                if( HeapInfo.Matches( Type, Flags ) && !HeapInfo.IsFull() )
                 {
                     pDescriptorHeap = &HeapInfo;
                     break;
@@ -96,6 +98,7 @@ namespace VKE::RenderSystem
 
             return pDescriptorHeap;
         }
+
     } // namespace NativeAPI
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -104,11 +107,9 @@ namespace VKE::RenderSystem
     // functions, like switch/case, if/else, loops they should go to Convert namespace.
     namespace Map
     {
-        D3D12_COMMAND_LIST_TYPE GetCommandListType( QUEUE_TYPE Type )
+        D3D12_COMMAND_LIST_TYPE GetCommandListType( QUEUE_TYPE EngineType )
         {
-            VKE_ASSERT2( Type < QUEUE_TYPE::_MAX_COUNT, "Invalid queue type" );
-
-            static const D3D12_COMMAND_LIST_TYPE vFamilyMap[] = {
+            static const D3D12_COMMAND_LIST_TYPE ascNativeMap[] = {
                 D3D12_COMMAND_LIST_TYPE_DIRECT,  // GENERAL
                 D3D12_COMMAND_LIST_TYPE_COMPUTE, // COMPUTE
                 D3D12_COMMAND_LIST_TYPE_COPY,    // TRANSFER
@@ -116,15 +117,17 @@ namespace VKE::RenderSystem
                 D3D12_COMMAND_LIST_TYPE_NONE,    // PRESENT - not supported in DX12
             };
 
-            return vFamilyMap[ static_cast< size_t >( Type ) ];
+            // Update ascNativeMap when changing QUEUE_TYPE enum
+            static_assert( QUEUE_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
 
-        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( DESCRIPTOR_SET_TYPE Type )
+        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( DESCRIPTOR_SET_TYPE EngineType )
         {
-            static const D3D12_DESCRIPTOR_HEAP_TYPE vMap[] = {
+            static const D3D12_DESCRIPTOR_HEAP_TYPE ascNativeMap[] = {
                 D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // SAMPLER
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // TEXTURE
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // SAMPLER_AND_TEXTURE     : not supported in DX12
                 D3D12_DESCRIPTOR_HEAP_TYPE_RTV,         // STORAGE_TEXTURE
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // READ_WRITE_TEXEL_BUFFER : basically R/W UAV
@@ -136,21 +139,27 @@ namespace VKE::RenderSystem
                 D3D12_DESCRIPTOR_HEAP_TYPE_DSV,         // DEPTH_STENCIL
             };
 
-            return vMap[ static_cast< size_t >( Type ) ];
+            // Update ascNativeMap when changing DESCRIPTOR_SET_TYPE enum
+            static_assert( DESCRIPTOR_SET_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
 
-        DXGI_COLOR_SPACE_TYPE getDXGIColorSpace( COLOR_SPACE ColorSpace )
+        DXGI_COLOR_SPACE_TYPE GetDXGIColorSpace( COLOR_SPACE EngineColorSpace )
         {
-            static const DXGI_COLOR_SPACE_TYPE vMap[] = {
+            static const DXGI_COLOR_SPACE_TYPE ascNativeMap[] = {
                 DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709, // SRGB
-                // DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709, // SRGB_LINEAR
             };
-            return vMap[ static_cast< size_t >( ColorSpace ) ];
+
+            // Update ascNativeMap when changing COLOR_SPACE enum
+            static_assert( COLOR_SPACE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineColorSpace ) ];
         }
 
-        D3D12_SRV_DIMENSION GetSRVDimension( TEXTURE_VIEW_TYPE Type )
+        D3D12_SRV_DIMENSION GetSRVDimension( TEXTURE_VIEW_TYPE EngineType )
         {
-            static const D3D12_SRV_DIMENSION vMap[] = {
+            static const D3D12_SRV_DIMENSION ascNativeMap[] = {
                 D3D12_SRV_DIMENSION_TEXTURE1D,        // VIEW_1D
                 D3D12_SRV_DIMENSION_TEXTURE2D,        // VIEW_2D
                 D3D12_SRV_DIMENSION_TEXTURE3D,        // VIEW_3D
@@ -159,12 +168,16 @@ namespace VKE::RenderSystem
                 D3D12_SRV_DIMENSION_TEXTURE2DARRAY,   // VIEW_2D_ARRAY
                 D3D12_SRV_DIMENSION_TEXTURECUBEARRAY, // VIEW_CUBE_ARRAY
             };
-            return vMap[ static_cast< size_t >( Type ) ];
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
 
-        D3D12_RTV_DIMENSION GetRTVDimension( TEXTURE_VIEW_TYPE Type )
+        D3D12_RTV_DIMENSION GetRTVDimension( TEXTURE_VIEW_TYPE EngineType )
         {
-            static const D3D12_RTV_DIMENSION vMap[] = {
+            static const D3D12_RTV_DIMENSION ascNativeMap[] = {
                 D3D12_RTV_DIMENSION_TEXTURE1D,      // VIEW_1D
                 D3D12_RTV_DIMENSION_TEXTURE2D,      // VIEW_2D
                 D3D12_RTV_DIMENSION_TEXTURE3D,      // VIEW_3D
@@ -173,12 +186,16 @@ namespace VKE::RenderSystem
                 D3D12_RTV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
                 D3D12_RTV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
             };
-            return vMap[ static_cast< size_t >( Type ) ];
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
 
-        D3D12_UAV_DIMENSION GetUAVDimension( TEXTURE_VIEW_TYPE Type )
+        D3D12_UAV_DIMENSION GetUAVDimension( TEXTURE_VIEW_TYPE EngineType )
         {
-            static const D3D12_UAV_DIMENSION vMap[] = {
+            static const D3D12_UAV_DIMENSION ascNativeMap[] = {
                 D3D12_UAV_DIMENSION_TEXTURE1D,      // VIEW_1D
                 D3D12_UAV_DIMENSION_TEXTURE2D,      // VIEW_2D
                 D3D12_UAV_DIMENSION_TEXTURE3D,      // VIEW_3D
@@ -187,49 +204,62 @@ namespace VKE::RenderSystem
                 D3D12_UAV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
                 D3D12_UAV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
             };
-            return vMap[ static_cast< size_t >( Type ) ];
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
 
-        D3D12_UAV_DIMENSION GetUAVDimension( D3D12_RESOURCE_DIMENSION dim )
+        D3D12_DSV_DIMENSION GetDSVDimension( TEXTURE_VIEW_TYPE EngineType )
         {
-            static const D3D12_UAV_DIMENSION vMap[] = {
-                D3D12_UAV_DIMENSION_UNKNOWN,        // unknown
-                D3D12_UAV_DIMENSION_BUFFER,         // buffer
-                D3D12_UAV_DIMENSION_TEXTURE1D,      // VIEW_1D
-                D3D12_UAV_DIMENSION_TEXTURE2D,      // VIEW_2D
-                D3D12_UAV_DIMENSION_TEXTURE3D,      // VIEW_3D
+            static const D3D12_DSV_DIMENSION ascNativeMap[] = {
+                D3D12_DSV_DIMENSION_TEXTURE1D,      // VIEW_1D
+                D3D12_DSV_DIMENSION_TEXTURE2D,      // VIEW_2D
+                D3D12_DSV_DIMENSION_UNKNOWN,        // VIEW_3D
+                D3D12_DSV_DIMENSION_UNKNOWN,        // VIEW_CUBE
+                D3D12_DSV_DIMENSION_TEXTURE1DARRAY, // VIEW_1D_ARRAY
+                D3D12_DSV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
+                D3D12_DSV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
             };
-            return vMap[ dim ];
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
 
-        D3D12_RESOURCE_DIMENSION GetResourceDimension( TEXTURE_TYPE Type )
+        D3D12_RESOURCE_DIMENSION GetResourceDimension( TEXTURE_TYPE EngineType )
         {
             // TODO(blturkot): Add support for TEXTURE_TYPE::TEX_2D_ARRAY and TEX_CUBE
-            static const D3D12_RESOURCE_DIMENSION vMap[ TEXTURE_TYPE::_MAX_COUNT ] = {
+            static const D3D12_RESOURCE_DIMENSION ascNativeMap[] = {
                 D3D12_RESOURCE_DIMENSION_TEXTURE1D, // TEX_1D
                 D3D12_RESOURCE_DIMENSION_TEXTURE2D, // TEX_2D
                 D3D12_RESOURCE_DIMENSION_TEXTURE3D, // TEX_3D
                 D3D12_RESOURCE_DIMENSION_UNKNOWN,
             };
 
-            return vMap[ static_cast< size_t >( Type ) ];
+            // Update ascNativeMap when changing TEXTURE_TYPE enum
+            static_assert( TEXTURE_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
 
-        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( D3D12_DESCRIPTOR_RANGE_TYPE Range )
+        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( D3D12_DESCRIPTOR_RANGE_TYPE NativeRange )
         {
-            static const D3D12_DESCRIPTOR_HEAP_TYPE vMap[] = {
+            static const D3D12_DESCRIPTOR_HEAP_TYPE ascNativeMap[] = {
                 D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_SRV
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_UAV
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_CBV
             };
 
-            return vMap[ static_cast< size_t >( Range ) ];
+            return ascNativeMap[ static_cast< size_t >( NativeRange ) ];
         }
 
-        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE State )
+        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE EngineState )
         {
-            static const D3D12_RESOURCE_STATES vMap[ TextureStates::_MAX_COUNT ] = {
+            static const D3D12_RESOURCE_STATES ascNativeMap[] = {
                 D3D12_RESOURCE_STATE_COMMON,              // UNDEFINED,
                 D3D12_RESOURCE_STATE_COMMON,              // GENERAL,
                 D3D12_RESOURCE_STATE_RENDER_TARGET,       // COLOR_RENDER_TARGET,
@@ -243,17 +273,23 @@ namespace VKE::RenderSystem
                 D3D12_RESOURCE_STATE_COPY_SOURCE,         // TRANSFER_SRC,
                 D3D12_RESOURCE_STATE_COPY_DEST,           // TRANSFER_DST,
                 D3D12_RESOURCE_STATE_PRESENT,             // PRESENT,
+                D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, // COLOR_RENDER_TARGET_READ,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_RENDER_TARGET_READ,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // STENCIL_RENDER_TARGET_READ,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_STENCIL_RENDER_TARGET_READ,
             };
 
-            return vMap[ State ];
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( TEXTURE_STATE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineState ];
         }
 
-        D3D12_DESCRIPTOR_RANGE_TYPE GetDescriptorRangeType( BINDING_TYPE Type )
+        D3D12_DESCRIPTOR_RANGE_TYPE GetDescriptorRangeType( BINDING_TYPE EngineType )
         {
-            static const D3D12_DESCRIPTOR_RANGE_TYPE vMap[] = {
+            static const D3D12_DESCRIPTOR_RANGE_TYPE ascNativeMap[] = {
                 D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // SAMPLER
                 D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // TEXTURE
-                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // SAMPLER_AND_TEXTURE     : not supported in DX12
                 D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // STORAGE_TEXTURE
                 D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
                 D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_WRITE_TEXEL_BUFFER : basically R/W UAV
@@ -265,42 +301,52 @@ namespace VKE::RenderSystem
                 D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // DEPTH_STENCIL
             };
 
-            return vMap[ Type ];
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( BINDING_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineType ];
         }
 
-        D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE GetRenderPassBeginningAccessType( RENDER_TARGET_RENDER_PASS_OP Op )
+        D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE
+        GetRenderPassBeginningAccessType( RENDER_TARGET_RENDER_PASS_OP EngineOp )
         {
-            static const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE
-                aMap[ RenderTargetRenderPassOperations::_MAX_COUNT ] = {
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // COLOR, // load = dont't care, store = don't care
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR, // COLOR_CLEAR, // load = clear, store = dont't care
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // COLOR_STORE, // load = don't care, store = store
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR, // COLOR_CLEAR_STORE, // load = clear, store = store
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // DEPTH_STENCIL,
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,   // DEPTH_STENCIL_CLEAR,
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD, // DEPTH_STENCIL_STORE,
-                    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,   // DEPTH_STENCIL_CLEAR_STORE,
-                };
-
-            return aMap[ Op ];
-        }
-
-        D3D12_RENDER_PASS_ENDING_ACCESS_TYPE GetRenderPassEndingAccessType( RENDER_TARGET_RENDER_PASS_OP Op )
-        {
-            static const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE aMap[ RenderTargetRenderPassOperations::_MAX_COUNT ] = {
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR, // load = dont't care, store = don't care
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR_CLEAR, // load = clear, store = dont't care
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_STORE, // load = don't care, store = store
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_CLEAR_STORE, // load = clear, store = store
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL,
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL_CLEAR,
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_STORE,
-                D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_CLEAR_STORE,
+            static const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE ascNativeMap[] = {
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // COLOR, // load = dont't care, store = don't care
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // COLOR_CLEAR, // load = clear, store = dont't care
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // COLOR_STORE, // load = don't care, store = store
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // COLOR_CLEAR_STORE, // load = clear, store = store
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // DEPTH_STENCIL_CLEAR,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL_STORE,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // DEPTH_STENCIL_CLEAR_STORE,
             };
 
-            return aMap[ Op ];
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( RENDER_TARGET_RENDER_PASS_OP::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineOp ];
+        }
+
+        D3D12_RENDER_PASS_ENDING_ACCESS_TYPE GetRenderPassEndingAccessType( RENDER_TARGET_RENDER_PASS_OP EngineOp )
+        {
+            static const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE
+                ascNativeMap[ RenderTargetRenderPassOperations::_MAX_COUNT ] = {
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR, // load = dont't care, store = don't care
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR_CLEAR, // load = clear, store = dont't care
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_STORE, // load = don't care, store = store
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_CLEAR_STORE, // load = clear, store = store
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL_CLEAR,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_STORE,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_CLEAR_STORE,
+                };
+
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( RENDER_TARGET_RENDER_PASS_OP::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineOp ];
         }
 
     }; // namespace Map
@@ -310,9 +356,9 @@ namespace VKE::RenderSystem
     // These are specific functions that has complex mapping from Engine types to Native types.
     namespace Convert
     {
-        D3D12_SHADER_VISIBILITY GetShaderVisibility( uint16_t Type )
+        D3D12_SHADER_VISIBILITY GetShaderVisibility( uint16_t EngineType )
         {
-            switch( Type )
+            switch( EngineType )
             {
                 case PipelineStages::TYPE::VERTEX:
                     return D3D12_SHADER_VISIBILITY_VERTEX;
@@ -342,16 +388,16 @@ namespace VKE::RenderSystem
 
         DXGI_FORMAT GetDXGIFormat( FORMAT EngineFormat )
         {
-            VKE_ASSERT2( _countof( VKE::RenderSystem::D3D12::g_aFormats ) == FORMAT::_MAX_COUNT,
-                         "DX12 format map is not coherent with engine formats" );
+            // When changing FORMAT enum, also update g_aFormats.
+            static_assert( FORMAT::_MAX_COUNT == _countof( VKE::RenderSystem::D3D12::g_aFormats ) );
 
             uint32_t formatIndex = static_cast< size_t >( EngineFormat );
             return VKE::RenderSystem::D3D12::g_aFormats[ formatIndex ];
         }
 
-        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE State, MEMORY_ACCESS_TYPE Mask )
+        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE EngineState, MEMORY_ACCESS_TYPE EngineMask )
         {
-            D3D12_RESOURCE_STATES OutState = Map::GetResourceState( State );
+            D3D12_RESOURCE_STATES OutState = Map::GetResourceState( EngineState );
 
             // TODO(blturkot): Consider Mask for more accurate resource state.
             // OutState |= Convert::GetResourceState( Mask );
@@ -359,79 +405,79 @@ namespace VKE::RenderSystem
             return OutState;
         }
 
-        D3D12_RESOURCE_STATES GetResourceState( MEMORY_ACCESS_TYPE Mask )
+        D3D12_RESOURCE_STATES GetResourceState( MEMORY_ACCESS_TYPE EngineMask )
         {
             D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
 
-            if( Mask & ( MemoryAccessTypes::CPU_MEMORY_READ | MemoryAccessTypes::CPU_MEMORY_WRITE |
-                         MemoryAccessTypes::GPU_MEMORY_READ | MemoryAccessTypes::GPU_MEMORY_WRITE ) )
+            if( EngineMask & ( MemoryAccessTypes::CPU_MEMORY_READ | MemoryAccessTypes::CPU_MEMORY_WRITE |
+                               MemoryAccessTypes::GPU_MEMORY_READ | MemoryAccessTypes::GPU_MEMORY_WRITE ) )
             {
                 // DX12 requires CPU access to be in COMMON state.
                 return State;
             }
 
-            if( Mask & MemoryAccessTypes::INDIRECT_BUFFER_READ )
+            if( EngineMask & MemoryAccessTypes::INDIRECT_BUFFER_READ )
             {
                 State |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
             }
 
-            if( Mask & MemoryAccessTypes::INDEX_READ )
+            if( EngineMask & MemoryAccessTypes::INDEX_READ )
             {
                 State |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
             }
 
-            if( Mask & ( MemoryAccessTypes::VERTEX_ATTRIBUTE_READ | MemoryAccessTypes::VS_UNIFORM_READ |
-                         MemoryAccessTypes::PS_UNIFORM_READ | MemoryAccessTypes::GS_UNIFORM_READ |
-                         MemoryAccessTypes::TS_UNIFORM_READ | MemoryAccessTypes::CS_UNIFORM_READ |
-                         MemoryAccessTypes::MS_UNIFORM_READ | MemoryAccessTypes::RT_UNIFORM_READ ) )
+            if( EngineMask & ( MemoryAccessTypes::VERTEX_ATTRIBUTE_READ | MemoryAccessTypes::VS_UNIFORM_READ |
+                               MemoryAccessTypes::PS_UNIFORM_READ | MemoryAccessTypes::GS_UNIFORM_READ |
+                               MemoryAccessTypes::TS_UNIFORM_READ | MemoryAccessTypes::CS_UNIFORM_READ |
+                               MemoryAccessTypes::MS_UNIFORM_READ | MemoryAccessTypes::RT_UNIFORM_READ ) )
             {
                 State |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
             }
 
-            if( Mask & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
+            if( EngineMask & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
             {
                 State |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             }
 
             // Is this actually UAV?
-            if( Mask & ( MemoryAccessTypes::VS_SHADER_READ | MemoryAccessTypes::GS_SHADER_READ |
-                         MemoryAccessTypes::TS_SHADER_READ | MemoryAccessTypes::CS_SHADER_READ |
-                         MemoryAccessTypes::MS_SHADER_READ | MemoryAccessTypes::RS_SHADER_READ ) )
+            if( EngineMask & ( MemoryAccessTypes::VS_SHADER_READ | MemoryAccessTypes::GS_SHADER_READ |
+                               MemoryAccessTypes::TS_SHADER_READ | MemoryAccessTypes::CS_SHADER_READ |
+                               MemoryAccessTypes::MS_SHADER_READ | MemoryAccessTypes::RS_SHADER_READ ) )
             {
                 State |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
             }
             // And this?
-            if( Mask & MemoryAccessTypes::PS_SHADER_READ )
+            if( EngineMask & MemoryAccessTypes::PS_SHADER_READ )
             {
                 State |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             }
 
-            if( Mask & ( MemoryAccessTypes::VS_SHADER_WRITE | MemoryAccessTypes::GS_SHADER_WRITE |
-                         MemoryAccessTypes::TS_SHADER_WRITE | MemoryAccessTypes::CS_SHADER_WRITE |
-                         MemoryAccessTypes::MS_SHADER_WRITE | MemoryAccessTypes::RS_SHADER_WRITE |
-                         MemoryAccessTypes::PS_SHADER_WRITE ) )
+            if( EngineMask & ( MemoryAccessTypes::VS_SHADER_WRITE | MemoryAccessTypes::GS_SHADER_WRITE |
+                               MemoryAccessTypes::TS_SHADER_WRITE | MemoryAccessTypes::CS_SHADER_WRITE |
+                               MemoryAccessTypes::MS_SHADER_WRITE | MemoryAccessTypes::RS_SHADER_WRITE |
+                               MemoryAccessTypes::PS_SHADER_WRITE ) )
             {
                 State |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
             }
 
-            if( Mask &
+            if( EngineMask &
                 ( MemoryAccessTypes::COLOR_RENDER_TARGET_READ | MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ ) )
             {
                 State |= D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
             }
 
-            if( Mask & ( MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE |
-                         MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_WRITE ) )
+            if( EngineMask & ( MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE |
+                               MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_WRITE ) )
             {
                 State |= D3D12_RESOURCE_STATE_RENDER_TARGET;
             }
 
-            if( Mask & ( MemoryAccessTypes::DATA_TRANSFER_READ ) )
+            if( EngineMask & ( MemoryAccessTypes::DATA_TRANSFER_READ ) )
             {
                 State |= D3D12_RESOURCE_STATE_COPY_SOURCE;
             }
 
-            if( Mask & ( MemoryAccessTypes::DATA_TRANSFER_WRITE ) )
+            if( EngineMask & ( MemoryAccessTypes::DATA_TRANSFER_WRITE ) )
             {
                 State |= D3D12_RESOURCE_STATE_COPY_DEST;
             }
@@ -461,21 +507,26 @@ namespace VKE::RenderSystem
             return MipLevel + ( ArraySlice * MipCount ) + ( Plane * MipCount * ArraySliceCount );
         }
 
-        DXGI_SAMPLE_DESC GetSampleDesc( SAMPLE_COUNT Count )
+        DXGI_SAMPLE_DESC GetSampleDesc( SAMPLE_COUNT EngineCount )
         {
             DXGI_SAMPLE_DESC Desc;
-            Desc.Count   = ( 1 << Count );
+            Desc.Count   = ( 1 << EngineCount );
             Desc.Quality = 0;
             return Desc;
         }
 
-        D3D12_RESOURCE_FLAGS GetResourceFlags( TEXTURE_USAGE Usage )
+        D3D12_RESOURCE_FLAGS GetResourceFlags( TEXTURE_USAGE EngineUsage )
         {
             D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
 
-            if( ( Usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET ) )
+            if( ( EngineUsage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET ) )
             {
                 Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+                if( ( EngineUsage & TextureUsages::SAMPLED ) == 0 )
+                {
+                    Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+                }
             }
             else
             {
@@ -483,35 +534,29 @@ namespace VKE::RenderSystem
                 // - D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
                 // - D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
                 // - D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS
-                if( ( Usage & TextureUsages::STORAGE ) )
+                if( ( EngineUsage & TextureUsages::STORAGE ) )
                 {
                     Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
                 }
 
-                if( ( Usage & TextureUsages::COLOR_RENDER_TARGET ) )
+                if( ( EngineUsage & TextureUsages::COLOR_RENDER_TARGET ) )
                 {
                     Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
                 }
             }
-
-            if( ( Usage & TextureUsages::SAMPLED ) == 0 )
-            {
-                //Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-            }
-
             return Flags;
         }
-        
-        D3D12_RESOURCE_FLAGS GetResourceFlags( BUFFER_USAGE Usage )
+
+        D3D12_RESOURCE_FLAGS GetResourceFlags( BUFFER_USAGE EngineUsage )
         {
             D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
 
-            if( ( Usage & BufferUsages::TEXEL_BUFFER ) )
+            if( ( EngineUsage & BufferUsages::TEXEL_BUFFER ) )
             {
                 Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }
 
-            if( ( Usage & TextureUsages::SAMPLED ) == 0 )
+            if( ( EngineUsage & TextureUsages::SAMPLED ) == 0 )
             {
                 Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
             }
@@ -519,7 +564,7 @@ namespace VKE::RenderSystem
             return Flags;
         }
 
-        D3D12_HEAP_DESC GetMemoryHeapDesc( MEMORY_USAGE Usage, bool HeapTier2 )
+        D3D12_HEAP_DESC GetMemoryHeapDesc( MEMORY_USAGE EngineUsage, bool HeapTier2 )
         {
             static const MEMORY_USAGE AccessMaskBits = MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS |
                                                        MemoryUsages::CPU_CACHED | MemoryUsages::CPU_NO_FLUSH;
@@ -533,12 +578,12 @@ namespace VKE::RenderSystem
                 MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS | MemoryUsages::CPU_CACHED,
             };
 
-            bool AllowBuffers  = Usage & MemoryUsages::BUFFER;
-            bool AllowTextures = Usage & MemoryUsages::TEXTURE;
-            bool CPUAccess     = Usage & MemoryUsages::CPU_ACCESS;
-            bool GPUAccess     = Usage & MemoryUsages::GPU_ACCESS;
-            bool IsWriteback   = Usage & MemoryUsages::CPU_CACHED;
-            bool IsUpload      = Usage & MemoryUsages::CPU_NO_FLUSH;
+            bool AllowBuffers  = EngineUsage & MemoryUsages::BUFFER;
+            bool AllowTextures = EngineUsage & MemoryUsages::TEXTURE;
+            bool CPUAccess     = EngineUsage & MemoryUsages::CPU_ACCESS;
+            bool GPUAccess     = EngineUsage & MemoryUsages::GPU_ACCESS;
+            bool IsWriteback   = EngineUsage & MemoryUsages::CPU_CACHED;
+            bool IsUpload      = EngineUsage & MemoryUsages::CPU_NO_FLUSH;
 
             D3D12_HEAP_DESC Desc;
             Desc.SizeInBytes = 0;                                          // To be filled later
@@ -558,7 +603,7 @@ namespace VKE::RenderSystem
             }
             else if( GPUAccess && CPUAccess )
             {
-                if( Usage & MemoryUsages::CPU_NO_FLUSH )
+                if( EngineUsage & MemoryUsages::CPU_NO_FLUSH )
                 {
                     // This heap type has CPU access optimized for uploading to the GPU, but does not experience the
                     // maximum amount of bandwidth for the GPU. This heap type is best for CPU-write-once, GPU-read-once
@@ -571,7 +616,7 @@ namespace VKE::RenderSystem
                     // changed away from this. The CPU address for such heaps is commonly not efficient for CPU reads.
                     Desc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
                 }
-                else if( Usage & MemoryUsages::CPU_CACHED )
+                else if( EngineUsage & MemoryUsages::CPU_CACHED )
                 {
                     // Specifies a heap used for reading back. This heap type has CPU access optimized for reading data
                     // back from the GPU, but does not experience the maximum amount of bandwidth for the GPU. This heap
@@ -648,47 +693,48 @@ namespace VKE::RenderSystem
             return Desc;
         }
 
-        void GetResourceDesc( const STextureDesc&                                Desc,
-                                                      const NativeAPI::SImplementation::SDeviceFeatures& Features,
-            NativeAPI::D3D12ResourceDesc* pOut )
+        void GetResourceDesc( const STextureDesc&                                EngineDesc,
+                              const NativeAPI::SImplementation::SDeviceFeatures& NativeFeatures,
+                              NativeAPI::D3D12ResourceDesc*                      pOut )
         {
             NativeAPI::D3D12ResourceDesc& OutDesc = *pOut;
 
-            OutDesc.Dimension = Map::GetResourceDimension( Desc.type );
+            OutDesc.Dimension = Map::GetResourceDimension( EngineDesc.type );
             OutDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-            OutDesc.Width     = static_cast< UINT64 >( Desc.Size.width );
-            OutDesc.Height    = static_cast< UINT >( Desc.Size.height );
+            OutDesc.Width     = static_cast< UINT64 >( EngineDesc.Size.width );
+            OutDesc.Height    = static_cast< UINT >( EngineDesc.Size.height );
 
-            if( Desc.type == TEXTURE_TYPE::TEXTURE_3D )
+            if( EngineDesc.type == TEXTURE_TYPE::TEXTURE_3D )
             {
-                OutDesc.DepthOrArraySize = static_cast< UINT16 >( Desc.sliceCount );
+                OutDesc.DepthOrArraySize = static_cast< UINT16 >( EngineDesc.sliceCount );
             }
             else
             {
-                OutDesc.DepthOrArraySize = static_cast< UINT16 >( Desc.arrayElementCount );
+                OutDesc.DepthOrArraySize = static_cast< UINT16 >( EngineDesc.arrayElementCount );
             }
 
-            OutDesc.MipLevels  = static_cast< UINT16 >( Desc.mipmapCount );
-            OutDesc.Format     = Convert::GetDXGIFormat( Desc.format );
-            OutDesc.SampleDesc = Convert::GetSampleDesc( Desc.multisampling );
+            OutDesc.MipLevels  = static_cast< UINT16 >( EngineDesc.mipmapCount );
+            OutDesc.Format     = Convert::GetDXGIFormat( EngineDesc.format );
+            OutDesc.SampleDesc = Convert::GetSampleDesc( EngineDesc.multisampling );
             OutDesc.Layout     = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-            OutDesc.Flags      = Convert::GetResourceFlags( Desc.usage );
+            OutDesc.Flags      = Convert::GetResourceFlags( EngineDesc.usage );
 
-            if( Features.TightAlignmentSupported )
+            if( NativeFeatures.TightAlignmentSupported )
             {
                 OutDesc.Alignment  = 0;
                 OutDesc.Flags     |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
             }
         }
 
-        NativeAPI::D3D12ResourceDesc GetResourceDesc( const SBufferDesc&                                 Desc,
-                                                      const NativeAPI::SImplementation::SDeviceFeatures& Features )
+        NativeAPI::D3D12ResourceDesc
+        GetResourceDesc( const SBufferDesc&                                 EngineDesc,
+                         const NativeAPI::SImplementation::SDeviceFeatures& NativeFeatures )
         {
             NativeAPI::D3D12ResourceDesc OutDesc;
 
             OutDesc.Dimension        = D3D12_RESOURCE_DIMENSION_BUFFER;
             OutDesc.Alignment        = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-            OutDesc.Width            = static_cast< UINT64 >( Desc.CalcSize() );
+            OutDesc.Width            = static_cast< UINT64 >( EngineDesc.CalcSize() );
             OutDesc.Height           = 1;
             OutDesc.DepthOrArraySize = 1;
             OutDesc.MipLevels        = 1;
@@ -698,9 +744,9 @@ namespace VKE::RenderSystem
             OutDesc.SampleDesc.Quality = 0;
 
             OutDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-            OutDesc.Flags  = Convert::GetResourceFlags( Desc.usage );
+            OutDesc.Flags  = Convert::GetResourceFlags( EngineDesc.usage );
 
-            if( Features.TightAlignmentSupported )
+            if( NativeFeatures.TightAlignmentSupported )
             {
                 OutDesc.Alignment  = 0;
                 OutDesc.Flags     |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
@@ -709,106 +755,49 @@ namespace VKE::RenderSystem
             return OutDesc;
         }
 
-        UINT32 GetPixColor( const VKE::RenderSystem::SColor& Color )
+        UINT32 GetPixColor( const VKE::RenderSystem::SColor& EngineColor )
         {
             // Spec URL:
             // https://devblogs.microsoft.com/pix/winpixeventruntime/
             // raw DWORD noting that the format is ARGB and the alpha channel value must be 0xff
-            return PIX_COLOR( static_cast< UINT8 >( std::lround( std::clamp( Color.r, 0.0f, 1.0f ) * 0xFF ) ),
-                              static_cast< UINT8 >( std::lround( std::clamp( Color.g, 0.0f, 1.0f ) * 0xFF ) ),
-                              static_cast< UINT8 >( std::lround( std::clamp( Color.b, 0.0f, 1.0f ) * 0xFF ) ) );
+            return PIX_COLOR( static_cast< UINT8 >( std::lround( std::clamp( EngineColor.r, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( EngineColor.g, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( EngineColor.b, 0.0f, 1.0f ) * 0xFF ) ) );
         }
 
-        D3D12_CLEAR_VALUE GetClearValue( const SRenderTargetInfo& Info )
+        D3D12_CLEAR_VALUE GetClearValue( const SRenderTargetInfo& EngineInfo )
         {
             D3D12_CLEAR_VALUE ClearValue;
-            ClearValue.Format = Convert::GetDXGIFormat( Info.format );
+            ClearValue.Format = Convert::GetDXGIFormat( EngineInfo.format );
 
-            ClearValue.Color[ 0 ] = Info.ClearColor.Color.r;
-            ClearValue.Color[ 1 ] = Info.ClearColor.Color.g;
-            ClearValue.Color[ 2 ] = Info.ClearColor.Color.b;
-            ClearValue.Color[ 3 ] = Info.ClearColor.Color.a;
+            ClearValue.Color[ 0 ] = EngineInfo.ClearColor.Color.r;
+            ClearValue.Color[ 1 ] = EngineInfo.ClearColor.Color.g;
+            ClearValue.Color[ 2 ] = EngineInfo.ClearColor.Color.b;
+            ClearValue.Color[ 3 ] = EngineInfo.ClearColor.Color.a;
 
             return ClearValue;
         }
 
-        D3D12_RENDER_PASS_RENDER_TARGET_DESC GetRenderPassRenderTargetDesc( const SRenderTargetInfo& Info )
+        D3D12_DSV_FLAGS GetDepthStencilViewFlags()
         {
-            D3D12_RENDER_PASS_RENDER_TARGET_DESC Desc;
-            /*Desc.cpuDescriptor        = Info.hDDIView->RenderTargetView;
-            Desc.BeginningAccess.Type = Map::GetRenderPassBeginningAccessType( Info.renderPassOp );
-            Desc.EndingAccess.Type    = Map::GetRenderPassEndingAccessType( Info.renderPassOp );
-
-            if( Desc.BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR )
-            {
-                Desc.BeginningAccess.Clear.ClearValue = Convert::GetClearValue( Info );
-            }
-
-            if( Desc.EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE )
-            {
-                Desc.EndingAccess.PreserveLocal.AdditionalWidth  = 0;
-                Desc.EndingAccess.PreserveLocal.AdditionalHeight = 0;
-            }*/
-
-            return Desc;
+            return D3D12_DSV_FLAG_NONE;
         }
 
-        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC GetRenderPassDepthStencilDesc( const SRenderTargetInfo& Depth,
-                                                                            const SRenderTargetInfo& Stencil )
+        D3D12_CLEAR_FLAGS GetClearDepthStencilViewFlags( TEXTURE_FORMAT EngineFormat )
         {
-            bool HasDepth   = Depth.hDDIView != NativeAPI::Null;
-            bool HasStencil = Stencil.hDDIView != NativeAPI::Null;
+            D3D12_CLEAR_FLAGS flags = (D3D12_CLEAR_FLAGS)0;
 
-            if( HasDepth && HasStencil )
+            if( VKE::RenderSystem::IsDepthFormat( EngineFormat ) )
             {
-                VKE_ASSERT2(
-                    Depth.hDDIView == Stencil.hDDIView,
-                    "CDDI::Convert::GetRenderPassDepthStencilDesc: Unable to bind separate Depth/Stencil View" );
+                flags |= D3D12_CLEAR_FLAG_DEPTH;
             }
 
-            D3D12_RENDER_PASS_DEPTH_STENCIL_DESC Desc;
-            /*Desc.DepthBeginningAccess.Type   = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
-            Desc.DepthEndingAccess.Type      = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
-            Desc.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
-            Desc.StencilEndingAccess.Type    = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
-
-            if( HasDepth )
+            if( VKE::RenderSystem::IsStencilFormat( EngineFormat ) )
             {
-                Desc.cpuDescriptor             = Depth.hDDIView->DepthStencilView;
-                Desc.DepthBeginningAccess.Type = Map::GetRenderPassBeginningAccessType( Depth.renderPassOp );
-                Desc.DepthEndingAccess.Type    = Map::GetRenderPassEndingAccessType( Depth.renderPassOp );
-
-                if( Desc.DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR )
-                {
-                    Desc.DepthBeginningAccess.Clear.ClearValue = Convert::GetClearValue( Depth );
-                }
-
-                if( Desc.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE )
-                {
-                    Desc.DepthEndingAccess.PreserveLocal.AdditionalWidth  = 0;
-                    Desc.DepthEndingAccess.PreserveLocal.AdditionalHeight = 0;
-                }
+                flags |= D3D12_CLEAR_FLAG_STENCIL;
             }
 
-            if( HasStencil )
-            {
-                Desc.cpuDescriptor               = Stencil.hDDIView->DepthStencilView;
-                Desc.StencilBeginningAccess.Type = Map::GetRenderPassBeginningAccessType( Stencil.renderPassOp );
-                Desc.StencilEndingAccess.Type    = Map::GetRenderPassEndingAccessType( Stencil.renderPassOp );
-
-                if( Desc.StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR )
-                {
-                    Desc.StencilBeginningAccess.Clear.ClearValue = Convert::GetClearValue( Stencil );
-                }
-
-                if( Desc.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE )
-                {
-                    Desc.StencilEndingAccess.PreserveLocal.AdditionalWidth  = 0;
-                    Desc.StencilEndingAccess.PreserveLocal.AdditionalHeight = 0;
-                }
-            }*/
-
-            return Desc;
+            return flags;
         }
 
     }; // namespace Convert
@@ -1029,86 +1018,210 @@ namespace VKE::RenderSystem
             Type.ResourceMinLODClamp = 0.0f;
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE CreateShaderResourceView( const NativeAPI::Device&         pDevice,
-                                                              NativeAPI::D3D12Resource* const& pResource,
-                                                              const STextureViewDesc&          Desc,
-                                                              NativeAPI::D3D12DescriptorHeap*  pHeap )
+        void CreateShaderResourceView( const STextureViewDesc& TextureViewDesc, D3D12_SHADER_RESOURCE_VIEW_DESC* pOut )
         {
-            D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-            SRVDesc.Format                  = Convert::GetDXGIFormat( Desc.format );
-            SRVDesc.ViewDimension           = Map::GetSRVDimension( Desc.type );
-            SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            pOut->Format                  = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension           = Map::GetSRVDimension( TextureViewDesc.type );
+            pOut->Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-            switch( SRVDesc.ViewDimension )
+            switch( TextureViewDesc.type )
             {
-                case D3D12_SRV_DIMENSION_TEXTURE1D:
-                    SetCommonMipParams( SRVDesc.Texture1D, Desc.SubresourceRange );
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                    SetCommonMipParams( pOut->Texture1D, TextureViewDesc.SubresourceRange );
                     break;
 
-                case D3D12_SRV_DIMENSION_TEXTURE2D:
-                    SetCommonMipParams( SRVDesc.Texture2D, Desc.SubresourceRange );
-                    SRVDesc.Texture2D.PlaneSlice = 0;
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    SetCommonMipParams( pOut->Texture2D, TextureViewDesc.SubresourceRange );
+                    pOut->Texture2D.PlaneSlice = 0;
                     break;
 
-                case D3D12_SRV_DIMENSION_TEXTURE3D:
-                    SetCommonMipParams( SRVDesc.Texture3D, Desc.SubresourceRange );
+                case TEXTURE_VIEW_TYPE::VIEW_3D:
+                    SetCommonMipParams( pOut->Texture3D, TextureViewDesc.SubresourceRange );
                     break;
 
-                case D3D12_SRV_DIMENSION_TEXTURECUBE:
-                    SetCommonMipParams( SRVDesc.TextureCube, Desc.SubresourceRange );
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE:
+                    SetCommonMipParams( pOut->TextureCube, TextureViewDesc.SubresourceRange );
                     break;
 
-                case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
-                    SetCommonMipParams( SRVDesc.Texture1DArray, Desc.SubresourceRange );
-                    SRVDesc.Texture1DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
-                    SRVDesc.Texture1DArray.ArraySize       = Desc.SubresourceRange.layerCount;
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                    SetCommonMipParams( pOut->Texture1DArray, TextureViewDesc.SubresourceRange );
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
                     break;
 
-                case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
-                    SetCommonMipParams( SRVDesc.Texture2DArray, Desc.SubresourceRange );
-                    SRVDesc.Texture2DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
-                    SRVDesc.Texture2DArray.ArraySize       = Desc.SubresourceRange.layerCount;
-                    SRVDesc.Texture2DArray.PlaneSlice      = 0;
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    SetCommonMipParams( pOut->Texture2DArray, TextureViewDesc.SubresourceRange );
+                    pOut->Texture2DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture2DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    pOut->Texture2DArray.PlaneSlice      = 0;
                     break;
 
-                case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
-                    SetCommonMipParams( SRVDesc.TextureCubeArray, Desc.SubresourceRange );
-                    SRVDesc.TextureCubeArray.First2DArrayFace = Desc.SubresourceRange.beginArrayLayer;
-                    SRVDesc.TextureCubeArray.NumCubes         = Desc.SubresourceRange.layerCount;
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
+                    SetCommonMipParams( pOut->TextureCubeArray, TextureViewDesc.SubresourceRange );
+                    pOut->TextureCubeArray.First2DArrayFace = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->TextureCubeArray.NumCubes         = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateShaderResourceView: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
                     break;
             }
-
-            D3D12_CPU_DESCRIPTOR_HANDLE Handle{};
-            //pDevice->CreateShaderResourceView( pResource, &SRVDesc,  )
-            return Handle;
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE CreateRenderTargetView( const NativeAPI::Device&         pDevice,
-                                                            NativeAPI::D3D12Resource* const& pResource,
-                                                            const STextureViewDesc&          Desc,
-                                                            NativeAPI::D3D12DescriptorHeap*  pHeap )
+        void CreateRenderTargetView( const STextureViewDesc& TextureViewDesc, D3D12_RENDER_TARGET_VIEW_DESC* pOut )
         {
-            D3D12_CPU_DESCRIPTOR_HANDLE Handle = {};
+            pOut->Format        = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension = Map::GetRTVDimension( TextureViewDesc.type );
 
-            D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
-            (void)RTVDesc;
+            switch( TextureViewDesc.type )
+            {
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                    pOut->Texture1D.MipSlice = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    break;
 
-            return Handle;
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    pOut->Texture2D.MipSlice   = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2D.PlaneSlice = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_3D:
+                    pOut->Texture3D.MipSlice    = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture3D.FirstWSlice = 0;
+                    pOut->Texture3D.WSize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE:
+                    VKE_LOG_ERR( "D3D12::CreateRenderTargetView: TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                    pOut->Texture1DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    pOut->Texture2DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture2DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    pOut->Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
+                    VKE_LOG_ERR( "D3D12::CreateRenderTargetView: TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateRenderTargetView: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    break;
+            }
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE CreateUnorderedAccessView( const NativeAPI::Device&         pDevice,
-                                                               NativeAPI::D3D12Resource* const& pResource,
-                                                               const STextureViewDesc&          Desc,
-                                                               NativeAPI::D3D12DescriptorHeap*  pHeap )
+        void CreateUnorderedAccessView( const STextureViewDesc&           TextureViewDesc,
+                                        D3D12_UNORDERED_ACCESS_VIEW_DESC* pOut )
         {
-            D3D12_CPU_DESCRIPTOR_HANDLE Handle = {};
+            pOut->Format        = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension = Map::GetUAVDimension( TextureViewDesc.type );
 
-            return Handle;
+            switch( TextureViewDesc.type )
+            {
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                    pOut->Texture1D.MipSlice = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    pOut->Texture2D.MipSlice   = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2D.PlaneSlice = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_3D:
+                    pOut->Texture3D.MipSlice    = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture3D.FirstWSlice = 0;
+                    pOut->Texture3D.WSize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE:
+                    VKE_LOG_ERR( "D3D12::CreateUnorderedAccessView: TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                    pOut->Texture1DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    pOut->Texture2DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture2DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    pOut->Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
+                    VKE_LOG_ERR(
+                        "D3D12::CreateUnorderedAccessView: TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateUnorderedAccessView: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    break;
+            }
+        }
+
+        void CreateDepthStencilViewDesc( const STextureViewDesc& TextureViewDesc, D3D12_DEPTH_STENCIL_VIEW_DESC* pOut )
+        {
+            pOut->Format        = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension = Map::GetDSVDimension( TextureViewDesc.type );
+            pOut->Flags         = Convert::GetDepthStencilViewFlags();
+
+            switch( TextureViewDesc.type )
+            {
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    pOut->Texture1D.MipSlice = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    pOut->Texture1DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateDepthStencilViewDesc: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    break;
+            }
+        }
+
+        void ExpectResourceState( NativeAPI::D3D12Resource* pResource, D3D12_RESOURCE_STATES expectedState,
+                                  D3D12_RESOURCE_STATES                                     currentState,
+                                  NativeAPI::CustomTypes::SRenderPass::SRenderPassBarriers* pOutBarriers )
+        {
+            if( expectedState == currentState )
+            {
+                return;
+            }
+
+            D3D12_RESOURCE_BARRIER& Barrier = pOutBarriers->Reserve();
+
+            Barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            Barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            Barrier.Transition.pResource   = pResource;
+            Barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            Barrier.Transition.StateBefore = currentState;
+            Barrier.Transition.StateAfter  = expectedState;
         }
 
     }; // namespace Helper
 
-    // Static methods
+    // -----------------------------------------------------------------------------------------------------------------
+    // Static methods.
+    // CDDI class implementation.
 
     Result CDDI::QueryAdapters( AdapterInfoArray* pOut )
     {
@@ -1244,8 +1357,6 @@ namespace VKE::RenderSystem
 
     // Object methods
 
-   
-
     void BitTest()
     {
         Utils::TCBitPool< uint8_t > Pool;
@@ -1254,7 +1365,7 @@ namespace VKE::RenderSystem
 
         for( uint32_t i = 0; i < 20; ++i )
         {
-            uint32_t s = rand() % 15;
+            uint32_t s         = rand() % 15;
             uint32_t firstSlot = Pool.AllocateSlots( s );
             Pool.Print( std::format( "+({},{})", firstSlot, s ) );
 
@@ -1262,7 +1373,7 @@ namespace VKE::RenderSystem
 
             if( doFree )
             {
-                s = rand() % vAllocated.GetCount();
+                s       = rand() % vAllocated.GetCount();
                 auto al = vAllocated[ s ];
                 Pool.FreeSlots( al.begin, al.end );
                 vAllocated.RemoveFast( s );
@@ -1487,8 +1598,16 @@ namespace VKE::RenderSystem
         }
         else
         {
-            // VKE_LOG( std::format( "CDDI::CreateResource: Placed resource created at GPU VA: {}",
-            //                      pResource->GetGPUVirtualAddress() ) );
+            if( ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER )
+            {
+                VKE_LOG( std::format( "CDDI::CreateResource: Placed resource created at GPU VA: {}",
+                                      pResource->GetGPUVirtualAddress() ) );
+            }
+            else
+            {
+                VKE_LOG(
+                    std::format( "CDDI::CreateResource: Placed resource created at heap offset: {}", MemInfo.offset ) );
+            }
         }
 
         return pResource;
@@ -1537,7 +1656,7 @@ namespace VKE::RenderSystem
 
         NativeAPI::D3D12ResourceDesc ResourceDesc;
         Convert::GetResourceDesc( Desc, m_Implementation.Features, &ResourceDesc );
-        NativeAPI::Texture           pTexture     = CreateResource( m_hDevice, ResourceDesc, MemInfo );
+        NativeAPI::Texture pTexture = CreateResource( m_hDevice, ResourceDesc, MemInfo );
 
         if( pTexture != NativeAPI::Null )
         {
@@ -1551,141 +1670,6 @@ namespace VKE::RenderSystem
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
-
-    namespace Helper
-    {
-
-        void InitUAVDesc( const STextureViewDesc& Desc,
-                          D3D12_UNORDERED_ACCESS_VIEW_DESC* pOut )
-        {
-            pOut->Format                           = Convert::GetDXGIFormat(Desc.format);
-            pOut->ViewDimension                    = Map::GetUAVDimension( Desc.type );
-
-            switch( pOut->ViewDimension )
-            {
-                case D3D12_UAV_DIMENSION_TEXTURE1D:
-                    pOut->Texture1D.MipSlice = Desc.SubresourceRange.beginMipmapLevel;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE2D:
-                    pOut->Texture2D.MipSlice   = Desc.SubresourceRange.beginMipmapLevel;
-                    pOut->Texture2D.PlaneSlice = 0;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE3D:
-                    pOut->Texture3D.MipSlice    = Desc.SubresourceRange.beginMipmapLevel;
-                    pOut->Texture3D.FirstWSlice = Desc.SubresourceRange.beginArrayLayer;
-                    pOut->Texture3D.WSize       = Desc.SubresourceRange.layerCount;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
-                    pOut->Texture1DArray.MipSlice        = Desc.SubresourceRange.beginMipmapLevel;
-                    pOut->Texture1DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
-                    pOut->Texture1DArray.ArraySize       = Desc.SubresourceRange.layerCount;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
-                    pOut->Texture2DArray.MipSlice          = Desc.SubresourceRange.beginMipmapLevel;
-                    pOut->Texture2DArray.FirstArraySlice   = Desc.SubresourceRange.beginArrayLayer;
-                    pOut->Texture2DArray.ArraySize       = Desc.SubresourceRange.layerCount;
-                    pOut->Texture2DArray.PlaneSlice        = 0;
-                    break;
-
-                default:
-                    VKE_LOG_ERR( "Not supported UAV ViewDimmension: " << pOut->ViewDimension );
-            }
-        }
-
-        void InitUAVDesc( const NativeAPI::D3D12ResourceDesc& Desc, D3D12_UNORDERED_ACCESS_VIEW_DESC* pOut )
-        {
-            pOut->Format        = Desc.Format;
-            pOut->ViewDimension = Map::GetUAVDimension( Desc.Dimension );
-
-            switch( pOut->ViewDimension )
-            {
-                case D3D12_UAV_DIMENSION_TEXTURE1D:
-                    pOut->Texture1D.MipSlice = 0;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE2D:
-                    pOut->Texture2D.MipSlice   = 0;
-                    pOut->Texture2D.PlaneSlice = 0;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE3D:
-                    pOut->Texture3D.MipSlice    = 0;
-                    pOut->Texture3D.FirstWSlice = 0;
-                    pOut->Texture3D.WSize       = Desc.DepthOrArraySize;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
-                    pOut->Texture1DArray.MipSlice        = 0;
-                    pOut->Texture1DArray.FirstArraySlice = 0;
-                    pOut->Texture1DArray.ArraySize       = Desc.DepthOrArraySize;
-                    break;
-
-                case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
-                    pOut->Texture2DArray.MipSlice        = 0;
-                    pOut->Texture2DArray.FirstArraySlice = 0;
-                    pOut->Texture2DArray.ArraySize       = Desc.DepthOrArraySize;
-                    pOut->Texture2DArray.PlaneSlice      = 0;
-                    break;
-
-                default:
-                    VKE_LOG_ERR( "Not supported UAV ViewDimmension: " << pOut->ViewDimension );
-            }
-        }
-
-        void InitSRVDesc( const NativeAPI::D3D12ResourceDesc& NativeDesc, const STextureViewDesc& Desc,
-                          D3D12_SHADER_RESOURCE_VIEW_DESC* pOut )
-        {
-            D3D12_SHADER_RESOURCE_VIEW_DESC& SRVDesc = *pOut;
-            SRVDesc.Format                  = NativeDesc.Format;
-            SRVDesc.ViewDimension           = Map::GetSRVDimension( Desc.type );
-            SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-            switch( SRVDesc.ViewDimension )
-            {
-                case D3D12_SRV_DIMENSION_TEXTURE1D:
-                    Helper::SetCommonMipParams( SRVDesc.Texture1D, Desc.SubresourceRange );
-                    break;
-
-                case D3D12_SRV_DIMENSION_TEXTURE2D:
-                    Helper::SetCommonMipParams( SRVDesc.Texture2D, Desc.SubresourceRange );
-                    SRVDesc.Texture2D.PlaneSlice = 0;
-                    break;
-
-                case D3D12_SRV_DIMENSION_TEXTURE3D:
-                    Helper::SetCommonMipParams( SRVDesc.Texture3D, Desc.SubresourceRange );
-                    break;
-
-                case D3D12_SRV_DIMENSION_TEXTURECUBE:
-                    Helper::SetCommonMipParams( SRVDesc.TextureCube, Desc.SubresourceRange );
-                    break;
-
-                case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
-                    Helper::SetCommonMipParams( SRVDesc.Texture1DArray, Desc.SubresourceRange );
-                    SRVDesc.Texture1DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
-                    SRVDesc.Texture1DArray.ArraySize       = Desc.SubresourceRange.layerCount;
-                    break;
-
-                case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
-                    Helper::SetCommonMipParams( SRVDesc.Texture2DArray, Desc.SubresourceRange );
-                    SRVDesc.Texture2DArray.FirstArraySlice = Desc.SubresourceRange.beginArrayLayer;
-                    SRVDesc.Texture2DArray.ArraySize       = Desc.SubresourceRange.layerCount;
-                    SRVDesc.Texture2DArray.PlaneSlice      = 0;
-                    break;
-
-                case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
-                    Helper::SetCommonMipParams( SRVDesc.TextureCubeArray, Desc.SubresourceRange );
-                    SRVDesc.TextureCubeArray.First2DArrayFace = Desc.SubresourceRange.beginArrayLayer;
-                    SRVDesc.TextureCubeArray.NumCubes         = Desc.SubresourceRange.layerCount;
-                    break;
-            }
-
-
-        }
-    } // namespace Helper
 
     namespace Map
     {
@@ -1752,8 +1736,7 @@ namespace VKE::RenderSystem
                 };
             };
             */
-            static const D3D12_DESCRIPTOR_HEAP_TYPE scValues[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] =
-            {
+            static const D3D12_DESCRIPTOR_HEAP_TYPE scValues[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = {
                 D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
                 D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
                 D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -1761,60 +1744,45 @@ namespace VKE::RenderSystem
             };
             return scValues[ type ];
         }
+
     } // namespace Map
-    
-    NativeAPI::TextureView CDDI::CreateTextureView( const STextureViewDesc& Desc, const void* pAllocator )
+
+    NativeAPI::TextureView CDDI::CreateTextureView( const STextureViewDesc& TextureViewDesc, const void* pAllocator )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
 
         NativeAPI::TextureView pTextureView = NativeAPI::Null;
-        m_Implementation.CreateView( &pTextureView );
-
-        NativeAPI::Texture           pTexture     = m_pCtx->GetTexture( Desc.hTexture )->GetDDIObject();
-        NativeAPI::D3D12ResourceDesc ResourceDesc = pTexture->GetDesc();
-
-        /*if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTextureView ) ) )
         {
-            auto DescriptorHeapInfo = m_Implementation.GetDescriptorHeap(
-                m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE );
-            pTextureView->ShaderResourceView =
-                Helper::CreateShaderResourceView( m_hDevice, pTexture, Desc, DescriptorHeapInfo->pDescriptorHeap );
+            VKE_LOG_ERR( "Out of memory" );
+            return pTextureView;
         }
 
-        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ) != 0 )
-        {
-            auto DescriptorHeapInfo = m_Implementation.GetDescriptorHeap(
-                m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
-            pTextureView->RenderTargetView =
-                Helper::CreateRenderTargetView( m_hDevice, pTexture, Desc, DescriptorHeapInfo->pDescriptorHeap );
-        }
-
-        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS ) != 0 )
-        {
-            auto DescriptorHeapInfo = m_Implementation.GetDescriptorHeap(
-                m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
-            pTextureView->UnorderedAccessView =
-                Helper::CreateUnorderedAccessView( m_hDevice, pTexture, Desc, DescriptorHeapInfo->pDescriptorHeap );
-        }*/
+        pTextureView->pResource                   = m_pCtx->GetTexture( TextureViewDesc.hTexture )->GetDDIObject();
+        NativeAPI::D3D12ResourceDesc ResourceDesc = pTextureView->pResource->GetDesc();
 
         if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
         {
-            auto& SrvDesc = pTextureView->aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ];
-            Helper::InitSRVDesc( ResourceDesc, Desc, &SrvDesc );
+            Helper::CreateShaderResourceView( TextureViewDesc, &pTextureView->ShaderResourceViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::SRV );
         }
+
         if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ) )
         {
-            auto& SrvDesc = pTextureView->aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
-            Helper::InitSRVDesc( ResourceDesc, Desc, &SrvDesc );
+            Helper::CreateRenderTargetView( TextureViewDesc, &pTextureView->RenderTargetViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::RTV );
         }
-        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL ) )
-        {
-            auto& SrvDesc = pTextureView->aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_DSV ];
-            Helper::InitSRVDesc( ResourceDesc, Desc, &SrvDesc );
-        }
+
         if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS ) )
         {
-            Helper::InitUAVDesc( Desc, &pTextureView->UAVDesc );
+            Helper::CreateUnorderedAccessView( TextureViewDesc, &pTextureView->UnorderedAccessViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::UAV );
+        }
+
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL ) )
+        {
+            Helper::CreateDepthStencilViewDesc( TextureViewDesc, &pTextureView->DepthStencilViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::DSV );
         }
 
         return pTextureView;
@@ -1891,20 +1859,232 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeAPI::RenderPass CDDI::CreateRenderPass( const SRenderPassDesc& Desc, const void* pAllocator )
+    NativeAPI::RenderPass CDDI::CreateRenderPass( const SRenderPassDesc& EngineRenderPassDesc, const void* pAllocator )
     {
-        NativeAPI::RenderPass pPass;
-        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPass ) ) )
+        NativeAPI::RenderPass pNativeRenderPass = NativeAPI::Null;
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeRenderPass ) ) )
         {
-            VKE_LOG_ERR( "Unable to allocate memory for RenderPass: " << Desc.Name );
+            VKE_LOG_ERR(
+                "CDDI::CreateRenderPass: Unable to allocate memory for RenderPass: " << EngineRenderPassDesc.Name );
             return NativeAPI::Null;
         }
-        for( uint32_t r = 0; r < Desc.vRenderTargetDescs.GetCount(); ++r )
+
+        bool createDefaultSubpass = EngineRenderPassDesc.vSubpasses.IsEmpty();
+
+        NativeAPI::CustomTypes::SRenderPass::SSubpass* pDefaultSubpass = NativeAPI::Null;
+        if( createDefaultSubpass && VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pDefaultSubpass ) ) )
         {
-            //const auto& RTDesc = Desc.vRenderTargetDescs[ r ];
-            
+            VKE_LOG_ERR( "CDDI::CreateRenderPass: Unable to allocate memory for subpass" );
+            return NativeAPI::Null;
         }
-        return pPass;
+
+        auto pDescriptorHeapRTV = m_Implementation.GetDescriptorHeap(
+            m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+
+        auto pDescriptorHeapDSV = m_Implementation.GetDescriptorHeap(
+            m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+
+        // Desc.vRenderTargetDescs seems to be never used by engine at the time, so CDDI skips it for now.
+        // TODO(szymansk): Remove it from engine?
+        // ---
+        // Reserve slots in descriptor heap and get offset for the first descriptor to be used in render pass for
+        // later binding.
+        D3D12_CPU_DESCRIPTOR_HANDLE hNativeCPUDescriptor =
+            pDescriptorHeapRTV->Allocate( EngineRenderPassDesc.vRenderTargets.GetCount() );
+
+        for( uint32_t index = 0; index < EngineRenderPassDesc.vRenderTargets.GetCount(); index++ )
+        {
+            const auto& EngineRenderTarget = EngineRenderPassDesc.vRenderTargets[ index ];
+            const auto& NativeResourceView = *EngineRenderTarget.hNativeView;
+
+            D3D12_RESOURCE_STATES NativeTrackedResourceState = Map::GetResourceState( EngineRenderTarget.beginState );
+
+            bool isRenderTargetView = false;
+            bool isDepthStencilView = false;
+            bool isClearOp          = false;
+            bool isStoreOp          = false;
+
+            switch( EngineRenderTarget.usage )
+            {
+                case RENDER_TARGET_RENDER_PASS_OP::UNDEFINED:
+                    // No access?
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR:
+                    isRenderTargetView = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR_CLEAR:
+                    isRenderTargetView = true;
+                    isClearOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR_STORE:
+                    isRenderTargetView = true;
+                    isStoreOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR_CLEAR_STORE:
+                    isRenderTargetView = true;
+                    isClearOp          = true;
+                    isStoreOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL:
+                    isDepthStencilView = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_CLEAR:
+                    isDepthStencilView = true;
+                    isClearOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_STORE:
+                    isDepthStencilView = true;
+                    isStoreOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_CLEAR_STORE:
+                    isDepthStencilView = true;
+                    isClearOp          = true;
+                    isStoreOp          = true;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "CDDI::CreateRenderPass: Unhandled usage" );
+                    return NativeAPI::Null;
+            }
+
+            if( isRenderTargetView )
+            {
+                if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::RTV ) )
+                {
+                    VKE_LOG_ERR( "CDDI::CreateRenderPass: COLOR render targets must have resource valid for "
+                                 "RENDER_TARGET_VIEW" );
+                    return NativeAPI::Null;
+                }
+
+                m_hDevice->CreateRenderTargetView(
+                    NativeResourceView.pResource, &NativeResourceView.RenderTargetViewDesc, hNativeCPUDescriptor );
+                hNativeCPUDescriptor.ptr += pDescriptorHeapRTV->DescriptorSize;
+
+                auto& NativeRenderTargetView = pNativeRenderPass->RenderTargetViews.Reserve();
+                NativeRenderTargetView.ptr   = hNativeCPUDescriptor.ptr;
+
+                if( isClearOp )
+                {
+                    auto& ClearArgs = pNativeRenderPass->Clear.Reserve();
+                    ClearArgs.Type  = NativeAPI::CustomTypes::SRenderPass::SClearArgs::RENDER_TARGET;
+
+                    auto& ClearArgsRTV             = ClearArgs.RenderTargetView;
+                    ClearArgsRTV.hRenderTargetView = hNativeCPUDescriptor;
+
+                    Memory::Copy( &ClearArgsRTV.aColorRGBA,
+                                  sizeof( ClearArgsRTV.aColorRGBA ),
+                                  EngineRenderTarget.ClearValue.Color.floats,
+                                  sizeof( EngineRenderTarget.ClearValue.Color.floats ) );
+
+                    ClearArgsRTV.Rect.left   = EngineRenderPassDesc.PositionOffset.x;
+                    ClearArgsRTV.Rect.top    = EngineRenderPassDesc.PositionOffset.y;
+                    ClearArgsRTV.Rect.right  = EngineRenderPassDesc.Size.x;
+                    ClearArgsRTV.Rect.bottom = EngineRenderPassDesc.Size.y;
+
+                    // ClearRenderTargetView() requires resource state D3D12_RESOURCE_STATE_RENDER_TARGET.
+                    Helper::ExpectResourceState( NativeResourceView.pResource,
+                                                 D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                 NativeTrackedResourceState,
+                                                 &pNativeRenderPass->Clear.Barriers );
+
+                    // After clear resource state is left in D3D12_RESOURCE_STATE_RENDER_TARGET.
+                    NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                }
+
+                if( createDefaultSubpass )
+                {
+                    auto& NativeDefaultSubpassRenderTarget          = pDefaultSubpass->RenderTargetViews.Reserve();
+                    NativeDefaultSubpassRenderTarget.hCPUDescriptor = hNativeCPUDescriptor;
+                    NativeDefaultSubpassRenderTarget.resourceState  = NativeTrackedResourceState;
+                }
+
+                // Barriers for BeginRenderPass() after Clear() is done.
+                Helper::ExpectResourceState( NativeResourceView.pResource,
+                                             Map::GetResourceState( EngineRenderTarget.beginState ),
+                                             NativeTrackedResourceState,
+                                             &pDefaultSubpass->BeginBarriers );
+
+                // TODO(blturkot): Handle STORE/DEFAULT usage
+            }
+            else if( isDepthStencilView )
+            {
+                if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::DSV ) )
+                {
+                    VKE_LOG_ERR( "CDDI::CreateRenderPass: DEPTH_STENCIL render targets must have resource valid "
+                                 "for DEPTH_STENCIL_VIEW" );
+                    return NativeAPI::Null;
+                }
+
+                pNativeRenderPass->DepthStencilView.hCPUDescriptor = pDescriptorHeapDSV->Allocate( 1 );
+                m_hDevice->CreateDepthStencilView( NativeResourceView.pResource,
+                                                   &NativeResourceView.DepthStencilViewDesc,
+                                                   pNativeRenderPass->DepthStencilView.hCPUDescriptor );
+
+                if( isClearOp )
+                {
+                    auto& ClearArgs = pNativeRenderPass->Clear.Reserve();
+                    ClearArgs.Type  = NativeAPI::CustomTypes::SRenderPass::SClearArgs::DEPTH_STENCIL_VIEW;
+
+                    auto& ClearArgsDSV             = ClearArgs.DepthStencilView;
+                    ClearArgsDSV.hDepthStencilView = pNativeRenderPass->DepthStencilView.hCPUDescriptor;
+                    ClearArgsDSV.ClearFlags = Convert::GetClearDepthStencilViewFlags( EngineRenderTarget.format );
+                    ClearArgsDSV.depth      = EngineRenderTarget.ClearValue.DepthStencil.depth;
+                    ClearArgsDSV.stencil = static_cast< UINT8 >( EngineRenderTarget.ClearValue.DepthStencil.stencil );
+
+                    ClearArgsDSV.Rect.left   = EngineRenderPassDesc.PositionOffset.x;
+                    ClearArgsDSV.Rect.top    = EngineRenderPassDesc.PositionOffset.y;
+                    ClearArgsDSV.Rect.right  = EngineRenderPassDesc.Size.x;
+                    ClearArgsDSV.Rect.bottom = EngineRenderPassDesc.Size.y;
+                }
+
+                // ClearDepthStencilView() requires resource state D3D12_RESOURCE_STATE_DEPTH_WRITE.
+                Helper::ExpectResourceState( NativeResourceView.pResource,
+                                             D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                             NativeTrackedResourceState,
+                                             &pNativeRenderPass->Clear.Barriers );
+
+                // After clear resource state is left in D3D12_RESOURCE_STATE_RENDER_TARGET.
+                NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                auto EngineRequestedState  = Map::GetResourceState( EngineRenderTarget.beginState );
+
+                // Barriers for BeginRenderPass() after Clear() is done.
+                Helper::ExpectResourceState( NativeResourceView.pResource,
+                                             EngineRequestedState,
+                                             NativeTrackedResourceState,
+                                             &pDefaultSubpass->BeginBarriers );
+                NativeTrackedResourceState = EngineRequestedState;
+
+                // TODO(blturkot): Decde if STORE/DEFAULT usage
+            }
+            else
+            {
+                VKE_LOG_ERR( "CDDI::CreateRenderPass: Render target must have RTV or DSV set." );
+                return NativeAPI::Null;
+            }
+
+            // Append baked barriers on EndRenderPass(). This may be valid for RenderPasses with default subpass.
+            // TODO(blturkot): EndRenderPass() should track resource state from last used subpass.
+            Helper::ExpectResourceState( NativeResourceView.pResource,
+                                         Map::GetResourceState( EngineRenderTarget.endState ),
+                                         NativeTrackedResourceState,
+                                         &pNativeRenderPass->EndBarriers );
+        }
+
+        for( const auto& Subpass: EngineRenderPassDesc.vSubpasses )
+        {
+            VKE_LOG( "Subpass" << Subpass.GetDebugName() );
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        return pNativeRenderPass;
     }
 
     void CDDI::DestroyRenderPass( NativeAPI::RenderPass* pInOut, const void* pAllocator )
@@ -1943,24 +2123,34 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeAPI::DescriptorPool CDDI::CreateDescriptorPool( const SDescriptorPoolDesc& Desc, const void* pAllocator )
+    NativeAPI::DescriptorPool CDDI::CreateDescriptorPool( const SDescriptorPoolDesc& EngineDesc,
+                                                          const void*                pAllocator )
     {
-        if( Desc.IsValid() == false )
+        if( EngineDesc.IsValid() == false )
         {
-            VKE_LOG_ERR( "Invalid DescriptorPool desc. Descriptor pool must have only one type (DESCRIPTOR_POOL_TYPE). Make sure that textures/buffers, sampler, render targets, depth stencils are not mixed together." );
-            return nullptr;
+            VKE_LOG_ERR(
+                "Invalid DescriptorPool desc. Descriptor pool must have only one type (DESCRIPTOR_POOL_TYPE). Make "
+                "sure that textures/buffers, sampler, render targets, depth stencils are not mixed together." );
+
+            return NativeAPI::Null;
         }
+
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateDescriptorPool: m_hDevice can't be null" );
 
         NativeAPI::DescriptorPool pPool = NativeAPI::Null;
-        Memory::CreateObject( &HeapAllocator, &pPool );
-        auto     poolType          = BindingTypeToPoolType( Desc.vPoolSizes[ 0 ].type );
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPool ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateDescriptorPool: Unable to allocate memory" );
+            return NativeAPI::Null;
+        }
+
+        auto     poolType                 = BindingTypeToPoolType( EngineDesc.vPoolSizes[ 0 ].type );
         uint32_t totalDescriptorSlotCount = 0;
 
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-        //D3D12_DESCRIPTOR_HEAP_TYPE heapType = {};
+        // D3D12_DESCRIPTOR_HEAP_TYPE heapType = {};
 
-        for( auto& poolSize: Desc.vPoolSizes )
+        for( auto& poolSize: EngineDesc.vPoolSizes )
         {
             totalDescriptorSlotCount += poolSize.count;
         }
@@ -2018,15 +2208,19 @@ namespace VKE::RenderSystem
                                                                     const void*                     pAllocator )
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateDescriptorSetLayout: m_hDevice can't be null" );
+
         if( !Desc.IsValid() )
         {
             return NativeAPI::Null;
         }
 
-        NativeAPI::DescriptorSetLayout descriptorSetLayout = NativeAPI::Null;
-        Memory::CreateObject( &HeapAllocator, &descriptorSetLayout );
+        NativeAPI::DescriptorSetLayout pNativeDescriptorSetLayout = NativeAPI::Null;
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDescriptorSetLayout ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateDescriptorSetLayout: Unable to allocate memory" );
+        }
 
-        NativeAPI::D3D12RootParameter& rootParameter = descriptorSetLayout->RootParameter;
+        NativeAPI::D3D12RootParameter& rootParameter = pNativeDescriptorSetLayout->RootParameter;
 
         // Assume shader visibility all, see notes below.
         rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
@@ -2045,18 +2239,21 @@ namespace VKE::RenderSystem
             range.BaseShaderRegister = binding.idx;
             range.RegisterSpace      = 0;
 
-            /// This flag allows us to update descriptors in descriptor table on command list execution.
-            /// Same as in vulkan.
+            // This flag allows us to update descriptors in descriptor table on command list execution.
+            // Same as in vulkan.
             range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
+            // Request slots in pool
+            pNativeDescriptorSetLayout->aNumSlots[ Map::GetDescriptorHeapType( binding.type ) ] += binding.count;
+
             range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-            descriptorSetLayout->vDescriptorRanges.PushBack( range );
+            pNativeDescriptorSetLayout->vDescriptorRanges.PushBack( range );
         }
 
-        rootParameter.DescriptorTable.NumDescriptorRanges = descriptorSetLayout->vDescriptorRanges.GetCount();
-        rootParameter.DescriptorTable.pDescriptorRanges   = descriptorSetLayout->vDescriptorRanges.GetData();
+        rootParameter.DescriptorTable.NumDescriptorRanges = pNativeDescriptorSetLayout->vDescriptorRanges.GetCount();
+        rootParameter.DescriptorTable.pDescriptorRanges   = pNativeDescriptorSetLayout->vDescriptorRanges.GetData();
 
-        return descriptorSetLayout;
+        return pNativeDescriptorSetLayout;
     }
 
     void CDDI::DestroyDescriptorSetLayout( NativeAPI::DescriptorSetLayout* pInOut, const void* pAllocator )
@@ -2064,55 +2261,66 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    Result CDDI::CreateDescriptorSets( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
+    VKE::Result CDDI::CreateDescriptorSets( const AllocateDescs::SDescSet& EngineDescriptorSetInfo,
+                                            NativeAPI::DescriptorSet*      pOutNativeDescriptorSets )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
-        auto     pPool         = Info.hPool;
-        Result ret   = VKE_OK;
-        for( uint32_t LayoutIndex = 0; LayoutIndex < Info.count; LayoutIndex++ )
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateDescriptorSets: m_hDevice can't be null" );
+
+        auto pNativePool = EngineDescriptorSetInfo.hPool;
+
+        VKE::Result result = VKE_OK;
+
+        for( uint32_t layoutIndex = 0; layoutIndex < EngineDescriptorSetInfo.count; layoutIndex++ )
         {
-            pSets[ LayoutIndex ]                  = nullptr;
-            NativeAPI::DescriptorSet& pCurrentSet = pSets[ LayoutIndex ];
-            
-            if( VKE_SUCCEEDED( ret ) )
+            pOutNativeDescriptorSets[ layoutIndex ] = nullptr;
+            NativeAPI::DescriptorSet& pCurrentSet   = pOutNativeDescriptorSets[ layoutIndex ];
+
+            if( VKE_FAILED( Memory::CreateObject( &pNativePool->DescriptorSetMemMgr, &pCurrentSet ) ) )
             {
-                Memory::CreateObject( &pPool->DescriptorSetMemMgr, &pCurrentSet );
+                VKE_LOG_ERR( "CDDI::CreateDescriptorSets: Unable to allocate memory" );
+                return VKE_FAIL;
+            }
 
-                const NativeAPI::DescriptorSetLayout pLayout = Info.phLayouts[ LayoutIndex ];
-                pCurrentSet->pLayout                         = pLayout;
+            const NativeAPI::DescriptorSetLayout pLayout = EngineDescriptorSetInfo.phLayouts[ layoutIndex ];
+            pCurrentSet->pLayout                         = pLayout;
 
-                for( uint32_t t = 0; t < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++t )
+            // CreateDescriptorSet is supposed to only handle D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV.
+            // We're ignoring RTV, DSV as they are handled by CreateRenderPass().
+            // TODO(blturkot): Handle SAMPLER heaps if ever used.
+
+            D3D12_DESCRIPTOR_HEAP_TYPE NativeDescriptorHeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+            uint32_t requestedSlots = pLayout->aNumSlots[ NativeDescriptorHeapType ];
+
+            if( requestedSlots > 0 )
+            {
+                auto firstSlotIndex = EngineDescriptorSetInfo.hPool->SlotMgr.AllocateSlots( requestedSlots );
+
+                if( firstSlotIndex != UNDEFINED_U32 )
                 {
-                    uint32_t numSlots = pLayout->aNumSlots[ t ];
-                    if( numSlots )
-                    {
-                        auto firstSlotIndex = Info.hPool->SlotMgr.AllocateSlots( numSlots );
-                        if( firstSlotIndex != UNDEFINED_U32 )
-                        {
-                            pCurrentSet->PoolSlots = { firstSlotIndex, numSlots };
-                            pCurrentSet->pPool     = Info.hPool;
-                            pCurrentSet->descTableCPUStartAddr = pCurrentSet->GetCpuDescriptorHandle( 0 ).ptr;
-                            pCurrentSet->descTableGPUStartAddr = pCurrentSet->GetGpuDescriptorHandle( 0 ).ptr;
-                        }
-                        else
-                        {
-                            ret = VKE_FAIL;
-                            // Not an error since it is possible to create new descriptor pool
-                            VKE_LOG_WARN( "Not enough free slot ranges in descriptor heap pool of type: " << t );
-                        }
-                    }
+                    pCurrentSet->PoolSlots             = { firstSlotIndex, requestedSlots };
+                    pCurrentSet->pPool                 = EngineDescriptorSetInfo.hPool;
+                    pCurrentSet->descTableCPUStartAddr = pCurrentSet->GetCpuDescriptorHandle( 0 ).ptr;
+                    pCurrentSet->descTableGPUStartAddr = pCurrentSet->GetGpuDescriptorHandle( 0 ).ptr;
+                }
+                else
+                {
+                    // Not an error since it is possible to create new descriptor pool. Still report fail.
+                    result = VKE_FAIL;
+                    VKE_LOG_WARN(
+                        "Not enough free slot ranges in descriptor heap pool of type: " << NativeDescriptorHeapType );
                 }
             }
         }
-        if( VKE_FAILED( ret ) )
+        if( VKE_FAILED( result ) )
         {
             FreeDescs::SDescSet Free;
-            Free.hPool  = Info.hPool;
-            Free.phSets = pSets;
-            Free.count  = Info.count;
+            Free.hPool  = EngineDescriptorSetInfo.hPool;
+            Free.phSets = pOutNativeDescriptorSets;
+            Free.count  = EngineDescriptorSetInfo.count;
             FreeObjects( Free );
         }
-        return ret;
+        return result;
     }
 
     void CDDI::FreeObjects( const FreeDescs::SDescSet& )
@@ -2136,8 +2344,8 @@ namespace VKE::RenderSystem
     {
         VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() == 0,
                      "CDDI::Update: Sampler and texture heaps are not supported in DX12" );
-        
-        auto& pPool = hDDISet->pPool;
+
+        auto&                           pPool          = hDDISet->pPool;
         NativeAPI::D3D12DescriptorHeap* DescriptorHeap = pPool->pHeap;
         const UINT                      srvDescriptorSize =
             m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
@@ -2161,39 +2369,42 @@ namespace VKE::RenderSystem
         for( auto& Binding: Info.vTexs )
         {
             VKE_ASSERT( Binding.type != BindingTypes::STORAGE_TEXTURE );
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
 
-            for( uint32_t i = 0; i < Binding.count; ++i )
-            {
-                D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
-                const auto                       pTexture = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
-                const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
+            // for( uint32_t i = 0; i < Binding.count; ++i )
+            //{
+            //     D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
+            //     const auto                       pTexture   = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
+            //     const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
 
-                UavDesc.Format = pTexture->GetDDIObject()->GetDesc().Format; /// TODO: handle typeless format
-                UavDesc.ViewDimension =
-                    Map::DimmensionToUAVDimmension( pTexture->GetDDIObject()->GetDesc().Dimension );
-                Helper::InitUAVDesc( NativeDesc, &UavDesc );
+            //    UavDesc.Format        = pTexture->GetDDIObject()->GetDesc().Format; /// TODO: handle typeless format
+            //    UavDesc.ViewDimension = Map::DimmensionToUAVDimmension( pTexture->GetDDIObject()->GetDesc().Dimension
+            //    ); Helper::InitUAVDesc( NativeDesc, &UavDesc );
 
-                D3D12_CPU_DESCRIPTOR_HANDLE hCpu =
-                    hDDISet->GetCpuDescriptorHandle( Binding.binding );
+            //    D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
 
-                m_hDevice->CreateUnorderedAccessView( pTexture->GetDDIObject(), nullptr, &UavDesc, hCpu );
-            }
-            
+            //    m_hDevice->CreateUnorderedAccessView( pTexture->GetDDIObject(), nullptr, &UavDesc, hCpu );
+            //}
         }
 
         for( auto& Binding: Info.vTexViews )
         {
-            for( uint32_t i = 0; i < Binding.count; ++i )
-            {
-                const auto                   pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
-                const auto&                  TexViewDesc = pTexView->GetDesc();
-                const NativeAPI::TextureView pNativeView = pTexView->GetDDIObject();
-                const auto                   pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
+            // for( uint32_t i = 0; i < Binding.count; ++i )
+            //{
+            //     const auto                   pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
+            //     const auto&                  TexViewDesc = pTexView->GetDesc();
+            //     const NativeAPI::TextureView pNativeView = pTexView->GetDDIObject();
+            //     const auto                   pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
 
-                auto hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
-                m_hDevice->CreateShaderResourceView(
-                    pTexture->GetDDIObject(), &pNativeView->aSRVDescs[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ], hCpu );
-            }
+            //    auto hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+            //    m_hDevice->CreateShaderResourceView(
+            //        pTexture->GetDDIObject(),
+            //        &pNativeView->aShaderResourceViewDesc[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ],
+            //        hCpu );
+            //}
         }
 
         for( auto& Binding: Info.vSamplers )
@@ -2204,22 +2415,23 @@ namespace VKE::RenderSystem
 
         for( auto& Binding: Info.vBuffers )
         {
-            for( uint32_t i = 0; i < Binding.count; ++i )
-            {
-                const auto                      pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ i ] );
-                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-                srvDesc.Format                          = DXGI_FORMAT_UNKNOWN;
-                srvDesc.ViewDimension                   = D3D12_SRV_DIMENSION_BUFFER;
-                srvDesc.Buffer.FirstElement             = Binding.offset;
-                srvDesc.Buffer.NumElements              = Binding.elementCount;
-                srvDesc.Buffer.StructureByteStride      = Binding.elementSize;
-                srvDesc.Shader4ComponentMapping         = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
+            // for( uint32_t i = 0; i < Binding.count; ++i )
+            //{
+            //     const auto                      pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ i ] );
+            //     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            //     srvDesc.Format                          = DXGI_FORMAT_UNKNOWN;
+            //     srvDesc.ViewDimension                   = D3D12_SRV_DIMENSION_BUFFER;
+            //     srvDesc.Buffer.FirstElement             = Binding.offset;
+            //     srvDesc.Buffer.NumElements              = Binding.elementCount;
+            //     srvDesc.Buffer.StructureByteStride      = Binding.elementSize;
+            //     srvDesc.Shader4ComponentMapping         = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-                D3D12_CPU_DESCRIPTOR_HANDLE hCpu =
-                    hDDISet->GetCpuDescriptorHandle( Binding.binding );
+            //    D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
 
-                m_hDevice->CreateShaderResourceView( pBuffer->GetDDIObject(), &srvDesc, hCpu );
-            }
+            //    m_hDevice->CreateShaderResourceView( pBuffer->GetDDIObject(), &srvDesc, hCpu );
+            //}
         }
     }
 
@@ -2414,7 +2626,7 @@ namespace VKE::RenderSystem
     {
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateTexture.
         NativeAPI::D3D12ResourceDesc ResourceDesc;
-        
+
         Convert::GetResourceDesc( Desc, m_Implementation.Features, &ResourceDesc );
 
         D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
@@ -2674,28 +2886,12 @@ namespace VKE::RenderSystem
 
     void CDDI::BeginRenderPass( NativeAPI::CommandBuffer pCommandBuffer, const SBeginRenderPassInfo2& Info )
     {
-        UINT NumRenderTargets = Info.vColorRenderTargetInfos.GetCount();
-
-        Utils::TCDynamicArray< D3D12_RENDER_PASS_RENDER_TARGET_DESC, 1u > vRenderTargetsDescs;
-        vRenderTargetsDescs.Resize( NumRenderTargets );
-
-        D3D12_RENDER_PASS_FLAGS Flags = D3D12_RENDER_PASS_FLAG_NONE;
-
-        for( uint32_t i = 0; i < NumRenderTargets; i++ )
-        {
-            vRenderTargetsDescs[ i ] = Convert::GetRenderPassRenderTargetDesc( Info.vColorRenderTargetInfos[ i ] );
-        }
-
-        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DepthStencilDesc =
-            Convert::GetRenderPassDepthStencilDesc( Info.DepthRenderTargetInfo, Info.StencilRenderTargetInfo );
-
-        pCommandBuffer->BeginRenderPass(
-            vRenderTargetsDescs.GetCount(), vRenderTargetsDescs.GetData(), &DepthStencilDesc, Flags );
+        UNIMPLEMENTED_D3D12_METHOD();
     }
 
     void CDDI::BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo& )
     {
-
+        UNIMPLEMENTED_D3D12_METHOD();
     }
 
     void CDDI::EndRenderPass( NativeAPI::CommandBuffer pCommandBuffer, NativeAPI::RenderPass )
@@ -2865,7 +3061,7 @@ namespace VKE::RenderSystem
         pOut->hSwapChain->GetContainingOutput( &pPresentOutput );
         pOut->hSurface = reinterpret_cast< NativeAPI::PresentSurface >( pPresentOutput );
 
-        DXGI_COLOR_SPACE_TYPE dxgiColorSpace        = Map::getDXGIColorSpace( Desc.colorSpace );
+        DXGI_COLOR_SPACE_TYPE dxgiColorSpace        = Map::GetDXGIColorSpace( Desc.colorSpace );
         UINT                  dxgiColorSpaceSupport = 0;
 
         pOut->hSwapChain->CheckColorSpaceSupport( dxgiColorSpace, &dxgiColorSpaceSupport );
@@ -2898,8 +3094,10 @@ namespace VKE::RenderSystem
         // Update size from SwapChain after creation
         UINT width = 0, height = 0;
         pOut->hSwapChain->GetSourceSize( &width, &height );
-        pOut->Size.width  = (VKE::RenderSystem::TextureSizeType)width;
-        pOut->Size.height = (VKE::RenderSystem::TextureSizeType)height;
+        pOut->Size.width        = (VKE::RenderSystem::TextureSizeType)width;
+        pOut->Size.height       = (VKE::RenderSystem::TextureSizeType)height;
+        pOut->Format.format     = Desc.format;
+        pOut->Format.colorSpace = Desc.colorSpace;
 
         return Result::OK;
     }
@@ -3042,9 +3240,9 @@ namespace VKE::RenderSystem
             case ApiObjectTypes::PIPELINE:
                 ( (NativeAPI::Pipeline)handle )->SetName( buffer );
                 break;
-           /* case ApiObjectTypes::DESCRIPTOR_SET:
-                ( (NativeAPI::DescriptorSet)handle )->SetName( buffer );
-                break;*/
+                /* case ApiObjectTypes::DESCRIPTOR_SET:
+                     ( (NativeAPI::DescriptorSet)handle )->SetName( buffer );
+                     break;*/
             case ApiObjectTypes::FRAMEBUFFER:
                 ( (NativeAPI::Framebuffer)handle )->SetName( buffer );
                 break;

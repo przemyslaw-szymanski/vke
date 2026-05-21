@@ -10,6 +10,11 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
+      "environments": [
+        {
+          "VK_ADD_LAYER_PATH": "${projectDir}\\out\\build\\${name}\\vcpkg_installed\\x64-windows\\bin"
+        }
+      ],
       "variables": [
         {
           "name": "VKE_RENDER_SYSTEM_VULKAN",
@@ -43,6 +48,11 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
+      "environments": [
+        {
+          "VK_ADD_LAYER_PATH": "${projectDir}\\out\\build\\${name}\\vcpkg_installed\\x64-windows\\bin"
+        }
+      ],
       "variables": [
         {
           "name": "VKE_RENDER_SYSTEM_VULKAN",

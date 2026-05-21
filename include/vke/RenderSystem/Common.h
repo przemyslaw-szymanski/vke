@@ -944,36 +944,18 @@ namespace VKE
 
         vke_force_inline DESCRIPTOR_POOL_TYPE BindingTypeToPoolType( DESCRIPTOR_SET_TYPE bindingType )
         {
-            /*
-             struct BindingTypes
-        {
-            enum TYPE : uint8_t
-            {
-                SAMPLER,             // only sampler
-                TEXTURE,             // only texture without sampler
-                STORAGE_TEXTURE,
-                READ_ONLY_TEXEL_BUFFER,
-                READ_WRITE_TEXEL_BUFFER,
-                CONSTANT_BUFFER,
-                BUFFER,
-                DYNAMIC_CONSTANT_BUFFER,
-                DYNAMIC_BUFFER,
-                RENDER_TARGET,
-                DEPTH_STENCIL,
-                _MAX_COUNT,
-                UNKNOWN = _MAX_COUNT
-            };
-        };*/
             static const DESCRIPTOR_POOL_TYPE ascValues[ BindingTypes::_MAX_COUNT ] = {
-                DescriptorPoolTypes::SAMPLER,                // sampler
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // texture
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // storage tex
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // ro tex buff
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // rw tex buff
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // cbuffer
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // buffer
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // dyn cbuffer
-                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // dyn buffer
+                DescriptorPoolTypes::SAMPLER,                // SAMPLER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // TEXTURE
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // STORAGE_TEXTURE
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // READ_ONLY_TEXEL_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // READ_WRITE_TEXEL_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // CONSTANT_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // DYNAMIC_CONSTANT_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // DYNAMIC_BUFFER
+                // RENDER_TARGET
+                // DEPTH_STENCIL
             };
             return ascValues[ bindingType ];
         }
@@ -3177,7 +3159,7 @@ namespace VKE
                 for( uint32_t i = 0; i < vPoolSizes.GetCount(); ++i )
                 {
                     auto dspType = BindingTypeToPoolType( vPoolSizes[ i ].type );
-                    TypeBits.Add( (uint8_t)dspType );
+                    TypeBits.SetBit( (uint8_t)dspType );
                 }
                 return TypeBits.CalcSetBitCount() == 1;
             }
