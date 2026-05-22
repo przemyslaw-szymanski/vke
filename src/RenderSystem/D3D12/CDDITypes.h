@@ -13,22 +13,6 @@ namespace VKE::RenderSystem
 {
     static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
 
-    // TODO(blturkot): D3D12 use single desc for all shader bindings
-    enum DDIImageViewType
-    {
-        D3D12_VIEW_TYPE_BUFFER,
-        D3D12_VIEW_TYPE_TEX1D,
-        D3D12_VIEW_TYPE_TEX1D_ARRAY,
-        D3D12_VIEW_TYPE_TEX2D,
-        D3D12_VIEW_TYPE_TEX2D_ARRAY,
-        D3D12_VIEW_TYPE_TEX2DMS,
-        D3D12_VIEW_TYPE_TEX2DMS_ARRAY,
-        D3D12_VIEW_TYPE_TEX3D,
-        D3D12_VIEW_TYPE_TEXCUBE,
-        D3D12_VIEW_TYPE_TEXCUBE_ARRAY,
-        D3D12_VIEW_TYPE_RT_ACC_STRUCT,
-    };
-
     namespace NativeAPI
     {
         // DirectX 12 have multiple structures for the same thing but with different feature sets. To prevent huge pain
@@ -190,17 +174,31 @@ namespace VKE::RenderSystem
                 uint32_t ResourceViewTypesMask = 0;
             };
 
-            template< typename T, size_t numElements >
+            template< typename T, UINT numElements >
             struct TSStaticArray
             {
-                std::array< T, numElements > Data;
+                std::array< T, numElements > Data = {};
 
-                size_t count = 0;
+                union
+                {
+                    UINT count = 0;
+                };
+                
 
                 T& Reserve()
                 {
                     VKE_ASSERT2( count < numElements, "Out of bounds array access" );
                     return Data[ count++ ];
+                }
+
+                bool HasAny()
+                {
+                    return count > 0;
+                }
+
+                UINT GetCount()
+                {
+                    return count;
                 }
             };
 
@@ -273,6 +271,23 @@ namespace VKE::RenderSystem
                 uint32_t      currentSubpassIndex = 0;
 
                 SRenderPassBarriers EndBarriers;
+                const char*         pName = nullptr;
+
+                void Reset()
+                {
+                    currentSubpassIndex = 0;
+                }
+
+                SSubpass& CurrentSubpass()
+                {
+                    return vSubpasses[ currentSubpassIndex ];
+                }
+
+                SSubpass& NextSubpass()
+                {
+                    return vSubpasses[ ++currentSubpassIndex ];
+                }
+
             };
         } // namespace CustomTypes
 

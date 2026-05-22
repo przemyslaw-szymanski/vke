@@ -99,6 +99,146 @@ namespace VKE::RenderSystem
             return pDescriptorHeap;
         }
 
+        uint32_t GetLastCompletedBreadcrumb( const D3D12_AUTO_BREADCRUMB_NODE1* pNode )
+        {
+            uint32_t lastCompleted = 0;
+
+            for( uint32_t i = 0; i < pNode->BreadcrumbCount; i++ )
+            {
+                if( pNode->pLastBreadcrumbValue && ( *pNode->pLastBreadcrumbValue & ( 1u << i ) ) )
+                {
+                    lastCompleted = i;
+                }
+            }
+
+            return lastCompleted;
+        }
+
+        const char* GetBreadcrumbOpName( D3D12_AUTO_BREADCRUMB_OP op )
+        {
+            static const char* ascMap[] = {
+                "SetMarker",                            // D3D12_AUTO_BREADCRUMB_OP_SETMARKER
+                "BeginEvent",                           // D3D12_AUTO_BREADCRUMB_OP_BEGINEVENT
+                "EndEvent",                             // D3D12_AUTO_BREADCRUMB_OP_ENDEVENT
+                "DrawInstanced",                        // D3D12_AUTO_BREADCRUMB_OP_DRAWINSTANCED
+                "DrawIndexedInstanced",                 // D3D12_AUTO_BREADCRUMB_OP_DRAWINDEXEDINSTANCED
+                "ExecuteIndirect",                      // D3D12_AUTO_BREADCRUMB_OP_EXECUTEINDIRECT
+                "Dispatch",                             // D3D12_AUTO_BREADCRUMB_OP_DISPATCH
+                "CopyBufferRegion",                     // D3D12_AUTO_BREADCRUMB_OP_COPYBUFFERREGION
+                "CopyTextureRegion",                    // D3D12_AUTO_BREADCRUMB_OP_COPYTEXTUREREGION
+                "CopyResource",                         // D3D12_AUTO_BREADCRUMB_OP_COPYRESOURCE
+                "CopyTiles",                            // D3D12_AUTO_BREADCRUMB_OP_COPYTILES
+                "ResolveSubresource",                   // D3D12_AUTO_BREADCRUMB_OP_RESOLVESUBRESOURCE
+                "ClearRenderTargetView",                // D3D12_AUTO_BREADCRUMB_OP_CLEARRENDERTARGETVIEW
+                "ClearUnorderedAccessView",             // D3D12_AUTO_BREADCRUMB_OP_CLEARUNORDEREDACCESSVIEW
+                "ClearDepthStencilView",                // D3D12_AUTO_BREADCRUMB_OP_CLEARDEPTHSTENCILVIEW
+                "ResourceBarrier",                      // D3D12_AUTO_BREADCRUMB_OP_RESOURCEBARRIER
+                "ExecuteBundle",                        // D3D12_AUTO_BREADCRUMB_OP_EXECUTEBUNDLE
+                "Present",                              // D3D12_AUTO_BREADCRUMB_OP_PRESENT
+                "ResolveQueryData",                     // D3D12_AUTO_BREADCRUMB_OP_RESOLVEQUERYDATA
+                "BeginSubmission",                      // D3D12_AUTO_BREADCRUMB_OP_BEGINSUBMISSION
+                "EndSubmission",                        // D3D12_AUTO_BREADCRUMB_OP_ENDSUBMISSION
+                "DecodeFrame",                          // D3D12_AUTO_BREADCRUMB_OP_DECODEFRAME
+                "ProcessFrames",                        // D3D12_AUTO_BREADCRUMB_OP_PROCESSFRAMES
+                "AtomicCopyBufferUINT",                 // D3D12_AUTO_BREADCRUMB_OP_ATOMICCOPYBUFFERUINT
+                "AtomicCopyBufferUINT64",               // D3D12_AUTO_BREADCRUMB_OP_ATOMICCOPYBUFFERUINT64
+                "ResolveSubresourceRegion",             // D3D12_AUTO_BREADCRUMB_OP_RESOLVESUBRESOURCEREGION
+                "WriteBufferImmediate",                 // D3D12_AUTO_BREADCRUMB_OP_WRITEBUFFERIMMEDIATE
+                "DecodeFrame1",                         // D3D12_AUTO_BREADCRUMB_OP_DECODEFRAME1
+                "SetProtectedResourceSession",          // D3D12_AUTO_BREADCRUMB_OP_SETPROTECTEDRESOURCESESSION
+                "DecodeFrame2",                         // D3D12_AUTO_BREADCRUMB_OP_DECODEFRAME2
+                "ProcessFrames1",                       // D3D12_AUTO_BREADCRUMB_OP_PROCESSFRAMES1
+                "BuildRaytracingAccelerationStructure", // D3D12_AUTO_BREADCRUMB_OP_BUILDRAYTRACINGACCELERATIONSTRUCTURE
+                "EmitRaytracingAccelerationStructurePostBuildInfo", // D3D12_AUTO_BREADCRUMB_OP_EMITRAYTRACINGACCELERATIONSTRUCTUREPOSTBUILDINFO
+                "CopyRaytracingAccelerationStructure", // D3D12_AUTO_BREADCRUMB_OP_COPYRAYTRACINGACCELERATIONSTRUCTURE
+                "DispatchRays",                        // D3D12_AUTO_BREADCRUMB_OP_DISPATCHRAYS
+                "InitializeMetaCommand",               // D3D12_AUTO_BREADCRUMB_OP_INITIALIZEMETACOMMAND
+                "ExecuteMetaCommand",                  // D3D12_AUTO_BREADCRUMB_OP_EXECUTEMETACOMMAND
+                "EstimateMotion",                      // D3D12_AUTO_BREADCRUMB_OP_ESTIMATEMOTION
+                "ResolveMotionVectorHeap",             // D3D12_AUTO_BREADCRUMB_OP_RESOLVEMOTIONVECTORHEAP
+                "SetPipelineState1",                   // D3D12_AUTO_BREADCRUMB_OP_SETPIPELINESTATE1
+                "InitializeExtensionCommand",          // D3D12_AUTO_BREADCRUMB_OP_INITIALIZEEXTENSIONCOMMAND
+                "ExecuteExtensionCommand",             // D3D12_AUTO_BREADCRUMB_OP_EXECUTEEXTENSIONCOMMAND
+                "DispatchMesh",                        // D3D12_AUTO_BREADCRUMB_OP_DISPATCHMESH
+                "EncodeFrame",                         // D3D12_AUTO_BREADCRUMB_OP_ENCODEFRAME
+                "ResolveEncoderOutputMetadata",        // D3D12_AUTO_BREADCRUMB_OP_RESOLVEENCODEROUTPUTMETADATA
+                "Barrier",                             // D3D12_AUTO_BREADCRUMB_OP_BARRIER
+                "BeginCommandList",                    // D3D12_AUTO_BREADCRUMB_OP_BEGIN_COMMAND_LIST
+                "DispatchGraph",                       // D3D12_AUTO_BREADCRUMB_OP_DISPATCHGRAPH
+                "SetProgram",                          // D3D12_AUTO_BREADCRUMB_OP_SETPROGRAM
+                "EncodeFrame1",                        // D3D12_AUTO_BREADCRUMB_OP_ENCODEFRAME1
+                "ResolveEncoderOutputMetadata1",       // D3D12_AUTO_BREADCRUMB_OP_RESOLVEENCODEROUTPUTMETADATA1
+                "ResolveInputParamLayout",             // D3D12_AUTO_BREADCRUMB_OP_RESOLVEINPUTPARAMLAYOUT
+                "ProcessFrames2",                      // D3D12_AUTO_BREADCRUMB_OP_PROCESSFRAMES2
+                "SetWorkGraphMaximumGPUInputRecords", // D3D12_AUTO_BREADCRUMB_OP_SET_WORK_GRAPH_MAXIMUM_GPU_INPUT_RECORDS
+            };
+
+            if( static_cast< uint32_t >( op ) < _countof( ascMap ) )
+            {
+                return ascMap[ op ];
+            }
+            else
+            {
+                return "<unknown>";
+            }
+        }
+
+        void HandleDeviceRemoval( NativeAPI::Device pDevice )
+        {
+            VKE_ASSERT2( pDevice != NativeAPI::Null, "HandleDeviceRemoval: pDevice is NULL" );
+
+            if( !NativeAPI::SImplementation::sDebugLayerEnabled )
+            {
+                VKE_LOG(
+                    "HandleDeviceRemoval: DRED is not enabled without NativeAPI::SImplementation::sDebugLayerEnabled" );
+                return;
+            }
+
+            HRESULT reason = pDevice->GetDeviceRemovedReason();
+
+            if( reason == S_OK )
+            {
+                VKE_LOG( "HandleDeviceRemoval: called but no TDR happened" );
+                return;
+            }
+
+            VKE_LOG( "HandleDeviceRemoval: TDR with reason: " << std::hex << reason );
+
+            ID3D12DeviceRemovedExtendedData1* pDRED = NativeAPI::Null;
+            if( FAILED( pDevice->QueryInterface( IID_PPV_ARGS( &pDRED ) ) ) )
+            {
+                VKE_LOG( "HandleDeviceRemoval: Failed to query DRED" );
+                return;
+            }
+
+            D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 Breadcrumbs = {};
+            if( SUCCEEDED( pDRED->GetAutoBreadcrumbsOutput1( &Breadcrumbs ) ) )
+            {
+                VKE_LOG( "HandleDeviceRemoval: === DRED Auto-Breadcrumbs ===" );
+                const D3D12_AUTO_BREADCRUMB_NODE1* pNode = NativeAPI::Null;
+
+                for( pNode = Breadcrumbs.pHeadAutoBreadcrumbNode; pNode != nullptr; pNode = pNode->pNext )
+                {
+                    VKE_LOG( "HandleDeviceRemoval: Command List: "
+                             << ( pNode->pCommandListDebugNameA ? pNode->pCommandListDebugNameA : "<unnamed>" ) );
+                    VKE_LOG( "HandleDeviceRemoval:  Command Queue: "
+                             << ( pNode->pCommandQueueDebugNameA ? pNode->pCommandQueueDebugNameA : "<unnamed>" ) );
+
+                    uint32_t lastCompleted = GetLastCompletedBreadcrumb( pNode );
+                    VKE_LOG( "HandleDeviceRemoval:  Last completed operation: " << lastCompleted << " / "
+                                                                                << pNode->BreadcrumbCount );
+
+                    for( uint32_t i = 0; i < pNode->BreadcrumbCount; i++ )
+                    {
+                        bool completed = pNode->pLastBreadcrumbValue && ( *pNode->pLastBreadcrumbValue & ( 1u << i ) );
+
+                        VKE_LOG( "HandleDeviceRemoval:    [" << ( completed ? "X" : " " ) << "] Op " << i << ": "
+                                                             << GetBreadcrumbOpName( pNode->pCommandHistory[ i ] ) );
+                    }
+                }
+            }
+        }
+
     } // namespace NativeAPI
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -800,6 +940,14 @@ namespace VKE::RenderSystem
             return flags;
         }
 
+        void GetRect( const Rect2DI32& EngineRect, D3D12_RECT* pNativeRect )
+        {
+            pNativeRect->left = EngineRect.Position.x;
+            pNativeRect->top  = EngineRect.Position.y;
+            pNativeRect->right  = pNativeRect->left + EngineRect.Size.width;
+            pNativeRect->bottom = pNativeRect->top + EngineRect.Size.height;
+        }
+
     }; // namespace Convert
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -1393,6 +1541,21 @@ namespace VKE::RenderSystem
         VKE_RETURN_IF_FAILED( Helper::QueryAdapterProperties( m_hAdapter, &m_DeviceProperties ) );
 
         // TODO(blturkot): Compare pCtx->m_Desc.pAdapterInfo->apiVersion with Info.Settings.Features
+
+        if( NativeAPI::SImplementation::sDebugLayerEnabled )
+        {
+            // Enable TDR extended info (DRED)
+            ID3D12DeviceRemovedExtendedDataSettings1* pDREDSettings = nullptr;
+            if( SUCCEEDED( D3D12GetDebugInterface( IID_PPV_ARGS( &pDREDSettings ) ) ) )
+            {
+                pDREDSettings->SetAutoBreadcrumbsEnablement( D3D12_DRED_ENABLEMENT_FORCED_ON );
+                pDREDSettings->SetPageFaultEnablement( D3D12_DRED_ENABLEMENT_FORCED_ON );
+                pDREDSettings->SetBreadcrumbContextEnablement( D3D12_DRED_ENABLEMENT_FORCED_ON );
+
+                pDREDSettings->Release();
+                VKE_LOG( "CDDI::CreateDevice: DRED enabled with auto-breadcrumbs and page fault reporting" );
+            }
+        }
 
         HRESULT Result = D3D12CreateDevice( m_hAdapter,
                                             static_cast< D3D_FEATURE_LEVEL >( pCtx->m_Desc.pAdapterInfo->apiVersion ),
@@ -2084,6 +2247,7 @@ namespace VKE::RenderSystem
             UNIMPLEMENTED_D3D12_METHOD();
         }
 
+        pNativeRenderPass->pName = EngineRenderPassDesc.GetDebugName();
         return pNativeRenderPass;
     }
 
@@ -2884,19 +3048,100 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer pCommandBuffer, const SBeginRenderPassInfo2& Info )
+    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer     pNativeCommandBuffer,
+                                const SBeginRenderPassInfo2& EngineRenderPassInfo )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo& )
+    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer    pNativeCommandBuffer,
+                                const SBeginRenderPassInfo& EngineRenderPassInfo )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        if( EngineRenderPassInfo.hDDIRenderPass == NativeAPI::Null )
+        {
+            VKE_LOG_ERR( "CDDI::BeginRenderPass: Render pass is NULL" );
+            return;
+        }
+
+        const NativeAPI::RenderPass pNativeRenderPass = EngineRenderPassInfo.hDDIRenderPass;
+        pNativeRenderPass->Reset();
+
+        const auto& NativeFirstSubpass = pNativeRenderPass->CurrentSubpass();
+        const auto& NativeClearInfo    = pNativeRenderPass->Clear;
+
+        // Add custom breadcrumb before BeginRenderPass() insert anything on cmdlist
+        PIXBeginEvent( pNativeCommandBuffer,
+                       PIX_COLOR( 255, 0, 0 ),
+                       "EmulatedRenderPass: Begin: %s",
+                       EngineRenderPassInfo.hDDIRenderPass->pName );
+
+        // Record barriers for potential clear operations.
+        if( NativeClearInfo.Barriers.count > 0 )
+        {
+            pNativeCommandBuffer->ResourceBarrier( NativeClearInfo.count, &NativeClearInfo.Barriers.Data[ 0 ] );
+        }
+
+        // Record clear operations
+        for( uint32_t index = 0; index < NativeClearInfo.count; index++ )
+        {
+            const auto& NativeClearInfoSurface = pNativeRenderPass->Clear.Data[ index ];
+
+            if( NativeClearInfoSurface.Type == NativeClearInfoSurface.RENDER_TARGET )
+            {
+                const auto& Args = NativeClearInfoSurface.RenderTargetView;
+                pNativeCommandBuffer->ClearRenderTargetView( Args.hRenderTargetView, Args.aColorRGBA, 1, &Args.Rect );
+            }
+            else if( NativeClearInfoSurface.Type == NativeClearInfoSurface.DEPTH_STENCIL_VIEW )
+            {
+                const auto& Args = NativeClearInfoSurface.DepthStencilView;
+                pNativeCommandBuffer->ClearDepthStencilView(
+                    Args.hDepthStencilView, Args.ClearFlags, Args.depth, Args.stencil, 1, &Args.Rect );
+            }
+        }
+
+        // Record barriers for default subpass
+        if( NativeFirstSubpass.BeginBarriers.count > 0 )
+        {
+            pNativeCommandBuffer->ResourceBarrier( NativeFirstSubpass.BeginBarriers.count,
+                                                   &NativeFirstSubpass.BeginBarriers.Data[ 0 ] );
+        }
+
+        // TODO(blturkot): DepthStencilView need to be passed to
+        // D3D12_GRAPHICS_PIPELINE_STATE_DESC::D3D12_DEPTH_STENCIL_DESC
+        // TODO(blturkot): D3D12_GRAPHICS_PIPELINE_STATE_DESC also knows about RTVFormat, DSVFormat and number of render
+        // targets.
+
+        // Configure output merger
+        pNativeCommandBuffer->OMSetRenderTargets( pNativeRenderPass->RenderTargetViews.count,
+                                                  &pNativeRenderPass->RenderTargetViews.Data[ 0 ],
+                                                  FALSE, // TRUE if render targets are like descriptor table
+                                                  &pNativeRenderPass->DepthStencilView.hCPUDescriptor );
+
+        // Configure rasterizer
+        D3D12_RECT scizzorRect;
+        Convert::GetRect( EngineRenderPassInfo.RenderArea, &scizzorRect );
+        pNativeCommandBuffer->RSSetScissorRects( 1, &scizzorRect );
     }
 
-    void CDDI::EndRenderPass( NativeAPI::CommandBuffer pCommandBuffer, NativeAPI::RenderPass )
+    void CDDI::EndRenderPass( NativeAPI::CommandBuffer pNativeCommandBuffer, NativeAPI::RenderPass pNativeRenderPass )
     {
-        pCommandBuffer->EndRenderPass();
+        if( pNativeRenderPass == NativeAPI::Null )
+        {
+            VKE_LOG_ERR( "CDDI::EndRenderPass: Render pass is NULL" );
+            return;
+        }
+
+        // TODO(blturkot): When subpasses will be fully implemented in engine, we'll need to check which was last and
+        // issue proper barrier to end state. Right now it's primitive technology and assumes just one subpass with so
+        // end barriers are baked into render pass.
+        if( pNativeRenderPass->EndBarriers.count > 0 )
+        {
+            pNativeCommandBuffer->ResourceBarrier( pNativeRenderPass->EndBarriers.count,
+                                                   &pNativeRenderPass->EndBarriers.Data[ 0 ] );
+        }
+
+        // Add end custom breadcrumb after everything was done on cmdlist.
+        PIXEndEvent( pNativeCommandBuffer );
     }
 
     void CDDI::Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
