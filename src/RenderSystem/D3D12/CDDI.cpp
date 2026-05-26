@@ -2560,43 +2560,41 @@ namespace VKE::RenderSystem
         // Texture is meant to be write
         for( auto& Binding: Info.vTexs )
         {
-            VKE_ASSERT( Binding.type != BindingTypes::STORAGE_TEXTURE );
-            (void)Binding;
-            UNIMPLEMENTED_D3D12_METHOD();
+            VKE_ASSERT( Binding.type == BindingTypes::STORAGE_TEXTURE );
 
-            // for( uint32_t i = 0; i < Binding.count; ++i )
-            //{
-            //     D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
-            //     const auto                       pTexture   = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
-            //     const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
+            for( uint32_t i = 0; i < Binding.count; ++i )
+            {
+                 D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
+                 const auto                       pTexture   = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
+                 const auto&                      ViewDesc   = pTexture->GetView()->GetDesc();
+                 //const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
 
-            //    UavDesc.Format        = pTexture->GetDDIObject()->GetDesc().Format; /// TODO: handle typeless format
-            //    UavDesc.ViewDimension = Map::DimmensionToUAVDimmension( pTexture->GetDDIObject()->GetDesc().Dimension
-            //    ); Helper::InitUAVDesc( NativeDesc, &UavDesc );
+                UavDesc.Format        = pTexture->GetDDIObject()->GetDesc().Format; /// TODO: handle typeless format
+                UavDesc.ViewDimension = Map::DimmensionToUAVDimmension( pTexture->GetDDIObject()->GetDesc().Dimension );
+                Helper::CreateUnorderedAccessView( ViewDesc, &UavDesc );
 
-            //    D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+                D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
 
-            //    m_hDevice->CreateUnorderedAccessView( pTexture->GetDDIObject(), nullptr, &UavDesc, hCpu );
-            //}
+                m_hDevice->CreateUnorderedAccessView( pTexture->GetDDIObject(), nullptr, &UavDesc, hCpu );
+            }
         }
 
+        /// TODO: validate
         for( auto& Binding: Info.vTexViews )
         {
-            (void)Binding;
-            UNIMPLEMENTED_D3D12_METHOD();
-            // for( uint32_t i = 0; i < Binding.count; ++i )
-            //{
-            //     const auto                   pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
-            //     const auto&                  TexViewDesc = pTexView->GetDesc();
-            //     const NativeAPI::TextureView pNativeView = pTexView->GetDDIObject();
-            //     const auto                   pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
+            for( uint32_t i = 0; i < Binding.count; ++i )
+            {
+                 const auto                   pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
+                 const auto&                  TexViewDesc = pTexView->GetDesc();
+                 const NativeAPI::TextureView pNativeView = pTexView->GetDDIObject();
+                 const auto                   pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
 
-            //    auto hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
-            //    m_hDevice->CreateShaderResourceView(
-            //        pTexture->GetDDIObject(),
-            //        &pNativeView->aShaderResourceViewDesc[ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ],
-            //        hCpu );
-            //}
+                 D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+                 Helper::CreateShaderResourceView( TexViewDesc, &SrvDesc );
+
+                 auto hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+                 m_hDevice->CreateShaderResourceView(pTexture->GetDDIObject(), &SrvDesc, hCpu );
+            }
         }
 
         for( auto& Binding: Info.vSamplers )
@@ -2606,24 +2604,22 @@ namespace VKE::RenderSystem
         }
 
         for( auto& Binding: Info.vBuffers )
-        {
-            (void)Binding;
-            UNIMPLEMENTED_D3D12_METHOD();
-            // for( uint32_t i = 0; i < Binding.count; ++i )
-            //{
-            //     const auto                      pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ i ] );
-            //     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-            //     srvDesc.Format                          = DXGI_FORMAT_UNKNOWN;
-            //     srvDesc.ViewDimension                   = D3D12_SRV_DIMENSION_BUFFER;
-            //     srvDesc.Buffer.FirstElement             = Binding.offset;
-            //     srvDesc.Buffer.NumElements              = Binding.elementCount;
-            //     srvDesc.Buffer.StructureByteStride      = Binding.elementSize;
-            //     srvDesc.Shader4ComponentMapping         = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        {   
+            for( uint32_t i = 0; i < Binding.count; ++i )
+            {
+                 const auto                      pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ i ] );
+                 D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+                 srvDesc.Format                          = DXGI_FORMAT_UNKNOWN;
+                 srvDesc.ViewDimension                   = D3D12_SRV_DIMENSION_BUFFER;
+                 srvDesc.Buffer.FirstElement             = Binding.offset;
+                 srvDesc.Buffer.NumElements              = Binding.elementCount;
+                 srvDesc.Buffer.StructureByteStride      = Binding.elementSize;
+                 srvDesc.Shader4ComponentMapping         = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-            //    D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+                D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
 
-            //    m_hDevice->CreateShaderResourceView( pBuffer->GetDDIObject(), &srvDesc, hCpu );
-            //}
+                m_hDevice->CreateShaderResourceView( pBuffer->GetDDIObject(), &srvDesc, hCpu );
+            }
         }
     }
 
