@@ -44,12 +44,6 @@ namespace VKE
                     goto ERR;
                 }
             }
-            {
-                auto                hDescSetLayout = m_pCtx->GetDefaultDescriptorSetLayout();
-                SPipelineLayoutDesc LayoutDesc( hDescSetLayout );
-                LayoutDesc.SetDebugName( "Default" );
-                m_pDefaultLayout = CreateLayout( LayoutDesc );
-            }
 
             return res;
         ERR:
@@ -59,7 +53,6 @@ namespace VKE
 
         void CPipelineManager::Destroy()
         {
-            m_pDefaultLayout = nullptr;
             m_pCurrPipeline  = nullptr;
             for( auto& Itr: m_Buffer.mContainer )
             {

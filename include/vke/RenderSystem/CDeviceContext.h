@@ -336,8 +336,6 @@ namespace VKE
             CShaderManager*      m_pShaderMgr  = nullptr;
             CBufferManager*      m_pBufferMgr  = nullptr;
             CTextureManager*     m_pTextureMgr = nullptr;
-            SDescriptorPoolDesc  m_DescPoolDesc;
-            DescPoolArray        m_vDescPools;
             RenderTargetArray    m_vpRenderTargets;
             // RenderPassArray             m_vpRenderPasses;
             RenderingPipeilneArray m_vpRenderingPipelines;

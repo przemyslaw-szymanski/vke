@@ -66,11 +66,6 @@ namespace VKE
             PipelineRefPtr       GetPipeline( PipelineHandle hPipeline );
             PipelineLayoutRefPtr GetLayout( PipelineLayoutHandle hLayout );
 
-            PipelineLayoutPtr GetDefaultLayout() const
-            {
-                return m_pDefaultLayout;
-            }
-
             PipelineRefPtr GetLastCreatedPipeline() const;
 
         protected:
@@ -97,7 +92,6 @@ namespace VKE
 
             Threads::SyncObject m_CreatePipelineSyncObj;
             Threads::SyncObject m_LayoutSyncObj;
-            PipelineLayoutPtr   m_pDefaultLayout;
             hash_t              m_currPipelineHash = 0;
             CPipeline*          m_pCurrPipeline    = nullptr;
         };

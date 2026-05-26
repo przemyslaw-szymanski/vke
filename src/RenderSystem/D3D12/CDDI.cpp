@@ -696,11 +696,6 @@ namespace VKE::RenderSystem
                 Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }
 
-            if( ( EngineUsage & TextureUsages::SAMPLED ) == 0 )
-            {
-                Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-            }
-
             return Flags;
         }
 
@@ -1908,6 +1903,42 @@ namespace VKE::RenderSystem
             return scValues[ type ];
         }
 
+        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorBindingTypeToHeapType( RenderSystem::BINDING_TYPE type )
+        {
+            /*struct BindingTypes
+            {
+                enum TYPE : uint8_t
+                {
+                    SAMPLER,             // only sampler
+                    TEXTURE,             // only texture without sampler
+                    STORAGE_TEXTURE,
+                    READ_ONLY_TEXEL_BUFFER,
+                    READ_WRITE_TEXEL_BUFFER,
+                    CONSTANT_BUFFER,
+                    BUFFER,
+                    DYNAMIC_CONSTANT_BUFFER,
+                    DYNAMIC_BUFFER,
+                    RENDER_TARGET,
+                    DEPTH_STENCIL,
+                    _MAX_COUNT,
+                    UNKNOWN = _MAX_COUNT
+                };
+            };*/
+            static const D3D12_DESCRIPTOR_HEAP_TYPE ascValues[ RenderSystem::BindingTypes::_MAX_COUNT ] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // sampler
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // texture
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // storage tex
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // ro tex buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // rw tex buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // cbuff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // buffer
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn cbuffer
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,         // render target
+                D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES    // depth stencil
+            };
+            return ascValues[ type ];
+        }
     } // namespace Map
 
     NativeAPI::TextureView CDDI::CreateTextureView( const STextureViewDesc& TextureViewDesc, const void* pAllocator )
@@ -2377,6 +2408,12 @@ namespace VKE::RenderSystem
         {
             return NativeAPI::Null;
         }
+        if( Desc.vBindings.IsEmpty() )
+        {
+            VKE_LOG_ERRF( "Unable to create DescriptorSetLayout: '{}' because number of resource bindings is 0.",
+                          Desc.GetDebugName() );
+            return NativeAPI::Null;
+        }
 
         NativeAPI::DescriptorSetLayout pNativeDescriptorSetLayout = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDescriptorSetLayout ) ) )
@@ -2385,6 +2422,8 @@ namespace VKE::RenderSystem
         }
 
         NativeAPI::D3D12RootParameter& rootParameter = pNativeDescriptorSetLayout->RootParameter;
+        pNativeDescriptorSetLayout->type             = Map::DescriptorBindingTypeToHeapType( Desc.vBindings[ 0 ].type );
+        pNativeDescriptorSetLayout->numSlots         = 0;
 
         // Assume shader visibility all, see notes below.
         rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
@@ -2407,11 +2446,9 @@ namespace VKE::RenderSystem
             // Same as in vulkan.
             range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-            // Request slots in pool
-            pNativeDescriptorSetLayout->aNumSlots[ Map::GetDescriptorHeapType( binding.type ) ] += binding.count;
-
             range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
             pNativeDescriptorSetLayout->vDescriptorRanges.PushBack( range );
+            pNativeDescriptorSetLayout->numSlots += binding.count;
         }
 
         rootParameter.DescriptorTable.NumDescriptorRanges = pNativeDescriptorSetLayout->vDescriptorRanges.GetCount();
@@ -2451,30 +2488,21 @@ namespace VKE::RenderSystem
             // CreateDescriptorSet is supposed to only handle D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV.
             // We're ignoring RTV, DSV as they are handled by CreateRenderPass().
             // TODO(blturkot): Handle SAMPLER heaps if ever used.
-
-            D3D12_DESCRIPTOR_HEAP_TYPE NativeDescriptorHeapType = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-
-            uint32_t requestedSlots = pLayout->aNumSlots[ NativeDescriptorHeapType ];
-
-            if( requestedSlots > 0 )
+            VKE_ASSERT( pLayout->numSlots > 0 );
+            auto firstSlotIndex = EngineDescriptorSetInfo.hPool->SlotMgr.AllocateSlots( pLayout->numSlots );
+            if( firstSlotIndex != UNDEFINED_U32 )
             {
-                auto firstSlotIndex = EngineDescriptorSetInfo.hPool->SlotMgr.AllocateSlots( requestedSlots );
-
-                if( firstSlotIndex != UNDEFINED_U32 )
-                {
-                    pCurrentSet->PoolSlots             = { firstSlotIndex, requestedSlots };
-                    pCurrentSet->pPool                 = EngineDescriptorSetInfo.hPool;
-                    pCurrentSet->descTableCPUStartAddr = pCurrentSet->GetCpuDescriptorHandle( 0 ).ptr;
-                    pCurrentSet->descTableGPUStartAddr = pCurrentSet->GetGpuDescriptorHandle( 0 ).ptr;
-                }
-                else
-                {
-                    // Not an error since it is possible to create new descriptor pool. Still report fail.
-                    result = VKE_FAIL;
-                    VKE_LOG_WARN(
-                        "Not enough free slot ranges in descriptor heap pool of type: " << NativeDescriptorHeapType );
-                }
+                pCurrentSet->PoolSlots             = { firstSlotIndex, pLayout->numSlots };
+                pCurrentSet->pPool                 = EngineDescriptorSetInfo.hPool;
+                pCurrentSet->descTableCPUStartAddr = pCurrentSet->GetCpuDescriptorHandle( 0 ).ptr;
+                pCurrentSet->descTableGPUStartAddr = pCurrentSet->GetGpuDescriptorHandle( 0 ).ptr;
             }
+            else
+            {
+                result = VKE_FAIL;
+                // Not an error since it is possible to create new descriptor pool
+                VKE_LOG_WARN( "Not enough free slot ranges in descriptor heap pool of type: " << pLayout->type );
+            }           
         }
         if( VKE_FAILED( result ) )
         {

@@ -937,6 +937,8 @@ namespace VKE
             {
                 TEXTURE_BUFFER_CBUFFER,
                 SAMPLER,
+                COLOR_RENDER_TARGET,
+                DEPTH_STENCIL,
                 _MAX_COUNT
             };
         };

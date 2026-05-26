@@ -58,8 +58,6 @@ namespace VKE
                 // m_pVkDevice->Wait();
                 m_DDI.WaitForDevice();
 
-                _DestroyDescriptorPools();
-
                 for( auto& pCtx: m_GraphicsContexts.vPool )
                 {
                     pCtx->_Destroy();
@@ -234,11 +232,6 @@ namespace VKE
                     {
                         goto ERR;
                     }
-
-                    if( VKE_FAILED( _CreateDescriptorPool( Config::RenderSystem::Bindings::DEFAULT_COUNT_IN_POOL ) ) )
-                    {
-                        goto ERR;
-                    }
                 }
                 else
                 {
@@ -269,52 +262,6 @@ namespace VKE
         ERR:
             _Destroy();
             return VKE_FAIL;
-        }
-
-        Result CDeviceContext::_CreateDescriptorPool( uint32_t descriptorCount )
-        {
-            Result ret = VKE_OK;
-            m_vDescPools.PushBack( INVALID_HANDLE );
-            {
-                SDescriptorPoolDesc PoolDesc;
-                PoolDesc.maxSetCount = descriptorCount;
-                {
-                    for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
-                    {
-                        SDescriptorPoolDesc::SSize Size;
-                        Size.count = 16;
-                        Size.type  = static_cast< DESCRIPTOR_SET_TYPE >( i );
-                        PoolDesc.vPoolSizes.PushBack( Size );
-                    }
-                }
-                if( descriptorCount )
-                {
-                    PoolDesc.SetDebugName( "VKE_DescPool" );
-                    handle_t hPool = m_pDescSetMgr->CreatePool( PoolDesc );
-                    if( hPool != INVALID_HANDLE )
-                    {
-                        m_vDescPools.PushBack( hPool );
-                    }
-                    else
-                    {
-                        ret = VKE_FAIL;
-                    }
-                }
-                m_DescPoolDesc = PoolDesc;
-                m_DescPoolDesc.maxSetCount =
-                    std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
-                m_pDescSetMgr->m_DefaultPoolDesc = m_DescPoolDesc;
-            }
-            return VKE_OK;
-        }
-
-        void CDeviceContext::_DestroyDescriptorPools()
-        {
-            for( uint32_t i = 1; i < m_vDescPools.GetCount(); ++i )
-            {
-                m_pDescSetMgr->DestroyPool( &m_vDescPools[ i ] );
-            }
-            m_vDescPools.Clear();
         }
 
         Threads::CThreadPool* CDeviceContext::_GetThreadPool()
@@ -835,27 +782,7 @@ namespace VKE
 
         DescriptorSetHandle CDeviceContext::CreateDescriptorSet( const SDescriptorSetDesc& Desc )
         {
-            DescriptorSetHandle hRet = INVALID_HANDLE;
-            handle_t            hPool;
-            if( m_vDescPools.GetCount() == 1 )
-            {
-                hPool = m_pDescSetMgr->CreatePool( m_DescPoolDesc );
-            }
-            else
-            {
-                hPool = m_vDescPools.Back();
-            }
-            if( hPool )
-            {
-                VKE_ASSERT2( hPool != INVALID_HANDLE, "" );
-                hRet = m_pDescSetMgr->CreateSet( hPool, Desc );
-                if( hRet == INVALID_HANDLE )
-                {
-                    m_pDescSetMgr->CreatePool( m_DescPoolDesc );
-                    hRet = CreateDescriptorSet( Desc );
-                }
-            }
-            return hRet;
+            return m_pDescSetMgr->CreateSet( INVALID_HANDLE, Desc );
         }
 
         const NativeAPI::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
@@ -964,16 +891,6 @@ namespace VKE
         ShaderPtr CDeviceContext::GetDefaultShader( SHADER_TYPE type )
         {
             return m_pShaderMgr->GetDefaultShader( type );
-        }
-
-        DescriptorSetLayoutHandle CDeviceContext::GetDefaultDescriptorSetLayout()
-        {
-            return m_pDescSetMgr->GetDefaultLayout();
-        }
-
-        PipelineLayoutPtr CDeviceContext::GetDefaultPipelineLayout()
-        {
-            return m_pPipelineMgr->GetDefaultLayout();
         }
 
         /*Result CDeviceContext::ExecuteRemainingWork()

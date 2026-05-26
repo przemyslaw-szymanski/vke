@@ -108,7 +108,8 @@ namespace VKE::RenderSystem
             {
                 Utils::TCDynamicArray< D3D12_DESCRIPTOR_RANGE1, 32 > vDescriptorRanges;
                 NativeAPI::D3D12RootParameter                        RootParameter;
-                uint16_t                                             aNumSlots[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
+                D3D12_DESCRIPTOR_HEAP_TYPE                           type;
+                uint32_t                                             numSlots;
             };
 
             struct SDescriptorPool
