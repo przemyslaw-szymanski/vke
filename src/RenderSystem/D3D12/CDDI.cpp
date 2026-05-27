@@ -2585,8 +2585,7 @@ namespace VKE::RenderSystem
             for( uint32_t i = 0; i < Binding.count; ++i )
             {
                  const auto                   pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
-                 const auto&                  TexViewDesc = pTexView->GetDesc();
-                 const NativeAPI::TextureView pNativeView = pTexView->GetDDIObject();
+                 const auto&                  TexViewDesc = pTexView->GetDesc();      
                  const auto                   pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
 
                  D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
