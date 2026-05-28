@@ -1,8 +1,6 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/Vulkan/CVulkanAPI.h"
-#include "RenderSystem/D3D12/CD3D12API.h"
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Memory/CMemoryPoolManager.h"
 
@@ -17,45 +15,59 @@ namespace VKE::RenderSystem
 
     public:
 
-        explicit TCAPI()
+        RenderApiT* Reinterpret()
         {
-            Memory::CreateObject( &HeapAllocator, &m_pImpl );
+            return static_cast< RenderApiT* >( this );
+        }
+
+        const RenderApiT* Reinterpret() const
+        {
+            return static_cast< const RenderApiT* >( this );
         }
 
         Result CreateDevice(const SCreateDeviceDesc& Info, CDeviceContext* pCtx)
         {
-            return m_pImpl->CreateDevice( Info, pCtx );
+            return Reinterpret()->CreateDeviceImpl( Info, pCtx );
         }
         void   DestroyDevice()
         {
-            m_pImpl->DestroyDevice();
+            Reinterpret()->DestroyDeviceImpl();
         }
 
         static Result Load(const SDDILoadInfo& Info, SDriverInfo* pOut)
         {
-            return RenderApiT::Load( Info, pOut );
+            return RenderApiT::LoadImpl( Info, pOut );
         }
 
         const NativeAPI::Device& GetDevice() const
         {
-            return m_pImpl->GetDevice();
+            return Reinterpret()->GetDeviceImpl();
         }
 
         const NativeAPI::Adapter& GetAdapter() const
         {
-            return m_hAdapter;
+            return Reinterpret()->GetAdapterImpl();
         }
 
         const QueueFamilyInfoArray& GetDeviceQueueInfos() const
         {
-            return m_DeviceProperties.vQueueFamilies;
+            return Reinterpret()->GetDeviceQueueInfosImpl();
         }
 
-        static Result QueryAdapters( AdapterInfoArray* pOut );
+        static Result QueryAdapters(AdapterInfoArray* pOut)
+        {
+            return RenderApiT::QueryAdaptersImpl( pOut );
+        }
 
-        void QueryDeviceInfo( SDeviceInfo* pOut );
+        void QueryDeviceInfo( SDeviceInfo* pOut )
+        {
+            Reinterpret()->QueryDeviceInfoImpl( pOut );
+        }
 
-        NativeAPI::Buffer              CreateBuffer( const SBufferDesc& Desc, const void* );
+        NativeAPI::Buffer              CreateBuffer(const SBufferDesc& Desc, const void* pAlloc)
+        {
+            return Reinterpret()->CreateBuffer( Desc, pAlloc );
+        }
         void                           DestroyBuffer( NativeAPI::Buffer* phBuffer, const void* );
         NativeAPI::BufferView          CreateBufferView( const SBufferViewDesc& Desc, const void* );
         void                           DestroyBufferView( NativeAPI::BufferView* phBufferView, const void* );
@@ -195,9 +207,6 @@ namespace VKE::RenderSystem
         {
             return m_Implementation;
         };
-
-    protected:
-        RenderApiT* m_pImpl = nullptr;
     };
 
 } // namespace VKE::RenderSystem

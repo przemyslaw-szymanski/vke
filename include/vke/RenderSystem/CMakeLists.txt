@@ -96,6 +96,7 @@ set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/CDrawcall.cpp"
     "${SOURCE_DIR}/RenderSystem/CFrameBuffer.cpp"
     "${SOURCE_DIR}/RenderSystem/CFrameGraph.cpp"
+    "${SOURCE_DIR}/RenderSystem/CFrameGraphNode.cpp"
     "${SOURCE_DIR}/RenderSystem/CGraphicsContext.cpp"
     "${SOURCE_DIR}/RenderSystem/CIndexBuffer.cpp"
     "${SOURCE_DIR}/RenderSystem/CPipeline.cpp"
