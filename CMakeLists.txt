@@ -174,6 +174,14 @@ endif()
 target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngineScene ${LINK_LIBS})
 include(LinkSettings.cmake NO_POLICY_SCOPE)
 
+# Set Vulkan layer path for Visual Studio debugging
+if(VKE_RENDER_SYSTEM_VULKAN)
+    set(VULKAN_LAYER_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
+    set_target_properties(vkEngine PROPERTIES
+        VS_DEBUGGER_ENVIRONMENT "VK_ADD_LAYER_PATH=${VULKAN_LAYER_PATH}"
+    )
+endif()
+
 if(BUILD_SAMPLES_ENABLED)
     add_subdirectory(samples)
 endif()

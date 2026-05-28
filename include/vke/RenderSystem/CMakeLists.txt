@@ -73,17 +73,18 @@ set(VKE_ENUM_STRINGS_SCRIPT   "${CMAKE_SOURCE_DIR}/tools/gen_enum_strings.py")
 set(VKE_ENUM_STRINGS_INPUT    "${INCLUDE_DIR}/RenderSystem/Common.h")
 set(VKE_ENUM_STRINGS_OUTPUT   "${INCLUDE_DIR}/RenderSystem/CommonEnumStrings.h")
 
-add_custom_command(
-    OUTPUT  "${VKE_ENUM_STRINGS_OUTPUT}"
-    COMMAND Python3::Interpreter
+execute_process(
+    COMMAND ${Python3_EXECUTABLE}
             "${VKE_ENUM_STRINGS_SCRIPT}"
             "${VKE_ENUM_STRINGS_INPUT}"
             "${VKE_ENUM_STRINGS_OUTPUT}"
-    DEPENDS "${VKE_ENUM_STRINGS_INPUT}"
-            "${VKE_ENUM_STRINGS_SCRIPT}"
-    COMMENT "Generating CommonEnumStrings.h from Common.h"
-    VERBATIM
+    RESULT_VARIABLE VKE_ENUM_STRINGS_RESULT
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
+
+if(NOT VKE_ENUM_STRINGS_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to generate CommonEnumStrings.h from Common.h")
+endif()
 
 set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/Common.cpp"
