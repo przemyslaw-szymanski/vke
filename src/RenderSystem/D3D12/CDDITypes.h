@@ -269,6 +269,8 @@ namespace VKE::RenderSystem
         using BufferView            = void*;
         using CPUFence              = TSObjectWrapper< ID3D12Fence*, std::nullopt_t, CPUFenceTrait >;
         using GPUFence              = TSObjectWrapper< ID3D12Fence*, std::nullopt_t, GPUFenceTrait >;
+        using Fence                 = ID3D12Fence*;
+        using FenceValue            = uint64_t;
         using Device                = ID3D12Device10*;
         using DescriptorPool        = ID3D12DescriptorHeap*;
         using DescriptorSet         = ID3D12DescriptorHeap*;
