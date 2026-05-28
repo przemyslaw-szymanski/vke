@@ -275,8 +275,6 @@ namespace VKE
                 m_vpNotifyResources.PushBack( pNotify );
             }
 
-            void Sync( CommandBufferPtr );
-
             EXECUTE_COMMAND_BUFFER_FLAGS GetExecuteFlags() const
             {
                 return m_executeFlags;

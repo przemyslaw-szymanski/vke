@@ -21,8 +21,8 @@ namespace VKE
 
         Result CPipeline::Init( const SPipelineDesc& Desc )
         {
-            // m_type = Desc.Shaders..IsValid() ? PipelineTypes::COMPUTE : PipelineTypes::GRAPHICS;
-            m_type = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ].IsNull() ? PipelineTypes::GRAPHICS
+            // m_type = Desc.Shaders.!= nullptr ? PipelineTypes::COMPUTE : PipelineTypes::GRAPHICS;
+            m_type = Desc.Shaders.apShaders[ ShaderTypes::COMPUTE ]== nullptr ? PipelineTypes::GRAPHICS
                                                                              : PipelineTypes::COMPUTE;
             // m_Desc = Desc;
             return VKE_OK;

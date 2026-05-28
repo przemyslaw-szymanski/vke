@@ -95,9 +95,11 @@ namespace VKE::RenderSystem
         void                           DestroyTextureView( NativeAPI::TextureView* phImageView, const void* );
         NativeAPI::Framebuffer         CreateFramebuffer( const SFramebufferDesc& Desc, const void* );
         void                           DestroyFramebuffer( NativeAPI::Framebuffer* phFramebuffer, const void* );
-        NativeAPI::CPUFence            CreateFence( const SFenceDesc& Desc, const void* );
+        NativeAPI::CPUFence            CreateFence( const SFenceDesc& Desc, const void* ) const;
+        NativeAPI::Fence               CreateFence2( const SFenceDesc& Desc ) const;
         void                           DestroyFence( NativeAPI::CPUFence* phFence, const void* );
-        NativeAPI::GPUFence            CreateSemaphore( const SSemaphoreDesc& Desc, const void* );
+        void                           DestroyFence( NativeAPI::Fence* phFence );
+        NativeAPI::GPUFence            CreateSemaphore( const SSemaphoreDesc& Desc, const void* ) const;
         void                           DestroySemaphore( NativeAPI::GPUFence* phSemaphore, const void* );
         NativeAPI::RenderPass          CreateRenderPass( const SRenderPassDesc& Desc, const void* );
         void                           DestroyRenderPass( NativeAPI::RenderPass* phPass, const void* );
@@ -210,8 +212,12 @@ namespace VKE::RenderSystem
         void SetQueueDebugName( uint64_t, cstr_t ) const;
 
         bool   IsSignaled( const NativeAPI::CPUFence& hFence ) const;
+        bool   IsSignaled( const NativeAPI::Fence& hFence ) const;
+        NativeAPI::FenceValue GetCompletedValue( const NativeAPI::Fence& hFence ) const;
         void   Reset( NativeAPI::CPUFence* phFence );
-        Result WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout );
+        void                  Reset( NativeAPI::Fence* phFence, NativeAPI::FenceValue value );
+        Result WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const;
+        Result                WaitForFence( NativeAPI::Fence Fence, NativeAPI::FenceValue value ) const;
         Result WaitForQueue( const NativeAPI::Queue& hQueue );
         Result WaitForDevice();
 

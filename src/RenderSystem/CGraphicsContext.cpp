@@ -121,7 +121,7 @@ namespace VKE
         // void CGraphicsContext::Destroy()
         //{
         //     assert( /*m_BaseCtx.*/m_pDeviceCtx );
-        //     if( /*m_BaseCtx.*/m_pQueue.IsValid() )
+        //     if( /*m_BaseCtx.*/m_pQueue!= nullptr )
         //     {
         //         CGraphicsContext* pCtx = this;
         //         /*m_BaseCtx.*/m_pDeviceCtx->DestroyGraphicsContext( &pCtx );
@@ -130,7 +130,7 @@ namespace VKE
 
         void CGraphicsContext::_Destroy()
         {
-            if( /*m_BaseCtx.*/ m_pDeviceCtx && /*m_BaseCtx.*/ m_pQueue.IsValid() )
+            if( /*m_BaseCtx.*/ m_pDeviceCtx && /*m_BaseCtx.*/ m_pQueue!= nullptr )
             {
                 Threads::ScopedLock l( m_SyncObj );
 
@@ -184,7 +184,11 @@ namespace VKE
             Result res = VKE_OK;
 
             CommandBufferPtr pCmdBuffer;
-            SExecuteBatch*   pExecute = nullptr;
+            SSubmitInfo      SubmitInfo;
+            SFenceDesc       FenceDesc;
+            FenceDesc.SetDebugName( "CreateGraphicsContext" );
+            FenceDesc.startValue = 0;
+            //SExecuteBatch*   pExecute = nullptr;
             auto             pPrivate = reinterpret_cast< SGraphicsContextPrivateDesc* >( Desc.pPrivate );
             ///*m_BaseCtx.*/m_pQueue = pPrivate->m_pQueue;
 
@@ -197,12 +201,14 @@ namespace VKE
                 if( VKE_SUCCEEDED( res ) )
                 {
                     pCmdBuffer              = this->GetCommandBuffer();
-                    pExecute                = this->_GetExecuteBatch( pCmdBuffer );
-                    pExecute->executeFlags |= ExecuteCommandBufferFlags::WAIT;
+                    //pExecute                = this->_GetExecuteBatch( pCmdBuffer );
+                    //pExecute->executeFlags |= ExecuteCommandBufferFlags::WAIT;
                 }
             }
             VKE_RETURN_IF_FAILED( Memory::CreateObject( &HeapAllocator, &m_pPrivate ) );
-            VKE_ASSERT( pCmdBuffer.IsValid() && pExecute != nullptr );
+
+            VKE_ASSERT( pCmdBuffer != nullptr );
+
             if( VKE_SUCCEEDED( res ) )
             {
                 SSwapChainDesc SwpDesc = Desc.SwapChainDesc;
@@ -261,40 +267,45 @@ namespace VKE
                 }
             }
 
-            res = this->_ExecuteBatch( pExecute );
+            pCmdBuffer->End();
+            
+            SubmitInfo.commandBufferCount = 1;
+            SubmitInfo.pDDICommandBuffers = &pCmdBuffer->GetDDIObject();
+            SubmitInfo.hSignalFence       = this->m_pDeviceCtx->CreateFence( FenceDesc );
+            SubmitInfo.signalFenceValue   = 1;
+            SubmitInfo.hDDIQueue          = m_pQueue->GetDDIObject();
+            res                           = m_pQueue->Execute( SubmitInfo );
+            //res = this->_ExecuteBatch( pExecute );
             if( VKE_FAILED( res ) )
             {
                 goto ERR;
             }
-
+            res = m_pDeviceCtx->Wait( SubmitInfo.hSignalFence, 1u );
+            m_pDeviceCtx->DestroyFence( &SubmitInfo.hSignalFence );
             // Tasks
             {
+                // DEPRECATED
+                //Threads::TSSimpleTask< void > RenderFrameTask = { .Task =
+                //                                                      [ this ]( void* ) {
+                //                                                          return _RenderFrameTask();
+                //                                                      },
+                //                                                  .pData = nullptr };
 
-                Threads::TSSimpleTask< void > RenderFrameTask = { .Task =
-                                                                      [ this ]( void* ) {
-                                                                          return _RenderFrameTask();
-                                                                      },
-                                                                  .pData = nullptr };
+                //Threads::TSSimpleTask< void > PresentFrameTask = { .Task =
+                //                                                       [ this ]( void* ) {
+                //                                                           return _PresentFrameTask();
+                //                                                       },
+                //                                                   .pData = nullptr };
 
-                Threads::TSSimpleTask< void > PresentFrameTask = { .Task =
-                                                                       [ this ]( void* ) {
-                                                                           return _PresentFrameTask();
-                                                                       },
-                                                                   .pData = nullptr };
-
-                auto pRS         = m_pDeviceCtx->GetRenderSystem();
-                auto pEngine     = pRS->GetEngine();
-                auto pThreadPool = pEngine->GetThreadPool();
-                pThreadPool->AddTask( Threads::ThreadUsageBits::GRAPHICS | Threads::ThreadUsageBits::MAIN_THREAD,
-                                      "Render Frame",
-                                      RenderFrameTask.Task );
-                pThreadPool->AddTask( Threads::ThreadUsageBits::GRAPHICS | Threads::ThreadUsageBits::ANY_EXCEPT_MAIN,
-                                      "Present Frame",
-                                      PresentFrameTask.Task );
-
-                /*g_TaskGrp.m_Group.Pause();
-                pThreadPool->AddConstantTaskGroup(&g_TaskGrp.m_Group);
-                g_TaskGrp.m_Group.Restart();*/
+                //auto pRS         = m_pDeviceCtx->GetRenderSystem();
+                //auto pEngine     = pRS->GetEngine();
+                //auto pThreadPool = pEngine->GetThreadPool();
+                //pThreadPool->AddTask( Threads::ThreadUsageBits::GRAPHICS | Threads::ThreadUsageBits::MAIN_THREAD,
+                //                      "Render Frame",
+                //                      RenderFrameTask.Task );
+                //pThreadPool->AddTask( Threads::ThreadUsageBits::GRAPHICS | Threads::ThreadUsageBits::ANY_EXCEPT_MAIN,
+                //                      "Present Frame",
+                //                      PresentFrameTask.Task );
             }
 
             if( VKE_FAILED( res ) )
@@ -360,33 +371,34 @@ namespace VKE
 
         TASK_RESULT CGraphicsContext::_ExecuteCommandBuffersTask()
         {
+            VKE_ASSERT2( false, "deprecated" );
             TASK_RESULT ret = g_aTaskResults[ m_needQuit ];
-            if( !m_needQuit /*&& m_readyToExecute*/ )
-            {
-                SExecuteBatch* pBatch = this->_PopExecuteBatch();
-                if( pBatch != nullptr )
-                {
-                    // VKE_LOG( "Pop batch: " << pBatch );
-                    m_submitEnded = false;
-                    // Result res = this->_ExecuteDependenciesForBatch(pBatch);
-                    // VKE_ASSERT( VKE_SUCCEEDED( res ) );
-                    pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
-                    Result res            = this->_ExecuteBatch( pBatch );
-                    VKE_LOG( "Signal gpu fence: " << pBatch->hSignalGPUFence );
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        // VKE_LOG( "Execute batch: " << pBatch << " swpchain idx: " << pBatch->swapchainElementIndex );
-                        m_PresentInfo.pSwapChain        = m_pSwapChain;
-                        m_PresentInfo.hDDIWaitSemaphore = pBatch->hSignalGPUFence;
-                        m_PresentInfo.imageIndex        = pBatch->swapchainElementIndex;
-                        m_readyToPresent                = true;
-                    }
-                    VKE_ASSERT2( VKE_SUCCEEDED( res ), "" );
-                    m_submitEnded    = true;
-                    m_readyToExecute = false;
-                    ret              = TaskResults::WAIT;
-                }
-            }
+            //if( !m_needQuit /*&& m_readyToExecute*/ )
+            //{
+            //    SExecuteBatch* pBatch = this->_PopExecuteBatch();
+            //    if( pBatch != nullptr )
+            //    {
+            //        // VKE_LOG( "Pop batch: " << pBatch );
+            //        m_submitEnded = false;
+            //        // Result res = this->_ExecuteDependenciesForBatch(pBatch);
+            //        // VKE_ASSERT( VKE_SUCCEEDED( res ) );
+            //        pBatch->executeFlags |= ExecuteCommandBufferFlags::SIGNAL_GPU_FENCE;
+            //        Result res            = this->_ExecuteBatch( pBatch );
+            //        VKE_LOG( "Signal gpu fence: " << pBatch->hSignalGPUFence );
+            //        if( VKE_SUCCEEDED( res ) )
+            //        {
+            //            // VKE_LOG( "Execute batch: " << pBatch << " swpchain idx: " << pBatch->swapchainElementIndex );
+            //            m_PresentInfo.pSwapChain        = m_pSwapChain;
+            //            m_PresentInfo.hDDIWaitSemaphore = pBatch->hSignalGPUFence;
+            //            m_PresentInfo.imageIndex        = pBatch->swapchainElementIndex;
+            //            m_readyToPresent                = true;
+            //        }
+            //        VKE_ASSERT2( VKE_SUCCEEDED( res ), "" );
+            //        m_submitEnded    = true;
+            //        m_readyToExecute = false;
+            //        ret              = TaskResults::WAIT;
+            //    }
+            //}
             return ret;
         }
 
@@ -397,6 +409,7 @@ namespace VKE
 
         TASK_RESULT CGraphicsContext::_PresentFrameTask()
         {
+            VKE_ASSERT2( false, "deprecated" );
             _ExecuteCommandBuffersTask();
             TASK_RESULT ret = g_aTaskResults[ m_needQuit ];
             if( !m_needQuit /*&& CurrTask == ContextTasks::PRESENT*/ )
@@ -416,7 +429,7 @@ namespace VKE
 
                     // Result res = m_pQueue->Present( m_PresentInfo );
                     Result res = Present( m_PresentInfo );
-                    VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hDDIWaitSemaphore );
+                    //VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hDDIWaitSemaphore );
                     // VKE_LOG( "Present: " << res << " wait on: " << m_PresentInfo.hDDIWaitSemaphore );
                     if( res != VKE_OK )
                     {
@@ -525,17 +538,7 @@ namespace VKE
 
         void CGraphicsContext::_ResizeSwapChainTask( uint32_t width, uint32_t height )
         {
-            m_stopRendering = true;
-            _WaitForFrameToFinish();
-            this->_GetQueue()->m_SyncObj.Lock();
-            this->Execute( ExecuteCommandBufferFlags::END );
-            this->_GetCurrentCommandBuffer();
-            this->_GetQueue()->Wait();
-            GetSwapChain()->Resize( width, height );
-            this->Execute( ExecuteCommandBufferFlags::END );
-            this->_GetQueue()->Wait();
-            this->_GetQueue()->m_SyncObj.Unlock();
-            m_stopRendering = false;
+            VKE_ASSERT( false );
         }
 
         /*void CGraphicsContext::BindDefaultRenderPass()

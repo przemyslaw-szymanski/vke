@@ -26,7 +26,7 @@ namespace VKE
             friend class CComputeContext;
             friend class CTransferContext;
 
-            using SwapChainArray = Utils::TCDynamicArray< CSwapChain*, 8 >;
+            using SwapChainArray = Utils::TCDynamicArray< NativeAPI::SwapChain, 8 >;
 
         public:
             friend class RenderSystem::CDeviceContext;
@@ -94,6 +94,7 @@ namespace VKE
 
             void   Wait();
             Result Wait( NativeAPI::CPUFence );
+            Result Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value );
 
             Result Execute( const SSubmitInfo& Info );
 

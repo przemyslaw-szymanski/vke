@@ -106,7 +106,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             VKE::RenderSystem::CFrameGraphNode* const pPass,
             uint8_t backBufferIdx )
         {
-            if( pPSO.IsValid() && pPSO->IsResourceReady() )
+            if( pPSO!= nullptr && pPSO->IsResourceReady() )
             {
                 auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
 

@@ -619,8 +619,8 @@ namespace VKE
                     {
                         ret           = VKE_FAIL;
                         FilePtr pFile = m_pFileMgr->LoadFile( Info );
-                        VKE_ASSERT( pFile.IsValid() );
-                        if( pFile.IsValid() )
+                        VKE_ASSERT( pFile!= nullptr );
+                        if( pFile!= nullptr )
                         {
                             pImage->_AddResourceState( Core::ResourceStates::LOADED );
                             VKE_LOG_IMGR( "Creating Image: " << Info.FileInfo.FileName );
@@ -955,7 +955,7 @@ namespace VKE
             const hash_t& srcHash = Info.hSrcImage.handle;
             CImage*       pDstImg = nullptr;
 
-            if( pSrcImg.IsValid() )
+            if( pSrcImg!= nullptr )
             {
                 SImageRegion Region;
                 Region.Size   = Info.DstSize;

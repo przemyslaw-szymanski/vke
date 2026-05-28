@@ -26,7 +26,7 @@ bool TCWeakPtr< T >::operator<( const TCWeakPtr& o ) const
 template< typename T >
 bool TCWeakPtr< T >::operator<( const T* pPtr ) const
 {
-    m_pPtr < m_pPtr;
+    m_pPtr < pPtr;
 }
 
 template< typename T >
@@ -38,7 +38,7 @@ bool TCWeakPtr< T >::operator<=( const TCWeakPtr& o ) const
 template< typename T >
 bool TCWeakPtr< T >::operator<=( const T* pPtr ) const
 {
-    m_pPtr <= m_pPtr;
+    m_pPtr <= pPtr;
 }
 
 template< typename T >
@@ -50,7 +50,7 @@ bool TCWeakPtr< T >::operator>( const TCWeakPtr& o ) const
 template< typename T >
 bool TCWeakPtr< T >::operator>( const T* pPtr ) const
 {
-    m_pPtr > m_pPtr;
+    m_pPtr > pPtr;
 }
 
 template< typename T >
@@ -62,7 +62,7 @@ bool TCWeakPtr< T >::operator>=( const TCWeakPtr& o ) const
 template< typename T >
 bool TCWeakPtr< T >::operator>=( const T* pPtr ) const
 {
-    m_pPtr >= m_pPtr;
+    m_pPtr >= pPtr;
 }
 
 template< typename T >
@@ -74,7 +74,7 @@ bool TCWeakPtr< T >::operator==( const TCWeakPtr& o ) const
 template< typename T >
 bool TCWeakPtr< T >::operator==( const T* pPtr ) const
 {
-    return m_pPtr == m_pPtr;
+    return m_pPtr == pPtr;
 }
 
 template< typename T >

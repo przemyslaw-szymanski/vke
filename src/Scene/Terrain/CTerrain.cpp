@@ -591,7 +591,7 @@ namespace VKE
                 {
                     auto& Pair = vpTextures[ i ];
                     auto& pTex = Pair.first;
-                    if( pTex.IsValid() && pTex->IsReady() )
+                    if( pTex!= nullptr && pTex->IsReady() )
                     {
                         // Replace current texture
                         uint32_t                         index      = Pair.second;
@@ -610,7 +610,7 @@ namespace VKE
                             }
                         }
 
-                        // VKE_ASSERT( pTex.IsValid() );
+                        // VKE_ASSERT( pTex!= nullptr );
                         // pCommandBuffer->GenerateMipmaps( pTex );
                         *phCurrTex  = pTex->GetHandle();
                         *phCurrView = pTex->GetView()->GetHandle();

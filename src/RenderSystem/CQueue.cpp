@@ -44,6 +44,11 @@ namespace VKE
             return m_pCtx->NativeAPI().WaitForFences( hFence, UINT64_MAX );
         }
 
+        Result CQueue::Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
+        {
+            return m_pCtx->NativeAPI().WaitForFence( hFence, value );
+        }
+
         Result CQueue::Execute( const SSubmitInfo& Info )
         {
             VKE_ASSERT2( m_pCtx != nullptr, "Device context must be initialized." );
@@ -80,12 +85,14 @@ namespace VKE
             Result ret = VKE_ENOTREADY;
             Lock();
             {
-                m_PresentData.vImageIndices.PushBack( Info.imageIndex );
-                m_PresentData.vSwapchains.PushBack( Info.pSwapChain->GetDDIObject() );
-                m_vpSwapChains.PushBack( Info.pSwapChain );
-                if( Info.hDDIWaitSemaphore != NativeAPI::Null )
+                m_PresentData.vImageIndices.PushBack( Info.presentImageIndex );
+                m_PresentData.vSwapchains.PushBack( Info.hSwapChain );
+                m_vpSwapChains.PushBack( Info.hSwapChain );
+                if( Info.hWaitForFence != NativeAPI::Null )
                 {
-                    m_PresentData.vWaitSemaphores.PushBack( Info.hDDIWaitSemaphore );
+                    //m_PresentData.vWaitSemaphores.PushBack( Info.hWaitForFence );
+                    m_PresentData.vWaitForFences.PushBack( Info.hWaitForFence );
+                    m_PresentData.vWaitForFenceValues.PushBack( Info.waitForFenceValue );
                 }
                 m_presentCount++;
                 m_isPresentDone = false;
@@ -105,10 +112,6 @@ namespace VKE
                     // VKE_LOG( "Present status: " << ret );
                     if( ret != VKE_FAIL )
                     {
-                        for( uint32_t i = 0; i < m_vpSwapChains.GetCount(); ++i )
-                        {
-                            m_vpSwapChains[ i ]->NotifyPresent();
-                        }
                     }
                     Reset();
                     m_isPresentDone = true;
@@ -123,7 +126,8 @@ namespace VKE
         {
             m_PresentData.vImageIndices.Clear();
             m_PresentData.vSwapchains.Clear();
-            m_PresentData.vWaitSemaphores.Clear();
+            m_PresentData.vWaitForFences.Clear();
+            m_PresentData.vWaitForFenceValues.Clear();
             m_vpSwapChains.Clear();
             m_submitCount = 0;
         }

@@ -117,6 +117,7 @@ struct VkICD
 #ifndef VKE_DEVICE_ICD
 #define VKE_DEVICE_ICD( name )
 #define VKE_DEVICE_EXT_ICD( name )
+#   define VKE_DEVICE_KHR_ICD( name1, name2 )
 #endif
 
 #if VKE_DECLARE_DEVICE_ICD
@@ -261,12 +262,22 @@ struct VkICD
         VKE_DEVICE_EXT_ICD( vkCmdSetCheckpointNV );
         VKE_DEVICE_EXT_ICD( vkGetQueueCheckpointDataNV );
 
+        // VK 1.2
+        VKE_DEVICE_ICD( vkSignalSemaphore );
+        VKE_DEVICE_ICD( vkWaitSemaphores );
+        VKE_DEVICE_ICD( vkGetSemaphoreCounterValue );
+
         // VULKAN 1.3
         VKE_DEVICE_ICD( vkCmdBeginRenderingKHR );
         VKE_DEVICE_ICD( vkCmdEndRenderingKHR );
 
         // EXT
         VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksEXT );
+        VKE_DEVICE_KHR_ICD( vkSignalSemaphore, vkSignalSemaphoreKHR );
+        VKE_DEVICE_KHR_ICD( vkWaitSemaphores, vkWaitSemaphoresKHR );
+        VKE_DEVICE_KHR_ICD( vkGetSemaphoreCounterValue, vkGetSemaphoreCounterValueKHR );
+        //VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectEXT );
+        //VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectCountEXT );
         // VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectEXT );
         // VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksIndirectCountEXT );
 

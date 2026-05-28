@@ -205,10 +205,18 @@ namespace VKE
             if( ret == VKE_ENOMEMORY && ( Info.flags == StagingBufferFlagBits::OUT_OF_SPACE_FLUSH_AND_WAIT ) )
             {
                 VKE_LOG_WARN( "No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE( Info.dataSize ) );
-                // pTransferCtx->Execute<ExecuteCommandBufferFlags::WAIT |
-                // ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE>(false);
-                pTransferCtx->Execute( ExecuteCommandBufferFlags::WAIT |
-                                       ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE );
+                SFenceDesc  FenceDesc;
+                FenceDesc.SetDebugName( "FlushTransferMemory" );
+                FenceDesc.startValue = 0;
+                auto        hFence   = pDevice->CreateFence( FenceDesc );
+
+                SSubmitInfo SubmitInfo;
+                SubmitInfo.commandBufferCount = 1;
+                SubmitInfo.pDDICommandBuffers = &pTransferCmdBuffer->GetDDIObject();
+                SubmitInfo.signalFenceValue   = 1;
+                SubmitInfo.hSignalFence       = hFence;
+                pTransferCtx->Execute( SubmitInfo );
+                
                 ret = _GetStagingBuffer( Info, pDevice, phInOut, pOut, ppTransferCmdBufferOut );
             }
             else

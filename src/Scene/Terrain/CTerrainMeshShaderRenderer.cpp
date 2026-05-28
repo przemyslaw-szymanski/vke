@@ -167,7 +167,7 @@ namespace VKE::Scene
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Buffer.memoryUsage =
                 RenderSystem::MemoryUsages::STATIC_BUFFER | RenderSystem::MemoryUsages::GPU_ACCESS;
-            Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST;
+            Desc.Buffer.usage = RenderSystem::BUFFER_USAGE( RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST );
             Desc.Buffer.size  = bufferSize;
             Desc.Buffer.SetDebugName( "MeshletBuffer" );
             auto pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
@@ -180,6 +180,7 @@ namespace VKE::Scene
                 UpdateInfo.pData    = vMeshlets.GetData();
                 ret                 = pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
             }
+
         }
         else
         {
@@ -215,10 +216,10 @@ namespace VKE::Scene
 
         const uint32_t currSize = sizeof( STileGPUBindingData ) * m_vTileData.GetCount();
         const bool     needBufferResize =
-            m_vTileData.IsEmpty() || ( m_pTileBuffer.IsValid() && m_pTileBuffer->GetSize() < currSize );
+            m_vTileData.IsEmpty() || ( m_pTileBuffer!= nullptr && m_pTileBuffer->GetSize() < currSize );
         if( needBufferResize )
         {
-            if( m_pTileBuffer.IsValid() )
+            if( m_pTileBuffer!= nullptr )
             {
                 // pDevice->DestroyBuffer( &m_pTileBuffer );
             }
@@ -228,7 +229,7 @@ namespace VKE::Scene
             Desc.Buffer.SetDebugName( "MeshShaderTerrainTileData" );
             Desc.Buffer.memoryUsage =
                 RenderSystem::MemoryUsages::STATIC_BUFFER | RenderSystem::MemoryUsages::GPU_ACCESS;
-            Desc.Buffer.usage = RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST;
+            Desc.Buffer.usage = RenderSystem::BUFFER_USAGE( RenderSystem::BufferUsages::BUFFER | RenderSystem::BufferUsages::TRANSFER_DST );
             Desc.Buffer.size  = bufferSize;
             auto hBuffer      = pDevice->CreateBuffer( Desc );
             if( hBuffer != INVALID_HANDLE )
@@ -310,7 +311,7 @@ namespace VKE::Scene
 
             auto pDevice = pCmdBuff->GetContext()->GetDeviceContext();
             auto pResMgr = pDevice->GetRenderSystem()->GetEngine()->GetResourceManager();
-            if( m_pMeshShader.IsNull() )
+            if( m_pMeshShader== nullptr )
             {
                 RenderSystem::SCreateShaderDesc Desc = { .Create = { .stages = Core::ResourceStages::FULL_LOAD,
                                                                      .flags  = Core::CreateResourceFlags::DEFERRED },
@@ -324,7 +325,7 @@ namespace VKE::Scene
                 // m_pMeshShader = pDevice->CreateShader( Desc );
                 m_pMeshShader = pResMgr->LoadShader( Desc );
             }
-            if( m_pTaskShader.IsNull() )
+            if( m_pTaskShader== nullptr )
             {
                 RenderSystem::SCreateShaderDesc Desc;
                 Desc.Create.stages            = Core::ResourceStages::FULL_LOAD;
@@ -336,7 +337,7 @@ namespace VKE::Scene
                 Desc.Shader.vDefines          = vDefines;
                 m_pTaskShader                 = pResMgr->LoadShader( Desc );
             }
-            if( m_pPixelShader.IsNull() )
+            if( m_pPixelShader== nullptr )
             {
                 RenderSystem::SCreateShaderDesc Desc;
                 Desc.Create.stages            = Core::ResourceStages::FULL_LOAD;
@@ -348,7 +349,7 @@ namespace VKE::Scene
                 Desc.Shader.vDefines          = vDefines;
                 m_pPixelShader                = pResMgr->LoadShader( Desc );
             }
-            if( ( m_pMeshShader.IsValid() ) && ( m_pPixelShader.IsValid() ) && ( m_pTaskShader.IsValid() ) )
+            if( ( m_pMeshShader!= nullptr ) && ( m_pPixelShader!= nullptr ) && ( m_pTaskShader!= nullptr ) )
             {
                 m_hSceneDescSet          = m_pTerrain->GetScene()->GetBindings();
                 auto hSceneBindingLayout = pDevice->GetDescriptorSetLayout( m_hSceneDescSet );
@@ -377,7 +378,7 @@ namespace VKE::Scene
                 Desc.Pipeline.SetDebugName( "MeshShaderTerrain" );
                 m_pColorPipeline = pResMgr->CreatePipeline( Desc );
                 m_pCurrPipeline  = m_pColorPipeline;
-                if( m_pColorPipeline.IsValid() )
+                if( m_pColorPipeline!= nullptr )
                 {
                     m_hNativeRenderPass = CurrState.RenderPass.hNativeRenderPass;
                 }
@@ -389,7 +390,7 @@ namespace VKE::Scene
     void CTerrainMeshShadingRenderer::Render( RenderSystem::CommandBufferPtr pCmdBuff, CScene* )
     {
         _CreatePipeline( pCmdBuff );
-        if( m_pCurrPipeline.IsValid() && m_pCurrPipeline->IsResourceReady() )
+        if( m_pCurrPipeline!= nullptr && m_pCurrPipeline->IsResourceReady() )
         {
             pCmdBuff->Bind( m_pCurrPipeline );
 

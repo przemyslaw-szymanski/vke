@@ -62,8 +62,8 @@ namespace VKE
 
             using BackBufferVec      = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementVec  = Utils::TCDynamicArray< SAcquireElement >;
-            using CPUFenceQueue      = std::deque< NativeAPI::CPUFence >;
-            using GPUFenceQueue      = std::deque< NativeAPI::GPUFence >;
+            using CPUFenceQueue      = std::deque< NativeAPI::Fence >;
+            using GPUFenceQueue      = std::deque< NativeAPI::Fence >;
             using CBackBufferManager = Managers::CBackBufferManager;
             using UintQueue          = std::queue< uint32_t >;
 
@@ -80,11 +80,13 @@ namespace VKE
                 /// For every frame it can be different index.
                 /// It is not related to index of this back buffer.
                 /// </summary>
-                uint32_t            swapChainBufferIndex = UNDEFINED_U32;
+                //uint32_t            swapChainBufferIndex = UNDEFINED_U32;
                 NativeAPI::GPUFence hGPUFence            = NativeAPI::Null;
                 NativeAPI::CPUFence hCPUFence            = NativeAPI::Null;
                 NativeAPI::GPUFence hExternalGPUFence    = NativeAPI::Null;
                 NativeAPI::CPUFence hExternalCpuFence    = NativeAPI::Null;
+                NativeAPI::Fence    hFence                = NativeAPI::Null;
+                NativeAPI::FenceValue fenceValue          = 1;
                 /// <summary>
                 /// Index of this back buffer
                 /// </summary>
@@ -117,7 +119,8 @@ namespace VKE
             const RenderSystem::SBackBuffer* SwapBuffers( bool waitForPresent );
             Result                           SwapBuffers();
             Result                           SwapBuffers( const NativeAPI::GPUFence&, const NativeAPI::CPUFence& );
-            Result Present( NativeAPI::GPUFence hWaitOnGPUFence, NativeAPI::CPUFence hFrameFence );
+            Result                           SwapBuffers( NativeAPI::Fence hFrameFence );
+            Result Present( const SPresentInfo& Info );
             void   NotifyPresent();
             void   Invalidate();
 

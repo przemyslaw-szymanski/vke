@@ -66,6 +66,25 @@ set(INC_DIRS ${INC_DIRS}
     "${INCLUDE_DIR}/RenderSystem/*.h"
 )
 
+# ---------------------------------------------------------------------------
+# Code generation: enum -> string conversions
+# ---------------------------------------------------------------------------
+set(VKE_ENUM_STRINGS_SCRIPT   "${CMAKE_SOURCE_DIR}/tools/gen_enum_strings.py")
+set(VKE_ENUM_STRINGS_INPUT    "${INCLUDE_DIR}/RenderSystem/Common.h")
+set(VKE_ENUM_STRINGS_OUTPUT   "${INCLUDE_DIR}/RenderSystem/CommonEnumStrings.h")
+
+add_custom_command(
+    OUTPUT  "${VKE_ENUM_STRINGS_OUTPUT}"
+    COMMAND Python3::Interpreter
+            "${VKE_ENUM_STRINGS_SCRIPT}"
+            "${VKE_ENUM_STRINGS_INPUT}"
+            "${VKE_ENUM_STRINGS_OUTPUT}"
+    DEPENDS "${VKE_ENUM_STRINGS_INPUT}"
+            "${VKE_ENUM_STRINGS_SCRIPT}"
+    COMMENT "Generating CommonEnumStrings.h from Common.h"
+    VERBATIM
+)
+
 set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/Common.cpp"
     "${SOURCE_DIR}/RenderSystem/CComputeContext.cpp"
@@ -77,7 +96,7 @@ set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/CDrawcall.cpp"
     "${SOURCE_DIR}/RenderSystem/CFrameBuffer.cpp"
     "${SOURCE_DIR}/RenderSystem/CFrameGraph.cpp"
-	"${SOURCE_DIR}/RenderSystem/CFrameGraphNode.cpp"
+    "${SOURCE_DIR}/RenderSystem/CFrameGraphNode.cpp"
     "${SOURCE_DIR}/RenderSystem/CGraphicsContext.cpp"
     "${SOURCE_DIR}/RenderSystem/CIndexBuffer.cpp"
     "${SOURCE_DIR}/RenderSystem/CPipeline.cpp"
@@ -103,8 +122,9 @@ include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)
 
 add_library(vkEngineRenderSystem STATIC
     ${INCLUDE_FILES}
-    ${SOURCE_FILES})
-    
+    ${SOURCE_FILES}
+    "${VKE_ENUM_STRINGS_OUTPUT}")
+
 add_dependencies(vkEngineRenderSystem vkEngineCore)
     
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
