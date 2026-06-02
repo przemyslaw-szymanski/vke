@@ -184,7 +184,6 @@ namespace VKE::RenderSystem
                 {
                     UINT count = 0;
                 };
-                
 
                 T& Reserve()
                 {
@@ -288,7 +287,6 @@ namespace VKE::RenderSystem
                 {
                     return vSubpasses[ ++currentSubpassIndex ];
                 }
-
             };
         } // namespace CustomTypes
 
@@ -354,6 +352,8 @@ namespace VKE::RenderSystem
         using BufferView            = CustomTypes::SResourceView*;
         using CPUFence              = CustomTypes::SCPUFence*;
         using GPUFence              = CustomTypes::SGPUFence*;
+        using Fence                 = CustomTypes::SFence*;
+        using FenceValue            = UINT64;
         using Device                = D3D12Device*;
         using DescriptorPool        = CustomTypes::SDescriptorPool*;
         using DescriptorSet         = CustomTypes::SDescriptorSet*;

@@ -1998,7 +1998,7 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeAPI::CPUFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator )
+    NativeAPI::CPUFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator ) const
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
 
@@ -2007,20 +2007,29 @@ namespace VKE::RenderSystem
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
-        if( FAILED( m_hDevice->CreateFence( 0, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
             VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
         }
 
-        if( Desc.isSignaled )
+        pFence->Value = Desc.startValue;
+
+        return pFence;
+    }
+
+    NativeAPI::Fence CDDI::CreateFence2( const SFenceDesc& Desc ) const
+    {
+        NativeAPI::Fence pFence = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pFence );
+
+        D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
+
+        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
-            pFence->pObject->Signal( 1 );
-            pFence->Value = 1;
+            VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
         }
-        else
-        {
-            pFence->Value = 0;
-        }
+
+        pFence->Value = Desc.startValue;
 
         return pFence;
     }
@@ -2030,7 +2039,12 @@ namespace VKE::RenderSystem
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator )
+    void CDDI::DestroyFence( NativeAPI::Fence* pInOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator ) const
     {
         VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
 
@@ -2039,12 +2053,12 @@ namespace VKE::RenderSystem
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
-        if( FAILED( m_hDevice->CreateFence( 0, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
             VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
         }
 
-        pFence->Value = 0;
+        pFence->Value = Desc.startValue;
         return pFence;
     }
 
@@ -3617,20 +3631,41 @@ namespace VKE::RenderSystem
         }
     }
 
-    Result CDDI::WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout )
+    void CDDI::Reset( NativeAPI::Fence* phFence, NativeAPI::FenceValue value )
     {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::FenceValue CDDI::GetCompletedValue( const NativeAPI::Fence& hFence ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+
+        return 0;
+    }
+
+    Result CDDI::WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
         // TODO(blturkot): Wait for fence implementation.
+        return Result::OK;
+    }
+
+    Result CDDI::WaitForFence( NativeAPI::Fence Fence, NativeAPI::FenceValue value ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
         return Result::OK;
     }
 
     Result CDDI::WaitForQueue( const NativeAPI::Queue& hQueue )
     {
+        UNIMPLEMENTED_D3D12_METHOD();
         // TODO(blturkot): Each queue needs to have its own fence for synchronization.
         return Result::OK;
     }
 
     Result CDDI::WaitForDevice()
     {
+        UNIMPLEMENTED_D3D12_METHOD();
         // TODO(blturkot): Get all queues and wait for them.
         return Result::OK;
     }

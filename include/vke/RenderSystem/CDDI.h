@@ -37,8 +37,9 @@ namespace VKE::RenderSystem
                     NativeAPI::Texture hDDITexture = NativeAPI::Null;
                     NativeAPI::Buffer  hDDIBuffer;
                 };
-                uint32_t           size;
-                MEMORY_USAGE       memoryUsages;
+
+                uint32_t     size;
+                MEMORY_USAGE memoryUsages;
             };
         };
 
@@ -131,24 +132,21 @@ namespace VKE::RenderSystem
         void   FreeObjects( const SFreeCommandBufferInfo& );
 
         Result GetBufferMemoryRequirements( const SBufferDesc& Desc, SAllocationMemoryRequirementInfo* pOut );
-        Result GetTextureMemoryRequirements( const STextureDesc& Desc,
-                                             SAllocationMemoryRequirementInfo* pOut );
+        Result GetTextureMemoryRequirements( const STextureDesc& Desc, SAllocationMemoryRequirementInfo* pOut );
         void   UpdateDesc( SBufferDesc* pInOut );
 
         void GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const;
 
-        void   Bind( const SBindPipelineInfo& Info );
-        void   Bind( const SBindDDIDescriptorSetsInfo& Info );
-        void   Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
-                     const uint32_t offset );
-        void   Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
-                     const uint32_t offset, const INDEX_TYPE& type );
-        void   UnbindPipeline( const NativeAPI::CommandBuffer&, const NativeAPI::Pipeline& );
-        void   UnbindRenderPass( const NativeAPI::CommandBuffer&, const NativeAPI::RenderPass& );
+        void Bind( const SBindPipelineInfo& Info );
+        void Bind( const SBindDDIDescriptorSetsInfo& Info );
+        void Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+                   const uint32_t offset );
+        void Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+                   const uint32_t offset, const INDEX_TYPE& type );
+        void UnbindPipeline( const NativeAPI::CommandBuffer&, const NativeAPI::Pipeline& );
+        void UnbindRenderPass( const NativeAPI::CommandBuffer&, const NativeAPI::RenderPass& );
 
         void Free( NativeAPI::Memory* phMemory, const void* = nullptr );
-
-        
 
         Result           Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
         MEMORY_HEAP_TYPE GetMemoryHeapType( MEMORY_USAGE usage ) const;
@@ -159,7 +157,8 @@ namespace VKE::RenderSystem
 
         void Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
                     const NativeAPI::CommandBufferPool& hCommandBufferPool );
-        void BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer, const NativeAPI::CommandBufferPool& hCommandBufferPool );
+        void BeginCommandBuffer( const NativeAPI::CommandBuffer&     hCommandBuffer,
+                                 const NativeAPI::CommandBufferPool& hCommandBufferPool );
         void EndCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer );
 
         void Barrier( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
@@ -177,7 +176,7 @@ namespace VKE::RenderSystem
         // Dynamic rendering
         void BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo2& );
         void BeginRenderPass( NativeAPI::CommandBuffer, const SBeginRenderPassInfo& );
-        //void EndRenderPass( NativeAPI::CommandBuffer );
+        // void EndRenderPass( NativeAPI::CommandBuffer );
         void EndRenderPass( NativeAPI::CommandBuffer, NativeAPI::RenderPass );
 
         // Copy
@@ -213,15 +212,15 @@ namespace VKE::RenderSystem
         void SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const;
         void SetQueueDebugName( uint64_t, cstr_t ) const;
 
-        bool   IsSignaled( const NativeAPI::CPUFence& hFence ) const;
-        bool   IsSignaled( const NativeAPI::Fence& hFence ) const;
+        bool                  IsSignaled( const NativeAPI::CPUFence& hFence ) const;
+        bool                  IsSignaled( const NativeAPI::Fence& hFence ) const;
         NativeAPI::FenceValue GetCompletedValue( const NativeAPI::Fence& hFence ) const;
-        void   Reset( NativeAPI::CPUFence* phFence );
+        void                  Reset( NativeAPI::CPUFence* phFence );
         void                  Reset( NativeAPI::Fence* phFence, NativeAPI::FenceValue value );
-        Result WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const;
+        Result                WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const;
         Result                WaitForFence( NativeAPI::Fence Fence, NativeAPI::FenceValue value ) const;
-        Result WaitForQueue( const NativeAPI::Queue& hQueue );
-        Result WaitForDevice();
+        Result                WaitForQueue( const NativeAPI::Queue& hQueue );
+        Result                WaitForDevice();
 
         NativeAPI::SImplementation& getImplementation()
         {
