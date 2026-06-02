@@ -29,7 +29,7 @@ namespace VKE
                 }
                 vpPools.Clear();
 #if VKE_DUMP_CB
-                if( m_pFile == nullptr )
+                if( m_pFile != nullptr )
                 {
                     fclose( m_pFile );
                 }
@@ -80,8 +80,10 @@ namespace VKE
                 VKE_ASSERT( Desc.threadIndex < MAX_THREAD_COUNT );
                 tid = Desc.threadIndex;
             }
-            pPool->hDDIPool                     = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
-            auto                            idx = m_avpPools[ tid ].PushBack( pPool );
+
+            pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
+            auto idx        = m_avpPools[ tid ].PushBack( pPool );
+
             SCommandBufferPoolHandleDecoder Decoder;
             Decoder.Decode.threadId = tid;
             Decoder.Decode.index    = idx;
@@ -136,7 +138,8 @@ namespace VKE
                 if( VKE_SUCCEEDED( CreateCommandBuffers< false >( 1u, ppOut ) ) )
                 {
                     pCurr = *ppOut;
-                    pCurr->Reset();
+                    // TODO(blturkot): Reset() on CommandList is deprecated. Remove this once confirmed it works on
+                    // samples. pCurr->Reset();
                     pCurr->Begin();
                     m_apCurrentCommandBuffers[ tid ] = pCurr;
 
@@ -224,7 +227,7 @@ namespace VKE
                 Info.count    = count;
                 Info.hDDIPool = pPool->hDDIPool;
                 Info.level    = CommandBufferLevels::PRIMARY;
-                ret           = DDI.AllocateObjects( Info, &vTmps[ 0 ] );
+                ret           = DDI.CreateCommandBuffers( Info, &vTmps[ 0 ] );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     // SSemaphoreDesc SemaphoreDesc;

@@ -318,7 +318,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         UpdateCamera( pCtx );
         pCtx->BeginFrame();
         UpdateUBO( pCtx );
-        pCtx->BindDefaultRenderPass();
+        //pCtx->BindDefaultRenderPass();
         pScene->Render( pCtx );
         pCtx->EndFrame();
         return true;

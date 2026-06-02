@@ -39,28 +39,60 @@ namespace VKE
             m_PoolBuffer.Add( static_cast< NativeAPI::DescriptorPool >( NativeAPI::Null ) );
             m_mLayouts[ INVALID_HANDLE ] = {};
 
-            SDescriptorPoolDesc PoolDesc;
-            PoolDesc.maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
-            for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
             {
-                SDescriptorPoolDesc::SSize Size;
-                Size.count = 16;
-                Size.type  = static_cast< DESCRIPTOR_SET_TYPE >( i );
-                PoolDesc.vPoolSizes.PushBack( Size );
+                SDescriptorPoolDesc& Desc = m_aDefaultPoolDescs[ DescriptorPoolTypes::SAMPLER ];
+                Desc.SetDebugName( "Sampler" );
+                Desc.vPoolSizes                                  = { { DescriptorSetTypes::SAMPLER,
+                                                                       Config::RenderSystem::Bindings::MAX_SAMPLER_DESCRIPTOR_COUNT } };
+                m_ahDefaultPools[ DescriptorPoolTypes::SAMPLER ] = CreatePool( Desc );
             }
-            PoolDesc.SetDebugName( "VKE_DefaultDescriptorPool" );
-            m_hDefaultPool = CreatePool( PoolDesc );
-            if( m_hDefaultPool != INVALID_HANDLE )
             {
-                SDescriptorSetLayoutDesc           LayoutDesc;
-                SDescriptorSetLayoutDesc::SBinding Binding;
-                Binding.count  = 1;
-                Binding.idx    = 0;
-                Binding.stages = PipelineStages::VERTEX | PipelineStages::PIXEL;
-                Binding.type   = BindingTypes::CONSTANT_BUFFER;
-                LayoutDesc.vBindings.PushBack( Binding );
-                LayoutDesc.SetDebugName( "VKE_DefaultDescriptorLayout" );
-                m_hDefaultLayout = CreateLayout( LayoutDesc );
+                SDescriptorPoolDesc& Desc = m_aDefaultPoolDescs[ DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER ];
+                Desc.SetDebugName( "TextureBufferCBuffer" );
+                Desc.vPoolSizes = {
+                    { DescriptorSetTypes::BUFFER, Config::RenderSystem::Bindings::MAX_BUFFER_DESCRIPTOR_COUNT },
+                    { DescriptorSetTypes::CONSTANT_BUFFER,
+                      Config::RenderSystem::Bindings::MAX_CONSTANT_BUFFER_DESCRIPTOR_COUNT },
+                    { DescriptorSetTypes::DYNAMIC_BUFFER, Config::RenderSystem::Bindings::MAX_BUFFER_DESCRIPTOR_COUNT },
+                    { DescriptorSetTypes::DYNAMIC_CONSTANT_BUFFER,
+                      Config::RenderSystem::Bindings::MAX_CONSTANT_BUFFER_DESCRIPTOR_COUNT },
+                    { DescriptorSetTypes::READ_ONLY_TEXEL_BUFFER,
+                      Config::RenderSystem::Bindings::MAX_BUFFER_DESCRIPTOR_COUNT },
+                    { DescriptorSetTypes::READ_WRITE_TEXEL_BUFFER,
+                      Config::RenderSystem::Bindings::MAX_READ_WRITE_BUFFER_DESCRIPTOR_COUNT },
+                    { DescriptorSetTypes::STORAGE_TEXTURE,
+                      Config::RenderSystem::Bindings::MAX_STORAGE_TEXTURE_DESCRIPTOR_COUNT },
+                    { DescriptorSetTypes::TEXTURE, Config::RenderSystem::Bindings::MAX_TEXTURE_DESCRIPTOR_COUNT }
+                };
+                m_ahDefaultPools[ DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER ] = CreatePool( Desc );
+            }
+            {
+                SDescriptorPoolDesc& Desc = m_aDefaultPoolDescs[ DescriptorPoolTypes::COLOR_RENDER_TARGET ];
+                Desc.SetDebugName( "ColorRenderTarget" );
+                Desc.maxSetCount = Config::RenderSystem::Bindings::MAX_COLOR_RENDER_TARGET_DESCRIPTOR_COUNT;
+                Desc.vPoolSizes  = {
+                    { DescriptorSetTypes::RENDER_TARGET,
+                       Config::RenderSystem::Bindings::MAX_COLOR_RENDER_TARGET_DESCRIPTOR_COUNT },
+                };
+                m_ahDefaultPools[ DescriptorPoolTypes::COLOR_RENDER_TARGET ] = CreatePool( Desc );
+            }
+            {
+                SDescriptorPoolDesc& Desc = m_aDefaultPoolDescs[ DescriptorPoolTypes::DEPTH_STENCIL ];
+                Desc.SetDebugName( "DepthStencil" );
+                Desc.maxSetCount = Config::RenderSystem::Bindings::MAX_DEPTH_STENCIL_DESCRIPTOR_COUNT;
+                Desc.vPoolSizes  = {
+                    { DescriptorSetTypes::DEPTH_STENCIL,
+                       Config::RenderSystem::Bindings::MAX_DEPTH_STENCIL_DESCRIPTOR_COUNT },
+                };
+                m_ahDefaultPools[ DescriptorPoolTypes::DEPTH_STENCIL ] = CreatePool( Desc );
+            }
+            for( uint32_t i = 0; i < DescriptorPoolTypes::_MAX_COUNT; ++i )
+            {
+                if( m_ahDefaultPools[ i ] == INVALID_HANDLE )
+                {
+                    ret = VKE_FAIL;
+                    break;
+                }
             }
 
             if( ret == VKE_FAIL )
@@ -93,7 +125,7 @@ namespace VKE
             *phInOut = INVALID_HANDLE;
         }
 
-        DescriptorSetHandle CDescriptorSetManager::CreateSet( const handle_t& hPool, const SDescriptorSetDesc& Desc )
+        DescriptorSetHandle CDescriptorSetManager::CreateSet( handle_t hPool, const SDescriptorSetDesc& Desc )
         {
             NativeAPI::DescriptorSet hDDISet;
             DescriptorSetHandle      hRet = INVALID_HANDLE;
@@ -101,10 +133,10 @@ namespace VKE
             DescriptorSetLayoutHandle hLayout = Desc.hLayout;
             // NativeAPI::DescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
             auto& Layout = m_mLayouts[ (hash_t)hLayout.handle ];
+            if( hPool == INVALID_HANDLE )
             {
-                // Threads::ScopedLock l( m_SyncObj );
-                // Layout.vFreeSets.PopBack( &hRet );
-                // Layout.mFreeSets[hPool].PopBack( &hRet );
+                const auto poolType = _GetPoolType( Layout );
+                hPool               = m_ahDefaultPools[ poolType ];
             }
             if( hRet == INVALID_HANDLE )
             {
@@ -115,7 +147,7 @@ namespace VKE
                 SetDesc.hPool     = Pool.hDDIObject;
                 SetDesc.phLayouts = &Layout.hDDILayout;
                 SetDesc.SetDebugName( Desc.GetDebugName() );
-                Result res = m_pCtx->NativeAPI().AllocateObjects( SetDesc, &hDDISet );
+                Result res = m_pCtx->NativeAPI().CreateDescriptorSets( SetDesc, &hDDISet );
                 if( VKE_SUCCEEDED( res ) )
                 {
                     SDescriptorSet Set;
@@ -133,12 +165,12 @@ namespace VKE
                 else if( res == VKE_ENOMEMORY )
                 {
                     // Create new pool
-                    auto hTmpPool = CreatePool( m_DefaultPoolDesc );
-                    res           = m_pCtx->NativeAPI().AllocateObjects( SetDesc, &hDDISet );
+                    const auto poolType = _GetPoolType( Layout );
+                    auto       hTmpPool = CreatePool( m_aDefaultPoolDescs[ poolType ] );
 
                     if( VKE_SUCCEEDED( res ) )
                     {
-                        m_hDefaultPool = hTmpPool;
+                        m_ahDefaultPools[ poolType ] = hTmpPool;
                         SDescriptorSet Set;
                         Set.hPool   = hPool;
                         Set.hDDISet = hDDISet;

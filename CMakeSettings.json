@@ -10,14 +10,19 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
+      "environments": [
+        {
+          "VK_ADD_LAYER_PATH": "${projectDir}\\out\\build\\${name}\\vcpkg_installed\\x64-windows\\bin"
+        }
+      ],
       "variables": [
         {
-          "name": "VKE_VULKAN_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_VULKAN",
           "value": "false",
           "type": "BOOL"
         },
         {
-          "name": "VKE_D3D12_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_D3D12",
           "value": "True",
           "type": "BOOL"
         },
@@ -43,14 +48,19 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
+      "environments": [
+        {
+          "VK_ADD_LAYER_PATH": "${projectDir}\\out\\build\\${name}\\vcpkg_installed\\x64-windows\\bin"
+        }
+      ],
       "variables": [
         {
-          "name": "VKE_VULKAN_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_VULKAN",
           "value": "True",
           "type": "BOOL"
         },
         {
-          "name": "VKE_D3D12_RENDER_SYSTEM",
+          "name": "VKE_RENDER_SYSTEM_D3D12",
           "value": "false",
           "type": "BOOL"
         },

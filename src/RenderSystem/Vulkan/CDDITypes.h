@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_VULKAN
 
 #define VKE_USE_VULKAN_KHR 1
 
@@ -29,7 +29,9 @@ namespace VKE::RenderSystem
 
     namespace NativeAPI
     {
-        static const decltype( VK_NULL_HANDLE ) Null;
+        static decltype( VK_NULL_HANDLE ) Null;
+
+        struct SRenderPass;
 
         struct SFence;
 
@@ -37,7 +39,7 @@ namespace VKE::RenderSystem
         using Pipeline              = VkPipeline;
         using Texture               = VkImage;
         using Sampler               = VkSampler;
-        using RenderPass            = VkRenderPass;
+        using RenderPass            = SRenderPass*;
         using CommandBuffer         = VkCommandBuffer;
         using TextureView           = VkImageView;
         using BufferView            = VkBufferView;
@@ -151,4 +153,4 @@ namespace VKE::RenderSystem
 
 } // namespace VKE::RenderSystem
 
-#endif // VKE_VULKAN_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_VULKAN

@@ -6,7 +6,6 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CRenderingPipeline.h"
-#include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CSwapChain.h"
 
@@ -129,12 +128,6 @@ namespace VKE
                 {
                     /*CommandBufferPtr pCmdBuffer = m_pCtx->CreateCommandBuffer();
                     pCmdBuffer->Begin();*/
-                    VkImageSubresourceRange SubresRange;
-                    SubresRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-                    SubresRange.baseArrayLayer = 0;
-                    SubresRange.baseMipLevel   = 0;
-                    SubresRange.layerCount     = 1;
-                    SubresRange.levelCount     = 1;
 
                     const uint32_t imgCount    = m_DDISwapChain.vImages.GetCount();
                     const auto&    vImages     = m_DDISwapChain.vImages;
@@ -586,19 +579,18 @@ namespace VKE
             // m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
         }
 
-        void CSwapChain::BeginPass( CommandBufferPtr pCb )
-        {
-            VKE_ASSERT2( m_pRenderPass!= nullptr, "SwapChain RenderPass must be created." );
-            pCb->Bind( m_DDISwapChain );
-        }
+        //void CSwapChain::BeginPass( CommandBufferPtr pCb )
+        //{
+        //    pCb->Bind( m_DDISwapChain );
+        //}
 
-        void CSwapChain::EndPass( CommandBufferPtr pCb )
-        {
-            // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
-            // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
-            // m_pCurrAcquireElement->pRenderPass->End( vkCb );
-            pCb->Bind( RenderPassPtr() );
-        }
+        //void CSwapChain::EndPass( CommandBufferPtr pCb )
+        //{
+        //    // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
+        //    // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+        //    // m_pCurrAcquireElement->pRenderPass->End( vkCb );
+        //    pCb->Bind( (NativeAPI::RenderPass)NativeAPI::Null );
+        //}
 
     } // namespace RenderSystem
 } // namespace VKE

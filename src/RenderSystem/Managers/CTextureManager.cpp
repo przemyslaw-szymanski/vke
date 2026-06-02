@@ -209,6 +209,19 @@ namespace VKE
             return Hash.value;
         }
 
+        uint32_t CTextureManager::_GetMemoryPoolSize( handle_t texDescHash ) const
+        {
+            for( uint32_t i = 0; i < m_vMemoryPoolSizes.GetCount(); ++i )
+            {
+                if( m_vMemoryPoolSizes[ i ].first == texDescHash )
+                {
+                    return m_vMemoryPoolSizes[ i ].second;
+                }
+            }
+            /// TODO: handle this hardcode
+            return VKE_MEGABYTES(128);
+        }
+
         CTexture* CTextureManager::_AllocateTexture( hash_t hash, cstr_t pName )
         {
             CTexture* pTex = nullptr;
@@ -259,23 +272,29 @@ namespace VKE
                     res = m_pDevice->_NativeAPI().GetTextureFormatProperties( Desc, &FormatInfo );
                     VKE_ASSERT( VKE_SUCCEEDED( res ) );
 #endif
-                    hApiObj = m_pDevice->_NativeAPI().CreateTexture( Desc, nullptr );
-                    VKE_LOG_TMGR( "Created texture: " << Desc.Name << " " << hApiObj
-                                                      << " handle: " << pTex->GetHandle() );
-                    pTex->_AddResourceState( Core::ResourceStates::CREATED );
+                    SAllocationMemoryRequirementInfo AllocInfo;
+                    res     = m_pDevice->_NativeAPI().GetTextureMemoryRequirements( Desc, &AllocInfo );
+                    if( VKE_SUCCEEDED( res ) )
+                    {
+                        /// TODO: pTex can store hash precalculated eariler. We can use that hash instead of re-calculate new on
+                        hash_t texDescHash = pTex->CalcHash( Desc );
+                        AllocInfo.poolSize = _GetMemoryPoolSize( texDescHash );
+                        SBindMemoryInfo BindInfo;
+                        pTex->m_hMemory = m_pDevice->_GetDeviceMemoryManager().AllocateMemory( AllocInfo, &BindInfo );
+                        if( pTex->m_hMemory != INVALID_HANDLE )
+                        {
+                            hApiObj = m_pDevice->_NativeAPI().CreateTexture( Desc, BindInfo );
+                            VKE_LOG_TMGR( "Created texture: " << Desc.Name << " " << hApiObj
+                                                              << " handle: " << pTex->GetHandle() );
+                            pTex->_AddResourceState( Core::ResourceStates::CREATED );
+                        }
+                    }
                 }
                 if( hApiObj != NativeAPI::Null )
                 {
                     // Create memory for buffer
                     if( Desc.hNative == NativeAPI::Null && pTex->m_hMemory == INVALID_HANDLE )
                     {
-                        SAllocateDesc AllocDesc;
-                        AllocDesc.Memory.hDDITexture  = hApiObj;
-                        AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
-                        AllocDesc.Memory.size         = 0;
-                        AllocDesc.SetDebugInfo( &Desc );
-                        VKE_LOG_TMGR( "Alloc mem for: " << Desc.Name << " " << hApiObj );
-                        pTex->m_hMemory = m_pDevice->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
                         VKE_ASSERT( pTex->m_hMemory != INVALID_HANDLE );
                         if( pTex->m_hMemory != INVALID_HANDLE )
                         {
@@ -619,37 +638,50 @@ namespace VKE
                 }
                 if( pTex != nullptr )
                 {
+                    /// TODO: this should use CreateApiObject in order to avoid code duplication
                     pTex->Init( Desc );
                     {
                         if( pTex->GetDDIObject() == NativeAPI::Null )
                         {
-                            pTex->m_hDDIObject = m_pDevice->_NativeAPI().CreateTexture( Desc, nullptr );
-                            VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject
-                                                              << " hash: " << hash );
-                            pTex->_AddResourceState( Core::ResourceStates::CREATED );
+                            SAllocationMemoryRequirementInfo AllocationInfo;
+                            if( VKE_SUCCEEDED(
+                                    m_pDevice->NativeAPI().GetTextureMemoryRequirements( Desc, &AllocationInfo ) ) )
+                            {
+                                /// TODO: calculating hash every time is not very effective
+                                /// Add a mem flag to use dedicated pool and only then calc and look for hash
+                                hash_t texDescHash          = pTex->CalcHash( Desc );
+                                AllocationInfo.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
+                                AllocationInfo.poolSize     = _GetMemoryPoolSize( texDescHash );
+                                SBindMemoryInfo BindInfo;
+                                pTex->m_hMemory = m_pDevice->_GetDeviceMemoryManager().AllocateMemory( AllocationInfo, &BindInfo );
+                                pTex->m_hDDIObject = m_pDevice->_NativeAPI().CreateTexture( Desc, BindInfo );
+                                VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject
+                                                                  << " hash: " << hash );
+                                pTex->_AddResourceState( Core::ResourceStates::CREATED );
+                            }
                         }
                         if( pTex->m_hDDIObject != NativeAPI::Null )
                         {
 
-                            // Create memory for buffer
-                            if( Desc.hNative == NativeAPI::Null && pTex->m_hMemory == INVALID_HANDLE )
-                            {
-                                SAllocateDesc AllocDesc;
+                            //// Create memory for buffer
+                            //if( Desc.hNative == NativeAPI::Null && pTex->m_hMemory == INVALID_HANDLE )
+                            //{
+                            //    SAllocateDesc AllocDesc;
 
-                                AllocDesc.Memory.hDDITexture  = pTex->GetDDIObject();
-                                AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
-                                AllocDesc.Memory.size         = 0;
-                                AllocDesc.SetDebugInfo( &Desc );
-                                VKE_LOG_TMGR( "Alloc mem for: " << Desc.Name << " " << pTex->GetDDIObject() );
-                                pTex->m_hMemory = m_pDevice->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
+                            //    AllocDesc.Memory.hDDITexture  = pTex->GetDDIObject();
+                            //    AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
+                            //    AllocDesc.Memory.size         = 0;
+                            //    AllocDesc.SetDebugInfo( &Desc );
+                            //    VKE_LOG_TMGR( "Alloc mem for: " << Desc.Name << " " << pTex->GetDDIObject() );
+                            //    pTex->m_hMemory = m_pDevice->_GetDeviceMemoryManager().AllocateTexture( AllocDesc );
 
-                                VKE_ASSERT( pTex->m_hMemory != INVALID_HANDLE );
-                                if( pTex->m_hMemory == INVALID_HANDLE )
-                                {
-                                    goto ERR;
-                                }
-                                pTex->_AddResourceState( Core::ResourceStates::INITIALIZED );
-                            }
+                            //    VKE_ASSERT( pTex->m_hMemory != INVALID_HANDLE );
+                            //    if( pTex->m_hMemory == INVALID_HANDLE )
+                            //    {
+                            //        goto ERR;
+                            //    }
+                            //    pTex->_AddResourceState( Core::ResourceStates::INITIALIZED );
+                            //}
                             if( pTex->IsResourceStateSet( Core::ResourceStates::INITIALIZED ) &&
                                 pTex->m_hView == NativeAPI::Null )
                             {

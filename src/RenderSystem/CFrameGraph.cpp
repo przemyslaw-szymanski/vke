@@ -15,8 +15,6 @@
 
 namespace VKE::RenderSystem
 {
-    
-
     Result CFrameGraph::_Create( const SFrameGraphDesc& Desc )
     {
         Result ret = VKE_FAIL;
@@ -39,13 +37,13 @@ namespace VKE::RenderSystem
                         CreatePass( { .pName          = "RenderFrame",
                                       .vRenderTargets = { { .pName     = "Diffuse",
                                                             .format    = Formats::R8G8B8A8_UNORM,
-                                                            .operation = FrameGraphPassOperations::OVERWRITE },
+                                                            .operation = FrameGraphPassOperations::RENDER_PASS_OVERWRITE },
                                                           { .pName     = "Depth",
                                                             .format    = Formats::D32_SFLOAT,
-                                                            .operation = FrameGraphPassOperations::OVERWRITE } } } );
+                                                            .operation = FrameGraphPassOperations::RENDER_PASS_OVERWRITE } } } );
                     auto pFinishRenderFramePass = CreatePass(
                         { .pName          = "FinishRenderFrame",
-                          .vRenderTargets = { { .pName = "Diffuse", .operation = FrameGraphPassOperations::READ } } } );
+                          .vRenderTargets = { { .pName = "Diffuse", .operation = FrameGraphPassOperations::SHADER_READ } } } );
                     auto pEndFramePass      = CreatePass( {
                              .pName = "EndFrame",
                     } );
@@ -329,7 +327,10 @@ namespace VKE::RenderSystem
         // Wait for threads and destroy them
         for( uint32_t i = 0; i < m_vpThreads.GetCount(); ++i )
         {
-            m_vpThreads[ i ]->join();
+            if( m_vpThreads[ i ]->joinable() )
+            {
+                m_vpThreads[ i ]->join();
+            }
             Memory::DestroyObject( &HeapAllocator, &m_vpThreads[ i ] );
             Memory::DestroyObject( &HeapAllocator, &m_vpThreadData[ i ] );
         }
@@ -482,6 +483,8 @@ namespace VKE::RenderSystem
             pNode->m_Index.threadFence = _CreateThreadFence( pNode );
             pNode->m_Index.thread      = _CreateThreadIndex( Desc.pThread );
             pNode->_CreateBeginRenderPassInfo( Desc );
+
+            pNode->m_RenderArea = _GetRenderArea( Desc.size );
 
             if( !pNode->m_CommandBufferName.IsEmpty() )
             {
@@ -735,6 +738,7 @@ namespace VKE::RenderSystem
                                     pNode->m_ExecuteName.GetData(),
                                     pNode->m_CommandBufferName.GetData() );
                     vCbs[ i ]->SetDebugName( DbgName.GetData() );
+                    // m_Desc.apContexts[ ctxType ]->Reset( vCbs[ i ] );
                     vCbs[ i ]->Reset();
                     auto& FrameData = m_aFrameData[ i ];
                     ret = (INDEX_TYPE)FrameData.avpCommandBuffers[ ctxType ].PushBack( CommandBufferPtr{ vCbs[ i ] } );
@@ -810,7 +814,7 @@ namespace VKE::RenderSystem
             /*if( ThreadData.CondVar.wait_for( l, 2s,
                 [&] { return !ThreadData.qWorkloads.empty(); } ) )*/
             ThreadData.CondVar.wait( l, [ & ] {
-                return !ThreadData.qWorkloads.empty();
+                return !ThreadData.qWorkloads.empty() || ThreadData.needExit;
             } );
             {
                 if( !ThreadData.qWorkloads.empty() )
@@ -824,6 +828,7 @@ namespace VKE::RenderSystem
                 }
             }
         }
+        return;
     }
 
     CFrameGraph::INDEX_TYPE CFrameGraph::_CreateThreadIndex( const std::string_view& ThreadName )
@@ -885,6 +890,7 @@ namespace VKE::RenderSystem
 
     Rect2DI32 CFrameGraph::_GetRenderArea( RENDER_PASS_SIZE size )
     {
+        /// TODO: Handle position!
         Rect2DI32 Ret = { .Position = { 0, 0 }, .Size = ExtentU32( m_Desc.Size / TextureSize{ size, size } ) };
         return Ret;
     }

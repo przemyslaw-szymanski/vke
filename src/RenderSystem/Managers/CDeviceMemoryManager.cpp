@@ -94,6 +94,7 @@ namespace VKE
 
         handle_t CDeviceMemoryManager::_CreatePool( const SCreateMemoryPoolDesc& Desc )
         {
+            VKE_ASSERT( Desc.size > 0 );
             handle_t            ret = INVALID_HANDLE;
             SAllocateMemoryDesc AllocDesc;
             AllocDesc.size  = Desc.size;
@@ -128,6 +129,7 @@ namespace VKE
                     }
 
                     m_aTotalMemAllocated[ MemData.heapType ] += AllocDesc.size;
+                    m_mPoolIndices[ Desc.usage ].PushBack( ret );
                     VKE_LOG_WARN( "Created new device memory pool with size: "
                                   << VKE_LOG_MEM_SIZE( AllocDesc.size )
                                   << " on heap: " << ConvertHeapTypeToString( MemData.heapType ) );
@@ -192,35 +194,37 @@ namespace VKE
             PoolDesc.size      = poolSize;
             PoolDesc.alignment = MemReq.alignment;
             handle_t hPool     = _CreatePool( PoolDesc );
-            m_mPoolIndices[ Desc.Memory.memoryUsages ].PushBack( hPool );
 
             lastPoolSize = poolSize;
             return hPool;
         }
 
-        handle_t CDeviceMemoryManager::_AllocateFromPool( const SAllocateDesc&                    Desc,
-                                                          const SAllocationMemoryRequirementInfo& MemReq,
+        handle_t CDeviceMemoryManager::_AllocateFromPool( const SAllocationMemoryRequirementInfo& Info,
                                                           SBindMemoryInfo*                        pBindInfoOut )
         {
             handle_t ret = INVALID_HANDLE;
             // SPool* pPool = nullptr;00
 
-            auto Itr = m_mPoolIndices.find( Desc.Memory.memoryUsages );
+            auto Itr = m_mPoolIndices.find( Info.memoryUsages );
             // If no pool is created for such memory usage create a new one
             // and call this function again
             if( Itr == m_mPoolIndices.end() )
             {
-                const handle_t hPool = _CreatePool( Desc, MemReq );
+                SCreateMemoryPoolDesc PoolDesc;
+                PoolDesc.usage       = Info.memoryUsages;
+                PoolDesc.size        = Info.poolSize;
+                PoolDesc.alignment   = Info.alignment;
+                const handle_t hPool = _CreatePool( PoolDesc );
                 VKE_ASSERT2( hPool != INVALID_HANDLE, "" );
-                ret = _AllocateFromPool( Desc, MemReq, pBindInfoOut );
+                ret = _AllocateFromPool( Info, pBindInfoOut );
             }
             else
             {
                 const HandleVec& vHandles = Itr->second;
 
-                SAllocateMemoryInfo Info;
-                Info.alignment = MemReq.alignment;
-                Info.size      = MemReq.size;
+                SAllocateMemoryInfo AllocInfo;
+                AllocInfo.alignment = Info.alignment;
+                AllocInfo.size      = Info.size;
 
                 uint64_t memory = CMemoryPoolView::INVALID_ALLOCATION;
                 // Find firt pool with enough memory
@@ -231,21 +235,20 @@ namespace VKE
                     auto& View = m_vPoolViews[ poolIdx ];
 
                     CMemoryPoolView::SAllocateData Data;
-                    memory = View.Allocate( Info, &Data );
+                    memory = View.Allocate( AllocInfo, &Data );
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )
                     {
-                        pBindInfoOut->hDDIBuffer  = Desc.Memory.hDDIBuffer;
-                        pBindInfoOut->hDDITexture = Desc.Memory.hDDITexture;
+                        pBindInfoOut->reserved    = Info.reserved;
                         pBindInfoOut->hDDIMemory  = (NativeAPI::Memory)( Data.memory );
                         pBindInfoOut->offset      = Data.offset;
                         pBindInfoOut->hMemory     = poolIdx;
 
                         UAllocationHandle     Handle;
-                        SMemoryAllocationInfo AllocInfo;
-                        AllocInfo.hMemory                    = Data.memory;
-                        AllocInfo.offset                     = Data.offset;
+                        SSubAllocateMemoryInfo SubAllocInfo;
+                        SubAllocInfo.hMemory                  = Data.memory;
+                        SubAllocInfo.offset                   = Data.offset;
                         AllocInfo.size                       = Info.size;
-                        Handle.hAllocInfo                    = m_AllocBuffer.Add( AllocInfo );
+                        Handle.hAllocInfo                      = m_AllocBuffer.Add( SubAllocInfo );
                         Handle.hPool                         = static_cast< uint16_t >( poolIdx );
                         Handle.dedicated                     = false;
                         ret                                  = Handle.handle;
@@ -286,20 +289,25 @@ namespace VKE
                 if( memory == CMemoryPoolView::INVALID_ALLOCATION )
                 {
                     // Create new memory pool
-                    SAllocateDesc NewDesc      = Desc;
-                    auto&         lastPoolSize = m_mLastPoolSizes[ Desc.Memory.memoryUsages ];
-                    NewDesc.poolSize           = CalculateNewPoolSize( Desc.poolSize, lastPoolSize, m_Desc );
+                    //SAllocateDesc NewDesc      = Desc;
+                    SAllocationMemoryRequirementInfo NewInfo      = Info;
+                    auto&         lastPoolSize = m_mLastPoolSizes[ NewInfo.memoryUsages ];
+                    NewInfo.poolSize           = CalculateNewPoolSize( NewInfo.poolSize, lastPoolSize, m_Desc );
                     // const float sizeMB = NewDesc.poolSize / 1024.0f / 1024.0f;
                     VKE_LOG_WARN( "No device memory for allocation with requirements: "
-                                  << VKE_LOG_MEM_SIZE( MemReq.size ) << ", " << MemReq.alignment
+                                  << VKE_LOG_MEM_SIZE( Info.size ) << ", " << Info.alignment
                                   << " byte alignment, memory usages: "
-                                  << ConvertMemoryUsagesToString( Desc.Memory.memoryUsages ) );
+                                  << ConvertMemoryUsagesToString( Info.memoryUsages ) );
                     // VKE_LOG_WARN("Create new device memory pool with size: " << VKE_LOG_MEM_SIZE(NewDesc.poolSize) <<
                     // ".");
-                    const handle_t hPool = _CreatePool( NewDesc, MemReq );
+                    SCreateMemoryPoolDesc PoolDesc;
+                    PoolDesc.usage       = NewInfo.memoryUsages;
+                    PoolDesc.size        = NewInfo.poolSize;
+                    PoolDesc.alignment   = NewInfo.alignment;
+                    const handle_t hPool = _CreatePool( PoolDesc );
                     // VKE_LOG_WARN("Total device memory allocated: " << VKE_LOG_MEM_SIZE(m_totalMemAllocated) << "." );
                     VKE_ASSERT2( hPool != INVALID_HANDLE, "" );
-                    ret = _AllocateFromPool( Desc, MemReq, pBindInfoOut );
+                    ret = _AllocateFromPool( NewInfo, pBindInfoOut );
                 }
             }
 
@@ -308,52 +316,43 @@ namespace VKE
             return ret;
         }
 
-        handle_t CDeviceMemoryManager::_AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut )
+        handle_t CDeviceMemoryManager::AllocateMemory( const SAllocationMemoryRequirementInfo& Info,
+                                                       SBindMemoryInfo*                        pOut )
         {
+            VKE_ASSERT( Info.poolSize > 0 );
             handle_t   ret                 = INVALID_HANDLE;
-            const auto dedicatedAllocation = Desc.Memory.memoryUsages & MemoryUsages::DEDICATED_ALLOCATION;
+            const auto dedicatedAllocation = Info.memoryUsages & MemoryUsages::DEDICATED_ALLOCATION;
 #if VKE_RENDER_SYSTEM_MEMORY_DEBUG
-            VKE_ASSERT2( Desc.descType > 0, "For memory debug resource desc must be set." );
+            VKE_ASSERT2( Info.descType > 0, "For memory debug resource desc must be set." );
 #endif
-            VKE_ASSERT2( ( ( Desc.Memory.memoryUsages & MemoryUsages::BUFFER ) == MemoryUsages::BUFFER ) ||
-                             ( ( Desc.Memory.memoryUsages & MemoryUsages::TEXTURE ) == MemoryUsages::TEXTURE ),
+            VKE_ASSERT2( ( ( Info.memoryUsages & MemoryUsages::BUFFER ) == MemoryUsages::BUFFER ) ||
+                             ( ( Info.memoryUsages & MemoryUsages::TEXTURE ) == MemoryUsages::TEXTURE ),
                          "At least MemoryUsages::BUFFER or MemoryUsages::TEXTURE must be set in memoryUsages flags." );
             VKE_ASSERT2(
-                ( ( Desc.Memory.memoryUsages & MemoryUsages::GPU_ACCESS ) == MemoryUsages::GPU_ACCESS ) ||
-                    ( ( Desc.Memory.memoryUsages & MemoryUsages::CPU_ACCESS ) == MemoryUsages::CPU_ACCESS ),
+                ( ( Info.memoryUsages & MemoryUsages::GPU_ACCESS ) == MemoryUsages::GPU_ACCESS ) ||
+                    ( ( Info.memoryUsages & MemoryUsages::CPU_ACCESS ) == MemoryUsages::CPU_ACCESS ),
                 "At least MemoryUsages::CPU_ACCESS or MemoryUsages::GPU_ACCESS must be set in memoryUsages flags." );
-
-            SAllocationMemoryRequirementInfo MemReq = {};
-            if( Desc.Memory.hDDIBuffer != NativeAPI::Null )
-            {
-                m_pCtx->NativeAPI().GetBufferMemoryRequirements( Desc.Memory.hDDIBuffer, &MemReq );
-            }
-            else if( Desc.Memory.hDDITexture != NativeAPI::Null )
-            {
-                m_pCtx->NativeAPI().GetTextureMemoryRequirements( Desc.Memory.hDDITexture, &MemReq );
-            }
 
             if( !dedicatedAllocation )
             {
-                ret = _AllocateFromPool( Desc, MemReq, pOut );
+                ret = _AllocateFromPool( Info, pOut );
             }
             else
             {
                 SAllocateMemoryData Data;
                 SAllocateMemoryDesc AllocDesc;
-                AllocDesc.size  = MemReq.size;
-                AllocDesc.usage = Desc.Memory.memoryUsages;
+                AllocDesc.size  = Info.size;
+                AllocDesc.usage = Info.memoryUsages;
                 Result res      = m_pCtx->_NativeAPI().Allocate( AllocDesc, &Data );
                 if( VKE_SUCCEEDED( res ) )
                 {
                     auto& BindInfo       = *pOut;
-                    BindInfo.hDDITexture = Desc.Memory.hDDITexture;
-                    BindInfo.hDDIBuffer  = Desc.Memory.hDDIBuffer;
+                    BindInfo.reserved    = Info.reserved;
                     BindInfo.hDDIMemory  = Data.hDDIMemory;
                     BindInfo.hMemory     = INVALID_HANDLE;
                     BindInfo.offset      = 0;
 
-                    SMemoryAllocationInfo AllocInfo;
+                    SSubAllocateMemoryInfo AllocInfo;
                     AllocInfo.hMemory = (handle_t)( Data.hDDIMemory );
                     AllocInfo.offset  = 0;
                     AllocInfo.size    = AllocDesc.size;
@@ -378,36 +377,7 @@ namespace VKE
             return ret;
         }
 
-        handle_t CDeviceMemoryManager::AllocateBuffer( const SAllocateDesc& Desc )
-        {
-            SBindMemoryInfo BindInfo;
-            handle_t        ret = _AllocateMemory( Desc, &BindInfo );
-            VKE_ASSERT2( ret != INVALID_HANDLE, "" );
-            if( ret != INVALID_HANDLE )
-            {
-                {
-                    m_pCtx->_NativeAPI().Bind( ResourceTypes::BUFFER, BindInfo );
-                }
-            }
-            return ret;
-        }
-
-        handle_t CDeviceMemoryManager::AllocateTexture( const SAllocateDesc& Desc )
-        {
-            SBindMemoryInfo BindInfo;
-            handle_t        ret = _AllocateMemory( Desc, &BindInfo );
-            VKE_ASSERT2( ret != INVALID_HANDLE, "" );
-            if( ret != INVALID_HANDLE )
-            {
-                {
-                    VKE_LOG_DMMGR( "Bind texture memory: " << BindInfo.hDDITexture << " " << BindInfo.hMemory );
-                    m_pCtx->_NativeAPI().Bind( ResourceTypes::TEXTURE, BindInfo );
-                }
-            }
-            return ret;
-        }
-
-        Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo )
+        /*Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo )
         {
             Result         ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
@@ -420,57 +390,72 @@ namespace VKE
                 Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                 ret = VKE_OK;
             }
-            m_pCtx->NativeAPI().UnmapMemory( BindInfo.hDDIMemory );
+
+            m_pCtx->NativeAPI().UnmapMemory( MapInfo );
             return ret;
-        }
+        }*/
 
-        Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory )
+        Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            UAllocationHandle Handle = hMemory;
-
-            const auto&    AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
+            Result              ret    = VKE_ENOMEMORY;
+            UAllocationHandle Handle = DataInfo.hMemory;
+            //Threads::ScopedLock l( m_vSyncObjects[ Handle.hPool ] );
+            void*               pDst = MapMemory( DataInfo );
+            if(pDst != nullptr)
+            {
+                Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
+                UnmapMemory( DataInfo );
+                ret = VKE_OK;
+            }
+            /*const auto&    AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             Result         ret       = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
             MapInfo.hMemory = (NativeAPI::Memory)( AllocInfo.hMemory );
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             {
-                Threads::ScopedLock l( m_vSyncObjects[ Handle.hPool ] );
+                
                 void*               pDst = m_pCtx->NativeAPI().MapMemory( MapInfo );
                 if( pDst != nullptr )
                 {
                     Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                     ret = VKE_OK;
                 }
-                m_pCtx->NativeAPI().UnmapMemory( MapInfo.hMemory );
-            }
+                m_pCtx->NativeAPI().UnmapMemory( MapInfo );
+            }*/
             return ret;
         }
 
-        void* CDeviceMemoryManager::MapMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory )
+        void* CDeviceMemoryManager::MapMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            UAllocationHandle Handle    = hMemory;
+            VKE_ASSERT( DataInfo.hBuffer != NativeAPI::Null );
+            VKE_ASSERT( DataInfo.hMemory != INVALID_HANDLE );
+            UAllocationHandle Handle    = DataInfo.hMemory;
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             SMapMemoryInfo    MapInfo;
             MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
+            MapInfo.hBuffer = DataInfo.hBuffer;
             // Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
             m_vSyncObjects[ Handle.hPool ].Lock();
             void* pRet = m_pCtx->NativeAPI().MapMemory( MapInfo );
             return pRet;
         }
 
-        void CDeviceMemoryManager::UnmapMemory( const handle_t& hMemory )
+        void CDeviceMemoryManager::UnmapMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            UAllocationHandle Handle    = hMemory;
+            UAllocationHandle Handle    = DataInfo.hMemory;
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
-            // Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
+            SMapMemoryInfo    MapInfo;
+            MapInfo.hBuffer = DataInfo.hBuffer;
+            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
+            MapInfo.offset  = DataInfo.dstDataOffset;
             m_vSyncObjects[ Handle.hPool ].Unlock();
-            m_pCtx->NativeAPI().UnmapMemory( (NativeAPI::Memory)AllocInfo.hMemory );
+            m_pCtx->NativeAPI().UnmapMemory( MapInfo );
         }
 
-        const SMemoryAllocationInfo& CDeviceMemoryManager::GetAllocationInfo( const handle_t& hMemory )
+        const SSubAllocateMemoryInfo& CDeviceMemoryManager::GetAllocationInfo( const handle_t& hMemory )
         {
             UAllocationHandle Handle = hMemory;
             return m_AllocBuffer[ Handle.hAllocInfo ];

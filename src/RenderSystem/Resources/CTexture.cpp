@@ -607,7 +607,7 @@ namespace VKE
             return ret;
         }
 
-        TextureViewRefPtr CTexture::GetView()
+        TextureViewRefPtr CTexture::GetView() const
         {
             return m_pMgr->GetTextureView( m_hView );
         }

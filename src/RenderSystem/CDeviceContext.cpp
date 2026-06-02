@@ -1,5 +1,4 @@
 ﻿#include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "Core/Utils/CLogger.h"
@@ -8,7 +7,6 @@
 #include "CVkEngine.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Threads/CThreadPool.h"
-#include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderingPipeline.h"
 #include "Core/Memory/CMemoryPoolManager.h"
 #include "RenderSystem/Managers/CShaderManager.h"
@@ -30,20 +28,7 @@ namespace VKE
         template< typename T >
         using ResourceBuffer = Utils::TCDynamicArray< T, 256 >;
 
-        struct SPropertiesInput
-        {
-            VkICD::Instance& ICD;
-            VkPhysicalDevice vkPhysicalDevice;
-
-            SPropertiesInput()                        = delete;
-            void operator=( const SPropertiesInput& ) = delete;
-        };
-
-        Result GetProperties( const SPropertiesInput& In, SDeviceProperties* pOut );
-        Result CheckExtensions( VkPhysicalDevice, VkICD::Instance&, const Utils::TCDynamicArray< const char* >& );
-
-        CDeviceContext::CDeviceContext( CRenderSystem* pRS ) : // CContextBase( this, "Device" )
-            m_pRenderSystem( pRS )
+        CDeviceContext::CDeviceContext( CRenderSystem* pRS ) : m_pRenderSystem( pRS )
         {
         }
 
@@ -72,8 +57,6 @@ namespace VKE
             {
                 // m_pVkDevice->Wait();
                 m_DDI.WaitForDevice();
-
-                _DestroyDescriptorPools();
 
                 for( auto& pCtx: m_GraphicsContexts.vPool )
                 {
@@ -114,8 +97,6 @@ namespace VKE
                 Memory::DestroyObject( &HeapAllocator, &m_pShaderMgr );
                 // Memory::DestroyObject( &HeapAllocator, &m_pAPIResMgr );
                 Memory::DestroyObject( &HeapAllocator, &m_pDescSetMgr );
-
-                _DestroyRenderPasses();
 
                 for( auto& pRT: m_vpRenderTargets )
                 {
@@ -251,11 +232,6 @@ namespace VKE
                     {
                         goto ERR;
                     }
-
-                    if( VKE_FAILED( _CreateDescriptorPool( Config::RenderSystem::Bindings::DEFAULT_COUNT_IN_POOL ) ) )
-                    {
-                        goto ERR;
-                    }
                 }
                 else
                 {
@@ -286,52 +262,6 @@ namespace VKE
         ERR:
             _Destroy();
             return VKE_FAIL;
-        }
-
-        Result CDeviceContext::_CreateDescriptorPool( uint32_t descriptorCount )
-        {
-            Result ret = VKE_OK;
-            m_vDescPools.PushBack( INVALID_HANDLE );
-            {
-                SDescriptorPoolDesc PoolDesc;
-                PoolDesc.maxSetCount = descriptorCount;
-                {
-                    for( uint32_t i = 0; i < DescriptorSetTypes::_MAX_COUNT; ++i )
-                    {
-                        SDescriptorPoolDesc::SSize Size;
-                        Size.count = 16;
-                        Size.type  = static_cast< DESCRIPTOR_SET_TYPE >( i );
-                        PoolDesc.vPoolSizes.PushBack( Size );
-                    }
-                }
-                if( descriptorCount )
-                {
-                    PoolDesc.SetDebugName( "VKE_DescPool" );
-                    handle_t hPool = m_pDescSetMgr->CreatePool( PoolDesc );
-                    if( hPool != INVALID_HANDLE )
-                    {
-                        m_vDescPools.PushBack( hPool );
-                    }
-                    else
-                    {
-                        ret = VKE_FAIL;
-                    }
-                }
-                m_DescPoolDesc = PoolDesc;
-                m_DescPoolDesc.maxSetCount =
-                    std::max( PoolDesc.maxSetCount, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT );
-                m_pDescSetMgr->m_DefaultPoolDesc = m_DescPoolDesc;
-            }
-            return VKE_OK;
-        }
-
-        void CDeviceContext::_DestroyDescriptorPools()
-        {
-            for( uint32_t i = 1; i < m_vDescPools.GetCount(); ++i )
-            {
-                m_pDescSetMgr->DestroyPool( &m_vDescPools[ i ] );
-            }
-            m_vDescPools.Clear();
         }
 
         Threads::CThreadPool* CDeviceContext::_GetThreadPool()
@@ -548,12 +478,6 @@ namespace VKE
             return pRet;
         }
 
-        VkInstance CDeviceContext::_GetInstance() const
-        {
-            // return m_pRenderSystem->_GetInstance();
-            return VK_NULL_HANDLE;
-        }
-
         void CDeviceContext::_NotifyDestroy( CGraphicsContext* pCtx )
         {
             VKE_ASSERT2( pCtx != nullptr, "GraphicsContext must not be destroyed." );
@@ -579,175 +503,19 @@ namespace VKE
             }
         }
 
-        /*Result CDeviceContext::_AddTask( Threads::THREAD_USAGE usage, Threads::THREAD_TYPE_INDEX index,
-            Threads::ITask* pTask )
-        {
-            return m_pRenderSystem->GetEngine()->GetThreadPool()->AddTask( usage, index, pTask );
-        }*/
-
-        VkImageLayout ConvertInitialLayoutToOptimalLayout( VkImageLayout vkInitial )
-        {
-            static const VkImageLayout aVkLayouts[] = {
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // undefined -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // general -> undefined
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,         // color attachment -> color attachment
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // depth -> depth
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // depth read only -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // transfer src -> undefined
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // n/a
-                VK_IMAGE_LAYOUT_UNDEFINED,                        // n/a
-                VK_IMAGE_LAYOUT_UNDEFINED
-            };
-            return aVkLayouts[ vkInitial ];
-        }
-
-        VkImageLayout ConvertInitialLayoutToReadLayout( VkImageLayout vkInitial )
-        {
-            static const VkImageLayout aVkLayouts[] = {
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,        // color attachment -> read only
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth attachment -> read only
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, // depth read only -> depth read only
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,        // read only -> read only
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_UNDEFINED
-            };
-            return aVkLayouts[ vkInitial ];
-        }
-
         PipelineRefPtr CDeviceContext::CreatePipeline( const SPipelineCreateDesc& Desc )
         {
             return m_pPipelineMgr->CreatePipeline( Desc );
         }
 
-        RenderPassHandle CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
+        NativeAPI::RenderPass CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
         {
-            return _CreateRenderPass( Desc, false );
+            return m_DDI.CreateRenderPass( Desc, nullptr );
         }
 
-        RenderPassHandle CDeviceContext::CreateRenderPass( const SSimpleRenderPassDesc& Desc )
+        void CDeviceContext::DestroyRenderPass( NativeAPI::RenderPass* phInOut )
         {
-            return _CreateRenderPass( Desc );
-        }
-
-        RenderPassHandle CDeviceContext::_CreateRenderPass( const SSimpleRenderPassDesc& Desc )
-        {
-            RenderPassHandle hRet = INVALID_HANDLE;
-            CRenderPass*     pPass;
-            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
-            hash_t hash = CRenderPass::CalcHash( Desc );
-            auto   Itr  = m_mRenderPasses.find( hash );
-            if( Itr != m_mRenderPasses.end() )
-            {
-                hRet.handle = hash;
-            }
-            else
-            {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
-                {
-                    m_mRenderPasses[ hash ] = pPass;
-                    Result res              = VKE_FAIL;
-                    {
-                        res = pPass->Create( Desc );
-                    }
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        hRet.handle                               = hash;
-                        pPass->m_hObject                          = hRet;
-                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
-                    }
-                    else
-                    {
-                        Memory::DestroyObject( &HeapAllocator, &pPass );
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for render pass." );
-                }
-            }
-            return hRet;
-        }
-
-        RenderPassHandle CDeviceContext::_CreateRenderPass( const SRenderPassDesc& Desc, bool )
-        {
-            CRenderPass*     pPass;
-            RenderPassHandle hRet = INVALID_HANDLE;
-            VKE_ASSERT2( !Desc.Name.IsEmpty(), "" );
-            hash_t hash = CRenderPass::CalcHash( Desc );
-            auto   Itr  = m_mRenderPasses.find( hash );
-            if( Itr != m_mRenderPasses.end() )
-            {
-                hRet.handle = hash;
-            }
-            else
-            {
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pPass, this ) ) )
-                {
-                    m_mRenderPasses[ hash ] = pPass;
-
-                    Result res = VKE_FAIL;
-                    {
-                        res = pPass->Create( Desc );
-                    }
-
-                    if( VKE_SUCCEEDED( res ) )
-                    {
-                        hRet.handle                               = hash;
-                        pPass->m_hObject                          = hRet;
-                        m_mRenderPassNames[ Desc.Name.GetData() ] = pPass;
-                    }
-                    else
-                    {
-                        Memory::DestroyObject( &HeapAllocator, &pPass );
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for render pass." );
-                }
-            }
-            return hRet;
-        }
-
-        void CDeviceContext::_DestroyRenderPasses()
-        {
-            for( auto& Pair: m_mRenderPasses )
-            {
-                auto pCurr = Pair.second.Release();
-                pCurr->_Destroy( true );
-                Memory::DestroyObject( &HeapAllocator, &pCurr );
-            }
-            m_mRenderPassNames.clear();
-            m_mRenderPasses.clear();
-        }
-
-        RenderPassRefPtr CDeviceContext::GetRenderPass( const RenderPassID& ID )
-        {
-            RenderPassRefPtr pRet;
-            switch( ID.type )
-            {
-                case RES_ID_HANDLE:
-                    pRet = GetRenderPass( ID.handle );
-                    break;
-                case RES_ID_NAME:
-                    pRet = m_mRenderPassNames[ ID.name ];
-                    break;
-                case RES_ID_POINTER:
-                    pRet = *(RenderPassRefPtr*)ID.ptr;
-                    break;
-                default:
-                    VKE_LOG_ERR( "RenderPass ID (INDEX) type not supported." );
-                    break;
-            }
-            return pRet;
-        }
-
-        RenderPassRefPtr CDeviceContext::GetRenderPass( const RenderPassHandle& hPass )
-        {
-            return RenderPassRefPtr{ m_mRenderPasses[ (hash_t)hPass.handle ] };
+            m_DDI.DestroyRenderPass( phInOut, nullptr );
         }
 
         RenderTargetRefPtr CDeviceContext::GetRenderTarget( cstr_t pName )
@@ -1014,27 +782,7 @@ namespace VKE
 
         DescriptorSetHandle CDeviceContext::CreateDescriptorSet( const SDescriptorSetDesc& Desc )
         {
-            DescriptorSetHandle hRet = INVALID_HANDLE;
-            handle_t            hPool;
-            if( m_vDescPools.GetCount() == 1 )
-            {
-                hPool = m_pDescSetMgr->CreatePool( m_DescPoolDesc );
-            }
-            else
-            {
-                hPool = m_vDescPools.Back();
-            }
-            if( hPool )
-            {
-                VKE_ASSERT2( hPool != INVALID_HANDLE, "" );
-                hRet = m_pDescSetMgr->CreateSet( hPool, Desc );
-                if( hRet == INVALID_HANDLE )
-                {
-                    m_pDescSetMgr->CreatePool( m_DescPoolDesc );
-                    hRet = CreateDescriptorSet( Desc );
-                }
-            }
-            return hRet;
+            return m_pDescSetMgr->CreateSet( INVALID_HANDLE, Desc );
         }
 
         const NativeAPI::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
@@ -1145,16 +893,6 @@ namespace VKE
             return m_pShaderMgr->GetDefaultShader( type );
         }
 
-        DescriptorSetLayoutHandle CDeviceContext::GetDefaultDescriptorSetLayout()
-        {
-            return m_pDescSetMgr->GetDefaultLayout();
-        }
-
-        PipelineLayoutPtr CDeviceContext::GetDefaultPipelineLayout()
-        {
-            return m_pPipelineMgr->GetDefaultLayout();
-        }
-
         /*Result CDeviceContext::ExecuteRemainingWork()
         {
             Result ret = VKE_FAIL;
@@ -1172,42 +910,6 @@ namespace VKE
         void CDeviceContext::FreeUnusedAllocations()
         {
             m_pBufferMgr->FreeUnusedAllocations();
-        }
-
-        Result CheckExtensions( VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
-                                const Utils::TCDynamicArray< const char* >& vExtensions )
-        {
-            uint32_t count = 0;
-            VK_ERR( Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
-
-            Utils::TCDynamicArray< VkExtensionProperties > vProperties( count );
-
-            VK_ERR(
-                Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, &vProperties[ 0 ] ) );
-
-            std::string ext;
-            Result      err = VKE_OK;
-
-            for( uint32_t e = 0; e < vExtensions.GetCount(); ++e )
-            {
-                ext        = vExtensions[ e ];
-                bool found = false;
-                for( uint32_t p = 0; p < count; ++p )
-                {
-                    if( ext == vProperties[ p ].extensionName )
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if( !found )
-                {
-                    VKE_LOG_ERR( "Extension: " << ext << " is not supported by the device." );
-                    err = VKE_ENOTFOUND;
-                }
-            }
-
-            return err;
         }
 
         void CDeviceContext::_OnFrameStart( CGraphicsContext* )

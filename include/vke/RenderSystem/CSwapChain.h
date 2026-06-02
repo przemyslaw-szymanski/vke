@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/VKECommon.h"
-// #include "RenderSystem/Vulkan/Common.h"
 #include "RenderSystem/CDDI.h"
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "RenderSystem/Resources/CTexture.h"
@@ -17,8 +16,9 @@ namespace VKE
     {
         class CDevice;
         class CGraphicsContext;
-        struct SFrameData;
         class CRenderingPipeline;
+
+        struct SFrameData;
 
         namespace Managers
         {
@@ -29,17 +29,11 @@ namespace VKE
         {
             struct SAcquireElement
             {
-                // VkImageMemoryBarrier    vkBarrierAttachmentToPresent;
-                // VkImageMemoryBarrier    vkBarrierPresentToAttachment;
                 NativeAPI::Texture     hDDITexture     = NativeAPI::Null;
                 NativeAPI::TextureView hDDITextureView = NativeAPI::Null;
                 TEXTURE_STATE          currentState    = TextureStates::UNDEFINED;
                 TEXTURE_STATE          oldState        = TextureStates::UNDEFINED;
-                // VkFramebuffer   vkFramebuffer = VK_NULL_HANDLE;
-                // VkCommandBuffer         vkCbAttachmentToPresent = NativeAPI::Null;
-                // VkCommandBuffer         vkCbPresentToAttachment = NativeAPI::Null;
                 NativeAPI::Framebuffer hDDIFramebuffer = NativeAPI::Null;
-                CRenderPass*           pRenderPass     = nullptr;
             };
 
             Threads::SyncObject SyncObj;
@@ -230,15 +224,11 @@ namespace VKE
             SViewportDesc              m_CurrViewport;
             SScissorDesc               m_CurrScissor;
             // SPresentSurfaceCaps         m_PresentSurfaceCaps;
-            RenderPassRefPtr m_pRenderPass;
             // NativeAPI::RenderPass               m_hDDIRenderPass;
-            Vulkan::Queue           m_pQueue       = nullptr;
             std::atomic< uint32_t > m_acquireCount = 0;
             // uint32_t                    m_currBackBufferIdx = 0;
             bool m_needPresent  = false;
             bool m_needRecreate = false;
-
-            VKE_DEBUG_CODE( VkSwapchainCreateInfoKHR m_vkCreateInfo );
         };
     } // namespace RenderSystem
 } // namespace VKE

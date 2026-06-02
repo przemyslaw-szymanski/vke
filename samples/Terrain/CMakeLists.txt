@@ -21,6 +21,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG 
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIR}")
 
+# Set Vulkan layer path for Visual Studio debugging
+if(VKE_RENDER_SYSTEM_VULKAN)
+    set(VULKAN_LAYER_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_DEBUGGER_ENVIRONMENT "VK_ADD_LAYER_PATH=${VULKAN_LAYER_PATH}"
+    )
+endif()
+
 set(LINK_LIB optimized vkEngine debug vkEngine_d)
 target_link_libraries(${PROJECT_NAME} ${LINK_LIB} ${THIRD_PARTY_LIBS})
 

@@ -1,16 +1,12 @@
 #pragma once
-#include "Core/VKEPreprocessor.h"
-#include "CDDI.h"
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDescriptorSet.h"
 #include "RenderSystem/CPipeline.h"
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
 #include "RenderSystem/Managers/CCommandBufferManager.h"
-#include "RenderSystem/CQueue.h"
 #include "RenderSystem/CContextBase.h"
 
 namespace VKE
@@ -28,8 +24,6 @@ namespace VKE
         class CDataTransferContext;
         class CResourceManager;
         class CRenderingPipeline;
-        class CRenderPass;
-        class CRenderSubPass;
         class CDescriptorSetManager;
         class CBuffer;
 
@@ -41,8 +35,6 @@ namespace VKE
             friend class CDataTransferContext;
             friend class CResourceManager;
             friend class CRenderingPipeline;
-            friend class CRenderPass;
-            friend class CRenderSubPass;
             friend class CRenderTarget;
             friend class CDeviceMemoryManager;
             friend class CResourceBarrierManager;
@@ -82,9 +74,6 @@ namespace VKE
             using ComputeContextArray      = Utils::TCDynamicArray< CComputeContext* >;
             using DataTransferContextArray = Utils::TCDynamicArray< CDataTransferContext* >;
             using RenderTargetArray        = Utils::TCDynamicArray< CRenderTarget* >;
-            using RenderPassArray          = Utils::TCDynamicArray< CRenderPass* >;
-            using RenderPassNameMap        = vke_hash_map< decltype( RenderPassID::name ), RenderPassPtr >;
-            using RenderPassMap            = vke_hash_map< hash_t, RenderPassPtr >;
             using RenderingPipeilneArray   = Utils::TCDynamicArray< CRenderingPipeline* >;
             using GraphicsContextPool      = Utils::TSFreePool< CGraphicsContext* >;
             using QueueArray               = Utils::TCDynamicArray< CQueue >;
@@ -122,10 +111,9 @@ namespace VKE
                 return m_pRenderSystem;
             }
 
-            RenderPassHandle CreateRenderPass( const SRenderPassDesc& Desc );
-            RenderPassHandle CreateRenderPass( const SSimpleRenderPassDesc& Desc );
-            RenderPassRefPtr GetRenderPass( const RenderPassHandle& hPass );
-            RenderPassRefPtr GetRenderPass( const RenderPassID& );
+            NativeAPI::RenderPass CreateRenderPass( const SRenderPassDesc& Desc );
+
+            void DestroyRenderPass( NativeAPI::RenderPass* phPass );
 
             CRenderTarget* GetRenderTarget( const RenderTargetHandle& hRenderTarget ) const
             {
@@ -288,16 +276,8 @@ namespace VKE
             }
 
         protected:
-            void _Destroy();
-            // Vulkan::ICD::Device&    _GetICD() const;
+            void              _Destroy();
             CGraphicsContext* _CreateGraphicsContextTask( const SGraphicsContextDesc& );
-            VkInstance        _GetInstance() const;
-            // Result                  _CreateCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
-            // void                    _FreeCommandBuffers( uint32_t count, CCommandBuffer** ppBuffers );
-
-            /*template<class T>
-            Result _AddTask( Threads::THREAD_USAGES usages, Threads::THREAD_TYPE_INDEX idx, Threads::TSSimpleTask<T>&
-            Task );*/
 
             void _NotifyDestroy( CGraphicsContext* );
 
@@ -372,12 +352,8 @@ namespace VKE
             CShaderManager*      m_pShaderMgr  = nullptr;
             CBufferManager*      m_pBufferMgr  = nullptr;
             CTextureManager*     m_pTextureMgr = nullptr;
-            SDescriptorPoolDesc  m_DescPoolDesc;
-            DescPoolArray        m_vDescPools;
             RenderTargetArray    m_vpRenderTargets;
             // RenderPassArray             m_vpRenderPasses;
-            RenderPassMap          m_mRenderPasses;
-            RenderPassNameMap      m_mRenderPassNames;
             RenderingPipeilneArray m_vpRenderingPipelines;
             Threads::SyncObject    m_SyncObj;
             CPipelineManager*      m_pPipelineMgr = nullptr;

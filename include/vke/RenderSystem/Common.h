@@ -828,7 +828,7 @@ namespace VKE
             uint32_t       queueFamilyIndex = 0;
             TextureSize    Size             = { 800, 600 };
             COLOR_SPACE    colorSpace       = ColorSpaces::SRGB;
-            TEXTURE_FORMAT format           = Formats::UNDEFINED;
+            TEXTURE_FORMAT format           = Formats::R8G8B8A8_UNORM;
             uint16_t       backBufferCount  = Constants::OPTIMAL;
             bool           enableVSync      = true;
         };
@@ -912,7 +912,6 @@ namespace VKE
             {
                 SAMPLER,             // only sampler
                 TEXTURE,             // only texture without sampler
-                SAMPLER_AND_TEXTURE, // texture with sampler
                 STORAGE_TEXTURE,
                 READ_ONLY_TEXEL_BUFFER,
                 READ_WRITE_TEXEL_BUFFER,
@@ -921,6 +920,7 @@ namespace VKE
                 DYNAMIC_CONSTANT_BUFFER,
                 DYNAMIC_BUFFER,
                 RENDER_TARGET,
+                DEPTH_STENCIL,
                 _MAX_COUNT,
                 UNKNOWN = _MAX_COUNT
             };
@@ -930,6 +930,37 @@ namespace VKE
         using DESCRIPTOR_SET_TYPE = BINDING_TYPE;
         using DescriptorSetTypes  = BindingTypes;
         using DescriptorSetCounts = uint16_t[ DescriptorSetTypes::_MAX_COUNT ];
+
+        struct DescriptorPoolTypes
+        {
+            enum TYPE
+            {
+                TEXTURE_BUFFER_CBUFFER,
+                SAMPLER,
+                COLOR_RENDER_TARGET,
+                DEPTH_STENCIL,
+                _MAX_COUNT
+            };
+        };
+        using DESCRIPTOR_POOL_TYPE = DescriptorPoolTypes::TYPE;
+
+        vke_force_inline DESCRIPTOR_POOL_TYPE BindingTypeToPoolType( DESCRIPTOR_SET_TYPE bindingType )
+        {
+            static const DESCRIPTOR_POOL_TYPE ascValues[ BindingTypes::_MAX_COUNT ] = {
+                DescriptorPoolTypes::SAMPLER,                // SAMPLER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // TEXTURE
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // STORAGE_TEXTURE
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // READ_ONLY_TEXEL_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // READ_WRITE_TEXEL_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // CONSTANT_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // DYNAMIC_CONSTANT_BUFFER
+                DescriptorPoolTypes::TEXTURE_BUFFER_CBUFFER, // DYNAMIC_BUFFER
+                // RENDER_TARGET
+                // DEPTH_STENCIL
+            };
+            return ascValues[ bindingType ];
+        }
 
         struct SResourceBinding
         {
@@ -996,6 +1027,42 @@ namespace VKE
 
             BindingArray vBindings;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+
+            bool IsValid() const
+            {
+                VKE_ASSERT( vBindings.GetCount() > 0 );
+                auto currType = BindingTypeToPoolType( vBindings[ 0 ].type );
+                for( uint32_t i = 1; i < vBindings.GetCount(); ++i )
+                {
+                    const auto newType = BindingTypeToPoolType( vBindings[ i ].type );
+                    if( currType != newType )
+                    {
+                        VKE_LOG_ERRF( "It is not possible to mix different DescriptorPool types: {} and {}", (uint32_t)currType, (uint32_t)newType );
+                        return false;
+                    }
+                }
+                return true;
+            }
+        };
+
+        struct SBufferRegion
+        {
+            SBufferRegion()
+            {
+            }
+
+            SBufferRegion( size_t elemSize, uint32_t elemCount ) : elementSize( (uint32_t)elemSize ),
+                elementCount{ elemCount }
+            {
+            }
+
+            explicit SBufferRegion( size_t elemSize ) : SBufferRegion( elemSize, 1 )
+            {
+            }
+
+            uint32_t elementSize;
+            uint32_t elementCount = 1;
+            uint32_t offset       = 0;
         };
 
         struct SUpdateBindingsHelper
@@ -1012,7 +1079,8 @@ namespace VKE
             struct SBufferBinding : TSBinding< BufferHandle >
             {
                 uint32_t offset;
-                uint32_t range;
+                uint32_t elementSize;
+                uint32_t elementCount;
             };
 
             struct SSamplerAndTextureBinding
@@ -1061,19 +1129,14 @@ namespace VKE
                 vSamplers.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const SamplerHandle* ahSamplers, const TextureViewHandle* ahTexViews,
-                             const uint16_t count )
+
+            void AddBinding( uint8_t binding, const SBufferRegion& BufferRegion,
+                const BufferHandle& hBuffer, BINDING_TYPE type )
             {
-                SSamplerAndTextureBinding Binding;
-                Binding.ahSamplers = ahSamplers;
-                Binding.ahTexViews = ahTexViews;
-                Binding.count      = count;
-                Binding.binding    = binding;
-                Binding.type       = BindingTypes::SAMPLER_AND_TEXTURE;
-                vSamplerAndTextures.PushBack( Binding );
+                AddBinding( binding, BufferRegion.offset, BufferRegion.elementSize, BufferRegion.elementCount, hBuffer, type );
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range, const BufferHandle& hBuffer,
+            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t elementSize, uint32_t elementCount, const BufferHandle& hBuffer,
                              BINDING_TYPE type )
             {
                 SBufferBinding Binding;
@@ -1081,7 +1144,8 @@ namespace VKE
                 Binding.count     = 1;
                 Binding.binding   = binding;
                 Binding.offset    = offset;
-                Binding.range     = range;
+                Binding.elementSize     = elementSize;
+                Binding.elementCount = elementCount;
                 Binding.type      = type;
                 vBuffers.PushBack( Binding );
             }
@@ -1211,7 +1275,7 @@ namespace VKE
             using AttachmentArray = Utils::TCDynamicArray< NativeAPI::TextureView, 8 >;
             TextureSize      Size;
             AttachmentArray  vDDIAttachments;
-            RenderPassHandle hRenderPass;
+            NativeAPI::RenderPass hRenderPass;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1284,6 +1348,10 @@ namespace VKE
                 TRANSFER_SRC,
                 TRANSFER_DST,
                 PRESENT,
+                COLOR_RENDER_TARGET_READ,
+                DEPTH_RENDER_TARGET_READ,
+                STENCIL_RENDER_TARGET_READ,
+                DEPTH_STENCIL_RENDER_TARGET_READ,
                 _MAX_COUNT
             };
         };
@@ -1553,6 +1621,16 @@ namespace VKE
             uint32_t maxResourceSize;
         };
 
+        struct SCreateTextureFlags
+        {
+            enum FLAGS
+            {
+                NONE = 0x0,
+                DEDICATED_MEMORY_ALLOCATION = VKE_BIT(0),
+            };
+        };
+        using CREATE_TEXTURE_FLAGS = uint32_t;
+
         struct STextureDesc
         {
             TextureSize            Size;
@@ -1566,6 +1644,7 @@ namespace VKE
             uint16_t               sliceCount        = 1;               // number of slices in 3d
             NativeAPI::Texture     hNative           = NativeAPI::Null; // create from native
             NativeAPI::TextureView hNativeView       = NativeAPI::Null; // create from native
+            CREATE_TEXTURE_FLAGS   flags             = SCreateTextureFlags::NONE;
             ResourceName           Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
@@ -1739,6 +1818,7 @@ namespace VKE
             struct VKE_API SRenderTargetDesc
             {
                 TextureViewHandle            hTextureView = INVALID_HANDLE;
+                NativeAPI::TextureView       hNativeView  = NativeAPI::Null;
                 TEXTURE_STATE                beginState   = TextureStates::UNDEFINED;
                 TEXTURE_STATE                endState     = TextureStates::UNDEFINED;
                 RENDER_TARGET_RENDER_PASS_OP usage        = RenderTargetRenderPassOperations::UNDEFINED;
@@ -1765,6 +1845,7 @@ namespace VKE
             AttachmentDescArray   vRenderTargets;
             RenderTargetDescArray vRenderTargetDescs;
             SubpassDescArray      vSubpasses;
+            ExtentI32             PositionOffset = { 0, 0 };
             TextureSize           Size;
             ResourceName          Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -1847,9 +1928,6 @@ namespace VKE
 
         struct SBeginRenderPassInfo
         {
-            using ClearValueArray = Utils::TCDynamicArray< NativeAPI::ClearValue, 8 >;
-            ClearValueArray        vDDIClearValues;
-            NativeAPI::Framebuffer hDDIFramebuffer;
             NativeAPI::RenderPass  hDDIRenderPass;
             Rect2DI32              RenderArea;
         };
@@ -2615,7 +2693,7 @@ namespace VKE
             FORMAT                    stencilRenderTargetFormat = Formats::UNDEFINED;
             PipelineLayoutHandle      hLayout                   = INVALID_HANDLE;
             NativeAPI::PipelineLayout hDDILayout                = NativeAPI::Null;
-            RenderPassHandle          hRenderPass               = INVALID_HANDLE;
+            //RenderPassHandle          hRenderPass               = INVALID_HANDLE;
             NativeAPI::RenderPass     hDDIRenderPass            = NativeAPI::Null;
             NativeAPI::Pipeline       hDDIParent                = NativeAPI::Null;
             PipelinePtr               pDefault;
@@ -2675,19 +2753,6 @@ namespace VKE
 
         using BUFFER_USAGE = BufferUsages::BITS;
 
-        struct SBufferRegion
-        {
-            SBufferRegion() = default;
-
-            SBufferRegion( const uint32_t& elemCount, const uint32_t& elemSize ) :
-                elementCount{ elemCount }, elementSize{ elemSize }
-            {
-            }
-
-            uint32_t elementCount; // max number of elements
-            uint32_t elementSize;  // size of one element
-        };
-
         struct SBufferDesc
         {
             using BufferRegions = Utils::TCDynamicArray< SBufferRegion, 8 >;
@@ -2695,13 +2760,22 @@ namespace VKE
             MEMORY_USAGE memoryUsage = MemoryUsages::DEFAULT;
             BUFFER_USAGE usage       = BufferUsages::UNDEFINED;
             INDEX_TYPE   indexType;
-            uint32_t     size; // if 0, size is  calculated based on vRegions
             /// <summary>
             /// if stagingBufferRegionCount > 0 then a separate staging buffer will be created
             /// with size = (SBufferDesc::size * stagingBufferRegionCount)
             /// </summary>
             uint32_t      stagingBufferRegionCount = 0;
             BufferRegions vRegions;
+            uint32_t      CalcSize() const
+            {
+                uint32_t ret = 0;
+                for( uint32_t i = 0; i < vRegions.GetCount(); ++i )
+                {
+                    ret += vRegions[ i ].elementCount * vRegions[ i ].elementSize;
+                }
+                VKE_ASSERT( ret > 0 );
+                return ret;
+            }
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2964,21 +3038,6 @@ namespace VKE
 
         using MEMORY_HEAP_TYPE = MemoryHeapTypes::TYPE;
 
-        struct SAllocateMemoryData
-        {
-            NativeAPI::Memory hDDIMemory;
-            uint32_t          sizeLeft;
-            MEMORY_HEAP_TYPE  heapType;
-        };
-
-        struct SBindMemoryInfo
-        {
-            NativeAPI::Texture hDDITexture = NativeAPI::Null;
-            NativeAPI::Buffer  hDDIBuffer  = NativeAPI::Null;
-            NativeAPI::Memory  hDDIMemory  = NativeAPI::Null;
-            handle_t           hMemory     = INVALID_HANDLE;
-            uint32_t           offset      = 0;
-        };
 
         using STAGING_BUFFER_FLAGS = uint32_t;
 
@@ -2999,9 +3058,15 @@ namespace VKE
 
         struct SUpdateMemoryInfo
         {
+            union
+            {
+                NativeAPI::Buffer hBuffer = NativeAPI::Null;
+                NativeAPI::Texture hTexture;
+            };
             const void*        pData;
             uint32_t           dataSize;
             uint32_t           dstDataOffset = 0;
+            handle_t           hMemory       = INVALID_HANDLE;
             StagingBufferFlags flags         = 0;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
@@ -3100,6 +3165,19 @@ namespace VKE
             uint32_t maxSetCount = Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT;
             SizeVec  vPoolSizes;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+
+            bool IsValid() const
+            {
+                // DX12 spec distinguish these resource types
+                Utils::TCBitset< uint8_t > TypeBits   = 0;
+
+                for( uint32_t i = 0; i < vPoolSizes.GetCount(); ++i )
+                {
+                    auto dspType = BindingTypeToPoolType( vPoolSizes[ i ].type );
+                    TypeBits.SetBit( (uint8_t)dspType );
+                }
+                return TypeBits.CalcSetBitCount() == 1;
+            }
         };
 
         struct ExecuteCommandBufferFlags
@@ -3428,10 +3506,11 @@ namespace VKE
         {
             enum OP
             {
-                READ,
-                WRITE,
-                OVERWRITE,
-                READ_WRITE,
+                SHADER_READ,
+                RENDER_PASS_WRITE,
+                RENDER_PASS_OVERWRITE,
+                SHADER_READ_WRITE,
+                RENDER_PASS_READ,
                 _MAX_COUNT,
                 UNKNOWN = _MAX_COUNT
             };
@@ -3514,11 +3593,41 @@ namespace VKE
             }
         };
 
+        struct SAllocateMemoryData
+        {
+            NativeAPI::Memory hDDIMemory;
+            uint32_t          sizeLeft;
+            MEMORY_HEAP_TYPE  heapType;
+        };
+
+        struct SBindMemoryInfo
+        {
+            NativeAPI::Memory hDDIMemory = NativeAPI::Null;
+            handle_t          hMemory    = INVALID_HANDLE;
+            handle_t          reserved   = INVALID_HANDLE;
+            uint32_t          offset     = 0;
+        };
+
         struct SMapMemoryInfo
         {
+            union
+            {
+                NativeAPI::Buffer hBuffer = NativeAPI::Null;
+                NativeAPI::Texture hTexture;
+            };
             NativeAPI::Memory hMemory;
             uint32_t          offset;
             uint32_t          size;
+        };
+
+        struct SUnmapMemoryInfo
+        {
+            union
+            {
+                NativeAPI::Buffer hBuffer = NativeAPI::Null;
+                NativeAPI::Texture hTexture;
+            };
+            NativeAPI::Memory hMemory;
         };
 
         struct SAllocateMemoryDesc
@@ -3531,6 +3640,17 @@ namespace VKE
         {
             uint32_t size;
             uint32_t alignment;
+            handle_t reserved;
+            /// <summary>
+            /// If out of memory then new pool could be created, therefore new size is required.
+            /// 0 value is default and memory manager will choose appropriate size.
+            /// </summary>
+            uint32_t     poolSize     = 0;
+            /// <summary>
+            /// Declares and initializes a variable to track memory usage.
+            /// 0 is invalid value. At least texture or buffer usage must be specified.
+            /// </summary>
+            MEMORY_USAGE memoryUsages = 0;
         };
 
         struct SResourceBindingInfo

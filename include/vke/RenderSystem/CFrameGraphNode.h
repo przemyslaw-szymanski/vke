@@ -279,6 +279,11 @@ namespace VKE::RenderSystem
             return m_isSubpass;
         }
 
+        const Rect2DI32& GetRenderArea() const
+        {
+            return m_RenderArea;
+        }
+
         uint64_t GetFenceValue() const;
         uint64_t InitFenceValue(uint8_t backBufferIndex);
 
@@ -345,6 +350,8 @@ namespace VKE::RenderSystem
         TextureArray            m_vpColorRenderTargets;
         TexturePtr              m_pDepthStencilRenderTarget;
         FormatArray             m_vColorRenderTargetFormats;
+        NativeAPI::RenderPass   m_hNativeRenderPass = NativeAPI::Null;
+        Rect2DI32               m_RenderArea;
         /// <summary>
         /// if true, this node will execute command buffers.
         /// Usually that means that this node is the last one using particular ExecuteBatch

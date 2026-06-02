@@ -1,4 +1,4 @@
-#if VKE_VULKAN_RENDER_SYSTEM_SWAP_CHAIN
+#if VKE_RENDER_SYSTEM_VULKAN_SWAP_CHAIN
 
 #include "CVkEngine.h"
 #include "Core/Memory/Memory.h"
@@ -552,4 +552,4 @@ namespace VKE
 
     } // namespace RenderSystem
 } // namespace VKE
-#endif // VKE_VULKAN_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_VULKAN_SWAP_CHAIN

@@ -17,6 +17,14 @@ namespace VKE
 
         struct STextureManagerDesc
         {
+            using TexDescSizePair = std::pair<STextureDesc, uint32_t>;
+            using TextureDescArray = Utils::TCDynamicArray<TexDescSizePair>;
+            
+            /// <summary>
+            /// This member defines how big device memory pools will be created for
+            /// particular texture type
+            /// </summary>
+            TextureDescArray vMemorySizePools;
         };
 
         class CTextureManager
@@ -60,6 +68,8 @@ namespace VKE
             using TexViewMemMgr      = Memory::CFreeListPool;
             using RenderTargetMemMgr = Memory::CFreeListPool;
             using SamplerMemMgr      = Memory::CFreeListPool;
+
+            using TexDescHashSize = Utils::TCDynamicArray<std::pair<hash_t, uint32_t>>;
 
         public:
             CTextureManager( CDeviceContext* pCtx );
@@ -142,6 +152,8 @@ namespace VKE
 
             Result _GenerateMipmapsOnGPU( CommandBufferPtr pCmdBuffer, CTexture** ppInOut );
 
+            uint32_t _GetMemoryPoolSize( handle_t texDescHash ) const;
+
         protected:
             CDeviceContext*     m_pDevice;
             TextureBuffer       m_Textures;
@@ -157,6 +169,10 @@ namespace VKE
             TexViewMemMgr       m_TexViewMemMgr;
             RenderTargetMemMgr  m_RenderTargetMemMgr;
             SamplerMemMgr       m_SamplerMemMgr;
+            /// <summary>
+            /// Memory pool size for every pre-defined texture desc
+            /// </summary>
+            TexDescHashSize     m_vMemoryPoolSizes;
         };
     } // namespace RenderSystem
 } // namespace VKE

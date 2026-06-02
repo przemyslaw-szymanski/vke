@@ -5,14 +5,12 @@
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "Core/Utils/TCList.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CQueue.h"
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CCommandBuffer.h"
 #include "RenderSystem/Managers/CCommandBufferManager.h"
 #include "RenderSystem/Managers/CSubmitManager.h"
 #include "RenderSystem/Managers/CPipelineManager.h"
 #include "RenderSystem/Tasks/GraphicsContext.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
 
 namespace VKE
@@ -62,8 +60,6 @@ namespace VKE
                 Map      mBuffer;
                 uint32_t handleCounter = 0;
             };
-
-            using RenderingPipelineBuffer = SResourceBuffer< CRenderingPipeline* >;
 
             struct ContextTasks
             {
@@ -163,16 +159,12 @@ namespace VKE
             vke_force_inline void _SetCurrentTask( TASK task );
             vke_force_inline TASK _GetCurrentTask();
 
-            VkInstance _GetInstance() const;
-
             void _WaitForFrameToFinish();
 
             /*template<typename ObjectT, typename VkStructT>
             ObjectT _CreateObject(const VkStructT& VkCreateInfo, Utils::TSFreePool< ObjectT >* pOut);
             template<typename ObjectBufferT>
             void _DestroyObjects( ObjectBufferT* pOut );*/
-
-            CRenderingPipeline* _CreateRenderingPipeline( const SRenderingPipelineDesc& Desc );
 
             void _ResizeSwapChainTask( uint32_t width, uint32_t height );
 
@@ -190,9 +182,6 @@ namespace VKE
             EventListeners::IGraphicsContext* m_pEventListener;
             // Tasks::SGraphicsContext     m_Tasks;
             CCommandBufferBatch*    m_pCurrentFrameBatch = nullptr;
-            RenderingPipelineBuffer m_RenderingPipelines;
-            CRenderingPipeline*     m_pCurrRenderingPipeline    = nullptr;
-            CRenderingPipeline*     m_pDefaultRenderingPipeline = nullptr;
             // RenderTargetArray               m_vpRenderTargets;
             RenderState      m_renderState             = RenderState::NO_RENDER;
             uint16_t         m_enabledRenderQueueCount = 0;

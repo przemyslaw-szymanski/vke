@@ -6,10 +6,10 @@
 namespace VKE
 {
 // TODO(blturkot): This should be moved to particular RenderSystem
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_VULKAN
 #define VKE_SHADER_BIN_EXT "spv"
 #define VKE_PSO_CACHE_EXT "pso"
-#elif VKE_D3D12_RENDER_SYSTEM
+#elif VKE_RENDER_SYSTEM_D3D12
 #define VKE_SHADER_BIN_EXT "dxil"
 #define VKE_PSO_CACHE_EXT "pso"
 #endif
@@ -49,7 +49,7 @@ namespace VKE
                 static const uint32_t MAX_VIEWPORT_COUNT             = 8;
                 static const uint32_t MAX_SCISSOR_COUNT              = 8;
                 static const uint32_t MAX_DESCRIPTOR_BINDING_COUNT   = 32;
-                static const uint32_t MAX_DESCRIPTOR_SET_COUNT = 2048; // Default count per each descriptor set type
+                static const uint32_t MAX_DESCRIPTOR_SET_COUNT = 10000; // Default count per each descriptor set type
                 static const uint32_t MAX_DESCRIPTOR_SET_LAYOUT_COUNT          = 4096;
                 static const uint32_t MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT = 16;
                 static const uint32_t MAX_DESCRIPTOR_TYPE_COUNT                = 128;
@@ -68,7 +68,8 @@ namespace VKE
 
             struct RenderTarget
             {
-                static const uint32_t MAX_COUNT = 128;
+                static const uint32_t MAX_COUNT                = 128;
+                static const uint32_t MAX_COUNT_IN_RENDER_PASS = 8;
             };
 
             struct Sampler
@@ -107,6 +108,14 @@ namespace VKE
             struct Bindings
             {
                 static const uint32_t DEFAULT_COUNT_IN_POOL = 1024;
+                static const uint32_t MAX_SAMPLER_DESCRIPTOR_COUNT             = 128;
+                static const uint32_t MAX_TEXTURE_DESCRIPTOR_COUNT             = 100000;
+                static const uint32_t MAX_STORAGE_TEXTURE_DESCRIPTOR_COUNT     = 1000;
+                static const uint32_t MAX_BUFFER_DESCRIPTOR_COUNT              = 10000;
+                static const uint32_t MAX_READ_WRITE_BUFFER_DESCRIPTOR_COUNT   = 1000;
+                static const uint32_t MAX_CONSTANT_BUFFER_DESCRIPTOR_COUNT     = 1000;
+                static const uint32_t MAX_COLOR_RENDER_TARGET_DESCRIPTOR_COUNT = 64;
+                static const uint32_t MAX_DEPTH_STENCIL_DESCRIPTOR_COUNT       = 32;
             };
 
             struct SwapChain

@@ -64,16 +64,6 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddBinding( const SSamplerTextureBinding& Binding )
-        {
-            SDescriptorSetLayoutDesc::SBinding BindInfo;
-            BindInfo.count  = Binding.count;
-            BindInfo.idx    = Binding.index;
-            BindInfo.stages = Binding.stages;
-            BindInfo.type   = BindingTypes::SAMPLER_AND_TEXTURE;
-            LayoutDesc.vBindings.PushBack( BindInfo );
-        }
-
         void SCreateBindingDesc::AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
@@ -132,16 +122,6 @@ namespace VKE
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::SAMPLER;
-            LayoutDesc.vBindings.PushBack( BindInfo );
-        }
-
-        void SCreateBindingDesc::AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages )
-        {
-            SDescriptorSetLayoutDesc::SBinding BindInfo;
-            BindInfo.count  = 1;
-            BindInfo.idx    = index;
-            BindInfo.stages = stages;
-            BindInfo.type   = BindingTypes::SAMPLER_AND_TEXTURE;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -228,17 +208,32 @@ namespace VKE
         void CContextBase::_Reset( CCommandBuffer* pCmdBuffer )
         {
             VKE_ASSERT( pCmdBuffer->GetState() != CommandBufferStates::BEGIN );
-            m_DDI.Reset( pCmdBuffer->GetDDIObject() );
+
+            // Instead of assert we'll skip reset if it's already in reset state.
+            // VKE_ASSERT2( pCmdBuffer->GetState() != CommandBufferStates::RESET,
+            //              "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
+
+            if( pCmdBuffer->m_state == CCommandBuffer::States::RESET )
+            {
+                // VKE_LOG_WARN( "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
+            }
+            else
+            {
+                m_pDeviceCtx->NativeAPI().Reset( pCmdBuffer->GetDDIObject(), pCmdBuffer->m_hDDICmdBufferPool );
+                pCmdBuffer->m_state = CCommandBuffer::States::RESET;
+            }
         }
 
         Result CContextBase::_BeginCommandBuffer( CCommandBuffer** ppInOut )
         {
             Result          ret = VKE_OK;
             CCommandBuffer* pCb = *ppInOut;
-            VKE_ASSERT2( pCb && pCb->m_pBaseCtx, "" );
+            VKE_ASSERT2( pCb && pCb->m_pBaseCtx, "pCb and context cannot be null" );
 
-            m_pDeviceCtx->NativeAPI().Reset( pCb->GetDDIObject() );
-            m_pDeviceCtx->_NativeAPI().BeginCommandBuffer( pCb->GetDDIObject() );
+            _Reset( pCb );
+            pCb->m_hPool;
+
+            m_pDeviceCtx->NativeAPI().BeginCommandBuffer( pCb->GetDDIObject(), pCb->getNativeCmdBufferPool() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
             pCb->m_state             = CCommandBuffer::States::BEGIN;
             return ret;
