@@ -937,8 +937,8 @@ namespace VKE::RenderSystem
 
         void GetRect( const Rect2DI32& EngineRect, D3D12_RECT* pNativeRect )
         {
-            pNativeRect->left = EngineRect.Position.x;
-            pNativeRect->top  = EngineRect.Position.y;
+            pNativeRect->left   = EngineRect.Position.x;
+            pNativeRect->top    = EngineRect.Position.y;
             pNativeRect->right  = pNativeRect->left + EngineRect.Size.width;
             pNativeRect->bottom = pNativeRect->top + EngineRect.Size.height;
         }
@@ -2072,6 +2072,16 @@ namespace VKE::RenderSystem
             return NativeAPI::Null;
         }
 
+        // TODO(szymansk): Currently we're having global descriptor heaps in SImplementation class. Right now they are
+        // not under control of the engine. The ideal situation would be to:
+        // 1. Have a collection of render targets in engine
+        // 2. Engine calls something like: NativeAPI::RenderTarget CDDI::CreateRenderTarget( RenderTargetPool ),
+        // CDDI
+        // returns it's own handle:
+        // - DX12: D3D12_CPU_DESCRIPTOR_HANDLE
+        // - Vulkan: Texture pointer?
+        // 3. SRenderPassDesc will include RendeTarget
+
         auto pDescriptorHeapRTV = m_Implementation.GetDescriptorHeap(
             m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
 
@@ -2502,7 +2512,7 @@ namespace VKE::RenderSystem
                 result = VKE_FAIL;
                 // Not an error since it is possible to create new descriptor pool
                 VKE_LOG_WARN( "Not enough free slot ranges in descriptor heap pool of type: " << pLayout->type );
-            }           
+            }
         }
         if( VKE_FAILED( result ) )
         {
@@ -2560,14 +2570,16 @@ namespace VKE::RenderSystem
         // Texture is meant to be write
         for( auto& Binding: Info.vTexs )
         {
+            UNIMPLEMENTED_D3D12_METHOD();
+
             VKE_ASSERT( Binding.type == BindingTypes::STORAGE_TEXTURE );
 
             for( uint32_t i = 0; i < Binding.count; ++i )
             {
-                 D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
-                 const auto                       pTexture   = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
-                 const auto&                      ViewDesc   = pTexture->GetView()->GetDesc();
-                 //const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
+                D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
+                const auto                       pTexture = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
+                const auto&                      ViewDesc = pTexture->GetView()->GetDesc();
+                // const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
 
                 UavDesc.Format        = pTexture->GetDDIObject()->GetDesc().Format; /// TODO: handle typeless format
                 UavDesc.ViewDimension = Map::DimmensionToUAVDimmension( pTexture->GetDDIObject()->GetDesc().Dimension );
@@ -2582,17 +2594,19 @@ namespace VKE::RenderSystem
         /// TODO: validate
         for( auto& Binding: Info.vTexViews )
         {
+            UNIMPLEMENTED_D3D12_METHOD();
+
             for( uint32_t i = 0; i < Binding.count; ++i )
             {
-                 const auto                   pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
-                 const auto&                  TexViewDesc = pTexView->GetDesc();      
-                 const auto                   pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
+                const auto  pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
+                const auto& TexViewDesc = pTexView->GetDesc();
+                const auto  pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
 
-                 D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
-                 Helper::CreateShaderResourceView( TexViewDesc, &SrvDesc );
+                D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+                Helper::CreateShaderResourceView( TexViewDesc, &SrvDesc );
 
-                 auto hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
-                 m_hDevice->CreateShaderResourceView(pTexture->GetDDIObject(), &SrvDesc, hCpu );
+                auto hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+                m_hDevice->CreateShaderResourceView( pTexture->GetDDIObject(), &SrvDesc, hCpu );
             }
         }
 
@@ -2603,21 +2617,63 @@ namespace VKE::RenderSystem
         }
 
         for( auto& Binding: Info.vBuffers )
-        {   
-            for( uint32_t i = 0; i < Binding.count; ++i )
+        {
+            for( uint32_t index = 0; index < Binding.count; index++ )
             {
-                 const auto                      pBuffer = m_pCtx->GetBuffer( Binding.ahHandles[ i ] );
-                 D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-                 srvDesc.Format                          = DXGI_FORMAT_UNKNOWN;
-                 srvDesc.ViewDimension                   = D3D12_SRV_DIMENSION_BUFFER;
-                 srvDesc.Buffer.FirstElement             = Binding.offset;
-                 srvDesc.Buffer.NumElements              = Binding.elementCount;
-                 srvDesc.Buffer.StructureByteStride      = Binding.elementSize;
-                 srvDesc.Shader4ComponentMapping         = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                const auto EngineBuffer    = m_pCtx->GetBuffer( Binding.ahHandles[ index ] );
+                const auto pNativeResource = EngineBuffer->GetDDIObject();
 
-                D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+                D3D12_CPU_DESCRIPTOR_HANDLE hCpuDescriptorHandle = hDDISet->GetCpuDescriptorHandle( Binding.binding );
 
-                m_hDevice->CreateShaderResourceView( pBuffer->GetDDIObject(), &srvDesc, hCpu );
+                switch( Binding.type )
+                {
+                    case BINDING_TYPE::CONSTANT_BUFFER:
+                    case BINDING_TYPE::DYNAMIC_CONSTANT_BUFFER:
+                        // Initialize as CBV
+                        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+                        cbvDesc.BufferLocation = pNativeResource->GetGPUVirtualAddress();
+                        cbvDesc.SizeInBytes    = Binding.elementSize * Binding.elementCount;
+
+                        m_hDevice->CreateConstantBufferView( &cbvDesc, hCpuDescriptorHandle );
+                        break;
+
+                    case BINDING_TYPE::BUFFER:
+                    case BINDING_TYPE::DYNAMIC_BUFFER:
+                        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+                        srvDesc.Format                     = DXGI_FORMAT_UNKNOWN;
+                        srvDesc.ViewDimension              = D3D12_SRV_DIMENSION_BUFFER;
+                        srvDesc.Shader4ComponentMapping    = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                        srvDesc.Buffer.FirstElement        = Binding.offset;
+                        srvDesc.Buffer.NumElements         = Binding.elementCount;
+                        srvDesc.Buffer.StructureByteStride = Binding.elementSize;
+                        srvDesc.Buffer.Flags               = D3D12_BUFFER_SRV_FLAG_NONE;
+
+                        m_hDevice->CreateShaderResourceView( pNativeResource, &srvDesc, hCpuDescriptorHandle );
+                        break;
+
+                    case BINDING_TYPE::READ_ONLY_TEXEL_BUFFER:
+                    case BINDING_TYPE::READ_WRITE_TEXEL_BUFFER:
+                        D3D12_RESOURCE_DESC ResourceDesc;
+                        ResourceDesc = pNativeResource->GetDesc();
+
+                        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+                        uavDesc.Format                      = ResourceDesc.Format;
+                        uavDesc.ViewDimension               = D3D12_UAV_DIMENSION_BUFFER;
+                        uavDesc.Buffer.FirstElement         = Binding.offset;
+                        uavDesc.Buffer.NumElements          = Binding.elementCount;
+                        uavDesc.Buffer.StructureByteStride  = Binding.elementSize;
+                        uavDesc.Buffer.CounterOffsetInBytes = 0;
+                        uavDesc.Buffer.Flags                = D3D12_BUFFER_UAV_FLAG_NONE;
+
+                        m_hDevice->CreateUnorderedAccessView(
+                            pNativeResource, nullptr, &uavDesc, hCpuDescriptorHandle );
+                        VKE_LOG_ERR( "CDDI::Update: Unhandled buffer type" );
+                        break;
+
+                    default:
+                        VKE_LOG_ERR( "CDDI::Update: Invalid buffer type" );
+                        break;
+                }
             }
         }
     }
