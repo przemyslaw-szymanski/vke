@@ -370,6 +370,8 @@ namespace VKE::RenderSystem
             return m_aFrameData[ backBufferIndex ].hFrameFence;
         }
 
+        
+
     protected:
         Result _Create( const SFrameGraphDesc& );
         void   _Destroy();

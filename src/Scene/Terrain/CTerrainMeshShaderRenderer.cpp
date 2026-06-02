@@ -248,7 +248,7 @@ namespace VKE::Scene
             }
         }
 
-        if( !m_vTileData.IsEmpty() && m_pTileBuffer.IsValid() )
+        if( !m_vTileData.IsEmpty() && m_pTileBuffer != nullptr )
         {
             RenderSystem::SUpdateMemoryInfo Update;
             Update.dataSize      = sizeof( STileGPUBindingData ) * m_vTileData.GetCount();
@@ -334,7 +334,7 @@ namespace VKE::Scene
                 // m_pMeshShader = pDevice->CreateShader( Desc );
                 m_pMeshShader = pResMgr->LoadShader( Desc );
             }
-            if( m_pTaskShader== nullptr )
+            if( m_pTaskShader == nullptr )
             {
                 RenderSystem::SCreateShaderDesc Desc;
                 Desc.Create.stages            = Core::ResourceStages::FULL_LOAD;
@@ -346,7 +346,7 @@ namespace VKE::Scene
                 Desc.Shader.vDefines          = vDefines;
                 m_pTaskShader                 = pResMgr->LoadShader( Desc );
             }
-            if( m_pPixelShader== nullptr )
+            if( m_pPixelShader == nullptr )
             {
                 RenderSystem::SCreateShaderDesc Desc;
                 Desc.Create.stages            = Core::ResourceStages::FULL_LOAD;
@@ -358,7 +358,7 @@ namespace VKE::Scene
                 Desc.Shader.vDefines          = vDefines;
                 m_pPixelShader                = pResMgr->LoadShader( Desc );
             }
-            if( ( m_pMeshShader!= nullptr ) && ( m_pPixelShader!= nullptr ) && ( m_pTaskShader!= nullptr ) )
+            if( ( m_pMeshShader != nullptr ) && ( m_pPixelShader != nullptr ) && ( m_pTaskShader != nullptr ) )
             {
                 m_hSceneDescSet          = m_pTerrain->GetScene()->GetBindings();
                 auto hSceneBindingLayout = pDevice->GetDescriptorSetLayout( m_hSceneDescSet );
@@ -399,7 +399,7 @@ namespace VKE::Scene
     void CTerrainMeshShadingRenderer::Render( RenderSystem::CommandBufferPtr pCmdBuff, CScene* )
     {
         _CreatePipeline( pCmdBuff );
-        if( m_pCurrPipeline!= nullptr && m_pCurrPipeline->IsResourceReady() )
+        if( m_pCurrPipeline != nullptr && m_pCurrPipeline->IsResourceReady() )
         {
             pCmdBuff->Bind( m_pCurrPipeline );
 

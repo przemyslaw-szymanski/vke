@@ -484,6 +484,8 @@ namespace VKE::RenderSystem
             pNode->m_Index.thread      = _CreateThreadIndex( Desc.pThread );
             pNode->_CreateBeginRenderPassInfo( Desc );
 
+            pNode->m_RenderArea = _GetRenderArea( Desc.size );
+
             if( !pNode->m_CommandBufferName.IsEmpty() )
             {
                 pNode->m_Index.commandBuffer = _CreateCommandBuffer( pNode );

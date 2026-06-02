@@ -60,6 +60,30 @@ namespace VKE::RenderSystem
         return scValues[ op ];
     }
 
+    RENDER_TARGET_RENDER_PASS_OP FrameGraphPassOpToColorRenderTargetOp( RENDER_PASS_OP op )
+    {
+        static const RENDER_TARGET_RENDER_PASS_OP scValues[ RenderTargetRenderPassOperations::USAGE::_MAX_COUNT ] = {
+            RenderTargetRenderPassOperations::COLOR,             // shader read
+            RenderTargetRenderPassOperations::COLOR_STORE,       // render pass write
+            RenderTargetRenderPassOperations::COLOR_CLEAR_STORE, // pass overwrite
+            RenderTargetRenderPassOperations::COLOR,             // shader rw
+            RenderTargetRenderPassOperations::COLOR              // pass read
+        };
+        return scValues[ op ];
+    }
+
+    RENDER_TARGET_RENDER_PASS_OP FrameGraphPassOpToDepthRenderTargetOp( RENDER_PASS_OP op )
+    {
+        static const RENDER_TARGET_RENDER_PASS_OP scValues[ RenderTargetRenderPassOperations::USAGE::_MAX_COUNT ] = {
+            RenderTargetRenderPassOperations::DEPTH_STENCIL,             // shader read
+            RenderTargetRenderPassOperations::DEPTH_STENCIL_STORE,       // render pass write
+            RenderTargetRenderPassOperations::DEPTH_STENCIL_CLEAR_STORE, // pass overwrite
+            RenderTargetRenderPassOperations::DEPTH_STENCIL,             // shader rw
+            RenderTargetRenderPassOperations::DEPTH_STENCIL              // pass read
+        };
+        return scValues[ op ];
+    }
+
     const FrameGraphWorkload CFrameGraphNode::EmptyWorkload = []( CFrameGraphNode* pPass, uint8_t backBufferIndex ) {
         Result ret = pPass->OnWorkloadBegin( backBufferIndex );
         return pPass->OnWorkloadEnd( ret );
@@ -113,7 +137,10 @@ namespace VKE::RenderSystem
                 }
                 if( HasRenderPass() )
                 {
-                    m_pCommandBuffer->BeginRenderPass( m_BeginRenderPassInfo );
+                    SBeginRenderPassInfo Info = {};
+                    Info.hDDIRenderPass      = m_hNativeRenderPass;
+                    Info.RenderArea          = GetRenderArea();
+                    m_pCommandBuffer->BeginRenderPass( Info );
                 }
             }
         }
@@ -391,7 +418,7 @@ namespace VKE::RenderSystem
 
     void CFrameGraphNode::_CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& Desc )
     {
-        uint32_t writeCount = 0;
+        /*uint32_t writeCount = 0;
         for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
         {
             const SFrameGraphRenderTargetTextureDesc& RTDesc   = Desc.vRenderTargets[ i ];
@@ -427,6 +454,77 @@ namespace VKE::RenderSystem
                 }
             }
         }
+        m_BeginRenderPassInfo.SetDebugName( m_Name.GetData() );
+        m_BeginRenderPassInfo.RenderArea = m_pFrameGraph->_GetRenderArea( Desc.size );
+        m_hasRenderPass                  = writeCount > 0;*/
+
+        SRenderPassDesc RpDesc;
+        uint32_t            writeCount = 0;
+        for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
+        {
+            const SFrameGraphRenderTargetTextureDesc& RpRTDesc = Desc.vRenderTargets[ i ];
+            TexturePtr                                pTexture = m_pFrameGraph->_GetTexture( RpRTDesc );
+            if( pTexture != nullptr )
+            {
+                writeCount           += ( RpRTDesc.operation == FrameGraphPassOperations::RENDER_PASS_OVERWRITE ||
+                                RpRTDesc.operation == FrameGraphPassOperations::RENDER_PASS_WRITE ||
+                                RpRTDesc.operation == FrameGraphPassOperations::SHADER_READ_WRITE );
+                TextureViewPtr pView  = pTexture->GetView();
+                if( pTexture->IsColor() )
+                {
+                    SRenderTargetInfo Info = { .hDDIView   = pView->GetDDIObject(),
+                                               .format     = pView->GetDesc().format,
+                                               .ClearColor = SClearValue( 0, 0, 0, 0 ),
+                                               .state      = FrameGraphPassOpToColorTextureState( RpRTDesc.operation ),
+                                               .renderPassOp =
+                                                   FrameGraphPassToColorRenderTargetOp( RpRTDesc.operation ) };
+                    m_BeginRenderPassInfo.vColorRenderTargetInfos.PushBack( Info );
+                    m_vpColorRenderTargets.PushBack( pTexture );
+                    m_vColorRenderTargetFormats.PushBack( RpRTDesc.format );
+
+                    SRenderPassDesc::SRenderTargetDesc RtDesc;
+                    RtDesc.beginState  = Info.state;
+                    RtDesc.endState    = Info.state;
+                    RtDesc.ClearValue  = Info.ClearColor;
+                    RtDesc.format      = Info.format;
+                    RtDesc.hNativeView = pTexture->GetView()->GetDDIObject();
+                    RtDesc.usage       = FrameGraphPassOpToColorRenderTargetOp( RpRTDesc.operation );
+                    RtDesc.SetDebugName( RpRTDesc.pName );
+                    RpDesc.vRenderTargets.PushBack( RtDesc );
+                }
+                else
+                {
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.hDDIView   = pView->GetDDIObject();
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.ClearColor = SClearValue( 1, 0 );
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.format     = pView->GetDesc().format;
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.renderPassOp =
+                        FrameGraphPassToDepthRenderTargetOp( RpRTDesc.operation );
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.state =
+                        FrameGraphPassOpToDepthTextureState( RpRTDesc.operation );
+                    m_pDepthStencilRenderTarget = pTexture;
+
+                    SRenderPassDesc::SRenderTargetDesc RtDesc;
+                    RtDesc.beginState  = m_BeginRenderPassInfo.DepthRenderTargetInfo.state;
+                    RtDesc.endState    = m_BeginRenderPassInfo.DepthRenderTargetInfo.state;
+                    RtDesc.ClearValue  = m_BeginRenderPassInfo.DepthRenderTargetInfo.ClearColor;
+                    RtDesc.format      = m_BeginRenderPassInfo.DepthRenderTargetInfo.format;
+                    RtDesc.hNativeView = pTexture->GetView()->GetDDIObject();
+                    RtDesc.usage       = FrameGraphPassOpToDepthRenderTargetOp( RpRTDesc.operation );
+                    RtDesc.SetDebugName( RpRTDesc.pName );
+                    RpDesc.vRenderTargets.PushBack( RtDesc );
+                }
+            }
+        }
+        if( writeCount > 0 )
+        {
+            RpDesc.Name = Desc.pName;
+            RpDesc.SetDebugName( Desc.pName );
+            RpDesc.Size           = m_pFrameGraph->_GetRenderArea( Desc.size ).Size;
+            RpDesc.PositionOffset = m_pFrameGraph->_GetRenderArea( Desc.size ).Position;
+
+            m_hNativeRenderPass = m_pContext->GetDeviceContext()->CreateRenderPass( RpDesc );
+        }
+
         m_BeginRenderPassInfo.SetDebugName( m_Name.GetData() );
         m_BeginRenderPassInfo.RenderArea = m_pFrameGraph->_GetRenderArea( Desc.size );
         m_hasRenderPass                  = writeCount > 0;
