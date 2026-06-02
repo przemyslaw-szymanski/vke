@@ -17,7 +17,6 @@ namespace VKE::Scene
 
 namespace VKE::RenderSystem
 {
-
     class VKE_API CResourceLoadManager
     {
         friend class CFrameGraph;
@@ -234,10 +233,22 @@ namespace VKE::RenderSystem
 
         struct SFrameData
         {
+            /// <summary>
+            /// Holds all command buffers. Passes just reference these command buffers.
+            /// </summary>
             CommandBufferArray avpCommandBuffers[ ContextTypes::_MAX_COUNT ];
-            ExecuteBatchArray  avExecutes[ ContextTypes::_MAX_COUNT ];
-            GPUFenceArray      vGPUFences;
-            CPUFenceArray      vCPUFences;
+            NativeAPI::Fence   hFrameFence;
+            /// <summary>
+            /// Indicates at what value the fence must wait to check if a frame is finished on GPU
+            /// </summary>
+            std::atomic_uint64_t           frameFenceValue = 0;
+            /// <summary>
+            /// How many times this back buffer was used.
+            /// This value is mainly use to calculate advancing monitored fence values.
+            /// </summary>
+            uint64_t              localUseIndex   = 1;
+            //GPUFenceArray      vGPUFences;
+            //CPUFenceArray      vCPUFences;
             ThreadFenceArray   vThreadFences;
             SPresentInfo       PresentInfo;
             INDEX_TYPE         cpuFenceIndex = INVALID_INDEX;
@@ -287,7 +298,7 @@ namespace VKE::RenderSystem
         T*     CreateCustomPass( const SFrameGraphPassDesc&, const void* );
         Result Build();
 
-        void Run();
+        Result Run();
 
         Result SetupPresent( CSwapChain* const, uint8_t );
 
@@ -296,17 +307,20 @@ namespace VKE::RenderSystem
             return m_Desc.pDevice;
         }
 
-        Result EndFrame();
-
         CFrameGraphNode* SetRootNode( CFrameGraphNode* pNode )
         {
             m_pRootNode = pNode;
             return m_pRootNode;
         }
 
-        const NativeAPI::CPUFence& GetFrameCPUFence( uint8_t backBufferIndex ) const
+        /*const NativeAPI::CPUFence& GetFrameCPUFence( uint8_t backBufferIndex ) const
         {
             return m_ahFrameCPUFences[ backBufferIndex ];
+        }*/
+
+        NativeAPI::Fence GetFrameFence( uint8_t backBufferIndex ) const
+        {
+            return m_aFrameData[ backBufferIndex ].hFrameFence;
         }
 
         const SFrameGraphCounter& GetCounter( FRAME_GRAPH_COUNTER type ) const
@@ -346,6 +360,16 @@ namespace VKE::RenderSystem
             return m_pScene;
         }
 
+        NativeAPI::FenceValue IncrementFrameFenceValue( uint8_t backBufferIndexx )
+        {
+            return ++m_aFrameData[ backBufferIndexx ].frameFenceValue;
+        }
+
+        NativeAPI::Fence GetFrameFence( uint8_t backBufferIndex )
+        {
+            return m_aFrameData[ backBufferIndex ].hFrameFence;
+        }
+
     protected:
         Result _Create( const SFrameGraphDesc& );
         void   _Destroy();
@@ -353,39 +377,35 @@ namespace VKE::RenderSystem
         Result _Build( CFrameGraphNode* );
 
         Result _BeginFrame();
+        Result _EndFrame();
 
         Result _GetNextFrame();
+        Result   _ResetFrameData( SFrameData* pInOut );
         void   _AcquireCommandBuffers();
+        uint32_t _AcquireNodeIndex()
+        {
+            return ++m_currentNodeIndex;
+        }
 
         // CommandBufferPtr _GetCommandBuffer( const SGetCommandBufferInfo& );
         CommandBufferRefPtr _GetCommandBuffer( const CFrameGraphNode* const, uint8_t backBufferIdx );
         INDEX_TYPE          _CreateCommandBuffer( const CFrameGraphNode* const );
         INDEX_TYPE          _CreateExecute( const CFrameGraphNode* const );
-        INDEX_TYPE          _CreateCPUFence( const CFrameGraphNode* const );
-        INDEX_TYPE          _CreateGPUFence( const CFrameGraphNode* const );
+
         INDEX_TYPE          _CreateThreadFence( const CFrameGraphNode* const );
         INDEX_TYPE          _CreateThreadIndex( const std::string_view& );
 
         TextureRefPtr _GetTexture( const SFrameGraphRenderTargetTextureDesc& );
         Rect2DI32     _GetRenderArea( RENDER_PASS_SIZE );
 
+        uint64_t _AdvanceBackBufferFence( uint8_t backBufferIndex )
+        {
+            return m_aFrameData[ backBufferIndex ].frameFenceValue.fetch_add( 1 );
+        }
+
         SBeginRenderPassInfo2* _CreateBeginRenderPassInfo( const SFrameGraphNodeDesc& );
 
-        SExecuteBatch& _GetExecute( const CFrameGraphNode* const pNode, uint8_t backBufferIndex )
-        {
-            return m_aFrameData[ backBufferIndex ].avExecutes[ pNode->m_ctxType ][ pNode->m_Index.execute ];
-        }
-
-        Result _ExecuteBatch( SExecuteBatch* );
-
-        Result _ExecuteBatch( CONTEXT_TYPE ctxType, uint8_t backBufferIndex, uint32_t index )
-        {
-            return _ExecuteBatch( &m_aFrameData[ backBufferIndex ].avExecutes[ ctxType ][ index ] );
-        }
-
-        Result _ExecuteBatch( CFrameGraphExecuteNode*, uint8_t backBufferIndex );
-
-        Result _BuildDataToExecute( CFrameGraphExecuteNode* pNode, uint8_t backBufferIndex )
+        CFrameGraphExecuteNode::SExecuteData* _BuildDataToExecute( CFrameGraphExecuteNode* pNode, uint8_t backBufferIndex )
         {
             return pNode->_BuildDataToExecute( backBufferIndex );
         }
@@ -402,7 +422,7 @@ namespace VKE::RenderSystem
 
         // CFrameGraphNode& _GetNode( const std::string_view& Name ) { return m_mNodes[Name]; }
 
-        NativeAPI::GPUFence& _GetGPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
+        /*NativeAPI::GPUFence& _GetGPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
         {
             return m_aFrameData[ backBufferIndex ].vGPUFences[ index ];
         }
@@ -410,7 +430,7 @@ namespace VKE::RenderSystem
         NativeAPI::CPUFence& _GetCPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
         {
             return m_aFrameData[ backBufferIndex ].vCPUFences[ index ];
-        }
+        }*/
 
         Platform::ThreadFence& _GetThreadFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
         {
@@ -445,8 +465,9 @@ namespace VKE::RenderSystem
         /// </summary>
         UintQueue  m_qFinishedFrameIndices;
         SBuildInfo m_BuildInfo;
-        uint32_t   m_currentFrameIndex = 0;
-        uint8_t    m_backBufferIndex   = MAX_BACKBUFFER_COUNT - 1; // start frames from 0
+        uint32_t   m_currentFrameIndex = 1; // start from 1 in order to wait for 0 at first frame
+        uint32_t   m_currentNodeIndex  = 0;
+        uint8_t    m_backBufferIndex   = 0; // start frames from 0
 
         ResourceNameArray  m_avCommandBufferNames[ ContextTypes::_MAX_COUNT ];
         ResourceNameArray  m_avExecuteNames[ ContextTypes::_MAX_COUNT ];
@@ -454,9 +475,13 @@ namespace VKE::RenderSystem
         ThreadPtrArray     m_vpThreads;
         ThreadDataPtrArray m_vpThreadData;
 
-        NativeAPI::CPUFence m_ahFrameCPUFences[ MAX_BACKBUFFER_COUNT ] = { NativeAPI::Null };
+        //NativeAPI::CPUFence m_ahFrameCPUFences[ MAX_BACKBUFFER_COUNT ] = { NativeAPI::Null };
 
         SFrameData m_aFrameData[ MAX_BACKBUFFER_COUNT ];
+        struct
+        {
+            Threads::SyncObject FrameFence;
+        } m_SyncObj;
         // SFrameData* m_pCurrentFrameData = &m_aFrameData[0];
         CFrameGraphNode* m_pRootNode = nullptr;
         CFrameGraphNode* m_pLastNode = nullptr;

@@ -2736,7 +2736,7 @@ namespace VKE
 
         struct BufferUsages
         {
-            enum BITS
+            enum BITS : uint32_t
             {
                 UNDEFINED       = 0,
                 TRANSFER_SRC    = VKE_BIT( 1 ),
@@ -2751,7 +2751,7 @@ namespace VKE
             };
         };
 
-        using BUFFER_USAGE = uint32_t;
+        using BUFFER_USAGE = BufferUsages::BITS;
 
         struct SBufferDesc
         {
@@ -2849,11 +2849,12 @@ namespace VKE
         struct SSemaphoreDesc
         {
             VKE_RENDER_SYSTEM_DEBUG_NAME;
+            NativeAPI::FenceValue startValue = UNDEFINED_U64;
         };
 
         struct SFenceDesc
         {
-            bool isSignaled = false;
+            NativeAPI::FenceValue startValue = UNDEFINED_U64;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2960,7 +2961,9 @@ namespace VKE
         struct SDDIGetBackBufferInfo
         {
             uint64_t            waitTimeout = UINT64_MAX;
-            NativeAPI::GPUFence hSignalGPUFence;
+            NativeAPI::FenceValue signalFenceValue = 0;
+            NativeAPI::Fence    hSignalFence    = NativeAPI::Null;
+            NativeAPI::GPUFence hSignalGPUFence = NativeAPI::Null;
             NativeAPI::CPUFence hSignalCPUFence = NativeAPI::Null;
         };
 
@@ -2979,12 +2982,15 @@ namespace VKE
 
         struct SSubmitInfo
         {
-            NativeAPI::GPUFence* pDDISignalSemaphores = nullptr;
-            NativeAPI::GPUFence* pDDIWaitSemaphores   = nullptr;
-            // CommandBufferPtr*   pCommandBuffers = nullptr;
-            NativeAPI::CommandBuffer* pDDICommandBuffers   = nullptr;
+            const NativeAPI::GPUFence* pDDISignalSemaphores = nullptr;
+            const NativeAPI::GPUFence* pDDIWaitSemaphores   = nullptr;
+            NativeAPI::Fence    hSignalFence         = NativeAPI::Null;
+            NativeAPI::Fence          hWaitForFence         = NativeAPI::Null;
+            NativeAPI::CommandBuffer const* pDDICommandBuffers   = nullptr;
             NativeAPI::CPUFence       hDDIFence            = NativeAPI::Null;
             NativeAPI::Queue          hDDIQueue            = NativeAPI::Null;
+            NativeAPI::FenceValue     signalFenceValue     = 0;
+            NativeAPI::FenceValue     waitForFenceValue     = 0;
             uint16_t                  signalSemaphoreCount = 0;
             uint16_t                  waitSemaphoreCount   = 0;
             uint16_t                  commandBufferCount   = 0;
@@ -2992,19 +2998,26 @@ namespace VKE
 
         struct SPresentInfo
         {
-            uint32_t imageIndex;
-            // NativeAPI::SwapChain    hDDISwapChain;
-            CSwapChain*         pSwapChain;
-            NativeAPI::GPUFence hDDIWaitSemaphore = NativeAPI::Null;
+            NativeAPI::SwapChain  hSwapChain        = NativeAPI::Null;
+            NativeAPI::Fence hSignalFence = NativeAPI::Null;
+            NativeAPI::FenceValue signalFenceValue = 0;
+            NativeAPI::Fence      hWaitForFence    = NativeAPI::Null;
+            NativeAPI::FenceValue waitForFenceValue = 0;
+            uint32_t              presentImageIndex = UNDEFINED_U32;
         };
 
         struct SPresentData
         {
             using UintArray      = Utils::TCDynamicArray< uint32_t, 8 >;
+            using FenceValueArray = Utils::TCDynamicArray< NativeAPI::FenceValue, 8 >;
             using SemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 >;
+            using FenceArray = Utils::TCDynamicArray<NativeAPI::Fence, 8>;
             using SwapChainArray = Utils::TCDynamicArray< NativeAPI::SwapChain, 8 >;
+            
             SwapChainArray   vSwapchains;
-            SemaphoreArray   vWaitSemaphores;
+            //SemaphoreArray   vWaitSemaphores;
+            FenceArray       vWaitForFences;
+            FenceValueArray  vWaitForFenceValues;
             UintArray        vImageIndices;
             NativeAPI::Queue hQueue = NativeAPI::Null;
         };
@@ -3525,6 +3538,7 @@ namespace VKE
             cstr_t           pCommandBuffer = "Main";
             CONTEXT_TYPE     contextType    = ContextTypes::GENERAL;
             RENDER_PASS_SIZE size           = RenderPassSizes::_1_1;
+            uint16_t         gpuFenceValue  = 0;
             TextureDescArray vRenderTargets;
         };
 

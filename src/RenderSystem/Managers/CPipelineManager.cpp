@@ -215,7 +215,7 @@ namespace VKE
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     const auto pShader = Desc.Pipeline.Shaders.apShaders[ i ];
-                    if( pShader.IsValid() && !pShader->IsResourceReady() )
+                    if( pShader!= nullptr && !pShader->IsResourceReady() )
                     {
                         shadersReady = false;
                         break;
@@ -232,7 +232,7 @@ namespace VKE
 
             return pRet;
         ERR:
-            if( pRet.IsValid() )
+            if( pRet!= nullptr )
             {
                 pPipeline = pRet.Release();
                 _DestroyPipeline( &pPipeline );
@@ -243,7 +243,7 @@ namespace VKE
         NativeAPI::Pipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
         {
             NativeAPI::Pipeline hRet = NativeAPI::Null;
-            if( Desc.pDefault.IsValid() && Desc.pDefault->IsResourceReady() )
+            if( Desc.pDefault!= nullptr && Desc.pDefault->IsResourceReady() )
             {
                 hRet = Desc.pDefault->GetDDIObject();
             }
@@ -295,7 +295,7 @@ namespace VKE
                 for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
                 {
                     auto& pCurr = Shaders.apShaders[ i ];
-                    while( pCurr.IsValid() && !pCurr->IsResourceReady() )
+                    while( pCurr!= nullptr && !pCurr->IsResourceReady() )
                     {
                         Platform::ThisThread::Pause();
                         if( pCurr->IsInvalid() )
@@ -380,7 +380,7 @@ namespace VKE
             for( uint32_t i = 0; i < ShaderTypes::_MAX_COUNT; ++i )
             {
                 auto pShader = Desc.Shaders.apShaders[ i ];
-                if( pShader.IsValid() )
+                if( pShader!= nullptr )
                 {
                     Utils::Hash::Combine( &hash, pShader->GetHandle().handle );
                 }
@@ -553,7 +553,7 @@ namespace VKE
                     pRet = PipelineLayoutRefPtr{ pLayout };
                 }
             }
-            if( pRet.IsValid() )
+            if( pRet!= nullptr )
             {
                 CPipelineLayout* pLayout = pRet.Get();
                 if( pLayout->GetDDIObject() == NativeAPI::Null )
@@ -574,7 +574,7 @@ namespace VKE
             }
             return pRet;
         ERR:
-            if( pRet.IsValid() )
+            if( pRet!= nullptr )
             {
                 CPipelineLayout* pLayout = pRet.Release();
                 _DestroyLayout( &pLayout );

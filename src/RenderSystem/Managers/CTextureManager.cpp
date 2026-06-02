@@ -393,7 +393,7 @@ namespace VKE
 #endif
                                         CTexture* pTex = *ppTex;
 
-                                        if( pTex != nullptr && pTex->m_pImage.IsValid() )
+                                        if( pTex != nullptr && pTex->m_pImage!= nullptr )
                                         {
                                             // const auto& Info = pTaskData->LoadFileInfo;
                                             StagingBufferFlags Flags = StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT;
@@ -421,15 +421,8 @@ namespace VKE
                                                 // Mimpams must be generated on 3d queue
                                                 if( pTex->GetDesc().mipmapCount > 1 )
                                                 {
-                                                    auto pCmdBuffer =
-                                                        m_pDevice->GetGraphicsContext( 0 )->GetCommandBuffer();
-                                                    if( pTex->GetCommandBuffer().IsValid() )
-                                                    {
-                                                        pCmdBuffer->Sync( pTex->GetCommandBuffer() );
-                                                    }
-                                                    // pCmdBuffer = m_pDevice->GetTransferContext( 0
-                                                    // )->GetCommandBuffer();
-                                                    res = _GenerateMipmapsOnGPU( pCmdBuffer, &pTex );
+                                                    /// TODO: support for mipmap generation
+                                                    VKE_ASSERT( false );
                                                 }
                                                 Ret = TaskResults::OK;
                                             }
@@ -866,7 +859,7 @@ namespace VKE
 
             if( Features.blitDst && Features.blitSrc )
             {
-                pCmdBuffer->Sync( pTex->GetCommandBuffer() );
+                
                 pTex->SetCommandBuffer( pCmdBuffer );
                 SBlitTextureInfo BlitInfo;
                 BlitInfo.hAPISrcTexture  = pTex->GetDDIObject();
@@ -1012,7 +1005,7 @@ namespace VKE
             // m_Textures.Free( static_cast< uint32_t >( hTex.handle ) );
             {
                 pTex = GetTexture( hTex );
-                if( pTex.IsValid() )
+                if( pTex!= nullptr )
                 {
                     // CTexture* pTmp = pTex.Release();
                     m_Textures.AddFree( hTex.handle );
@@ -1092,7 +1085,7 @@ namespace VKE
                     {
                         auto              pView = GetTexture( hTex )->GetView();
                         TextureViewHandle hView;
-                        if( pView.IsNull() )
+                        if( pView== nullptr )
                         {
                             ViewDesc.format                            = Desc.format;
                             ViewDesc.hTexture                          = hTex;
@@ -1145,7 +1138,7 @@ namespace VKE
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
             auto pRet = TextureRefPtr{ m_Textures[ ( hTexture.handle ) ] };
-            VKE_ASSERT2( pRet.IsValid(), "" );
+            VKE_ASSERT2( pRet!= nullptr, "" );
             return pRet;
         }
 

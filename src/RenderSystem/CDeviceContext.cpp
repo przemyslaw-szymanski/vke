@@ -314,7 +314,7 @@ namespace VKE
             {
                 // Get next free graphics queue
                 QueueRefPtr pQueue = _AcquireQueue( QueueTypes::TRANSFER, pCtx );
-                if( pQueue.IsNull() )
+                if( pQueue== nullptr )
                 {
                     VKE_LOG_ERR( "This GPU does not support graphics queue." );
                     return nullptr;
@@ -371,13 +371,13 @@ namespace VKE
 
             // Get next free graphics queue
             QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GENERAL, pCtx );
-            if( pQueue.IsNull() )
+            if( pQueue== nullptr )
             {
                 VKE_LOG_ERR( "This GPU does not support graphics queue." );
                 return nullptr;
             }
 
-            if( Desc.SwapChainDesc.pWindow.IsValid() )
+            if( Desc.SwapChainDesc.pWindow!= nullptr )
             {
                 // Add swapchain ref count if this context uses swapchain
                 // pQueue->m_swapChainCount++;
@@ -481,7 +481,7 @@ namespace VKE
         void CDeviceContext::_NotifyDestroy( CGraphicsContext* pCtx )
         {
             VKE_ASSERT2( pCtx != nullptr, "GraphicsContext must not be destroyed." );
-            VKE_ASSERT2( pCtx->_GetQueue().IsValid(), "Queue must not be destroyed." );
+            VKE_ASSERT2( pCtx->_GetQueue()!= nullptr, "Queue must not be destroyed." );
             // if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
                 pCtx->/*m_BaseCtx.*/ m_pQueue = nullptr;
@@ -1007,6 +1007,16 @@ namespace VKE
         void CDeviceContext::DestroyCPUFence( NativeAPI::CPUFence* phInOut )
         {
             _NativeAPI().DestroyFence( phInOut, nullptr );
+        }
+
+        NativeAPI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc ) const
+        {
+            return _NativeAPI().CreateFence2( Desc );
+        }
+
+        void CDeviceContext::DestroyFence( NativeAPI::Fence* phInOut )
+        {
+            _NativeAPI().DestroyFence( phInOut );
         }
 
         void CDeviceContext::Reset( NativeAPI::CPUFence* phInOut )

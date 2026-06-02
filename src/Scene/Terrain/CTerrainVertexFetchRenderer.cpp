@@ -605,7 +605,7 @@ namespace VKE
         Result CTerrainVertexFetchRenderer::_CreateBindings( RenderSystem::CommandBufferPtr pCommandBuffer )
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT2( m_pConstantBuffer.IsValid(), "" );
+            VKE_ASSERT2( m_pConstantBuffer!= nullptr, "" );
             auto pCtx    = pCommandBuffer->GetContext();
             auto pDevice = pCtx->GetDeviceContext();
 
@@ -1217,7 +1217,7 @@ namespace VKE
             PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
             pRet = pCtx->CreatePipeline( PipelineDesc );
 
-            if( pRet.IsNull() )
+            if( pRet== nullptr )
             {
                 for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
                 {

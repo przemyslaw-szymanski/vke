@@ -86,10 +86,10 @@ namespace VKE::RenderSystem
     {
         enum BITS : uint8_t
         {
-            NONE   = 0x0,
-            GPU    = VKE_BIT( 1 ),
-            CPU    = VKE_BIT( 2 ),
-            THREAD = VKE_BIT( 3 )
+            NONE              = 0x0,
+            GPU_WAITS_FOR_GPU = VKE_BIT( 1 ),
+            CPU_WAITS_FOR_GPU = VKE_BIT( 2 ),
+            CPU_WAITS_FOR_CPU = VKE_BIT( 3 )
         };
     };
 
@@ -227,8 +227,8 @@ namespace VKE::RenderSystem
             m_vSyncObjects.PushBack( Obj );
         }
 
-        NativeAPI::GPUFence&   GetGPUFence( uint32_t backBufferIndex ) const;
-        NativeAPI::CPUFence&   GetCPUFence( uint32_t backBufferIndex ) const;
+        //NativeAPI::GPUFence&   GetGPUFence( uint32_t backBufferIndex ) const;
+        //NativeAPI::CPUFence&   GetCPUFence( uint32_t backBufferIndex ) const;
         Platform::ThreadFence& GetThreadFence();
 
         void   SignalThreadFence( uint32_t value );
@@ -279,12 +279,10 @@ namespace VKE::RenderSystem
             return m_isSubpass;
         }
 
-        Scene::ScenePtr GetScene();
+        uint64_t GetFenceValue() const;
+        uint64_t InitFenceValue(uint8_t backBufferIndex);
 
-        const Rect2DI32& GetRenderArea() const
-        {
-            return m_RenderArea;
-        }
+        Scene::ScenePtr GetScene();
 
     protected:
         Result _Create( const SFrameGraphPassDesc& );
@@ -321,7 +319,6 @@ namespace VKE::RenderSystem
         ShortName m_CommandBufferName;
         ShortName m_ExecuteName;
 
-        NativeAPI::RenderPass   m_hNativeRenderPass = NativeAPI::Null;
         CONTEXT_TYPE            m_ctxType;
         FrameGraphWorkload      m_Workload;
         CFrameGraph*            m_pFrameGraph = nullptr;
@@ -334,6 +331,7 @@ namespace VKE::RenderSystem
         // NodeArray m_vpSubpassNodes;
         WaitArray               m_vWaitForNodes;
         SyncObjArray            m_vSyncObjects;
+        NativeAPI::FenceValue   m_fenceValue = 0;
         CContextBase*           m_pContext = nullptr;
         CommandBufferRefPtr     m_pCommandBuffer;
         SIndex                  m_Index;
@@ -347,7 +345,6 @@ namespace VKE::RenderSystem
         TextureArray            m_vpColorRenderTargets;
         TexturePtr              m_pDepthStencilRenderTarget;
         FormatArray             m_vColorRenderTargetFormats;
-        Rect2DI32               m_RenderArea;
         /// <summary>
         /// if true, this node will execute command buffers.
         /// Usually that means that this node is the last one using particular ExecuteBatch
@@ -399,6 +396,12 @@ namespace VKE::RenderSystem
         friend class CFrameGraphNode;
         friend FrameGraphWorkload;
 
+        struct SExecuteData
+        {
+            Utils::TCDynamicArray< NativeAPI::CommandBuffer > vpCommandBuffers;
+            SSubmitInfo                               SubmitInfo;
+        };
+
         // Build time
     public:
         /// <summary>
@@ -415,11 +418,13 @@ namespace VKE::RenderSystem
         /// <summary>
         /// Runtime method.
         /// </summary>
-        Result _BuildDataToExecute( uint8_t backBufferIndex );
+        SExecuteData* _BuildDataToExecute( uint8_t backBufferIndex );
 
     protected:
         NodeArray                    m_vpNodesToExecute;
+        SExecuteData                 m_aExecutes[ 4 ];
         EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags = 0;
     };
 
+    
 } // namespace VKE::RenderSystem

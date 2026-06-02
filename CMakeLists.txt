@@ -26,6 +26,8 @@ endif()
 
 project(vkEngine C CXX)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(VKE_WINDOWS 1)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")

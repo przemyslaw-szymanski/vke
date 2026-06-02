@@ -80,17 +80,17 @@ namespace VKE
         void CCommandBuffer::_BeginProlog()
         {
             //_Reset();
-            /*if( m_pCurrentPipelineLayout.IsNull() )
+            /*if( m_pCurrentPipelineLayout== nullptr )
             {
                 {
                     SPipelineLayoutDesc Desc;
                     PipelineLayoutPtr pLayout =
             m_pBaseCtx->m_pDeviceCtx->CreatePipelineLayout( Desc ); VKE_ASSERT2(
-            pLayout.IsValid(), "Invalid pipeline layout." );
+            pLayout!= nullptr, "Invalid pipeline layout." );
                     m_pCurrentPipelineLayout = pLayout;
                 }
             }
-            if( m_CurrentState.pPipeline.IsNull() )
+            if( m_CurrentState.pPipeline== nullptr )
             {
                 SetState( m_pCurrentPipelineLayout );
             }*/
@@ -373,7 +373,7 @@ namespace VKE
                                        .state        = pTex->GetState(),
                                        .renderPassOp = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE } );
             }
-            if( pDepthStencilRenderTarget.IsValid() )
+            if( pDepthStencilRenderTarget!= nullptr )
             {
                 const auto pView               = pDevice->GetTextureView( pDepthStencilRenderTarget->GetHandle() );
                 PassInfo.DepthRenderTargetInfo = { .hDDIView   = pView->GetDDIObject(),
@@ -438,7 +438,7 @@ namespace VKE
 
         void CCommandBuffer::Bind( PipelinePtr pPipeline )
         {
-            if( pPipeline.IsValid() && pPipeline->IsResourceReady() )
+            if( pPipeline!= nullptr && pPipeline->IsResourceReady() )
             {
                 SetState( pPipeline->GetLayout() );
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
@@ -459,7 +459,7 @@ namespace VKE
         void CCommandBuffer::SetState( ShaderPtr pShader )
         {
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
-            if( pShader.IsValid() )
+            if( pShader!= nullptr )
             {
                 const auto type = pShader->GetDesc().type;
                 VKE_ASSERT2( type != ShaderTypes::_MAX_COUNT, "" );
@@ -563,7 +563,7 @@ namespace VKE
 
         void CCommandBuffer::Bind( const uint32_t index, const DescriptorSetHandle& hDescSet )
         {
-            VKE_ASSERT2( m_CurrentState.pPipeline.IsValid(), "Pipeline must be already bound to call this function." );
+            VKE_ASSERT2( m_CurrentState.pPipeline!= nullptr, "Pipeline must be already bound to call this function." );
             VKE_ASSERT2( m_CurrentState.pPipeline->IsResourceReady(), "Pipeline must be compiled first." );
             SBindDDIDescriptorSetsInfo      Info;
             const NativeAPI::DescriptorSet& hDDIDescSet = m_pBaseCtx->GetDeviceContext()->GetDescriptorSet( hDescSet );
@@ -582,7 +582,7 @@ namespace VKE
         void CCommandBuffer::Bind( const uint32_t index, const DescriptorSetHandle& hDescSet, const uint32_t* pOffsets,
                                    const uint16_t& offsetCount )
         {
-            VKE_ASSERT2( m_CurrentState.pPipeline.IsValid(), "Pipeline must be already bound to call this function." );
+            VKE_ASSERT2( m_CurrentState.pPipeline!= nullptr, "Pipeline must be already bound to call this function." );
             VKE_ASSERT2( m_CurrentState.pPipeline->IsResourceReady(), "Pipeline must be compiled first." );
             SBindDDIDescriptorSetsInfo      Info;
             const NativeAPI::DescriptorSet& hDDIDescSet = m_pBaseCtx->GetDeviceContext()->GetDescriptorSet( hDescSet );
@@ -808,7 +808,7 @@ namespace VKE
             }
 #endif
             ret = _UpdateCurrentPipeline();
-            VKE_ASSERT2( m_CurrentState.pPipeline.IsValid(), "Pipeline was not created successfully." );
+            VKE_ASSERT2( m_CurrentState.pPipeline!= nullptr, "Pipeline was not created successfully." );
 #if !VKE_ENABLE_SIMPLE_COMMAND_BUFFER
             if( !m_isPipelineBound )
             {
@@ -1018,7 +1018,7 @@ namespace VKE
             {
                 m_pCurrentPipelineLayout =
                     m_pBaseCtx->m_pDeviceCtx->CreatePipelineLayout( m_CurrentPipelineLayoutDesc );
-                if( m_pCurrentPipelineLayout.IsValid() )
+                if( m_pCurrentPipelineLayout!= nullptr )
                 {
                     m_CurrentPipelineLayoutDesc.vDescriptorSetLayouts.Clear();
                     const NativeAPI::PipelineLayout& hDDILayout = m_pCurrentPipelineLayout->GetDDIObject();
@@ -1039,13 +1039,13 @@ namespace VKE
                     ret = VKE_FAIL;
                 }
             }
-            if( ( m_needNewPipeline && ret == VKE_OK ) || m_CurrentState.pPipeline.IsNull() )
+            if( ( m_needNewPipeline && ret == VKE_OK ) || m_CurrentState.pPipeline== nullptr )
             {
                 // m_CurrentPipelineDesc.Pipeline.hDDILayout =
                 // m_pCurrentPipelineLayout->GetDDIObject();
                 VKE_ASSERT2( m_CurrentPipelineDesc.Pipeline.hDDILayout != NativeAPI::Null, "" );
                 m_CurrentState.pPipeline = m_pBaseCtx->m_pDeviceCtx->CreatePipeline( m_CurrentPipelineDesc );
-                if( m_CurrentState.pPipeline.IsNull() )
+                if( m_CurrentState.pPipeline== nullptr )
                 {
                     ret = VKE_FAIL;
                 }
@@ -1177,13 +1177,6 @@ namespace VKE
                     m_vStagingBufferAllocations[ i ] );
             }
             ClearStagingBufferAllocations();
-        }
-
-        void CCommandBuffer::Sync( CommandBufferPtr pCmdBuffer )
-        {
-            VKE_ASSERT( pCmdBuffer->m_pExecuteBatch != nullptr );
-            VKE_ASSERT( m_pExecuteBatch != pCmdBuffer->m_pExecuteBatch );
-            GetContext()->SyncExecute( pCmdBuffer );
         }
 
         void CCommandBuffer::SetDebugName( cstr_t pDbgName )

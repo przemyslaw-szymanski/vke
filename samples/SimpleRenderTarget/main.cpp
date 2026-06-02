@@ -142,7 +142,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         //pCtx->UpdateDescriptorSet( hSampler, hRenderTarget, &hDescSet );
 
 
-        return pVb.IsValid();
+        return pVb!= nullptr;
     }
 
     bool OnRenderFrame(VKE::RenderSystem::CGraphicsContext* pCtx) override

@@ -44,7 +44,7 @@ namespace VKE
                         Desc.FileInfo.pName = strMatch.c_str();
                         Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );*/
                         Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
-                        if( pFile.IsValid() )
+                        if( pFile!= nullptr )
                         {
                             cstr_t pTmpCode = reinterpret_cast< cstr_t >( pFile->GetData() );
                             _PreprocessIncludes( pBaseDirPath, pTmpCode, strLine, pStrOutput );
@@ -757,11 +757,11 @@ namespace VKE
                 if( !Desc.FileInfo.FileName.IsEmpty() )
                 {
                     Core::FilePtr pFile = m_pFileMgr->LoadFile( Desc );
-                    if( pFile.IsValid() )
+                    if( pFile!= nullptr )
                     {
                         if( pFile->GetDataSize() > 1 ) // BOM
                         {
-                            VKE_ASSERT2( pShader->m_pFile.IsNull(), "Current file must be released." );
+                            VKE_ASSERT2( pShader->m_pFile== nullptr, "Current file must be released." );
                             pShader->_SetFile( pFile );
                             res = VKE_OK;
                         }
@@ -808,7 +808,7 @@ namespace VKE
                     Desc.FileInfo.pName = strMatch.c_str();
                     Desc.FileInfo.nameLen = static_cast< uint16_t >( strMatch.length() );*/
                     Core::FilePtr pFile = pFileMgr->LoadFile( Desc );
-                    if( pFile.IsValid() )
+                    if( pFile!= nullptr )
                     {
                         cstr_t pTmpCode = reinterpret_cast< cstr_t >( pFile->GetData() );
                         _PreprocessIncludes( pFileMgr, pBaseDirPath, pTmpCode, strLine, pStrOutput );
@@ -1057,7 +1057,7 @@ namespace VKE
                 Desc.Shader.type       = type;
 
                 ShaderPtr pShader = CreateShader( Desc );
-                if( pShader.IsNull() )
+                if( pShader== nullptr )
                 {
                     ret = VKE_FAIL;
                 }
@@ -1090,7 +1090,7 @@ namespace VKE
                 Desc.Shader.type       = type;
 
                 ShaderPtr pShader = CreateShader( Desc );
-                if( pShader.IsNull() )
+                if( pShader== nullptr )
                 {
                     ret = VKE_FAIL;
                 }

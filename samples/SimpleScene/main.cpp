@@ -224,7 +224,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Pipeline.Shaders.apShaders[VKE::RenderSystem::ShaderTypes::PIXEL] = pPS;
 
         auto pPipeline = pCtx->CreatePipeline( Pipeline );
-        VKE_ASSERT2( pPipeline.IsValid(), "" );
+        VKE_ASSERT2( pPipeline!= nullptr, "" );
         VKE::RenderSystem::DrawcallPtr pDrawcall = pWorld->CreateDrawcall( {} );
         VKE::RenderSystem::CDrawcall::LOD LOD;
         LOD.DrawParams.Indexed.indexCount = 3;
@@ -268,7 +268,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pDrawcall->AddLOD( LOD );
         pScene->AddObject( pDrawcall, DataInfo );
 
-        return pVb.IsValid();
+        return pVb!= nullptr;
     }
 
     void UpdateUBO( VKE::RenderSystem::CGraphicsContext* pCtx )
