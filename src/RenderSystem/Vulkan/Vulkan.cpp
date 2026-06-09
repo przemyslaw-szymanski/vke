@@ -19,7 +19,7 @@
 // #undef VK_EXPORTED_FUNCTION
 // #undef VKE_VK_FUNCTION
 
-namespace VKE
+namespace VKE::RenderSystem
 {
     namespace Vulkan
     {

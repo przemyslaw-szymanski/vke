@@ -2,7 +2,7 @@
 
 #include "Core/CObject.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 #include "RenderSystem/Resources/CResource.h"
 
 namespace VKE

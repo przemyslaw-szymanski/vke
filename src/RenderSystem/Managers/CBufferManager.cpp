@@ -484,7 +484,7 @@ namespace VKE
         {
             CBuffer* pBuffer = *ppInOut;
             auto&    hDDIObj = pBuffer->m_hDDIObject;
-            m_pCtx->_NativeAPI().DestroyBuffer( &hDDIObj, nullptr );
+            m_pCtx->_NativeAPI().DestroyBuffer( &hDDIObj );
             pBuffer->_Destroy();
             if( pBuffer->m_pStagingBuffer != nullptr )
             {
@@ -525,7 +525,7 @@ namespace VKE
 
             if( pBuffer->GetDDIObject() == NativeAPI::Null )
             {
-                pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, nullptr );
+                pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc );
                 if( pBuffer->m_hDDIObject != NativeAPI::Null )
                 {
                     // Create memory for buffer

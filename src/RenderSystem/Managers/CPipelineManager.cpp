@@ -87,7 +87,7 @@ namespace VKE
             CPipeline* pPipeline = *ppPipeline;
             pPipeline->_Destroy();
             auto& hDDIObj = pPipeline->m_hDDIObject;
-            m_pCtx->NativeAPI().DestroyPipeline( &hDDIObj, nullptr );
+            m_pCtx->NativeAPI().DestroyPipeline( &hDDIObj );
             Memory::DestroyObject( &m_PipelineMemMgr, &pPipeline );
             *ppPipeline = nullptr;
         }
@@ -96,7 +96,7 @@ namespace VKE
         {
             CPipelineLayout* pLayout = *ppLayout;
             auto&            hDDIObj = pLayout->m_hDDIObject;
-            m_pCtx->NativeAPI().DestroyPipelineLayout( &hDDIObj, nullptr );
+            m_pCtx->NativeAPI().DestroyPipelineLayout( &hDDIObj );
             Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
             *ppLayout = nullptr;
         }
@@ -314,7 +314,7 @@ namespace VKE
                     }
                 }
 
-                NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
+                NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc );
                 if( hPipeline != NativeAPI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject      = hPipeline;
@@ -352,7 +352,7 @@ namespace VKE
                     }
                 }
 
-                NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc, nullptr );
+                NativeAPI::Pipeline hPipeline = m_pCtx->_NativeAPI().CreatePipeline( pPipeline->m_Desc );
                 if( hPipeline != NativeAPI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject      = hPipeline;
@@ -566,7 +566,7 @@ namespace VKE
                 CPipelineLayout* pLayout = pRet.Get();
                 if( pLayout->GetDDIObject() == NativeAPI::Null )
                 {
-                    NativeAPI::PipelineLayout hLayout = m_pCtx->_NativeAPI().CreatePipelineLayout( Desc, nullptr );
+                    NativeAPI::PipelineLayout hLayout = m_pCtx->_NativeAPI().CreatePipelineLayout( Desc );
                     if( hLayout != NativeAPI::Null )
                     {
                         pLayout->Init( Desc );

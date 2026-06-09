@@ -18,7 +18,7 @@
 #include "Core/Memory/Memory.h"
 
 #include "RenderSystem/Vulkan/Vulkan.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 
 #include "RenderSystem/Managers/CFrameGraphManager.h"
 #include "RenderSystem/CFrameGraph.h"
@@ -194,10 +194,10 @@ namespace VKE
                 LoadInfo.enableDebugMode = debugMode.value().boolValue;
             }
 
-            Result ret = CDDI::Load( LoadInfo, &m_DriverData );
+            Result ret = CAPI::Load( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {
-                ret = CDDI::QueryAdapters( &m_vAdapterInfos );
+                ret = CAPI::QueryAdapters( &m_vAdapterInfos );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                 }

@@ -7,7 +7,7 @@
 #include "Core/Memory/CFreeList.h"
 
 #include "RenderSystem/CCommandBuffer.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 
 #define VKE_DUMP_CB 1
 

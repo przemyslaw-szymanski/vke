@@ -10,50 +10,15 @@ namespace VKE::RenderSystem
     // Forward declarations
     class CDeviceContext;
 
-    // CDDI: Common Device Driver Interface for any render system
+    // CAPI: Common Device Driver Interface for any render system
     class VKE_API CVulkanAPI : public TCAPI<CVulkanAPI>
     {
         friend class CDeviceContext;
         using AdapterArray = Utils::TCDynamicArray< NativeAPI::Adapter >;
 
     public:
-        struct AllocateDescs
-        {
-            struct SDescSet
-            {
-                NativeAPI::DescriptorPool       hPool;
-                NativeAPI::DescriptorSetLayout* phLayouts;
-                uint32_t                        count;
-                VKE_RENDER_SYSTEM_DEBUG_NAME;
-            };
 
-            struct SMemory
-            {
-                NativeAPI::Texture hDDITexture = NativeAPI::Null;
-                NativeAPI::Buffer  hDDIBuffer  = NativeAPI::Null;
-                uint32_t           size;
-                MEMORY_USAGE       memoryUsages;
-            };
-        };
-
-        struct FreeDescs
-        {
-            struct SDescSet
-            {
-                NativeAPI::DescriptorPool hPool;
-                NativeAPI::DescriptorSet* phSets;
-                uint32_t                  count;
-            };
-
-            struct SCommandBuffers
-            {
-                NativeAPI::CommandBufferPool hPool;
-                NativeAPI::CommandBuffer*    pBuffers;
-                uint32_t                     count;
-            };
-        };
-
-        Result CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx );
+        Result CreateDevice( const SCreateDeviceDesc& Info, CDeviceContext* pCtx );
         void   DestroyDeviceImpl();
 
         static Result LoadImpl( const SDDILoadInfo& Info, SDriverInfo* pOut );
@@ -77,9 +42,9 @@ namespace VKE::RenderSystem
 
         void QueryDeviceInfoImpl( SDeviceInfo* pOut );
 
-        NativeAPI::Buffer              CreateBufferImpl( const SBufferDesc& Desc, const void* );
-        void                           DestroyBufferImpl( NativeAPI::Buffer* phBuffer, const void* );
-        NativeAPI::BufferView          CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* );
+        NativeAPI::Buffer              CreateBuffer( const SBufferDesc& Desc, const void* );
+        void                           DestroyBuffer( NativeAPI::Buffer* phBuffer, const void* );
+        NativeAPI::BufferView          CreateBufferView( const SBufferViewDesc& Desc, const void* );
         void                           DestroyBufferView( NativeAPI::BufferView* phBufferView, const void* );
         Result                         GetTextureFormatProperties( const STextureDesc&, STextureFormatProperties* );
         NativeAPI::Texture             CreateTexture( const STextureDesc& Desc, const void* );

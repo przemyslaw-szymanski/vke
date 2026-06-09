@@ -5,7 +5,7 @@
 #include "RenderSystem/Resources/CImage.h"
 #include "Core/Utils/TCDynamicArray.h"
 
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 #include "RenderSystem/Common.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 

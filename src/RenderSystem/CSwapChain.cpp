@@ -35,7 +35,7 @@ namespace VKE
         void CSwapChain::Destroy()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
-            m_pCtx->GetDeviceContext()->_NativeAPI().DestroySwapChain( &m_DDISwapChain, nullptr );
+            m_pCtx->GetDeviceContext()->_NativeAPI().DestroySwapChain( &m_DDISwapChain );
         }
 
         Result CSwapChain::Create( const SSwapChainDesc& Desc, CommandBufferPtr pCmdBuffer )
@@ -51,7 +51,7 @@ namespace VKE
             }
             // const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
-            ret = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
+            ret = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSwapChain( m_Desc, &m_DDISwapChain );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
@@ -156,9 +156,9 @@ namespace VKE
                             Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
                             FenceDesc.SetDebugName( std::format( "VKE_SwapChain_Fence{}", i ).data() );
                             BackBuffer.hDDIPresentImageReadySemaphore =
-                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
+                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc );
                             BackBuffer.hDDIQueueFinishedSemaphore =
-                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
+                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
                             

@@ -917,53 +917,6 @@ namespace VKE
             m_pTextureMgr->DestroySampler( phSampler );
         }
 
-        EventHandle CDeviceContext::CreateEvent( const SEventDesc& Desc )
-        {
-            EventHandle hRet = INVALID_HANDLE;
-            uint32_t    handle;
-            bool        handleSet = false;
-            {
-                Threads::ScopedLock l( m_EventSyncObj );
-                handleSet = m_DDIEventPool.GetFreeHandle( &handle );
-            }
-            if( handleSet )
-            {
-                hRet.handle = handle;
-            }
-            else
-            {
-                NativeAPI::Event hDDIEvent = m_DDI.CreateEvent( Desc, nullptr );
-                if( hDDIEvent != NativeAPI::Null )
-                {
-                    Threads::ScopedLock l( m_EventSyncObj );
-                    hRet.handle = m_DDIEventPool.Add( hDDIEvent );
-                }
-            }
-
-            return hRet;
-        }
-
-        void CDeviceContext::DestroyEvent( EventHandle* phEvent )
-        {
-            m_DDIEventPool.Free( static_cast< uint32_t >( phEvent->handle ) );
-            phEvent->handle = 0;
-        }
-
-        bool CDeviceContext::IsEventSet( const EventHandle& hEvent )
-        {
-            return m_DDI.IsSet( GetEvent( hEvent ) );
-        }
-
-        void CDeviceContext::SetEvent( const EventHandle& hEvent )
-        {
-            m_DDI.SetEvent( GetEvent( hEvent ) );
-        }
-
-        void CDeviceContext::ResetEvent( const EventHandle& hEvent )
-        {
-            m_DDI.Reset( GetEvent( hEvent ) );
-        }
-
         uint32_t CDeviceContext::LockStagingBuffer( const uint32_t maxSize )
         {
             uint32_t ret = m_pBufferMgr->LockStagingBuffer( maxSize );
@@ -1174,42 +1127,6 @@ namespace VKE
             m_pBufferMgr->FreeUnusedAllocations();
         }
 
-        Result CheckExtensions( VkPhysicalDevice vkPhysicalDevice, VkICD::Instance& Instance,
-                                const Utils::TCDynamicArray< const char* >& vExtensions )
-        {
-            uint32_t count = 0;
-            VK_ERR( Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
-
-            Utils::TCDynamicArray< VkExtensionProperties > vProperties( count );
-
-            VK_ERR(
-                Instance.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, &vProperties[ 0 ] ) );
-
-            std::string ext;
-            Result      err = VKE_OK;
-
-            for( uint32_t e = 0; e < vExtensions.GetCount(); ++e )
-            {
-                ext        = vExtensions[ e ];
-                bool found = false;
-                for( uint32_t p = 0; p < count; ++p )
-                {
-                    if( ext == vProperties[ p ].extensionName )
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if( !found )
-                {
-                    VKE_LOG_ERR( "Extension: " << ext << " is not supported by the device." );
-                    err = VKE_ENOTFOUND;
-                }
-            }
-
-            return err;
-        }
-
         void CDeviceContext::_OnFrameStart( CGraphicsContext* )
         {
         }
@@ -1289,22 +1206,22 @@ namespace VKE
 
         NativeAPI::GPUFence CDeviceContext::CreateGPUFence( const SSemaphoreDesc& Desc )
         {
-            return _NativeAPI().CreateSemaphore( Desc, nullptr );
+            return _NativeAPI().CreateSemaphore( Desc );
         }
 
         void CDeviceContext::DestroyGPUFence( NativeAPI::GPUFence* phInOut )
         {
-            _NativeAPI().DestroySemaphore( phInOut, nullptr );
+            _NativeAPI().DestroySemaphore( phInOut );
         }
 
         NativeAPI::CPUFence CDeviceContext::CreateCPUFence( const SFenceDesc& Desc )
         {
-            return _NativeAPI().CreateFence( Desc, nullptr );
+            return _NativeAPI().CreateFence( Desc );
         }
 
         void CDeviceContext::DestroyCPUFence( NativeAPI::CPUFence* phInOut )
         {
-            _NativeAPI().DestroyFence( phInOut, nullptr );
+            _NativeAPI().DestroyFence( phInOut );
         }
 
         NativeAPI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc ) const

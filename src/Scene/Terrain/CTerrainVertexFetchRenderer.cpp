@@ -9,7 +9,7 @@
 
 #include "Core/Utils/CProfiler.h"
 
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/Api.h"
 
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
 #define RENDER_WIREFRAME 0

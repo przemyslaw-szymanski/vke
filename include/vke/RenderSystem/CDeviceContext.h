@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/VKEPreprocessor.h"
-#include "CDDI.h"
+#include "API.h"
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
@@ -54,7 +54,6 @@ namespace VKE
             friend class CDescriptorSetManager;
             friend class CBufferManager;
             friend class CBuffer;
-            friend class CDDI;
             friend class CTextureManager;
             friend class CSubmitManager;
             friend class CCommandBufferManager;
@@ -62,6 +61,11 @@ namespace VKE
             friend class CContextBase;
             friend class CStagingBufferManager;
             friend class CTransferContext;
+            /// <summary>
+            ///  TODO: remove these
+            /// </summary>
+            friend class CVulkanAPI;
+            friend class CD3D12API;
 
         private:
             struct SMetricsSystem
@@ -225,7 +229,7 @@ namespace VKE
                 return !IsFenceSignaled( hFence );
             }
 
-            CDDI& NativeAPI()
+            CAPI& NativeAPI()
             {
                 return m_DDI;
             }
@@ -301,12 +305,12 @@ namespace VKE
 
             void _NotifyDestroy( CGraphicsContext* );
 
-            const CDDI& _NativeAPI() const
+            const CAPI& _NativeAPI() const
             {
                 return m_DDI;
             }
 
-            CDDI& _NativeAPI()
+            CAPI& _NativeAPI()
             {
                 return m_DDI;
             }
@@ -360,7 +364,7 @@ namespace VKE
             ComputeContextArray   m_vpComputeContexts;
             CDeviceMemoryManager* m_pDeviceMemMgr = nullptr;
             // CCommandBufferManager       m_CmdBuffMgr;
-            CDDI                 m_DDI;
+            CAPI                 m_DDI;
             CCommandBuffer*      m_pCurrentCommandBuffer = nullptr;
             SDeviceInfo          m_DeviceInfo;
             Threads::SyncObject  m_SignaledSemaphoreSyncObj;

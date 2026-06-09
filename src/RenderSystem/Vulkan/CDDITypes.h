@@ -23,12 +23,11 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include <vulkan/vulkan.h>
 
-namespace VKE::RenderSystem
+namespace VKE::RenderSystem::Vulkan
 {
-    static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-
-    namespace NativeAPI
+    struct VKE_API NativeAPI
     {
+        static const uint32_t                   DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
         static const decltype( VK_NULL_HANDLE ) Null;
 
         struct SFence;
@@ -147,7 +146,7 @@ namespace VKE::RenderSystem
 
         }; // struct SImplementation
 
-    } // namespace NativeAPI
+    }; // namespace NativeAPI
 
 } // namespace VKE::RenderSystem
 

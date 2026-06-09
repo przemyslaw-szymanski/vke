@@ -21,7 +21,6 @@ namespace VKE
         // Implementation in CDeviceContext.cpp
         class VKE_API CContextBase
         {
-            friend class CDDI;
             friend class CDeviceContext;
             friend class CGraphicsContext;
             friend class CComputeContext;
@@ -31,6 +30,11 @@ namespace VKE
             friend class CCommandBufferManager;
             friend class CSubmitManager;
             friend class CFrameGraph;
+            /// <summary>
+            /// TODO: remove these friends
+            /// </summary>
+            friend class CVulkanAPI;
+            friend class CD3D12API;
 
         protected:
             struct SPreparationData
@@ -207,7 +211,7 @@ namespace VKE
             /// </summary>
             void _FreeExecutedBatches();
 
-            CDDI& _GetDDI() const
+            CAPI& _GetDDI() const
             {
                 return m_DDI;
             }
@@ -225,7 +229,7 @@ namespace VKE
             void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
 
         protected:
-            CDDI&                 m_DDI;
+            CAPI&                 m_DDI;
             CDeviceContext*       m_pDeviceCtx;
             cstr_t                m_pName = "";
             QueueRefPtr           m_pQueue;

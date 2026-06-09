@@ -1044,28 +1044,6 @@ namespace VKE
             return ret;
         }
 
-        void CCommandBuffer::SetEvent( const NativeAPI::Event& hDDIEvent, const PIPELINE_STAGES& stages )
-        {
-            m_pBaseCtx->m_DDI.SetEvent( GetDDIObject(), hDDIEvent, stages );
-        }
-
-        void CCommandBuffer::ResetEvent( const NativeAPI::Event& hDDIEvent, const PIPELINE_STAGES& stages )
-        {
-            m_pBaseCtx->m_DDI.Reset( GetDDIObject(), hDDIEvent, stages );
-        }
-
-        void CCommandBuffer::SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages )
-        {
-            auto hDDIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
-            SetEvent( hDDIEvent, stages );
-        }
-
-        void CCommandBuffer::ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages )
-        {
-            auto hDDIEvent = m_pBaseCtx->m_pDeviceCtx->GetEvent( hEvent );
-            ResetEvent( hDDIEvent, stages );
-        }
-
         // Debug
         void CCommandBuffer::BeginDebugInfo( const SDebugInfo* pInfo )
         {

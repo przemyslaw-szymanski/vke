@@ -1135,158 +1135,157 @@ namespace VKE
 
         } // namespace Convert
 
-        namespace NativeAPI
+        const decltype( VK_NULL_HANDLE ) NativeAPI::Null = VK_NULL_HANDLE;
+
+        struct NativeAPI::SFence
         {
-            struct SFence
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+            std::atomic<NativeAPI::FenceValue> counter;
+            NativeAPI::FenceValue                lastSignaledValue = 0;
+            bool                      isNativeMonitored = false;
+            bool                      isBinary          = false;
+            struct SFences
             {
-                VKE_RENDER_SYSTEM_DEBUG_NAME;
-                std::atomic<FenceValue> counter;
-                FenceValue                lastSignaledValue = 0;
-                bool                      isNativeMonitored = false;
-                bool                      isBinary          = false;
-                struct SFences
-                {
-                    CPUFence hFence = Null;
-                    GPUFence hSemaphore = Null;
-                };
+                NativeAPI::CPUFence hFence     = NativeAPI::Null;
+                NativeAPI::GPUFence hSemaphore = NativeAPI::Null;
+            };
 
-                Utils::TCDynamicArray< FenceValue > vValues;
-                Utils::TCDynamicArray< SFences >  vFences;
+            Utils::TCDynamicArray< NativeAPI::FenceValue > vValues;
+            Utils::TCDynamicArray< SFences >  vFences;
 
-                VKE::Result Create( const CVulkanAPI* pApi, const SFenceDesc& Desc, bool nativeMonitored )
-                {
-                    isBinary = Desc.startValue == UNDEFINED_U64;
-                    isNativeMonitored = nativeMonitored;
-                    this->counter     = Desc.startValue; // increase current counter
-                    if( isNativeMonitored || isBinary )
-                    {  
-                        if( vFences.IsEmpty() )
+            VKE::Result Create( const CVulkanAPI* pApi, const SFenceDesc& Desc, bool nativeMonitored )
+            {
+                isBinary = Desc.startValue == UNDEFINED_U64;
+                isNativeMonitored = nativeMonitored;
+                this->counter     = Desc.startValue; // increase current counter
+                if( isNativeMonitored || isBinary )
+                {  
+                    if( vFences.IsEmpty() )
+                    {
+                        SFences        Fences;
+                        SSemaphoreDesc SemDesc;
+                        SemDesc.SetDebugName( Desc.GetDebugName() );
+                        SemDesc.startValue = Desc.startValue;
+                        Fences.hSemaphore  = pApi->CreateSemaphore( SemDesc, nullptr );
+                        if( isBinary )
                         {
-                            SFences        Fences;
+                            SFenceDesc FenceDesc;
+                            FenceDesc.SetDebugName( Desc.GetDebugName() );
+                            Fences.hFence = pApi->CreateFence( FenceDesc, nullptr );
+                        }
+                        vFences.PushBack( Fences );
+                        vValues.PushBack( Desc.startValue );
+                    }
+                }
+                else
+                {
+                    this->SetDebugName( Desc.GetDebugName() );
+                }
+
+                return VKE_OK;
+            }
+
+            /// <summary>
+            /// Increases counter value and returns Fence associated to requested one.
+            /// </summary>
+            /// <param name="pApi"></param>
+            /// <param name="value">New value for which fence will wait</param>
+            /// <returns></returns>
+            SFences* Signal( CVulkanAPI* pApi, NativeAPI::FenceValue value )
+            {
+                if( !isBinary && !isNativeMonitored )
+                {
+                    VKE_ASSERT( this->counter.load() < value );
+                    this->counter = value; // increase current counter
+                    // Check if there is any fence completed
+                    // mark it as 0 and reuse it
+                    Recycle( pApi );
+                    // Find first free index
+                    // Index is free when its value is set to 0
+                    // Index is freed when fence is signaled
+                    auto idx = vValues.Find( 0 );
+
+                    if( idx == INVALID_POSITION )
+                    {
+                        idx = vValues.PushBack( value );
+                        if( vFences.GetCount() <= idx )
+                        {
+                            auto idx2 = vFences.PushBack( {} );
+                            VKE_ASSERT( idx == idx2 );
+                            VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                            SFences&   Fences = vFences.Back();
+                            SFenceDesc FenDesc;
+                            FenDesc.startValue = 0;
+                            FenDesc.SetDebugName( "%s_%d", GetDebugName(), idx2 );
+                            Fences.hFence = pApi->CreateFence( FenDesc, nullptr );
                             SSemaphoreDesc SemDesc;
-                            SemDesc.SetDebugName( Desc.GetDebugName() );
-                            SemDesc.startValue = Desc.startValue;
-                            Fences.hSemaphore  = pApi->CreateSemaphore( SemDesc, nullptr );
-                            if( isBinary )
-                            {
-                                SFenceDesc FenceDesc;
-                                FenceDesc.SetDebugName( Desc.GetDebugName() );
-                                Fences.hFence = pApi->CreateFence( FenceDesc, nullptr );
-                            }
-                            vFences.PushBack( Fences );
-                            vValues.PushBack( Desc.startValue );
+                            SemDesc.SetDebugName( FenDesc.GetDebugName() );
+                            Fences.hSemaphore = pApi->CreateSemaphore( SemDesc, nullptr );
+                            return &Fences;
                         }
                     }
-                    else
-                    {
-                        this->SetDebugName( Desc.GetDebugName() );
-                    }
-
-                    return VKE_OK;
-                }
-
-                /// <summary>
-                /// Increases counter value and returns Fence associated to requested one.
-                /// </summary>
-                /// <param name="pApi"></param>
-                /// <param name="value">New value for which fence will wait</param>
-                /// <returns></returns>
-                SFences* Signal( CVulkanAPI* pApi, FenceValue value )
-                {
-                    if( !isBinary && !isNativeMonitored )
-                    {
-                        VKE_ASSERT( this->counter.load() < value );
-                        this->counter = value; // increase current counter
-                        // Check if there is any fence completed
-                        // mark it as 0 and reuse it
-                        Recycle( pApi );
-                        // Find first free index
-                        // Index is free when its value is set to 0
-                        // Index is freed when fence is signaled
-                        auto idx = vValues.Find( 0 );
-
-                        if( idx == INVALID_POSITION )
-                        {
-                            idx = vValues.PushBack( value );
-                            if( vFences.GetCount() <= idx )
-                            {
-                                auto idx2 = vFences.PushBack( {} );
-                                VKE_ASSERT( idx == idx2 );
-                                VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                                SFences&   Fences = vFences.Back();
-                                SFenceDesc FenDesc;
-                                FenDesc.startValue = 0;
-                                FenDesc.SetDebugName( "%s_%d", GetDebugName(), idx2 );
-                                Fences.hFence = pApi->CreateFence( FenDesc, nullptr );
-                                SSemaphoreDesc SemDesc;
-                                SemDesc.SetDebugName( FenDesc.GetDebugName() );
-                                Fences.hSemaphore = pApi->CreateSemaphore( SemDesc, nullptr );
-                                return &Fences;
-                            }
-                        }
-                        // Fence must be signaled if it is recycled
-                        const bool signaled = pApi->IsSignaled( vFences[ idx ].hFence );
-                        VKE_ASSERT( signaled );
-                        VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                        pApi->Reset( &vFences[ idx ].hFence );
-                        vValues[ idx ] = value;
-                        return &vFences[ idx ];
-                    }
-                    else if( isBinary )
-                    {
-                        pApi->WaitForFence( this, 0 );
-                        pApi->Reset( &vFences[ 0 ].hFence );
-                    }
-                    return &vFences[ 0 ];
-                }
-
-                void Recycle( CVulkanAPI* pApi )
-                {
-                    GetLastSignaledValue( pApi );
-                }
-
-                SFences* GetFences( FenceValue value )
-                {
-                    if( isNativeMonitored || isBinary )
-                    {
-                        return &vFences[0];
-                    }
-                    auto idx = vValues.Find( value );
+                    // Fence must be signaled if it is recycled
+                    const bool signaled = pApi->IsSignaled( vFences[ idx ].hFence );
+                    VKE_ASSERT( signaled );
+                    VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                    pApi->Reset( &vFences[ idx ].hFence );
+                    vValues[ idx ] = value;
                     return &vFences[ idx ];
                 }
-
-                void Reset(CVulkanAPI* pApi, FenceValue value)
+                else if( isBinary )
                 {
-                    VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                    for( uint32_t i = 0; i < vFences.GetCount(); ++i )
-                    {
-                        //pApi->Reset( &vFences[ i ].hFence );
-                        vValues[ i ] = 0;
-                    }
-                    counter = value;
-                    lastSignaledValue = 0;
+                    pApi->WaitForFence( this, 0 );
+                    pApi->Reset( &vFences[ 0 ].hFence );
                 }
+                return &vFences[ 0 ];
+            }
 
-                FenceValue GetLastSignaledValue( const CVulkanAPI* pApi )
+            void Recycle( CVulkanAPI* pApi )
+            {
+                GetLastSignaledValue( pApi );
+            }
+
+            SFences* GetFences( NativeAPI::FenceValue value )
+            {
+                if( isNativeMonitored || isBinary )
                 {
-                    for( uint32_t i = 0; i < vValues.GetCount(); ++i )
+                    return &vFences[0];
+                }
+                auto idx = vValues.Find( value );
+                return &vFences[ idx ];
+            }
+
+            void Reset( CVulkanAPI* pApi, NativeAPI::FenceValue value )
+            {
+                VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                for( uint32_t i = 0; i < vFences.GetCount(); ++i )
+                {
+                    //pApi->Reset( &vFences[ i ].hFence );
+                    vValues[ i ] = 0;
+                }
+                counter = value;
+                lastSignaledValue = 0;
+            }
+
+            NativeAPI::FenceValue GetLastSignaledValue( const CVulkanAPI* pApi )
+            {
+                for( uint32_t i = 0; i < vValues.GetCount(); ++i )
+                {
+                    auto value = vValues[ i ];
+                    if( value > 0 )
                     {
-                        auto value = vValues[ i ];
-                        if( value > 0 )
+                        if( pApi->IsSignaled( vFences[ i ].hFence ) )
                         {
-                            if( pApi->IsSignaled( vFences[ i ].hFence ) )
-                            {
-                                vValues[ i ] = 0; // reset this fence as it is no longer valid
-                                lastSignaledValue          = Math::Max( lastSignaledValue, value );
-                            }
+                            vValues[ i ] = 0; // reset this fence as it is no longer valid
+                            lastSignaledValue          = Math::Max( lastSignaledValue, value );
                         }
                     }
-                    // if lastSignaledValue == 0 that means fence was not signaled yet
-                    //VKE_ASSERT( lastSignaledValue == 0 || lastSignaledValue >= counter.load() );
-                    return lastSignaledValue;
                 }
-            };
-        } // namespace NativeAPI
+                // if lastSignaledValue == 0 that means fence was not signaled yet
+                //VKE_ASSERT( lastSignaledValue == 0 || lastSignaledValue >= counter.load() );
+                return lastSignaledValue;
+            }
+        };
 
         namespace Helper
         {
@@ -2373,8 +2372,9 @@ namespace VKE
             return ret;
         }
 
-        Result CVulkanAPI::CreateDeviceImpl( const SCreateDeviceDesc& Desc, CDeviceContext* pCtx )
+        Result CVulkanAPI::CreateDevice( const SCreateDeviceDesc& Desc, CDeviceContext* pCtx )
         {
+            /// TODO: remove m_pCtx. Low level api should not use it.
             m_pCtx             = pCtx;
             m_pCtx->m_Features = Desc.Settings;
 
@@ -2693,7 +2693,7 @@ namespace VKE
             }
         }*/
 
-        NativeAPI::Buffer CVulkanAPI::CreateBufferImpl( const SBufferDesc& Desc, const void* pAllocator )
+        NativeAPI::Buffer CVulkanAPI::CreateBuffer( const SBufferDesc& Desc, const void* pAllocator )
         {
             VkBufferCreateInfo ci;
             NativeAPI::Buffer  hBuffer = VK_NULL_HANDLE;
@@ -2718,12 +2718,12 @@ namespace VKE
             return hBuffer;
         }
 
-        void CVulkanAPI::DestroyBufferImpl( NativeAPI::Buffer* phBuffer, const void* pAllocator )
+        void CVulkanAPI::DestroyBuffer( NativeAPI::Buffer* phBuffer, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Buffer, phBuffer, pAllocator );
         }
 
-        NativeAPI::BufferView CVulkanAPI::CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* pAllocator )
+        NativeAPI::BufferView CVulkanAPI::CreateBufferView( const SBufferViewDesc& Desc, const void* pAllocator )
         {
             NativeAPI::BufferView  hView = NativeAPI::Null;
             VkBufferViewCreateInfo ci;
@@ -2972,6 +2972,7 @@ namespace VKE
             ci.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             ci.pNext            = nullptr;
             ci.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            /// TODO: do not use pContext
             ci.queueFamilyIndex = Desc.pContext->m_pQueue->GetFamilyIndex();
             VkResult res        = DDI_CREATE_OBJECT( CommandPool, ci, pAllocator, &hPool );
             VK_ERR( res );

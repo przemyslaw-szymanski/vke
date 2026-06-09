@@ -80,7 +80,7 @@ namespace VKE
                 VKE_ASSERT( Desc.threadIndex < MAX_THREAD_COUNT );
                 tid = Desc.threadIndex;
             }
-            pPool->hDDIPool                     = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
+            pPool->hDDIPool                     = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc );
             auto                            idx = m_avpPools[ tid ].PushBack( pPool );
             SCommandBufferPoolHandleDecoder Decoder;
             Decoder.Decode.threadId = tid;
@@ -96,7 +96,7 @@ namespace VKE
             }
             else
             {
-                m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
+                m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool );
             }
             // auto pCbs = &pPool->vCommandBuffers[ 0 ];
             //  $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
@@ -151,7 +151,7 @@ namespace VKE
             auto pPool = *ppPool;
             pPool->vCommandBuffers.ClearFull();
             pPool->vpFreeCommandBuffers.ClearFull();
-            m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
+            m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool );
             Memory::DestroyObject( &HeapAllocator, &pPool );
         }
 

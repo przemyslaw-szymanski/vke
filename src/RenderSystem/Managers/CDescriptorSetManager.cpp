@@ -18,7 +18,7 @@ namespace VKE
         {
             for( auto& Pair: m_mLayouts )
             {
-                m_pCtx->NativeAPI().DestroyDescriptorSetLayout( &Pair.second.hDDILayout, nullptr );
+                m_pCtx->NativeAPI().DestroyDescriptorSetLayout( &Pair.second.hDDILayout );
             }
             m_mLayouts.clear();
 
@@ -75,7 +75,7 @@ namespace VKE
         {
             handle_t hRet = INVALID_HANDLE;
 
-            NativeAPI::DescriptorPool hPool = m_pCtx->NativeAPI().CreateDescriptorPool( Desc, nullptr );
+            NativeAPI::DescriptorPool hPool = m_pCtx->NativeAPI().CreateDescriptorPool( Desc );
             if( hPool != NativeAPI::Null )
             {
                 hRet = m_PoolBuffer.Add( { hPool } );
@@ -87,7 +87,7 @@ namespace VKE
         {
             SPool&                     Pool     = m_PoolBuffer[ static_cast< PoolHandle >( *phInOut ) ];
             NativeAPI::DescriptorPool& hDDIPool = Pool.hDDIObject;
-            m_pCtx->NativeAPI().DestroyDescriptorPool( &hDDIPool, nullptr );
+            m_pCtx->NativeAPI().DestroyDescriptorPool( &hDDIPool );
             Pool.SetPool.Clear();
             m_PoolBuffer.Free( static_cast< PoolHandle >( *phInOut ) );
             *phInOut = INVALID_HANDLE;
@@ -110,7 +110,7 @@ namespace VKE
             {
                 SPool& Pool = m_PoolBuffer[ static_cast< PoolHandle >( hPool ) ];
 
-                CDDI::AllocateDescs::SDescSet SetDesc;
+                AllocateDescs::SDescSet SetDesc;
                 SetDesc.count     = 1;
                 SetDesc.hPool     = Pool.hDDIObject;
                 SetDesc.phLayouts = &Layout.hDDILayout;
@@ -208,7 +208,7 @@ namespace VKE
             else
             {
                 NativeAPI::DescriptorSetLayout hDDILayout =
-                    m_pCtx->NativeAPI().CreateDescriptorSetLayout( Desc, nullptr );
+                    m_pCtx->NativeAPI().CreateDescriptorSetLayout( Desc );
                 if( hDDILayout != NativeAPI::Null )
                 {
                     ret.handle            = hLayout;
@@ -234,7 +234,7 @@ namespace VKE
                 if( hPool != hSet.hPool && !vDDISets.IsEmpty() )
                 {
                     SPool&                    Pool = m_PoolBuffer[ hPool ];
-                    CDDI::FreeDescs::SDescSet Sets;
+                    FreeDescs::SDescSet Sets;
                     Sets.count  = vDDISets.GetCount();
                     Sets.hPool  = Pool.hDDIObject;
                     Sets.phSets = vDDISets.GetData();
@@ -252,7 +252,7 @@ namespace VKE
             if( !vDDISets.IsEmpty() )
             {
                 SPool&                    Pool = m_PoolBuffer[ hPool ];
-                CDDI::FreeDescs::SDescSet Sets;
+                FreeDescs::SDescSet Sets;
                 Sets.count  = vDDISets.GetCount();
                 Sets.hPool  = Pool.hDDIObject;
                 Sets.phSets = vDDISets.GetData();

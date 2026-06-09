@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 
 namespace VKE
 {
@@ -166,6 +166,6 @@ namespace VKE
 
         using QueuePtr    = Utils::TCWeakPtr< CQueue >;
         using QueueRefPtr = Utils::TCObjectSmartPtr< CQueue >;
-        using QueueArray  = Utils::TCDynamicArray< CQueue, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        using QueueArray  = Utils::TCDynamicArray< CQueue, NativeAPI::DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
     } // namespace RenderSystem
 } // namespace VKE

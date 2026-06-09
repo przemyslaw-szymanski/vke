@@ -62,7 +62,7 @@ namespace VKE
         {
             if( destroyRenderPass )
             {
-                m_pCtx->_NativeAPI().DestroyRenderPass( &m_hDDIObject, nullptr );
+                m_pCtx->_NativeAPI().DestroyRenderPass( &m_hDDIObject );
             }
         }
 
@@ -126,7 +126,7 @@ namespace VKE
             }
             if( VKE_SUCCEEDED( ret ) )
             {
-                m_hDDIObject = m_pCtx->_NativeAPI().CreateRenderPass( m_Desc, nullptr );
+                m_hDDIObject = m_pCtx->_NativeAPI().CreateRenderPass( m_Desc );
             }
             if( m_hDDIObject != NativeAPI::Null )
             {
@@ -152,7 +152,7 @@ namespace VKE
                         break;
                     }
                 }
-                m_hDDIFramebuffer = m_pCtx->_NativeAPI().CreateFramebuffer( FbDesc, nullptr );
+                m_hDDIFramebuffer = m_pCtx->_NativeAPI().CreateFramebuffer( FbDesc );
                 if( m_hDDIFramebuffer != NativeAPI::Null )
                 {
                     ret                               = VKE_OK;

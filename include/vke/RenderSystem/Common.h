@@ -12,7 +12,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Utils/TCString.h"
 #include "Core/VKEForwardDeclarations.h"
-#include "RenderSystem/CDDITypes.h"
+#include "RenderSystem/APITypes.h"
 
 #ifdef OPTIONAL
 #pragma push_macro( "OPTIONAL" )
@@ -3722,10 +3722,10 @@ namespace VKE
             SDeviceFeatures Features;
         };
 
-        using QueuePriorityArray = Utils::TCDynamicArray< float, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        using QueuePriorityArray = Utils::TCDynamicArray< float, NativeAPI::DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueFamilyPropertyArray =
-            Utils::TCDynamicArray< NativeAPI::QueueFamilyProperties, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
-        using UintArray      = Utils::TCDynamicArray< uint32_t, DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+            Utils::TCDynamicArray< NativeAPI::QueueFamilyProperties, NativeAPI::DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        using UintArray      = Utils::TCDynamicArray< uint32_t, NativeAPI::DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
         using QueueTypeArray = UintArray[ QueueTypes::_MAX_COUNT ];
         using DDIQueueArray  = Utils::TCDynamicArray< NativeAPI::Queue >;
 
@@ -3833,6 +3833,42 @@ namespace VKE
             uint32_t instanceCount;
             uint32_t firstVertex;
             uint32_t firstInstance;
+        };
+
+        struct AllocateDescs
+        {
+            struct SDescSet
+            {
+                NativeAPI::DescriptorPool       hPool;
+                NativeAPI::DescriptorSetLayout* phLayouts;
+                uint32_t                        count;
+                VKE_RENDER_SYSTEM_DEBUG_NAME;
+            };
+
+            struct SMemory
+            {
+                NativeAPI::Texture hDDITexture = NativeAPI::Null;
+                NativeAPI::Buffer  hDDIBuffer  = NativeAPI::Null;
+                uint32_t           size;
+                MEMORY_USAGE       memoryUsages;
+            };
+        };
+
+        struct FreeDescs
+        {
+            struct SDescSet
+            {
+                NativeAPI::DescriptorPool hPool;
+                NativeAPI::DescriptorSet* phSets;
+                uint32_t                  count;
+            };
+
+            struct SCommandBuffers
+            {
+                NativeAPI::CommandBufferPool hPool;
+                NativeAPI::CommandBuffer*    pBuffers;
+                uint32_t                     count;
+            };
         };
 
 #define VKE_ADD_DDI_OBJECT( _type )                                                                                    \

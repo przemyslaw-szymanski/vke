@@ -1,6 +1,6 @@
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 
-#if VKE_D3D12_RENDER_SYSTEM
+#if VKE_WINDOWS
 
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"
@@ -14,7 +14,11 @@
 
 namespace VKE::RenderSystem
 {
-    //    CDDI::AdapterArray CDDI::svAdapters;
+    namespace D3D12
+    {
+        const decltype( nullptr ) NativeAPI::Null = nullptr;
+    }
+    //    CAPI::AdapterArray CAPI::svAdapters;
     //
     //    DDIExtArray GetRequiredInstanceExtensions(bool debug)
     //    {
@@ -597,7 +601,7 @@ namespace VKE::RenderSystem
     //    Result QueryAdapterProperties(const NativeAPI::Adapter &hAdapter, const DDIExtMap &mExts, SDeviceProperties
     //    *pOut)
     //    {
-    //        auto &sInstanceICD = CDDI::GetInstantceICD();
+    //        auto &sInstanceICD = CAPI::GetInstantceICD();
     //        Memory::Zero(&pOut->Features);
     //        Memory::Zero(&pOut->Limits);
     //        Memory::Zero(&pOut->Properties);
@@ -733,7 +737,7 @@ namespace VKE::RenderSystem
     //        return VKE_OK;
     //    }
     //
-    //    void CDDI::GetFormatFeatures(FORMAT fmt, STextureFormatFeatures *pOut) const
+    //    void CAPI::GetFormatFeatures(FORMAT fmt, STextureFormatFeatures *pOut) const
     //    {
     //        Memory::Zero(pOut);
     //        const auto                           &Props = m_DeviceProperties.Properties.aFormatProperties[fmt];
@@ -757,7 +761,7 @@ namespace VKE::RenderSystem
     //
     //    Result GetDeviceExtensions(VkPhysicalDevice vkPhysicalDevice, DDIExtMap *pmAllExtensionsOut)
     //    {
-    //        auto    &InstanceICD = CDDI::GetInstantceICD();
+    //        auto    &InstanceICD = CAPI::GetInstantceICD();
     //        uint32_t count       = 0;
     //        VK_ERR(InstanceICD.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count, nullptr));
     //        Utils::TCDynamicArray<VkExtensionProperties> vProperties(count);
@@ -842,7 +846,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::Load(const SDDILoadInfo &Info, SDriverInfo *pOut)
+    //    Result CAPI::Load(const SDDILoadInfo &Info, SDriverInfo *pOut)
     //    {
     //        Result ret = VKE_OK;
     //        VKE_LOG_PROG("VKEngine loading vulkan-1.dll");
@@ -983,7 +987,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    void CDDI::CloseICD()
+    //    void CAPI::CloseICD()
     //    {
     //        // sGlobalICD.vkDestroyInstance( sVkInstance, nullptr );
     //        sInstanceICD.vkDestroyInstance(sVkInstance, nullptr);
@@ -991,7 +995,7 @@ namespace VKE::RenderSystem
     //        Platform::DynamicLibrary::Close(shICD);
     //    }
     //
-    //    const SDDIExtension &CDDI::GetExtensionInfo(cstr_t pName) const
+    //    const SDDIExtension &CAPI::GetExtensionInfo(cstr_t pName) const
     //    {
     //        static const SDDIExtension sDummy;
     //        auto                       Itr = m_mExtensions.find(pName);
@@ -1004,7 +1008,7 @@ namespace VKE::RenderSystem
     //
     //    Result LoadDeviceExtensions(VkPhysicalDevice vkPhysicalDevice, DDIExtMap *pmAllExtensionsOut)
     //    {
-    //        auto    &InstanceICD = CDDI::GetInstantceICD();
+    //        auto    &InstanceICD = CAPI::GetInstantceICD();
     //        uint32_t count       = 0;
     //        VK_ERR(InstanceICD.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count, nullptr));
     //        Utils::TCDynamicArray<VkExtensionProperties> vProperties(count);
@@ -1166,7 +1170,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::CreateDevice(const SCreateDeviceDesc &Desc, CDeviceContext *pCtx)
+    //    Result CAPI::CreateDevice(const SCreateDeviceDesc &Desc, CDeviceContext *pCtx)
     //    {
     //        m_pCtx             = pCtx;
     //        m_pCtx->m_Features = Desc.Settings;
@@ -1236,7 +1240,7 @@ namespace VKE::RenderSystem
     //        return VKE_OK;
     //    }
     //
-    //    void CDDI::DestroyDevice()
+    //    void CAPI::DestroyDevice()
     //    {
     //        if (m_hDevice != NativeAPI::Null)
     //        {
@@ -1246,7 +1250,7 @@ namespace VKE::RenderSystem
     //        m_pCtx    = nullptr;
     //    }
     //
-    //    Result CDDI::QueryAdapters(AdapterInfoArray *pOut)
+    //    Result CAPI::QueryAdapters(AdapterInfoArray *pOut)
     //    {
     //        Result   ret   = VKE_FAIL;
     //        uint32_t count = 0;
@@ -1297,7 +1301,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    void CDDI::QueryDeviceInfo(SDeviceInfo *pOut)
+    //    void CAPI::QueryDeviceInfo(SDeviceInfo *pOut)
     //    {
     //        auto &Limits    = pOut->Limits;
     //        auto &Alignment = Limits.Alignment;
@@ -1442,7 +1446,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    /*void CDDI::UpdateDesc( SBufferDesc* pInOut )
+    //    /*void CAPI::UpdateDesc( SBufferDesc* pInOut )
     //    {
     //        if( pInOut->usage & BufferUsages::CONSTANT_BUFFER ||
     //            pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
@@ -1451,7 +1455,7 @@ namespace VKE::RenderSystem
     //    m_DeviceProperties.Limits.minUniformBufferOffsetAlignment ) );
     //        }
     //    }*/
-    //    NativeAPI::Buffer CDDI::CreateBuffer(const SBufferDesc &Desc, const void *pAllocator)
+    //    NativeAPI::Buffer CAPI::CreateBuffer(const SBufferDesc &Desc, const void *pAllocator)
     //    {
     //        VkBufferCreateInfo ci;
     //        NativeAPI::Buffer  hBuffer = VK_NULL_HANDLE;
@@ -1475,12 +1479,12 @@ namespace VKE::RenderSystem
     //        return hBuffer;
     //    }
     //
-    //    void CDDI::DestroyBuffer(NativeAPI::Buffer *phBuffer, const void *pAllocator)
+    //    void CAPI::DestroyBuffer(NativeAPI::Buffer *phBuffer, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(Buffer, phBuffer, pAllocator);
     //    }
     //
-    //    NativeAPI::BufferView CDDI::CreateBufferView(const SBufferViewDesc &Desc, const void *pAllocator)
+    //    NativeAPI::BufferView CAPI::CreateBufferView(const SBufferViewDesc &Desc, const void *pAllocator)
     //    {
     //        NativeAPI::BufferView  hView = NativeAPI::Null;
     //        VkBufferViewCreateInfo ci;
@@ -1499,12 +1503,12 @@ namespace VKE::RenderSystem
     //        return hView;
     //    }
     //
-    //    void CDDI::DestroyBufferView(NativeAPI::BufferView *phBufferView, const void *pAllocator)
+    //    void CAPI::DestroyBufferView(NativeAPI::BufferView *phBufferView, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(BufferView, phBufferView, pAllocator);
     //    }
     //
-    //    NativeAPI::Texture CDDI::CreateTexture(const STextureDesc &Desc, const void *pAllocator)
+    //    NativeAPI::Texture CAPI::CreateTexture(const STextureDesc &Desc, const void *pAllocator)
     //    {
     //        NativeAPI::Texture hImage = NativeAPI::Null;
     //        VkImageCreateInfo  ci;
@@ -1546,7 +1550,7 @@ namespace VKE::RenderSystem
     //        return hImage;
     //    }
     //
-    //    Result CDDI::GetTextureFormatProperties(const STextureDesc &Desc, STextureFormatProperties *pOut)
+    //    Result CAPI::GetTextureFormatProperties(const STextureDesc &Desc, STextureFormatProperties *pOut)
     //    {
     //        Result                           ret              = VKE_OK;
     //        VkPhysicalDeviceImageFormatInfo2 NativeFormatInfo = { .sType =
@@ -1574,12 +1578,12 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    void CDDI::DestroyTexture(NativeAPI::Texture *phImage, const void *pAllocator)
+    //    void CAPI::DestroyTexture(NativeAPI::Texture *phImage, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(Image, phImage, pAllocator);
     //    }
     //
-    //    NativeAPI::TextureView CDDI::CreateTextureView(const STextureViewDesc &Desc, const void *pAllocator)
+    //    NativeAPI::TextureView CAPI::CreateTextureView(const STextureViewDesc &Desc, const void *pAllocator)
     //    {
     //        static const VkComponentMapping DefaultMapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
     //                                                           VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
@@ -1607,12 +1611,12 @@ namespace VKE::RenderSystem
     //        return hView;
     //    }
     //
-    //    void CDDI::DestroyTextureView(NativeAPI::TextureView *phImageView, const void *pAllocator)
+    //    void CAPI::DestroyTextureView(NativeAPI::TextureView *phImageView, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(ImageView, phImageView, pAllocator);
     //    }
     //
-    //    NativeAPI::Framebuffer CDDI::CreateFramebuffer(const SFramebufferDesc &Desc, const void *pAllocator)
+    //    NativeAPI::Framebuffer CAPI::CreateFramebuffer(const SFramebufferDesc &Desc, const void *pAllocator)
     //    {
     //        // const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
     //        VkFramebufferCreateInfo ci;
@@ -1634,12 +1638,12 @@ namespace VKE::RenderSystem
     //        return hFramebuffer;
     //    }
     //
-    //    void CDDI::DestroyFramebuffer(NativeAPI::Framebuffer *phFramebuffer, const void *pAllocator)
+    //    void CAPI::DestroyFramebuffer(NativeAPI::Framebuffer *phFramebuffer, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(Framebuffer, phFramebuffer, pAllocator);
     //    }
     //
-    //    NativeAPI::CPUFence CDDI::CreateFence(const SFenceDesc &Desc, const void *pAllocator)
+    //    NativeAPI::CPUFence CAPI::CreateFence(const SFenceDesc &Desc, const void *pAllocator)
     //    {
     //        VkFenceCreateInfo ci;
     //        ci.sType                 = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -1652,12 +1656,12 @@ namespace VKE::RenderSystem
     //        return hObj;
     //    }
     //
-    //    void CDDI::DestroyFence(NativeAPI::CPUFence *phFence, const void *pAllocator)
+    //    void CAPI::DestroyFence(NativeAPI::CPUFence *phFence, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(Fence, phFence, pAllocator);
     //    }
     //
-    //    NativeAPI::GPUFence CDDI::CreateSemaphore(const SSemaphoreDesc &Desc, const void *pAllocator)
+    //    NativeAPI::GPUFence CAPI::CreateSemaphore(const SSemaphoreDesc &Desc, const void *pAllocator)
     //    {
     //        NativeAPI::GPUFence   hSemaphore = NativeAPI::Null;
     //        VkSemaphoreCreateInfo ci;
@@ -1669,12 +1673,12 @@ namespace VKE::RenderSystem
     //        return hSemaphore;
     //    }
     //
-    //    void CDDI::DestroySemaphore(NativeAPI::GPUFence *phSemaphore, const void *pAllocator)
+    //    void CAPI::DestroySemaphore(NativeAPI::GPUFence *phSemaphore, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(Semaphore, phSemaphore, pAllocator);
     //    }
     //
-    //    NativeAPI::CommandBufferPool CDDI::CreateCommandBufferPool(const SCommandBufferPoolDesc &Desc,
+    //    NativeAPI::CommandBufferPool CAPI::CreateCommandBufferPool(const SCommandBufferPoolDesc &Desc,
     //                                                               const void                   *pAllocator)
     //    {
     //        NativeAPI::CommandBufferPool hPool = NativeAPI::Null;
@@ -1688,7 +1692,7 @@ namespace VKE::RenderSystem
     //        return hPool;
     //    }
     //
-    //    void CDDI::DestroyCommandBufferPool(NativeAPI::CommandBufferPool *phPool, const void *pAllocator)
+    //    void CAPI::DestroyCommandBufferPool(NativeAPI::CommandBufferPool *phPool, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(CommandPool, phPool, pAllocator);
     //    }
@@ -1723,7 +1727,7 @@ namespace VKE::RenderSystem
     //        return res;
     //    }
     //
-    //    NativeAPI::RenderPass CDDI::CreateRenderPass(const SRenderPassDesc &Desc, const void *)
+    //    NativeAPI::RenderPass CAPI::CreateRenderPass(const SRenderPassDesc &Desc, const void *)
     //    {
     //        NativeAPI::RenderPass hPass        = NativeAPI::Null;
     //        using VkAttachmentDescriptionArray = Utils::TCDynamicArray<VkAttachmentDescription, 8>;
@@ -1871,12 +1875,12 @@ namespace VKE::RenderSystem
     //        return hPass;
     //    }
     //
-    //    void CDDI::DestroyRenderPass(NativeAPI::RenderPass *phRenderPass, const void *pAllocator)
+    //    void CAPI::DestroyRenderPass(NativeAPI::RenderPass *phRenderPass, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(RenderPass, phRenderPass, pAllocator);
     //    }
     //
-    //    NativeAPI::DescriptorPool CDDI::CreateDescriptorPool(const SDescriptorPoolDesc &Desc, const void *pAllocator)
+    //    NativeAPI::DescriptorPool CAPI::CreateDescriptorPool(const SDescriptorPoolDesc &Desc, const void *pAllocator)
     //    {
     //        NativeAPI::DescriptorPool  hPool = NativeAPI::Null;
     //        VkDescriptorPoolCreateInfo ci;
@@ -1900,24 +1904,24 @@ namespace VKE::RenderSystem
     //        return hPool;
     //    }
     //
-    //    void CDDI::DestroyDescriptorPool(NativeAPI::DescriptorPool *phPool, const void *pAllocator)
+    //    void CAPI::DestroyDescriptorPool(NativeAPI::DescriptorPool *phPool, const void *pAllocator)
     //    {
     //        throw std::runtime_error("Unimplemented functionality");
     //    }
     //
-    //    NativeAPI::Pipeline CDDI::CreatePipeline(const SPipelineDesc &Desc, const void *pAllocator)
+    //    NativeAPI::Pipeline CAPI::CreatePipeline(const SPipelineDesc &Desc, const void *pAllocator)
     //    {
     //        throw std::runtime_error("Unimplemented functionality");
     //        NativeAPI::Pipeline hPipeline = NativeAPI::Null;
     //        return hPipeline;
     //    }
     //
-    //    void CDDI::DestroyPipeline(NativeAPI::Pipeline *phPipeline, const void *pAllocator)
+    //    void CAPI::DestroyPipeline(NativeAPI::Pipeline *phPipeline, const void *pAllocator)
     //    {
     //        throw std::runtime_error("Unimplemented functionality");
     //    }
     //
-    //    NativeAPI::DescriptorSetLayout CDDI::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc &Desc,
+    //    NativeAPI::DescriptorSetLayout CAPI::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc &Desc,
     //                                                                   const void                     *pAllocator)
     //    {
     //        NativeAPI::DescriptorSetLayout  hLayout = NativeAPI::Null;
@@ -1950,7 +1954,7 @@ namespace VKE::RenderSystem
     //        return hLayout;
     //    }
     //
-    //    void CDDI::Update(const SUpdateBufferDescriptorSetInfo &Info)
+    //    void CAPI::Update(const SUpdateBufferDescriptorSetInfo &Info)
     //    {
     //        VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
     //        VkWrite.descriptorType       = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1963,7 +1967,7 @@ namespace VKE::RenderSystem
     //        m_ICD.vkUpdateDescriptorSets(m_hDevice, 1, &VkWrite, 0, nullptr);
     //    }
     //
-    //    void CDDI::Update(const SUpdateTextureDescriptorSetInfo &Info)
+    //    void CAPI::Update(const SUpdateTextureDescriptorSetInfo &Info)
     //    {
     //        Utils::TCDynamicArray<VkDescriptorImageInfo, 8> vVkInfos;
     //        for (uint32_t i = 0; i < Info.vTextureInfos.GetCount(); ++i)
@@ -1985,7 +1989,7 @@ namespace VKE::RenderSystem
     //        m_ICD.vkUpdateDescriptorSets(m_hDevice, 1, &VkWrite, 0, nullptr);
     //    }
     //
-    //    void CDDI::Update(const NativeAPI::DescriptorSet &hDDISet, const SUpdateBindingsHelper &Info)
+    //    void CAPI::Update(const NativeAPI::DescriptorSet &hDDISet, const SUpdateBindingsHelper &Info)
     //    {
     //        Utils::TCDynamicArray<VkWriteDescriptorSet> vVkWrites;
     //        VkWriteDescriptorSet                        VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -2128,7 +2132,7 @@ namespace VKE::RenderSystem
     //        m_ICD.vkUpdateDescriptorSets(m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr);
     //    }
     //
-    //    void CDDI::Update(const NativeAPI::DescriptorSet &hDDISrcSet, NativeAPI::DescriptorSet *phDDIDstOut)
+    //    void CAPI::Update(const NativeAPI::DescriptorSet &hDDISrcSet, NativeAPI::DescriptorSet *phDDIDstOut)
     //    {
     //        VkCopyDescriptorSet vkCopy;
     //        vkCopy.sType           = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
@@ -2143,12 +2147,12 @@ namespace VKE::RenderSystem
     //        m_ICD.vkUpdateDescriptorSets(m_hDevice, 0, 0, 1, &vkCopy);
     //    }
     //
-    //    void CDDI::DestroyDescriptorSetLayout(NativeAPI::DescriptorSetLayout *phLayout, const void *pAllocator)
+    //    void CAPI::DestroyDescriptorSetLayout(NativeAPI::DescriptorSetLayout *phLayout, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(DescriptorSetLayout, phLayout, pAllocator);
     //    }
     //
-    //    NativeAPI::PipelineLayout CDDI::CreatePipelineLayout(const SPipelineLayoutDesc &Desc, const void *pAllocator)
+    //    NativeAPI::PipelineLayout CAPI::CreatePipelineLayout(const SPipelineLayoutDesc &Desc, const void *pAllocator)
     //    {
     //        NativeAPI::PipelineLayout  hLayout = NativeAPI::Null;
     //        VkPipelineLayoutCreateInfo ci;
@@ -2174,12 +2178,12 @@ namespace VKE::RenderSystem
     //        return hLayout;
     //    }
     //
-    //    void CDDI::DestroyPipelineLayout(NativeAPI::PipelineLayout *phLayout, const void *pAllocator)
+    //    void CAPI::DestroyPipelineLayout(NativeAPI::PipelineLayout *phLayout, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(PipelineLayout, phLayout, pAllocator);
     //    }
     //
-    //    NativeAPI::Shader CDDI::CreateShader(const SShaderData &Data, const void *pAllocator)
+    //    NativeAPI::Shader CAPI::CreateShader(const SShaderData &Data, const void *pAllocator)
     //    {
     //        VKE_ASSERT2(Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY && Data.codeSize > 0 &&
     //                        Data.codeSize % 4 == 0 && Data.pCode != nullptr,
@@ -2195,12 +2199,12 @@ namespace VKE::RenderSystem
     //        return hShader;
     //    }
     //
-    //    void CDDI::DestroyShader(NativeAPI::Shader *phShader, const void *pAllocator)
+    //    void CAPI::DestroyShader(NativeAPI::Shader *phShader, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(ShaderModule, phShader, pAllocator);
     //    }
     //
-    //    NativeAPI::Sampler CDDI::CreateSampler(const SSamplerDesc &Desc, const void *pAllocator)
+    //    NativeAPI::Sampler CAPI::CreateSampler(const SSamplerDesc &Desc, const void *pAllocator)
     //    {
     //        NativeAPI::Sampler  hSampler = NativeAPI::Null;
     //        VkSamplerCreateInfo ci;
@@ -2226,12 +2230,12 @@ namespace VKE::RenderSystem
     //        return hSampler;
     //    }
     //
-    //    void CDDI::DestroySampler(NativeAPI::Sampler *phSampler, const void *pAllocator)
+    //    void CAPI::DestroySampler(NativeAPI::Sampler *phSampler, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(Sampler, phSampler, pAllocator);
     //    }
     //
-    //    NativeAPI::Event CDDI::CreateEvent(const SEventDesc &, const void *pAllocator)
+    //    NativeAPI::Event CAPI::CreateEvent(const SEventDesc &, const void *pAllocator)
     //    {
     //        static const VkEventCreateInfo ci = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
     //        NativeAPI::Event               hRet;
@@ -2239,12 +2243,12 @@ namespace VKE::RenderSystem
     //        return hRet;
     //    }
     //
-    //    void CDDI::DestroyEvent(NativeAPI::Event *phEvent, const void *pAllocator)
+    //    void CAPI::DestroyEvent(NativeAPI::Event *phEvent, const void *pAllocator)
     //    {
     //        DDI_DESTROY_OBJECT(Event, phEvent, pAllocator);
     //    }
     //
-    //    Result CDDI::AllocateObjects(const AllocateDescs::SDescSet &Info, NativeAPI::DescriptorSet *pSets)
+    //    Result CAPI::AllocateObjects(const AllocateDescs::SDescSet &Info, NativeAPI::DescriptorSet *pSets)
     //    {
     //        Result                      ret = VKE_FAIL;
     //        VkDescriptorSetAllocateInfo ai;
@@ -2278,12 +2282,12 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    void CDDI::FreeObjects(const FreeDescs::SDescSet &Desc)
+    //    void CAPI::FreeObjects(const FreeDescs::SDescSet &Desc)
     //    {
     //        m_ICD.vkFreeDescriptorSets(m_hDevice, Desc.hPool, Desc.count, Desc.phSets);
     //    }
     //
-    //    Result CDDI::AllocateObjects(const SAllocateCommandBufferInfo &Info, NativeAPI::CommandBuffer *pBuffers)
+    //    Result CAPI::AllocateObjects(const SAllocateCommandBufferInfo &Info, NativeAPI::CommandBuffer *pBuffers)
     //    {
     //        Result                      ret = VKE_FAIL;
     //        VkCommandBufferAllocateInfo ai;
@@ -2298,18 +2302,18 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    void CDDI::FreeObjects(const SFreeCommandBufferInfo &Info)
+    //    void CAPI::FreeObjects(const SFreeCommandBufferInfo &Info)
     //    {
     //        m_ICD.vkFreeCommandBuffers(m_hDevice, Info.hDDIPool, Info.count, Info.pDDICommandBuffers);
     //    }
     //
-    //    size_t CDDI::GetMemoryHeapTotalSize(MEMORY_HEAP_TYPE type) const
+    //    size_t CAPI::GetMemoryHeapTotalSize(MEMORY_HEAP_TYPE type) const
     //    {
     //        const auto idx = m_aHeapTypeToHeapIndexMap[type];
     //        return m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[idx].size;
     //    }
     //
-    //    size_t CDDI::GetMemoryHeapCurrentSize(MEMORY_HEAP_TYPE type) const
+    //    size_t CAPI::GetMemoryHeapCurrentSize(MEMORY_HEAP_TYPE type) const
     //    {
     //        const auto idx = m_aHeapTypeToHeapIndexMap[type];
     //        return m_aHeapSizes[idx];
@@ -2334,7 +2338,7 @@ namespace VKE::RenderSystem
     //        return -1;
     //    }
     //
-    //    MEMORY_HEAP_TYPE CDDI::GetMemoryHeapType(MEMORY_USAGE usage) const
+    //    MEMORY_HEAP_TYPE CAPI::GetMemoryHeapType(MEMORY_USAGE usage) const
     //    {
     //        MEMORY_HEAP_TYPE      ret             = MemoryHeapTypes::OTHER;
     //        VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags(usage);
@@ -2360,7 +2364,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::Allocate(const SAllocateMemoryDesc &Desc, SAllocateMemoryData *pOut)
+    //    Result CAPI::Allocate(const SAllocateMemoryDesc &Desc, SAllocateMemoryData *pOut)
     //    {
     //        Result                ret             = VKE_FAIL;
     //        VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags(Desc.usage);
@@ -2407,7 +2411,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::GetTextureMemoryRequirements(const NativeAPI::Texture         &hTexture,
+    //    Result CAPI::GetTextureMemoryRequirements(const NativeAPI::Texture         &hTexture,
     //                                              SAllocationMemoryRequirementInfo *pOut)
     //    {
     //        VkMemoryRequirements VkReq;
@@ -2417,7 +2421,7 @@ namespace VKE::RenderSystem
     //        return VKE_OK;
     //    }
     //
-    //    Result CDDI::GetBufferMemoryRequirements(const NativeAPI::Buffer &hBuffer, SAllocationMemoryRequirementInfo
+    //    Result CAPI::GetBufferMemoryRequirements(const NativeAPI::Buffer &hBuffer, SAllocationMemoryRequirementInfo
     //    *pOut)
     //    {
     //        VkMemoryRequirements VkReq;
@@ -2427,7 +2431,7 @@ namespace VKE::RenderSystem
     //        return VKE_OK;
     //    }
     //
-    //    void CDDI::Free(NativeAPI::Memory *phMemory, const void *pAllocator)
+    //    void CAPI::Free(NativeAPI::Memory *phMemory, const void *pAllocator)
     //    {
     //        if (*phMemory != NativeAPI::Null)
     //        {
@@ -2436,19 +2440,19 @@ namespace VKE::RenderSystem
     //        *phMemory = NativeAPI::Null;
     //    }
     //
-    //    bool CDDI::IsSignaled(const NativeAPI::CPUFence &hFence) const
+    //    bool CAPI::IsSignaled(const NativeAPI::CPUFence &hFence) const
     //    {
     //        // return WaitForFences( hFence, 0 ) == VKE_OK;
     //        VkResult res = m_ICD.vkGetFenceStatus(m_hDevice, hFence);
     //        return res == VK_SUCCESS;
     //    }
     //
-    //    void CDDI::Reset(NativeAPI::CPUFence *phFence)
+    //    void CAPI::Reset(NativeAPI::CPUFence *phFence)
     //    {
     //        VK_ERR(m_ICD.vkResetFences(m_hDevice, 1, phFence));
     //    }
     //
-    //    Result CDDI::WaitForFences(const NativeAPI::CPUFence &hFence, uint64_t timeout)
+    //    Result CAPI::WaitForFences(const NativeAPI::CPUFence &hFence, uint64_t timeout)
     //    {
     //        VkResult res = m_ICD.vkWaitForFences(m_hDevice, 1, &hFence, VK_TRUE, timeout);
     //        Result   ret = VKE_FAIL;
@@ -2467,21 +2471,21 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::WaitForQueue(const NativeAPI::Queue &hQueue)
+    //    Result CAPI::WaitForQueue(const NativeAPI::Queue &hQueue)
     //    {
     //        VkResult res = m_ICD.vkQueueWaitIdle(hQueue);
     //        VK_ERR(res);
     //        return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
     //    }
     //
-    //    Result CDDI::WaitForDevice()
+    //    Result CAPI::WaitForDevice()
     //    {
     //        VkResult res = m_ICD.vkDeviceWaitIdle(m_hDevice);
     //        VK_ERR(res);
     //        return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
     //    }
     //
-    //    void *CDDI::MapMemory(const SMapMemoryInfo &Info)
+    //    void *CAPI::MapMemory(const SMapMemoryInfo &Info)
     //    {
     //        void    *pData;
     //        VkResult res = m_ICD.vkMapMemory(m_hDevice, Info.hMemory, Info.offset, Info.size, 0, &pData);
@@ -2493,31 +2497,31 @@ namespace VKE::RenderSystem
     //        return pData;
     //    }
     //
-    //    void CDDI::UnmapMemory(const NativeAPI::Memory &hDDIMemory)
+    //    void CAPI::UnmapMemory(const NativeAPI::Memory &hDDIMemory)
     //    {
     //        m_ICD.vkUnmapMemory(m_hDevice, hDDIMemory);
     //    }
     //
-    //    void CDDI::Draw(const NativeAPI::CommandBuffer &hCommandBuffer, const uint32_t &vertexCount,
+    //    void CAPI::Draw(const NativeAPI::CommandBuffer &hCommandBuffer, const uint32_t &vertexCount,
     //                    const uint32_t &instanceCount, const uint32_t &firstVertex, const uint32_t &firstInstance)
     //    {
     //        m_ICD.vkCmdDraw(hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     //    }
     //
-    //    void CDDI::DrawIndexed(const NativeAPI::CommandBuffer &hCommandBuffer, const SDrawParams &Params)
+    //    void CAPI::DrawIndexed(const NativeAPI::CommandBuffer &hCommandBuffer, const SDrawParams &Params)
     //    {
     //        m_ICD.vkCmdDrawIndexed(hCommandBuffer, Params.Indexed.indexCount, Params.Indexed.instanceCount,
     //                               Params.Indexed.startIndex, Params.Indexed.vertexOffset,
     //                               Params.Indexed.startInstance);
     //    }
     //
-    //    void CDDI::DrawMesh(const NativeAPI::CommandBuffer &hCommandBuffer, uint32_t width, uint32_t height, uint32_t
+    //    void CAPI::DrawMesh(const NativeAPI::CommandBuffer &hCommandBuffer, uint32_t width, uint32_t height, uint32_t
     //    depth)
     //    {
     //        m_ICD.vkCmdDrawMeshTasksEXT(hCommandBuffer, width, height, depth);
     //    }
     //
-    //    void CDDI::BeginRenderPass(NativeAPI::CommandBuffer hCommandBuffer, const SBeginRenderPassInfo2 &Info)
+    //    void CAPI::BeginRenderPass(NativeAPI::CommandBuffer hCommandBuffer, const SBeginRenderPassInfo2 &Info)
     //    {
     //        Utils::TCDynamicArray<VkRenderingAttachmentInfoKHR, CRenderPass::MAX_RT_COUNT> vVkAttachments;
     //        VkRenderingInfoKHR                                                             vkInfo;
@@ -2580,12 +2584,12 @@ namespace VKE::RenderSystem
     //        m_ICD.vkCmdBeginRenderingKHR(hCommandBuffer, &vkInfo);
     //    }
     //
-    //    void CDDI::EndRenderPass(NativeAPI::CommandBuffer hDDICommandBuffer)
+    //    void CAPI::EndRenderPass(NativeAPI::CommandBuffer hDDICommandBuffer)
     //    {
     //        m_ICD.vkCmdEndRenderingKHR(hDDICommandBuffer);
     //    }
     //
-    //    void CDDI::Copy(const NativeAPI::CommandBuffer &hCmdBuffer, const SCopyBufferToTextureInfo &Info)
+    //    void CAPI::Copy(const NativeAPI::CommandBuffer &hCmdBuffer, const SCopyBufferToTextureInfo &Info)
     //    {
     //        Utils::TCDynamicArray<VkBufferImageCopy> vRegions(Info.vRegions.GetCount());
     //        for (uint32_t i = 0; i < vRegions.GetCount(); ++i)
@@ -2610,7 +2614,7 @@ namespace VKE::RenderSystem
     //                                     &vRegions[0]);
     //    }
     //
-    //    void CDDI::Copy(const NativeAPI::CommandBuffer &hDDICmdBuffer, const SCopyBufferInfo &Info)
+    //    void CAPI::Copy(const NativeAPI::CommandBuffer &hDDICmdBuffer, const SCopyBufferInfo &Info)
     //    {
     //        VkBufferCopy VkCopy;
     //        VkCopy.srcOffset = Info.Region.srcBufferOffset;
@@ -2628,7 +2632,7 @@ namespace VKE::RenderSystem
     //        pOut->mipLevel       = Subres.beginMipmapLevel;
     //    }
     //
-    //    void CDDI::Copy(const NativeAPI::CommandBuffer &hDDICmdBuffer, const SCopyTextureInfoEx &Info)
+    //    void CAPI::Copy(const NativeAPI::CommandBuffer &hDDICmdBuffer, const SCopyTextureInfoEx &Info)
     //    {
     //        VkImageLayout vkSrcLayout = Map::ImageLayout(Info.srcTextureState);
     //        VkImageLayout vkDstLayout = Map::ImageLayout(Info.dstTextureState);
@@ -2644,7 +2648,7 @@ namespace VKE::RenderSystem
     //                             vkDstLayout, 1, &VkCopy);
     //    }
     //
-    //    void CDDI::Blit(const NativeAPI::CommandBuffer &hAPICmdBuffer, const SBlitTextureInfo &Info)
+    //    void CAPI::Blit(const NativeAPI::CommandBuffer &hAPICmdBuffer, const SBlitTextureInfo &Info)
     //    {
     //        Utils::TCDynamicArray<VkImageBlit2KHR> vNativeRegions(Info.vRegions.GetCount());
     //        for (uint32_t i = 0; i < Info.vRegions.GetCount(); ++i)
@@ -2677,35 +2681,35 @@ namespace VKE::RenderSystem
     //        m_ICD.vkCmdBlitImage2KHR(hAPICmdBuffer, &NativeInfo);
     //    }
     //
-    //    void CDDI::SetEvent(const NativeAPI::Event &hDDIEvent)
+    //    void CAPI::SetEvent(const NativeAPI::Event &hDDIEvent)
     //    {
     //        m_ICD.vkSetEvent(m_hDevice, hDDIEvent);
     //    }
     //
-    //    void CDDI::SetEvent(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Event &hDDIEvent,
+    //    void CAPI::SetEvent(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Event &hDDIEvent,
     //                        const PIPELINE_STAGES &stages)
     //    {
     //        m_ICD.vkCmdSetEvent(hDDICmdBuffer, hDDIEvent, Convert::PipelineStages(stages));
     //    }
     //
-    //    void CDDI::Reset(const NativeAPI::Event &hDDIInOut)
+    //    void CAPI::Reset(const NativeAPI::Event &hDDIInOut)
     //    {
     //        m_ICD.vkResetEvent(m_hDevice, hDDIInOut);
     //    }
     //
-    //    void CDDI::Reset(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Event &hDDIEvent,
+    //    void CAPI::Reset(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Event &hDDIEvent,
     //                     const PIPELINE_STAGES &stages)
     //    {
     //        m_ICD.vkCmdResetEvent(hDDICmdBuffer, hDDIEvent, Convert::PipelineStages(stages));
     //    }
     //
-    //    bool CDDI::IsSet(const NativeAPI::Event &hDDIEvent)
+    //    bool CAPI::IsSet(const NativeAPI::Event &hDDIEvent)
     //    {
     //        VkResult res = m_ICD.vkGetEventStatus(m_hDevice, hDDIEvent);
     //        return res == VK_EVENT_SET;
     //    }
     //
-    //    Result CDDI::Submit(const SSubmitInfo &Info)
+    //    Result CAPI::Submit(const SSubmitInfo &Info)
     //    {
     //        Result                                      ret        = VKE_FAIL;
     //        static VkPipelineStageFlags                 vkWaitMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -2727,7 +2731,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::Present(const SPresentData &Info)
+    //    Result CAPI::Present(const SPresentData &Info)
     //    {
     //        VkPresentInfoKHR pi;
     //        pi.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2786,7 +2790,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::CreateSwapChain(const SSwapChainDesc &Desc, const void *, SDDISwapChain *pOut)
+    //    Result CAPI::CreateSwapChain(const SSwapChainDesc &Desc, const void *, SDDISwapChain *pOut)
     //    {
     //        Result                    ret = VKE_FAIL;
     //        VkResult                  vkRes;
@@ -3167,7 +3171,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::ReCreateSwapChain(const SSwapChainDesc &Desc, SDDISwapChain *pOut)
+    //    Result CAPI::ReCreateSwapChain(const SSwapChainDesc &Desc, SDDISwapChain *pOut)
     //    {
     //        Result ret                          = VKE_FAIL;
     //        auto   pInternalAllocator           = reinterpret_cast<Helper::SSwapChainAllocator
@@ -3203,7 +3207,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    Result CDDI::QueryPresentSurfaceCaps(const NativeAPI::PresentSurface &hSurface, SPresentSurfaceCaps *pOut)
+    //    Result CAPI::QueryPresentSurfaceCaps(const NativeAPI::PresentSurface &hSurface, SPresentSurfaceCaps *pOut)
     //    {
     //        Result                   ret = VKE_FAIL;
     //        VkResult                 res;
@@ -3279,7 +3283,7 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    void CDDI::DestroySwapChain(SDDISwapChain *pInOut, const void *)
+    //    void CAPI::DestroySwapChain(SDDISwapChain *pInOut, const void *)
     //    {
     //        Helper::SSwapChainAllocator *pInternalAllocator =
     //            reinterpret_cast<Helper::SSwapChainAllocator *>(pInOut->pInternalAllocator);
@@ -3306,7 +3310,7 @@ namespace VKE::RenderSystem
     //        }
     //    }
     //
-    //    Result CDDI::GetCurrentBackBufferIndex(const SDDISwapChain &SwapChain, const SDDIGetBackBufferInfo &Info,
+    //    Result CAPI::GetCurrentBackBufferIndex(const SDDISwapChain &SwapChain, const SDDIGetBackBufferInfo &Info,
     //                                           uint32_t *pOut)
     //    {
     //        Result   ret = VKE_FAIL;
@@ -3355,13 +3359,13 @@ namespace VKE::RenderSystem
     //        return ret;
     //    }
     //
-    //    void CDDI::Reset(const NativeAPI::CommandBuffer &hCommandBuffer)
+    //    void CAPI::Reset(const NativeAPI::CommandBuffer &hCommandBuffer)
     //    {
     //        const auto flags = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
     //        VK_ERR(m_ICD.vkResetCommandBuffer(hCommandBuffer, flags));
     //    }
     //
-    //    void CDDI::BeginCommandBuffer(const NativeAPI::CommandBuffer &hCommandBuffer)
+    //    void CAPI::BeginCommandBuffer(const NativeAPI::CommandBuffer &hCommandBuffer)
     //    {
     //        VkCommandBufferBeginInfo bi;
     //        bi.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -3371,12 +3375,12 @@ namespace VKE::RenderSystem
     //        VK_ERR(m_ICD.vkBeginCommandBuffer(hCommandBuffer, &bi));
     //    }
     //
-    //    void CDDI::EndCommandBuffer(const NativeAPI::CommandBuffer &hCommandBuffer)
+    //    void CAPI::EndCommandBuffer(const NativeAPI::CommandBuffer &hCommandBuffer)
     //    {
     //        VK_ERR(m_ICD.vkEndCommandBuffer(hCommandBuffer));
     //    }
     //
-    //    void CDDI::Bind(const SBindPipelineInfo &Info)
+    //    void CAPI::Bind(const SBindPipelineInfo &Info)
     //    {
     //        VKE_ASSERT2(Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != NativeAPI::Null &&
     //                        Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != NativeAPI::Null,
@@ -3386,11 +3390,11 @@ namespace VKE::RenderSystem
     //                                Info.pPipeline->GetDDIObject());
     //    }
     //
-    //    void CDDI::UnbindPipeline(const NativeAPI::CommandBuffer &, const NativeAPI::Pipeline &)
+    //    void CAPI::UnbindPipeline(const NativeAPI::CommandBuffer &, const NativeAPI::Pipeline &)
     //    {
     //    }
     //
-    //    void CDDI::Bind(const SBindRenderPassInfo &Info)
+    //    void CAPI::Bind(const SBindRenderPassInfo &Info)
     //    {
     //        VKE_ASSERT2(Info.pBeginInfo != nullptr, "");
     //        {
@@ -3411,32 +3415,32 @@ namespace VKE::RenderSystem
     //        }
     //    }
     //
-    //    void CDDI::UnbindRenderPass(const NativeAPI::CommandBuffer &hCb, const NativeAPI::RenderPass &)
+    //    void CAPI::UnbindRenderPass(const NativeAPI::CommandBuffer &hCb, const NativeAPI::RenderPass &)
     //    {
     //        m_ICD.vkCmdEndRenderPass(hCb);
     //    }
     //
-    //    void CDDI::Bind(const SBindDDIDescriptorSetsInfo &Info)
+    //    void CAPI::Bind(const SBindDDIDescriptorSetsInfo &Info)
     //    {
     //        m_ICD.vkCmdBindDescriptorSets(Info.hDDICommandBuffer, Convert::PipelineTypeToBindPoint(Info.pipelineType),
     //                                      Info.hDDIPipelineLayout, Info.firstSet, Info.setCount, Info.aDDISetHandles,
     //                                      Info.dynamicOffsetCount, Info.aDynamicOffsets);
     //    }
     //
-    //    void CDDI::Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
+    //    void CAPI::Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
     //                    const uint32_t offset)
     //    {
     //        VkDeviceSize ddiOffset = offset;
     //        m_ICD.vkCmdBindVertexBuffers(hDDICmdBuffer, 0, 1, &hDDIBuffer, &ddiOffset);
     //    }
     //
-    //    void CDDI::Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
+    //    void CAPI::Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
     //                    const uint32_t offset, const INDEX_TYPE &type)
     //    {
     //        m_ICD.vkCmdBindIndexBuffer(hDDICmdBuffer, hDDIBuffer, offset, Map::IndexType(type));
     //    }
     //
-    //    void CDDI::SetState(const NativeAPI::CommandBuffer &hCommandBuffer, const SViewportDesc &Desc)
+    //    void CAPI::SetState(const NativeAPI::CommandBuffer &hCommandBuffer, const SViewportDesc &Desc)
     //    {
     //        VkViewport Viewport;
     //        Viewport.width = Desc.Size.width;
@@ -3453,7 +3457,7 @@ namespace VKE::RenderSystem
     //        m_ICD.vkCmdSetViewport(hCommandBuffer, 0, 1, &Viewport);
     //    }
     //
-    //    void CDDI::SetState(const NativeAPI::CommandBuffer &hCommandBuffer, const SScissorDesc &Desc)
+    //    void CAPI::SetState(const NativeAPI::CommandBuffer &hCommandBuffer, const SScissorDesc &Desc)
     //    {
     //        VkRect2D Scissor;
     //        Scissor.extent.width  = Desc.Size.width;
@@ -3463,7 +3467,7 @@ namespace VKE::RenderSystem
     //        m_ICD.vkCmdSetScissor(hCommandBuffer, 0, 1, &Scissor);
     //    }
     //
-    //    void CDDI::Barrier(const NativeAPI::CommandBuffer &hCommandBuffer, const SBarrierInfo &Info)
+    //    void CAPI::Barrier(const NativeAPI::CommandBuffer &hCommandBuffer, const SBarrierInfo &Info)
     //    {
     //        VkMemoryBarrier                                                        *pVkMemBarriers = nullptr;
     //        VkImageMemoryBarrier                                                   *pVkImgBarriers = nullptr;
@@ -3530,12 +3534,12 @@ namespace VKE::RenderSystem
     //                                   Info.vTextureBarriers.GetCount(), pVkImgBarriers);
     //    }
     //
-    //    void CDDI::Convert(const SClearValue &In, NativeAPI::ClearValue *pOut)
+    //    void CAPI::Convert(const SClearValue &In, NativeAPI::ClearValue *pOut)
     //    {
     //        Memory::Copy(pOut, sizeof(NativeAPI::ClearValue), &In, sizeof(SClearValue));
     //    }
     //
-    //    void CDDI::BeginDebugInfo(const NativeAPI::CommandBuffer &hDDICmdBuff, const SDebugInfo *pInfo)
+    //    void CAPI::BeginDebugInfo(const NativeAPI::CommandBuffer &hDDICmdBuff, const SDebugInfo *pInfo)
     //    {
     //        if (sInstanceICD.vkCmdBeginDebugUtilsLabelEXT && pInfo)
     //        {
@@ -3551,7 +3555,7 @@ namespace VKE::RenderSystem
     //        }
     //    }
     //
-    //    void CDDI::EndDebugInfo(const NativeAPI::CommandBuffer &hDDICmdBuff)
+    //    void CAPI::EndDebugInfo(const NativeAPI::CommandBuffer &hDDICmdBuff)
     //    {
     //        if (sInstanceICD.vkCmdEndDebugUtilsLabelEXT)
     //        {
@@ -3559,7 +3563,7 @@ namespace VKE::RenderSystem
     //        }
     //    }
     //
-    //    void CDDI::SetObjectDebugName(const uint64_t &handle, const uint32_t &objType, cstr_t pName) const
+    //    void CAPI::SetObjectDebugName(const uint64_t &handle, const uint32_t &objType, cstr_t pName) const
     //    {
     // #if VKE_RENDER_SYSTEM_DEBUG
     //        if (sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName)
@@ -3577,7 +3581,7 @@ namespace VKE::RenderSystem
     // #endif
     //    }
     //
-    //    void CDDI::SetQueueDebugName(uint64_t handle, cstr_t pName) const
+    //    void CAPI::SetQueueDebugName(uint64_t handle, cstr_t pName) const
     //    {
     //        SetObjectDebugName(handle, VK_OBJECT_TYPE_QUEUE, pName);
     //    }

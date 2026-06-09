@@ -5,7 +5,7 @@
 #include "Core/Utils/TCSmartPtr.h"
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
 
 #include "glslang/Public/ShaderLang.h"
@@ -42,7 +42,7 @@ namespace VKE
             VKE_DECL_BASE_RESOURCE();
 
         public:
-            // using CompilerData = CDDI::CompilerData;
+            // using CompilerData = CAPI::CompilerData;
             using InitInfo = SShaderInitInfo;
             using ShaderBinaryBuffer =
                 Utils::TCDynamicArray< uint8_t, Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE >;

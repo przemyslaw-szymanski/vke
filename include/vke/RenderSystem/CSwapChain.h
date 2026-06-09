@@ -2,7 +2,7 @@
 
 #include "Core/VKECommon.h"
 // #include "RenderSystem/Vulkan/Common.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "RenderSystem/Resources/CTexture.h"
 
@@ -232,7 +232,7 @@ namespace VKE
             // SPresentSurfaceCaps         m_PresentSurfaceCaps;
             RenderPassRefPtr m_pRenderPass;
             // NativeAPI::RenderPass               m_hDDIRenderPass;
-            Vulkan::Queue           m_pQueue       = nullptr;
+            //Vulkan::Queue           m_pQueue       = nullptr;
             std::atomic< uint32_t > m_acquireCount = 0;
             // uint32_t                    m_currBackBufferIdx = 0;
             bool m_needPresent  = false;

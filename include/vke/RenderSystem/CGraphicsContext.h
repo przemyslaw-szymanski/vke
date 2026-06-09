@@ -46,7 +46,6 @@ namespace VKE
             friend class CSubmitManager;
             friend class CPipelineManager;
             friend struct Tasks::SGraphicsContext;
-            friend class CDDI;
             struct SPrivate;
 
             // using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
@@ -179,7 +178,7 @@ namespace VKE
         protected:
             SGraphicsContextDesc m_Desc;
             // CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
-            // CDDI&                       m_DDI;
+            // CAPI&                       m_DDI;
             // CContextBase                m_BaseCtx;
             CPipelineManager m_PipelineMgr;
             // CSubmitManager              m_SubmitMgr;

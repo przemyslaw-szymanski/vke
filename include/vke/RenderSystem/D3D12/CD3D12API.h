@@ -1,17 +1,17 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-
+#include <RenderSystem/TCAPI.h>
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Memory/CMemoryPoolManager.h"
 
-namespace VKE::RenderSystem
+namespace VKE::RenderSystem::D3D12
 {
     // Forward declarations
     class CDeviceContext;
 
-    // CDDI: Common Device Driver Interface for any render system
-    class VKE_API CDDI
+    // CAPI: Common Device Driver Interface for any render system
+    class VKE_API CD3D12API : public TCAPI< CD3D12API >
     {
         friend class CDeviceContext;
         using AdapterArray = Utils::TCDynamicArray< NativeAPI::Adapter >;

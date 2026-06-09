@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/API.h"
 #include "RenderSystem/CPipeline.h"
 #include "RenderSystem/CRenderPass.h"
 

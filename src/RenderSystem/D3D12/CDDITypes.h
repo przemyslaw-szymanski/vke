@@ -1,13 +1,13 @@
 #pragma once
 
-#if VKE_D3D12_RENDER_SYSTEM
+#if VKE_WINDOWS
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
-namespace VKE::RenderSystem
+namespace VKE::RenderSystem::D3D12
 {
-    static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
+    
 
     // TODO(blturkot): D3D12 use single desc for all shader bindings
     enum DDIImageViewType
@@ -25,8 +25,12 @@ namespace VKE::RenderSystem
         D3D12_VIEW_TYPE_RT_ACC_STRUCT,
     };
 
-    namespace NativeAPI
+    template< class ObjT >
+    concept Nullable = std::is_pointer_v< ObjT >;
+
+    struct VKE_API NativeAPI
     {
+        static const uint32_t            DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
         static const decltype( nullptr ) Null;
 
         struct FenceTypes
@@ -85,8 +89,7 @@ namespace VKE::RenderSystem
         {
         };
 
-        template< class ObjT >
-        concept Nullable = std::is_pointer_v< ObjT >;
+        
 
         template< class T >
         struct TSSimpleHashT
@@ -341,16 +344,16 @@ namespace VKE::RenderSystem
             } Features; // struct SDeviceFeatures
         };
 
-    } // namespace NativeAPI
+    }; // struct NativeAPI
 
 } // namespace VKE::RenderSystem
 
 template<>
-struct std::hash< VKE::RenderSystem::NativeAPI::GPUFence >
+struct std::hash< VKE::RenderSystem::D3D12::NativeAPI::GPUFence >
 {
-    std::size_t operator()( const VKE::RenderSystem::NativeAPI::GPUFence& Fence ) const
+    std::size_t operator()( const VKE::RenderSystem::D3D12::NativeAPI::GPUFence& Fence ) const
     {
-        return VKE::RenderSystem::NativeAPI::CalcHash( Fence );
+        return VKE::RenderSystem::D3D12::NativeAPI::CalcHash( Fence );
     }
 };
 
