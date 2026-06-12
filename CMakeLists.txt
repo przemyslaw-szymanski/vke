@@ -48,28 +48,18 @@ set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(THIRD_PARTY_DIR "${SOURCE_DIR}/ThirdParty")
 set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
 set(THIRD_PARTY_LIBS)
+set(DLL_DEPENDENCIES )
 
-#set(DXC_PATH "${THIRD_PARTY_DIR}/dxc")
-#set(DX_SHADER_COMPILER_PATH "${THIRD_PARTY_DIR}/DirectXShaderCompiler")
-
-set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
-    optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
-
-#set(GLSLANG_LIBS
-#debug glslangd debug HLSLd debug SPIRVd debug OSDependentd debug OGLCompilerd
-#optimized glslang optimized HLSL optimized SPIRV optimized OSDependent optimized OGLCompiler)
 find_package(glslang CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
 
 find_package(ZLIB REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" ZLIB::ZLIB)
 
-#set(DXC_LIBS
-#    debug dxclib
-#    optimized dxclib)
 if(VKE_USE_DIRECTX_SHADER_COMPILER)
     find_package(directx-dxc CONFIG REQUIRED)
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXShaderCompiler)
+    set(DLL_DEPENDENCIES ${DLL_DEPENDENCIES} "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin/dxcompiler.dll")
 endif()
 
 find_package(directxtex CONFIG REQUIRED)
@@ -84,23 +74,50 @@ endif()
 find_package(directxmath CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXMath)
 
-find_package(Vulkan REQUIRED)
-message(STATUS "Found Vulkan: ${Vulkan_LIBRARIES}")
-message(STATUS "Vulkan include dirs: ${Vulkan_INCLUDE_DIRS}")
-set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Vulkan::Vulkan)
+if(VKE_RENDER_SYSTEM_VULKAN)
+    find_package(Vulkan REQUIRED)
+    message(STATUS "Found Vulkan: ${Vulkan_LIBRARIES}")
+    message(STATUS "Vulkan include dirs: ${Vulkan_INCLUDE_DIRS}")
+    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Vulkan::Vulkan)
+endif()
 
-# Is this actually used?
-#set(GAINPUT_LIBS
-#    optimized gainputstatic debug gainputstatic-d)
+if(VKE_RENDER_SYSTEM_D3D12)
 
-#if(VKE_USE_GAINPUT)
-#    set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} ${GAINPUT_LIBS})
-#endif()
+    # Workaround for missing D3D12.LIB in CMake GUI, which is required by Agility SDK in vcpkg.
+    if(NOT CMAKE_WINDOWS_KITS_10_DIR)
+        get_filename_component(CMAKE_WINDOWS_KITS_10_DIR "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SDKs\\Windows\\v10.0;InstallationFolder]" ABSOLUTE CACHE)
+    endif()
 
-#if(VKE_USE_DIRECTX_SHADER_COMPILER)
-#    set(THIRD_PARTY_LIB_DIRS "${THIRD_PARTY_LIB_DIRS}" "${THIRD_PARTY_DIR}/dxc/lib")
-#    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" "${DXC_LIBS}")
-#endif()
+    message(STATUS "[WINSDK]: Version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}" )
+    message(STATUS "[WINSDK]: Kits dir: ${CMAKE_WINDOWS_KITS_10_DIR}")
+
+    # Lookout for D3D12 library. If not found then we need to add the Windows SDK Lib path to the search dirs.
+    # This way CMake can find D3D12.LIB required by the DirectX12 Agility SDK without additional manual steps.
+    find_library(D3D12_LIB NAMES d3d12)
+
+    if("${D3D12_LIB}" STREQUAL "D3D12_LIB-NOTFOUND")
+        set(_WIN_SDK_INCLUDE_PATH "${CMAKE_WINDOWS_KITS_10_DIR}/Lib/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/um/x64")
+        message(STATUS "[WINSDK]: Adding Lib dir to include path: ${_WIN_SDK_INCLUDE_PATH}")
+
+        # Add _WIN_SDK_INCLUDE_PATH to the library search path
+        list(APPEND CMAKE_LIBRARY_PATH "${_WIN_SDK_INCLUDE_PATH}")
+    endif()
+
+    find_package(directx-headers CONFIG REQUIRED)
+    find_package(directx12-agility CONFIG REQUIRED)
+    find_package(winpixevent CONFIG REQUIRED)
+    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::WinPixEventRuntime)
+
+    set(_AGILITY_BIN_DIR     "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
+    set(_AGILITY_DBG_BIN_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/bin")
+
+    # D3D12Core.dll exists in both bin/ and debug/bin; pick by config at build time.
+    # d3d12SDKLayers.dll only ships in debug/bin, so it is only copied for Debug builds.
+    set(D3D12_AGILITY_DLLS
+        "$<IF:$<CONFIG:Debug>,${_AGILITY_DBG_BIN_DIR},${_AGILITY_BIN_DIR}>/D3D12Core.dll"
+        "$<$<CONFIG:Debug>:${_AGILITY_DBG_BIN_DIR}/d3d12SDKLayers.dll>"
+    )
+endif()
 
 message("Third Party Libs:")
 foreach(LIB IN LISTS THIRD_PARTY_LIBS)
@@ -123,11 +140,47 @@ add_library(vkEngine SHARED
     src/DllMain.cpp
     .clang-format)
 
-add_dependencies(vkEngine vkEngineScene)
+add_dependencies(vkEngine vkEngineRenderSystem vkEngineScene)
 
-set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
-target_link_libraries(vkEngine ${LINK_LIBS})
+#set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
+#    optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
+
+#set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
+set(LINK_LIBS ${THIRD_PARTY_LIBS})
+
+message("Linking vkEngine with libs:")
+foreach(LIB IN LISTS LINK_LIBS)
+    message(" - ${LIB}")
+endforeach()
+
+foreach(DLL_PATH IN LISTS DLL_DEPENDENCIES)
+    add_custom_command(TARGET vkEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DLL_PATH}"
+        $<TARGET_FILE_DIR:vkEngine>)
+endforeach()
+
+if(VKE_RENDER_SYSTEM_D3D12)
+    foreach(DLL_PATH IN LISTS D3D12_AGILITY_DLLS)
+        add_custom_command(TARGET vkEngine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:vkEngine>/D3D12"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${DLL_PATH}"
+            "$<TARGET_FILE_DIR:vkEngine>/D3D12")
+    endforeach()
+endif()
+
+target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngineScene ${LINK_LIBS})
 include(LinkSettings.cmake NO_POLICY_SCOPE)
+
+# Set Vulkan layer path for Visual Studio debugging
+if(VKE_RENDER_SYSTEM_VULKAN)
+    set(VULKAN_LAYER_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
+    set_target_properties(vkEngine PROPERTIES
+        VS_DEBUGGER_ENVIRONMENT "VK_ADD_LAYER_PATH=${VULKAN_LAYER_PATH}"
+    )
+endif()
 
 if(BUILD_SAMPLES_ENABLED)
     add_subdirectory(samples)

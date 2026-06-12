@@ -28,7 +28,7 @@ namespace VKE
         uint32_t defaultAllocationCount = 10000;
     };
 
-    struct SMemoryAllocationInfo
+    struct SSubAllocateMemoryInfo
     {
         handle_t hMemory;
         uint32_t offset;

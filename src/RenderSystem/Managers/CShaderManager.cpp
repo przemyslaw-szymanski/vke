@@ -258,7 +258,7 @@ namespace VKE
         void CShaderManager::_DestroyShader( Memory::CFreeListPool* pAllocator, CShader** ppInOut )
         {
             CShader* pShader = *ppInOut;
-            m_pCtx->NativeAPI().DestroyShader( &pShader->m_hDDIObject );
+            m_pCtx->RHI().DestroyShader( &pShader->m_hDDIObject );
             Memory::DestroyObject( pAllocator, &pShader );
         }
 
@@ -951,7 +951,7 @@ namespace VKE
                 Threads::ScopedLock l( m_aShaderTypeSyncObjects[ type ] );
                 {
                     // m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
-                    m_pCtx->_NativeAPI().DestroyShader( &pShader->m_hDDIObject );
+                    m_pCtx->RHI().DestroyShader( &pShader->m_hDDIObject );
                     // m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
                     m_aShaderBuffers[ type ].AddFree( pShader->GetHandle().handle );
                 }
@@ -1011,7 +1011,7 @@ namespace VKE
                 Data.codeSize             = static_cast< uint32_t >( size );
                 Data.stage                = ShaderCompilationStages::COMPILED_IR_BINARY;
                 Data.type                 = pShader->GetDesc().type;
-                NativeAPI::Shader hShader = m_pCtx->_NativeAPI().CreateShader( Data );
+                NativeAPI::Shader hShader = m_pCtx->RHI().CreateShader( Data );
                 if( hShader != NativeAPI::Null )
                 {
                     pShader->m_hDDIObject = hShader;

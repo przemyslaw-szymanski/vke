@@ -140,61 +140,61 @@ namespace VKE::RenderSystem::Vulkan
             VkFence         vkFence;
         };
 
-        struct SPresentData
+        /*struct SPresentData
         {
             SwapChainArray vSwapChains;
             SemaphoreArray vWaitSemaphores;
             UintArray      vImageIndices;
-        };
+        };*/
 
-        struct SQueue final : protected Core::CObject
-        {
-            friend class RenderSystem::CDeviceContext;
+        //struct SQueue final : protected Core::CObject
+        //{
+        //    friend class RenderSystem::CDeviceContext;
 
-            SQueue();
+        //    SQueue();
 
-            VkQueue             vkQueue     = VK_NULL_HANDLE;
-            uint32_t            familyIndex = 0;
-            Threads::SyncObject SyncObj; // for synchronization if refCount > 1
+        //    VkQueue             vkQueue     = VK_NULL_HANDLE;
+        //    uint32_t            familyIndex = 0;
+        //    Threads::SyncObject SyncObj; // for synchronization if refCount > 1
 
-            void Lock()
-            {
-                if( this->GetRefCount() > 1 )
-                {
-                    SyncObj.Lock();
-                }
-            }
+        //    void Lock()
+        //    {
+        //        if( this->GetRefCount() > 1 )
+        //        {
+        //            SyncObj.Lock();
+        //        }
+        //    }
 
-            void Unlock()
-            {
-                if( SyncObj.IsLocked() )
-                {
-                    SyncObj.Unlock();
-                }
-            }
+        //    void Unlock()
+        //    {
+        //        if( SyncObj.IsLocked() )
+        //        {
+        //            SyncObj.Unlock();
+        //        }
+        //    }
 
-            bool WillNextSwapchainDoPresent() const
-            {
-                return m_swapChainCount == m_PresentData.vSwapChains.GetCount() + 1;
-            }
+        //    bool WillNextSwapchainDoPresent() const
+        //    {
+        //        return m_swapChainCount == m_PresentData.vSwapChains.GetCount() + 1;
+        //    }
 
-            bool IsPresentDone();
-            void NeedPresent();
-            void ReleasePresentNotify();
-            void Wait( const VkICD::Device& ICD );
+        //    bool IsPresentDone();
+        //    void NeedPresent();
+        //    void ReleasePresentNotify();
+        //    void Wait( const VkICD::Device& ICD );
 
-            VkResult Submit( const VkICD::Device& ICD, const VkSubmitInfo&, const VkFence& );
-            Result   Present( const VkICD::Device& ICD, uint32_t, VkSwapchainKHR, VkSemaphore );
+        //    VkResult Submit( const VkICD::Device& ICD, const VkSubmitInfo&, const VkFence& );
+        //    Result   Present( const VkICD::Device& ICD, uint32_t, VkSwapchainKHR, VkSemaphore );
 
-        private:
-            SPresentData     m_PresentData;
-            VkPresentInfoKHR m_PresentInfo;
-            uint32_t         m_swapChainCount = 0;
-            int32_t          m_presentCount   = 0;
-            bool             m_isPresentDone  = false;
-        };
+        //private:
+        //    SPresentData     m_PresentData;
+        //    VkPresentInfoKHR m_PresentInfo;
+        //    uint32_t         m_swapChainCount = 0;
+        //    int32_t          m_presentCount   = 0;
+        //    bool             m_isPresentDone  = false;
+        //};
 
-        using Queue = SQueue*;
+        //using Queue = SQueue*;
 
         void     SetLastError( VkResult err );
         VkResult GetLastError();

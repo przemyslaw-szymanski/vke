@@ -5,11 +5,13 @@ Multithreaded graphics engine based on Vulkan API with DirectX support! :)
 Engine uses CMake as a build system. To build the engine, you need to have CMake and a C++ compiler installed on your system.
 [CMake Download](https://cmake.org/download/)
 [Compiler Download](https://visualstudio.microsoft.com/downloads/) (for Windows, Visual Studio is recommended)
+[Windows SDK download](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) (for Windows with DX12)]
 
 ### Prerequisites
 - CMake 3.16 or higher
 - C++20 compatible compiler
 - Git
+- Windows SDK 10.0.18362.0 or higher (if building on Windows with DX12)
 
 ### Clone the repository
 To clone the repository with all submodules, use the following command:
@@ -43,14 +45,20 @@ Configure the project using one of predefined scripts for your platform:
 On Windows, this will create a `solution` directory with a Visual Studio solution file `vkEngine.sln` inside. Open this file with Visual Studio to build and run the project. `Run-Windows.bat` will try to open solution automatically.`
 
 Or you can also create a build directory manually or via cmake GUI. Decide which API you want to use with one of the options:
-- `-DVKE_VULKAN_RENDER_SYSTEM=ON` to use Vulkan API
-- `-DVKE_D3D12_RENDER_SYSTEM=ON` to use DirectX API
+- `-DVKE_RENDER_SYSTEM_VULKAN=ON` to use Vulkan API
+- `-DVKE_RENDER_SYSTEM_D3D12=ON` to use DirectX API
 
 ```bash
 mkdir solution
 cd solution
-cmake ../ -DVKE_VULKAN_RENDER_SYSTEM=ON
+cmake ../ -DVKE_RENDER_SYSTEM_VULKAN=ON
 ```
+
+When configuring DX12 render system, make sure you have Windows 10 SDK installed (in default location to avoid manual options to CMake).
+If you configure CMake via Visual Studio there should be no additional steps needed (refer to Visual Studio in folder view).
+If you configure CMake manually you may want to use ""Developer command propmpt for Visual Studio"" to have all necessary environment variables set.
+
+CMake will try to locate Windows SDK in other cases to satisfy AgilitySDK libs, eg. when using terminal or other IDEs. If that won't work you may have to provide them manually and/or set paths to d3d12.lib.
 
 ### Visual Studio Solution in folder view
 If you prefer to use folder view in Visual Studio instead of solution explorer, you can open the `solution` folder directly in Visual Studio.

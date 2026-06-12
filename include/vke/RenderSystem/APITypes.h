@@ -6,10 +6,10 @@
 
 namespace VKE::RenderSystem
 {
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_VULKAN_RENDER_SYSTEM || VKE_RENDER_SYSTEM_VULKAN
     using NativeAPI = VKE::RenderSystem::Vulkan::NativeAPI;
     //using namespace VKE::RenderSystem::Vulkan;
-#elif VKE_D3D12_RENDER_SYSTEM
+#elif VKE_D3D12_RENDER_SYSTEM || VKE_RENDER_SYSTEM_D3D12
     using NativeAPI = VKE::RenderSystem::D3D12::NativeAPI;
     //using namespace VKE::RenderSystem::D3D12;
 #else

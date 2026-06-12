@@ -51,6 +51,11 @@ namespace VKE
         {
             return __popcnt64( v );
         }
+
+        static uint8_t CountBits( uint8_t v )
+        {
+            return (uint8_t)__popcnt16( (uint16_t)v );
+        }
 #else
         static uint32_t CountBits( uint64_t v )
         {

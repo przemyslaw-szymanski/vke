@@ -132,8 +132,5 @@ namespace VKE
             bool                   m_isDirty         = false;
         };
 
-        using RenderPassPtr    = Utils::TCWeakPtr< CRenderPass >;
-        using RenderPassRefPtr = Utils::TCObjectSmartPtr< CRenderPass >;
-
     } // namespace RenderSystem
 } // namespace VKE

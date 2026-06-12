@@ -94,7 +94,7 @@ namespace VKE
             using PoolBuffer       = Utils::TSFreePool< SPool >;
             using SyncObjVec       = Utils::TCDynamicArray< Threads::SyncObject >;
             using PoolViewVec      = Utils::TCDynamicArray< CMemoryPoolView >;
-            using AllocationBuffer = Utils::TSFreePool< SMemoryAllocationInfo >;
+            using AllocationBuffer = Utils::TSFreePool< SSubAllocateMemoryInfo >;
             using HandleVec        = Utils::TCDynamicArray< handle_t >;
             using PoolMap          = vke_hash_map< MEMORY_USAGE, HandleVec >;
             using PoolSizeMap      = vke_hash_map< MEMORY_USAGE, uint32_t >;
@@ -134,24 +134,24 @@ namespace VKE
             Result Create( const SDeviceMemoryManagerDesc& Desc );
             void   Destroy();
 
-            handle_t AllocateTexture( const SAllocateDesc& Desc );
-            handle_t AllocateBuffer( const SAllocateDesc& Desc );
+            handle_t AllocateMemory( const SAllocationMemoryRequirementInfo& Info, SBindMemoryInfo* pOut );
 
-            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
-            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
+            //Result UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo );
+            Result UpdateMemory( const SUpdateMemoryInfo& DataInfo );
 
-            void* MapMemory( const SUpdateMemoryInfo& DataInfo, const handle_t& hMemory );
-            void  UnmapMemory( const handle_t& hMemory );
+            void* MapMemory( const SUpdateMemoryInfo& DataInfo );
+            void  UnmapMemory( const SUpdateMemoryInfo& DataInfo );
 
-            const SMemoryAllocationInfo& GetAllocationInfo( const handle_t& hMemory );
+            const SSubAllocateMemoryInfo& GetAllocationInfo( const handle_t& hMemory );
 
             void LogDebug();
 
         protected:
-            handle_t _AllocateMemory( const SAllocateDesc& Desc, SBindMemoryInfo* pOut );
             handle_t _CreatePool( const SCreateMemoryPoolDesc& Desc );
             handle_t _CreatePool( const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq );
             handle_t _AllocateFromPool( const SAllocateDesc& Desc, const SAllocationMemoryRequirementInfo& MemReq,
+                                        SBindMemoryInfo* pBindInfoOut );
+            handle_t _AllocateFromPool( const SAllocationMemoryRequirementInfo& Info,
                                         SBindMemoryInfo* pBindInfoOut );
 
         protected:

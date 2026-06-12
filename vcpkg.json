@@ -12,6 +12,12 @@
       "name": "devil"
     },
     {
+      "name": "directx-headers"
+    },
+    {
+      "name": "directx12-agility"
+    },
+    {
       "name": "directx-dxc"
     },
     {
@@ -28,6 +34,9 @@
     },
     {
       "name": "zlib"
+    },
+    {
+      "name": "winpixevent"
     }
   ]
 }

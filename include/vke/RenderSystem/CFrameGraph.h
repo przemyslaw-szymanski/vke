@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderSystem/CFrameGraphNode.h"
+#include "RenderSystem/Common.h"
 #include "Core/Math/Math.h"
 #include "Core/Utils/TCBitset.h"
 #include "RenderSystem/CCommandBuffer.h"
@@ -350,7 +351,10 @@ namespace VKE::RenderSystem
         {
             return m_currentFrameIndex;
         }
-
+        /// <summary>
+        ///  TODO: framegraph should have nothing todo with Scene!
+        /// </summary>
+        /// <returns></returns>
         Scene::ScenePtr GetScene()
         {
             return m_pScene;
@@ -365,6 +369,8 @@ namespace VKE::RenderSystem
         {
             return m_aFrameData[ backBufferIndex ].hFrameFence;
         }
+
+        
 
     protected:
         Result _Create( const SFrameGraphDesc& );

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#if VKE_VULKAN_RENDER_SYSTEM
+#if VKE_RENDER_SYSTEM_VULKAN
 
 #define VKE_USE_VULKAN_KHR 1
 
@@ -27,8 +27,10 @@ namespace VKE::RenderSystem::Vulkan
 {
     struct VKE_API NativeAPI
     {
-        static const uint32_t                   DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-        static const decltype( VK_NULL_HANDLE ) Null;
+        static const uint32_t             DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
+        inline static const decltype( VK_NULL_HANDLE ) Null = nullptr;
+
+        struct SRenderPass;
 
         struct SFence;
 
@@ -36,7 +38,7 @@ namespace VKE::RenderSystem::Vulkan
         using Pipeline              = VkPipeline;
         using Texture               = VkImage;
         using Sampler               = VkSampler;
-        using RenderPass            = VkRenderPass;
+        using RenderPass            = SRenderPass*;
         using CommandBuffer         = VkCommandBuffer;
         using TextureView           = VkImageView;
         using BufferView            = VkBufferView;
@@ -150,4 +152,4 @@ namespace VKE::RenderSystem::Vulkan
 
 } // namespace VKE::RenderSystem
 
-#endif // VKE_VULKAN_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_VULKAN

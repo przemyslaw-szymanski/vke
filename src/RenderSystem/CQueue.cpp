@@ -36,17 +36,17 @@ namespace VKE
         void CQueue::Wait()
         {
             VKE_ASSERT2( m_pCtx != nullptr, "Device context must be initialized." );
-            m_pCtx->NativeAPI().WaitForQueue( m_PresentData.hQueue );
+            m_pCtx->RHI().WaitForQueue( m_PresentData.hQueue );
         }
 
         Result CQueue::Wait( NativeAPI::CPUFence hFence )
         {
-            return m_pCtx->NativeAPI().WaitForFences( hFence, UINT64_MAX );
+            return m_pCtx->RHI().WaitForFences( hFence, UINT64_MAX );
         }
 
         Result CQueue::Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
         {
-            return m_pCtx->NativeAPI().WaitForFence( hFence, value );
+            return m_pCtx->RHI().WaitForFence( hFence, value );
         }
 
         Result CQueue::Execute( const SSubmitInfo& Info )
@@ -73,7 +73,7 @@ namespace VKE
             Lock();
             m_submitCount++;
             m_isBusy = true;
-            ret      = m_pCtx->NativeAPI().Submit( Info );
+            ret      = m_pCtx->RHI().Submit( Info );
             m_isBusy = false;
             Unlock();
             return ret;
@@ -107,7 +107,7 @@ namespace VKE
                 {
                     m_isBusy = true;
                     // const auto pIndices = m_PresentData.vImageIndices.GetData();
-                    ret = m_pCtx->NativeAPI().Present( m_PresentData );
+                    ret = m_pCtx->RHI().Present( m_PresentData );
                     VKE_ASSERT2( ret != VKE_FAIL, "" );
                     // VKE_LOG( "Present status: " << ret );
                     if( ret != VKE_FAIL )
@@ -135,7 +135,7 @@ namespace VKE
         void CQueue::SetDebugName( cstr_t pName )
         {
             m_Desc.SetDebugName( pName );
-            m_pCtx->NativeAPI().SetQueueDebugName( (uint64_t)GetDDIObject(), pName );
+            m_pCtx->RHI().SetQueueDebugName( (uint64_t)GetDDIObject(), pName );
         }
 
     } // namespace RenderSystem

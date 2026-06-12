@@ -5,7 +5,6 @@
 
 #include "RenderSystem/CDescriptorSet.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE
 {
@@ -91,7 +90,7 @@ namespace VKE
 
             handle_t                  CreatePool( const SDescriptorPoolDesc& Desc );
             void                      DestroyPool( handle_t* phInOut );
-            DescriptorSetHandle       CreateSet( const handle_t& hPool, const SDescriptorSetDesc& Desc );
+            DescriptorSetHandle       CreateSet( handle_t hPool, const SDescriptorSetDesc& Desc );
             void                      DestroySet( DescriptorSetPtr pSet );
             DescriptorSetLayoutHandle CreateLayout( const SDescriptorSetLayoutDesc& Desc );
             void                      DestroyLayout( DescriptorSetLayoutPtr pLayout );
@@ -101,11 +100,6 @@ namespace VKE
             NativeAPI::DescriptorSetLayout  GetLayout( const DescriptorSetLayoutHandle& hLayout );
             DescriptorSetLayoutHandle       GetLayout( const SDescriptorSetLayoutDesc& Desc );
 
-            DescriptorSetLayoutHandle GetDefaultLayout()
-            {
-                return m_hDefaultLayout;
-            }
-
             // DescriptorSetLayoutPtr      GetDefaultLayout() const { return m_pDefaultLayout; }
 
         protected:
@@ -113,14 +107,19 @@ namespace VKE
             void _DestroySets( DescriptorSetHandle* phSets, const uint32_t count );
             void _FreeSets( DescriptorSetHandle* phSets, uint32_t count );
 
+            DESCRIPTOR_POOL_TYPE _GetPoolType( const SLayout& Layout ) const
+            {
+                return BindingTypeToPoolType( Layout.Desc.vBindings[ 0 ].type );
+            }
+
         protected:
             CDeviceContext*           m_pCtx;
             SDescriptorPoolDesc       m_DefaultPoolDesc;
             PoolBuffer                m_PoolBuffer;
             PoolDescArray             m_vPoolDescs;
             LayoutMap                 m_mLayouts;
-            handle_t                  m_hDefaultPool;
-            DescriptorSetLayoutHandle m_hDefaultLayout;
+            SDescriptorPoolDesc       m_aDefaultPoolDescs[ DescriptorPoolTypes::_MAX_COUNT ];
+            handle_t                  m_ahDefaultPools[ DescriptorPoolTypes::_MAX_COUNT ];
             Threads::SyncObject       m_SyncObj;
             std::mutex                m_mtx;
         };

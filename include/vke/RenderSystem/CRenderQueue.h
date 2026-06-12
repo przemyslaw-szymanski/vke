@@ -4,10 +4,9 @@
 #include "Core/VKEForwardDeclarations.h"
 #include "Core/Utils/TCDynamicArray.h"
 
-#include "RenderSystem/Vulkan/Common.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/Common.h"
 
-namespace VKE
+namespace VKE::RenderSystem
 {
 
 } // namespace VKE

@@ -1,4 +1,4 @@
-#if VKE_VULKAN_RENDER_SYSTEM_SWAP_CHAIN
+#if VKE_RENDER_SYSTEM_VULKAN_SWAP_CHAIN
 
 #include "CVkEngine.h"
 #include "Core/Memory/Memory.h"
@@ -37,7 +37,7 @@ namespace VKE
         void CSwapChain::Destroy()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
-            m_pCtx->GetDeviceContext()->_NativeAPI().DestroySwapChain( &m_DDISwapChain, nullptr );
+            m_pCtx->GetDeviceContext()->RHI().DestroySwapChain( &m_DDISwapChain, nullptr );
         }
 
         Result CSwapChain::Create( const SSwapChainDesc& Desc, CommandBufferPtr pCmdBuffer )
@@ -53,7 +53,7 @@ namespace VKE
             }
             // const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
-            ret = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
+            ret = m_pCtx->GetDeviceContext()->RHI().CreateSwapChain( m_Desc, nullptr, &m_DDISwapChain );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
@@ -158,9 +158,9 @@ namespace VKE
                             Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
                             FenceDesc.SetDebugName( std::format( "VKE_SwapChain_CPUFence{}", i ).data() );
                             BackBuffer.hDDIPresentImageReadySemaphore =
-                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
+                                m_pCtx->GetDeviceContext()->RHI().CreateSemaphore( Desc, nullptr );
                             BackBuffer.hDDIQueueFinishedSemaphore =
-                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc, nullptr );
+                                m_pCtx->GetDeviceContext()->RHI().CreateSemaphore( Desc, nullptr );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
                             if( BackBuffer.hDDIPresentImageReadySemaphore == NativeAPI::Null ||
@@ -284,7 +284,7 @@ namespace VKE
             Info.hSignalGPUFence = Buffer.hGPUFence;
             Info.waitTimeout = 0;
 
-            m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_DDISwapChain, Info,
+            m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex( m_DDISwapChain, Info,
                                                                                       &Buffer.swapChainBufferIndex );*/
         }
 
@@ -337,7 +337,7 @@ namespace VKE
                 SDDIGetBackBufferInfo Info;
                 Info.hSignalGPUFence = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
                 Info.waitTimeout     = 0;
-                Result res           = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                Result res           = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
 
                 if( VKE_SUCCEEDED( res ) )
@@ -392,7 +392,7 @@ namespace VKE
 
             {
                 Threads::ScopedLock l( m_SyncObj );
-                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
             }
             // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
@@ -403,7 +403,7 @@ namespace VKE
             while( ret == VKE_ENOTREADY )
             {
                 Threads::ScopedLock l( m_SyncObj );
-                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &Buffer.swapChainBufferIndex );
             }
             VKE_ASSERT( VKE_SUCCEEDED( ret ) );
@@ -552,4 +552,4 @@ namespace VKE
 
     } // namespace RenderSystem
 } // namespace VKE
-#endif // VKE_VULKAN_RENDER_SYSTEM
+#endif // VKE_RENDER_SYSTEM_VULKAN_SWAP_CHAIN

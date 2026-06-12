@@ -17,7 +17,6 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
-#include "RenderSystem/Vulkan/Vulkan.h"
 #include "RenderSystem/API.h"
 
 #include "RenderSystem/Managers/CFrameGraphManager.h"
@@ -40,49 +39,9 @@ namespace VKE
             }
         };
 
-        struct SPrivateToDeviceCtx
-        {
-            Vulkan::ICD::Instance& ICD;
-
-            SPrivateToDeviceCtx( Vulkan::ICD::Instance& I ) : ICD( I )
-            {
-            }
-
-            void operator=( const SPrivateToDeviceCtx& ) = delete;
-        };
-
-        struct SRSInternal
-        {
-            using PhysicalDeviceVec               = vke_vector< VkPhysicalDevice >;
-            handle_t                  hAPILibrary = 0;
-            CRenderSystem::AdapterVec vAdapters;
-
-            struct
-            {
-            } Objects;
-
-            struct
-            {
-                VkApplicationInfo AppInfo;
-                PhysicalDeviceVec vPhysicalDevices;
-                VkInstance        vkInstance = VK_NULL_HANDLE;
-            } Vulkan;
-
-            Vulkan::ICD::Instance ICD;
-
-            struct
-            {
-                std::atomic_int   locked;
-                CGraphicsContext* pCtx = nullptr;
-            } aCurrCtxs[ ContextScopes::_MAX_COUNT ];
-        };
-
         static uint16_t g_aRSResourceTypeSizes[ RenderSystem::ResourceTypes::_MAX_COUNT ];
         static uint16_t g_aRSResourceTypeDefaultSizes[ RenderSystem::ResourceTypes::_MAX_COUNT ];
         void            SetResourceTypes();
-
-        Result GetPhysicalDevices( VkInstance vkInstance, const VkICD::Instance& Instance,
-                                   SRSInternal::PhysicalDeviceVec* pVecOut, CRenderSystem::AdapterVec* pAdaptersOut );
 
         CRenderSystem::CRenderSystem( CVkEngine* pEngine ) : m_pEngine( pEngine )
         {
@@ -110,21 +69,12 @@ namespace VKE
                 pList->Destroy();
             }
             m_vpFreeLists.clear();
-
-            // SInternal* pInternal = reinterpret_cast<SInternal*>(m_pPrivate);
-            if( m_pPrivate )
-            {
-                // Platform::DynamicLibrary::Close(m_pPrivate->hAPILibrary);
-                VKE_DELETE( m_pPrivate );
-                m_pPrivate = nullptr;
-            }
         }
 
         Result CRenderSystem::Create( const SRenderSystemDesc& Info )
         {
             // m_Desc = Info;
             Memory::Copy( &m_Desc, sizeof( m_Desc ), &Info, sizeof( Info ) );
-            m_pPrivate = VKE_NEW SRSInternal;
             VKE_LOG_PROG( "VKEngine render system creating" );
             VKE_RETURN_IF_FAILED( _AllocMemory( &m_Desc ) );
             VKE_RETURN_IF_FAILED( _InitAPI() );
@@ -135,11 +85,6 @@ namespace VKE
 
             return VKE_OK;
         }
-
-        /*VkInstance CRenderSystem::_GetInstance() const
-        {
-            return m_pPrivate->Vulkan.vkInstance;
-        }*/
 
         Result CRenderSystem::_CreateFreeListMemory( uint32_t id, uint16_t* pElemCountOut, uint16_t defaultElemCount,
                                                      size_t memSize )
@@ -178,7 +123,6 @@ namespace VKE
         Result CRenderSystem::_InitAPI()
         {
             VKE_LOG_PROG( "VKEngine API initialization" );
-            assert( m_pPrivate );
             SDDILoadInfo LoadInfo;
             const auto&  EngineInfo = m_pEngine->GetInfo();
 
@@ -194,10 +138,10 @@ namespace VKE
                 LoadInfo.enableDebugMode = debugMode.value().boolValue;
             }
 
-            Result ret = CAPI::Load( LoadInfo, &m_DriverData );
+            Result ret = CRHI::Load( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {
-                ret = CAPI::QueryAdapters( &m_vAdapterInfos );
+                ret = CRHI::QueryAdapters( &m_vAdapterInfos );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                 }
@@ -259,35 +203,6 @@ namespace VKE
             }
         }
 
-        Result CRenderSystem::MakeCurrent( RenderSystem::CGraphicsContext* pCtx, CONTEXT_SCOPE scope )
-        {
-            auto& Ctx = m_pPrivate->aCurrCtxs[ scope ];
-            if( pCtx )
-            {
-                if( Ctx.locked.load() != VKE_TRUE )
-                {
-                    Ctx.locked.store( VKE_FALSE );
-                    Ctx.pCtx = pCtx;
-                    return VKE_OK;
-                }
-                return VKE_FAIL;
-            }
-            else
-            {
-                Ctx.locked.store( false );
-                if( scope != ContextScopes::ALL )
-                {
-                    Ctx.pCtx = nullptr;
-                }
-            }
-            return VKE_FAIL;
-        }
-
-        CGraphicsContext* CRenderSystem::GetCurrentContext( CONTEXT_SCOPE scope )
-        {
-            return m_pPrivate->aCurrCtxs[ scope ].pCtx;
-        }
-
         void CRenderSystem::RenderFrame( const WindowPtr pWnd )
         {
             Threads::ScopedLock l( m_SyncObj );
@@ -303,14 +218,9 @@ namespace VKE
 
         handle_t CRenderSystem::CreateFramebuffer( const RenderSystem::SFramebufferDesc& /*Info*/ )
         {
-            assert( m_pPrivate->aCurrCtxs[ ContextScopes::FRAMEBUFFER ].pCtx );
+            // assert( m_pPrivate->aCurrCtxs[ ContextScopes::FRAMEBUFFER ].pCtx );
             // return m_pPrivate->aCurrCtxs[ContextScopes::FRAMEBUFFER].pCtx->CreateFramebuffer(Info);
             return 0;
-        }
-
-        VkInstance CRenderSystem::_GetVkInstance() const
-        {
-            return m_pPrivate->Vulkan.vkInstance;
         }
 
         CFrameGraph* CRenderSystem::CreateFrameGraph( const SFrameGraphDesc& Desc )

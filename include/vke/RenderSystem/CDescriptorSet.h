@@ -36,6 +36,11 @@ namespace VKE
 
             static hash_t CalcHash( const SDescriptorSetLayoutDesc& Desc );
 
+            DESCRIPTOR_POOL_TYPE GetPoolType() const
+            {
+                return BindingTypeToPoolType( m_Desc.vBindings[ 0 ].type );
+            }
+
         protected:
             SDescriptorSetLayoutDesc m_Desc;
             CDescriptorSetManager*   m_pMgr;

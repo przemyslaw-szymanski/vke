@@ -72,7 +72,7 @@
 //
 //        void CSubmitManager::Destroy( CDeviceContext* pCtx )
 //        {
-//            auto& DDI = pCtx->_NativeAPI();
+//            auto& DDI = pCtx->RHI();
 //            for( uint32_t i = 0; i < m_CommandBufferBatches.vSubmits.GetCount(); ++i )
 //            {
 //                DDI.DestroyFence( &m_CommandBufferBatches.vSubmits[ i ].m_hDDIFence, nullptr );

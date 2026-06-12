@@ -11,7 +11,6 @@ namespace VKE
     {
         class CGraphicsContext;
         class CRenderingPipeline;
-        class CRenderPass;
         class CTexture;
         class CTextureView;
 

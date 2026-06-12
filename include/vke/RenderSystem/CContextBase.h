@@ -33,8 +33,8 @@ namespace VKE
             /// <summary>
             /// TODO: remove these friends
             /// </summary>
-            friend class CVulkanAPI;
-            friend class CD3D12API;
+            friend class Vulkan::CVulkanAPI;
+            friend class D3D12::CD3D12API;
 
         protected:
             struct SPreparationData
@@ -52,9 +52,9 @@ namespace VKE
 
             struct SCommandBufferBatch
             {
-                CommandBufferArray vCmdBuffers;
-                VkFence            vkFence        = VK_NULL_HANDLE;
-                bool               readyToExecute = false;
+                CommandBufferArray  vCmdBuffers;
+                NativeAPI::CPUFence vkFence        = NativeAPI::Null;
+                bool                readyToExecute = false;
 
                 void Reset()
                 {
@@ -211,7 +211,7 @@ namespace VKE
             /// </summary>
             void _FreeExecutedBatches();
 
-            CAPI& _GetDDI() const
+            CRHI& _GetDDI() const
             {
                 return m_DDI;
             }
@@ -229,7 +229,7 @@ namespace VKE
             void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
 
         protected:
-            CAPI&                 m_DDI;
+            CRHI&                 m_DDI;
             CDeviceContext*       m_pDeviceCtx;
             cstr_t                m_pName = "";
             QueueRefPtr           m_pQueue;

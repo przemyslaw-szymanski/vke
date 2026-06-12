@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-if(VKE_VULKAN_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_VULKAN)
     set(RENDER_SYSTEM_NAME vkEngineRenderSystem_Vulkan)
 endif()
 
@@ -26,7 +26,7 @@ set(SRC_DIRS
     "${SOURCE_DIR}/RenderSystem/Tasks/*.cpp"
 )
 
-if(VKE_VULKAN_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_VULKAN)
     set(INC_DIRS ${INC_DIRS}
         "${INCLUDE_DIR}/RenderSystem/Vulkan/*.h"
         "${INCLUDE_DIR}/RenderSystem/Vulkan/*.inl"
@@ -44,7 +44,7 @@ if(VKE_VULKAN_RENDER_SYSTEM)
     )
 endif()
 
-if(VKE_D3D12_RENDER_SYSTEM)
+if(VKE_RENDER_SYSTEM_D3D12)
     set(INC_DIRS ${INC_DIRS}
         "${INCLUDE_DIR}/RenderSystem/D3D12/*.h"
         "${INCLUDE_DIR}/RenderSystem/D3D12/*.inl"
@@ -73,17 +73,18 @@ set(VKE_ENUM_STRINGS_SCRIPT   "${CMAKE_SOURCE_DIR}/tools/gen_enum_strings.py")
 set(VKE_ENUM_STRINGS_INPUT    "${INCLUDE_DIR}/RenderSystem/Common.h")
 set(VKE_ENUM_STRINGS_OUTPUT   "${INCLUDE_DIR}/RenderSystem/CommonEnumStrings.h")
 
-add_custom_command(
-    OUTPUT  "${VKE_ENUM_STRINGS_OUTPUT}"
-    COMMAND Python3::Interpreter
+execute_process(
+    COMMAND ${Python3_EXECUTABLE}
             "${VKE_ENUM_STRINGS_SCRIPT}"
             "${VKE_ENUM_STRINGS_INPUT}"
             "${VKE_ENUM_STRINGS_OUTPUT}"
-    DEPENDS "${VKE_ENUM_STRINGS_INPUT}"
-            "${VKE_ENUM_STRINGS_SCRIPT}"
-    COMMENT "Generating CommonEnumStrings.h from Common.h"
-    VERBATIM
+    RESULT_VARIABLE VKE_ENUM_STRINGS_RESULT
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
+
+if(NOT VKE_ENUM_STRINGS_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to generate CommonEnumStrings.h from Common.h")
+endif()
 
 set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/Common.cpp"
@@ -129,11 +130,7 @@ add_dependencies(vkEngineRenderSystem vkEngineCore)
     
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
 
-#find_library(FIND_LIB glslangd.lib ${LIB_DIR})
-#set_target_properties(vkEngineRenderSystem PROPERTIES IMPORTED_LOCATION ${LIB_DIR}/glslangd.lib)
-
-#if(VKE_VULKAN_RENDER_SYSTEM)
-target_link_libraries(vkEngineRenderSystem PUBLIC ${THIRD_PARTY_LIBS})
-#else()
-
-#endif()
+target_link_libraries(vkEngineRenderSystem
+    debug vkEngineCore_d
+    optimized vkEngineCore
+    ${THIRD_PARTY_LIBS} )

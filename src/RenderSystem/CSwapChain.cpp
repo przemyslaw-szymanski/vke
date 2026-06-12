@@ -6,7 +6,6 @@
 #include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CRenderingPipeline.h"
-#include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CSwapChain.h"
 
@@ -35,7 +34,7 @@ namespace VKE
         void CSwapChain::Destroy()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
-            m_pCtx->GetDeviceContext()->_NativeAPI().DestroySwapChain( &m_DDISwapChain );
+            m_pCtx->GetDeviceContext()->RHI().DestroySwapChain( &m_DDISwapChain );
         }
 
         Result CSwapChain::Create( const SSwapChainDesc& Desc, CommandBufferPtr pCmdBuffer )
@@ -51,7 +50,7 @@ namespace VKE
             }
             // const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
-            ret = m_pCtx->GetDeviceContext()->_NativeAPI().CreateSwapChain( m_Desc, &m_DDISwapChain );
+            ret = m_pCtx->GetDeviceContext()->RHI().CreateSwapChain( m_Desc, &m_DDISwapChain );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
@@ -129,12 +128,6 @@ namespace VKE
                 {
                     /*CommandBufferPtr pCmdBuffer = m_pCtx->CreateCommandBuffer();
                     pCmdBuffer->Begin();*/
-                    VkImageSubresourceRange SubresRange;
-                    SubresRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-                    SubresRange.baseArrayLayer = 0;
-                    SubresRange.baseMipLevel   = 0;
-                    SubresRange.layerCount     = 1;
-                    SubresRange.levelCount     = 1;
 
                     const uint32_t imgCount    = m_DDISwapChain.vImages.GetCount();
                     const auto&    vImages     = m_DDISwapChain.vImages;
@@ -156,9 +149,9 @@ namespace VKE
                             Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
                             FenceDesc.SetDebugName( std::format( "VKE_SwapChain_Fence{}", i ).data() );
                             BackBuffer.hDDIPresentImageReadySemaphore =
-                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc );
+                                m_pCtx->GetDeviceContext()->RHI().CreateSemaphore( Desc );
                             BackBuffer.hDDIQueueFinishedSemaphore =
-                                m_pCtx->GetDeviceContext()->_NativeAPI().CreateSemaphore( Desc );
+                                m_pCtx->GetDeviceContext()->RHI().CreateSemaphore( Desc );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
                             
@@ -258,7 +251,7 @@ namespace VKE
                 m_Desc.Size.width  = static_cast< uint16_t >( width );
                 m_Desc.Size.height = static_cast< uint16_t >( height );
 
-                ret = m_pCtx->GetDeviceContext()->NativeAPI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
+                ret = m_pCtx->GetDeviceContext()->RHI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     m_CurrViewport.Size = m_Desc.Size;
@@ -285,7 +278,7 @@ namespace VKE
             Info.hSignalGPUFence = Buffer.hGPUFence;
             Info.waitTimeout = 0;
 
-            m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex( m_DDISwapChain, Info,
+            m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex( m_DDISwapChain, Info,
                                                                                       &Buffer.swapChainBufferIndex );*/
         }
 
@@ -338,7 +331,7 @@ namespace VKE
                 SDDIGetBackBufferInfo Info;
                 Info.hSignalGPUFence = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
                 Info.waitTimeout     = 0;
-                Result res           = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                Result res           = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
 
                 if( VKE_SUCCEEDED( res ) )
@@ -393,7 +386,7 @@ namespace VKE
 
             {
                 Threads::ScopedLock l( m_SyncObj );
-                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
@@ -404,7 +397,7 @@ namespace VKE
             while( ret == VKE_ENOTREADY )
             {
                 Threads::ScopedLock l( m_SyncObj );
-                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             VKE_ASSERT( VKE_SUCCEEDED( ret ) );
@@ -451,7 +444,7 @@ namespace VKE
 
             {
                 Threads::ScopedLock l( m_SyncObj );
-                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
@@ -462,7 +455,7 @@ namespace VKE
             while( ret == VKE_ENOTREADY )
             {
                 Threads::ScopedLock l( m_SyncObj );
-                ret = m_pCtx->GetDeviceContext()->_NativeAPI().GetCurrentBackBufferIndex(
+                ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             VKE_ASSERT( VKE_SUCCEEDED( ret ) );
@@ -586,19 +579,18 @@ namespace VKE
             // m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
         }
 
-        void CSwapChain::BeginPass( CommandBufferPtr pCb )
-        {
-            VKE_ASSERT2( m_pRenderPass!= nullptr, "SwapChain RenderPass must be created." );
-            pCb->Bind( m_DDISwapChain );
-        }
+        //void CSwapChain::BeginPass( CommandBufferPtr pCb )
+        //{
+        //    pCb->Bind( m_DDISwapChain );
+        //}
 
-        void CSwapChain::EndPass( CommandBufferPtr pCb )
-        {
-            // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
-            // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
-            // m_pCurrAcquireElement->pRenderPass->End( vkCb );
-            pCb->Bind( RenderPassPtr() );
-        }
+        //void CSwapChain::EndPass( CommandBufferPtr pCb )
+        //{
+        //    // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
+        //    // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+        //    // m_pCurrAcquireElement->pRenderPass->End( vkCb );
+        //    pCb->Bind( (NativeAPI::RenderPass)NativeAPI::Null );
+        //}
 
     } // namespace RenderSystem
 } // namespace VKE

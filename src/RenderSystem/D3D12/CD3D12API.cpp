@@ -12,3663 +12,3664 @@
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
 
+#include "RenderSystem/D3D12/dxgiFormats.h"
+
 namespace VKE::RenderSystem
 {
-    namespace D3D12
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Macros to help D3D12 DDI development.
+#define TRACK_CALL_ONCE( msg )                                                                                         \
+    static bool s_called = false;                                                                                      \
+    if( s_called )                                                                                                     \
+    {                                                                                                                  \
+        VKE_LOG_ERR( "D3D12 Render System: " + std::string( msg ) + " can only be called once!" );                     \
+    }                                                                                                                  \
+    s_called = true;
+
+#define UNIMPLEMENTED_D3D12_METHOD() VKE_ASSERT2( false, "D3D12 Render System: Unimplemented method" )
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Initialization of static members.
+    NativeAPI::D3D12Factory* NativeAPI::SImplementation::spFactory = NativeAPI::Null;
+
+    bool NativeAPI::SImplementation::sDebugLayerEnabled                 = false;
+    bool NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported = false;
+
+    CDDI::AdapterArray CDDI::svAdapters;
+
+    typedef Utils::TCDynamicArray< D3D12_RESOURCE_BARRIER > DDIBarrierArray;
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Implementation functions.
+    // These functions are specific to D3D12 implementation that requires long lasting members, which are members of
+    // SImplementation class.
+    namespace NativeAPI
     {
-        const decltype( nullptr ) NativeAPI::Null = nullptr;
+        SImplementation::SDescriptorHeapInfo* SImplementation::CreateDescriptorHeap( const NativeAPI::Device&   pDevice,
+                                                                                     D3D12_DESCRIPTOR_HEAP_TYPE Type,
+                                                                                     D3D12_DESCRIPTOR_HEAP_FLAGS Flags )
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC Desc;
+            Desc.Type           = Type;
+            Desc.NumDescriptors = SDescriptorHeapInfo::scMaxDescriptorsInHeap;
+            Desc.Flags          = Flags;
+            Desc.NodeMask       = 0;
+
+            SDescriptorHeapInfo HeapInfo;
+            HeapInfo.pDescriptorHeap = nullptr;
+
+            uint32_t Index;
+
+            if( FAILED( pDevice->CreateDescriptorHeap( &Desc, IID_PPV_ARGS( &HeapInfo.pDescriptorHeap ) ) ) )
+            {
+                VKE_ASSERT2( false, "Failed to create descriptor heap" );
+                return nullptr;
+            }
+
+            {
+                HeapInfo.SlotPool.Create( Desc.NumDescriptors );
+                HeapInfo.DescriptorSize = pDevice->GetDescriptorHandleIncrementSize( Type );
+
+                Index = m_vDescriptorHeapPool.PushBack( HeapInfo );
+            }
+
+            return &m_vDescriptorHeapPool[ Index ];
+        }
+
+        SImplementation::SDescriptorHeapInfo* SImplementation::GetDescriptorHeap( const NativeAPI::Device&    pDevice,
+                                                                                  D3D12_DESCRIPTOR_HEAP_TYPE  Type,
+                                                                                  D3D12_DESCRIPTOR_HEAP_FLAGS Flags )
+        {
+            SDescriptorHeapInfo* pDescriptorHeap = nullptr;
+            for( auto& HeapInfo: m_vDescriptorHeapPool )
+            {
+                if( HeapInfo.Matches( Type, Flags ) && !HeapInfo.IsFull() )
+                {
+                    pDescriptorHeap = &HeapInfo;
+                    break;
+                }
+            }
+
+            if( pDescriptorHeap == nullptr )
+            {
+                pDescriptorHeap = CreateDescriptorHeap( pDevice, Type, Flags );
+            }
+
+            return pDescriptorHeap;
+        }
+
+        uint32_t GetLastCompletedBreadcrumb( const D3D12_AUTO_BREADCRUMB_NODE1* pNode )
+        {
+            uint32_t lastCompleted = 0;
+
+            for( uint32_t i = 0; i < pNode->BreadcrumbCount; i++ )
+            {
+                if( pNode->pLastBreadcrumbValue && ( *pNode->pLastBreadcrumbValue & ( 1u << i ) ) )
+                {
+                    lastCompleted = i;
+                }
+            }
+
+            return lastCompleted;
+        }
+
+        const char* GetBreadcrumbOpName( D3D12_AUTO_BREADCRUMB_OP op )
+        {
+            static const char* ascMap[] = {
+                "SetMarker",                            // D3D12_AUTO_BREADCRUMB_OP_SETMARKER
+                "BeginEvent",                           // D3D12_AUTO_BREADCRUMB_OP_BEGINEVENT
+                "EndEvent",                             // D3D12_AUTO_BREADCRUMB_OP_ENDEVENT
+                "DrawInstanced",                        // D3D12_AUTO_BREADCRUMB_OP_DRAWINSTANCED
+                "DrawIndexedInstanced",                 // D3D12_AUTO_BREADCRUMB_OP_DRAWINDEXEDINSTANCED
+                "ExecuteIndirect",                      // D3D12_AUTO_BREADCRUMB_OP_EXECUTEINDIRECT
+                "Dispatch",                             // D3D12_AUTO_BREADCRUMB_OP_DISPATCH
+                "CopyBufferRegion",                     // D3D12_AUTO_BREADCRUMB_OP_COPYBUFFERREGION
+                "CopyTextureRegion",                    // D3D12_AUTO_BREADCRUMB_OP_COPYTEXTUREREGION
+                "CopyResource",                         // D3D12_AUTO_BREADCRUMB_OP_COPYRESOURCE
+                "CopyTiles",                            // D3D12_AUTO_BREADCRUMB_OP_COPYTILES
+                "ResolveSubresource",                   // D3D12_AUTO_BREADCRUMB_OP_RESOLVESUBRESOURCE
+                "ClearRenderTargetView",                // D3D12_AUTO_BREADCRUMB_OP_CLEARRENDERTARGETVIEW
+                "ClearUnorderedAccessView",             // D3D12_AUTO_BREADCRUMB_OP_CLEARUNORDEREDACCESSVIEW
+                "ClearDepthStencilView",                // D3D12_AUTO_BREADCRUMB_OP_CLEARDEPTHSTENCILVIEW
+                "ResourceBarrier",                      // D3D12_AUTO_BREADCRUMB_OP_RESOURCEBARRIER
+                "ExecuteBundle",                        // D3D12_AUTO_BREADCRUMB_OP_EXECUTEBUNDLE
+                "Present",                              // D3D12_AUTO_BREADCRUMB_OP_PRESENT
+                "ResolveQueryData",                     // D3D12_AUTO_BREADCRUMB_OP_RESOLVEQUERYDATA
+                "BeginSubmission",                      // D3D12_AUTO_BREADCRUMB_OP_BEGINSUBMISSION
+                "EndSubmission",                        // D3D12_AUTO_BREADCRUMB_OP_ENDSUBMISSION
+                "DecodeFrame",                          // D3D12_AUTO_BREADCRUMB_OP_DECODEFRAME
+                "ProcessFrames",                        // D3D12_AUTO_BREADCRUMB_OP_PROCESSFRAMES
+                "AtomicCopyBufferUINT",                 // D3D12_AUTO_BREADCRUMB_OP_ATOMICCOPYBUFFERUINT
+                "AtomicCopyBufferUINT64",               // D3D12_AUTO_BREADCRUMB_OP_ATOMICCOPYBUFFERUINT64
+                "ResolveSubresourceRegion",             // D3D12_AUTO_BREADCRUMB_OP_RESOLVESUBRESOURCEREGION
+                "WriteBufferImmediate",                 // D3D12_AUTO_BREADCRUMB_OP_WRITEBUFFERIMMEDIATE
+                "DecodeFrame1",                         // D3D12_AUTO_BREADCRUMB_OP_DECODEFRAME1
+                "SetProtectedResourceSession",          // D3D12_AUTO_BREADCRUMB_OP_SETPROTECTEDRESOURCESESSION
+                "DecodeFrame2",                         // D3D12_AUTO_BREADCRUMB_OP_DECODEFRAME2
+                "ProcessFrames1",                       // D3D12_AUTO_BREADCRUMB_OP_PROCESSFRAMES1
+                "BuildRaytracingAccelerationStructure", // D3D12_AUTO_BREADCRUMB_OP_BUILDRAYTRACINGACCELERATIONSTRUCTURE
+                "EmitRaytracingAccelerationStructurePostBuildInfo", // D3D12_AUTO_BREADCRUMB_OP_EMITRAYTRACINGACCELERATIONSTRUCTUREPOSTBUILDINFO
+                "CopyRaytracingAccelerationStructure", // D3D12_AUTO_BREADCRUMB_OP_COPYRAYTRACINGACCELERATIONSTRUCTURE
+                "DispatchRays",                        // D3D12_AUTO_BREADCRUMB_OP_DISPATCHRAYS
+                "InitializeMetaCommand",               // D3D12_AUTO_BREADCRUMB_OP_INITIALIZEMETACOMMAND
+                "ExecuteMetaCommand",                  // D3D12_AUTO_BREADCRUMB_OP_EXECUTEMETACOMMAND
+                "EstimateMotion",                      // D3D12_AUTO_BREADCRUMB_OP_ESTIMATEMOTION
+                "ResolveMotionVectorHeap",             // D3D12_AUTO_BREADCRUMB_OP_RESOLVEMOTIONVECTORHEAP
+                "SetPipelineState1",                   // D3D12_AUTO_BREADCRUMB_OP_SETPIPELINESTATE1
+                "InitializeExtensionCommand",          // D3D12_AUTO_BREADCRUMB_OP_INITIALIZEEXTENSIONCOMMAND
+                "ExecuteExtensionCommand",             // D3D12_AUTO_BREADCRUMB_OP_EXECUTEEXTENSIONCOMMAND
+                "DispatchMesh",                        // D3D12_AUTO_BREADCRUMB_OP_DISPATCHMESH
+                "EncodeFrame",                         // D3D12_AUTO_BREADCRUMB_OP_ENCODEFRAME
+                "ResolveEncoderOutputMetadata",        // D3D12_AUTO_BREADCRUMB_OP_RESOLVEENCODEROUTPUTMETADATA
+                "Barrier",                             // D3D12_AUTO_BREADCRUMB_OP_BARRIER
+                "BeginCommandList",                    // D3D12_AUTO_BREADCRUMB_OP_BEGIN_COMMAND_LIST
+                "DispatchGraph",                       // D3D12_AUTO_BREADCRUMB_OP_DISPATCHGRAPH
+                "SetProgram",                          // D3D12_AUTO_BREADCRUMB_OP_SETPROGRAM
+                "EncodeFrame1",                        // D3D12_AUTO_BREADCRUMB_OP_ENCODEFRAME1
+                "ResolveEncoderOutputMetadata1",       // D3D12_AUTO_BREADCRUMB_OP_RESOLVEENCODEROUTPUTMETADATA1
+                "ResolveInputParamLayout",             // D3D12_AUTO_BREADCRUMB_OP_RESOLVEINPUTPARAMLAYOUT
+                "ProcessFrames2",                      // D3D12_AUTO_BREADCRUMB_OP_PROCESSFRAMES2
+                "SetWorkGraphMaximumGPUInputRecords", // D3D12_AUTO_BREADCRUMB_OP_SET_WORK_GRAPH_MAXIMUM_GPU_INPUT_RECORDS
+            };
+
+            if( static_cast< uint32_t >( op ) < _countof( ascMap ) )
+            {
+                return ascMap[ op ];
+            }
+            else
+            {
+                return "<unknown>";
+            }
+        }
+
+        void HandleDeviceRemoval( NativeAPI::Device pDevice )
+        {
+            VKE_ASSERT2( pDevice != NativeAPI::Null, "HandleDeviceRemoval: pDevice is NULL" );
+
+            if( !NativeAPI::SImplementation::sDebugLayerEnabled )
+            {
+                VKE_LOG(
+                    "HandleDeviceRemoval: DRED is not enabled without NativeAPI::SImplementation::sDebugLayerEnabled" );
+                return;
+            }
+
+            HRESULT reason = pDevice->GetDeviceRemovedReason();
+
+            if( reason == S_OK )
+            {
+                VKE_LOG( "HandleDeviceRemoval: called but no TDR happened" );
+                return;
+            }
+
+            VKE_LOG( "HandleDeviceRemoval: TDR with reason: " << std::hex << reason );
+
+            ID3D12DeviceRemovedExtendedData1* pDRED = NativeAPI::Null;
+            if( FAILED( pDevice->QueryInterface( IID_PPV_ARGS( &pDRED ) ) ) )
+            {
+                VKE_LOG( "HandleDeviceRemoval: Failed to query DRED" );
+                return;
+            }
+
+            D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 Breadcrumbs = {};
+            if( SUCCEEDED( pDRED->GetAutoBreadcrumbsOutput1( &Breadcrumbs ) ) )
+            {
+                VKE_LOG( "HandleDeviceRemoval: === DRED Auto-Breadcrumbs ===" );
+                const D3D12_AUTO_BREADCRUMB_NODE1* pNode = NativeAPI::Null;
+
+                for( pNode = Breadcrumbs.pHeadAutoBreadcrumbNode; pNode != nullptr; pNode = pNode->pNext )
+                {
+                    VKE_LOG( "HandleDeviceRemoval: Command List: "
+                             << ( pNode->pCommandListDebugNameA ? pNode->pCommandListDebugNameA : "<unnamed>" ) );
+                    VKE_LOG( "HandleDeviceRemoval:  Command Queue: "
+                             << ( pNode->pCommandQueueDebugNameA ? pNode->pCommandQueueDebugNameA : "<unnamed>" ) );
+
+                    uint32_t lastCompleted = GetLastCompletedBreadcrumb( pNode );
+                    VKE_LOG( "HandleDeviceRemoval:  Last completed operation: " << lastCompleted << " / "
+                                                                                << pNode->BreadcrumbCount );
+
+                    for( uint32_t i = 0; i < pNode->BreadcrumbCount; i++ )
+                    {
+                        bool completed = pNode->pLastBreadcrumbValue && ( *pNode->pLastBreadcrumbValue & ( 1u << i ) );
+
+                        VKE_LOG( "HandleDeviceRemoval:    [" << ( completed ? "X" : " " ) << "] Op " << i << ": "
+                                                             << GetBreadcrumbOpName( pNode->pCommandHistory[ i ] ) );
+                    }
+                }
+            }
+        }
+
+    } // namespace NativeAPI
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Map functions.
+    // These are specific functions that has easy mapping Engine types to Native types. If there is more complex
+    // functions, like switch/case, if/else, loops they should go to Convert namespace.
+    namespace Map
+    {
+        D3D12_COMMAND_LIST_TYPE GetCommandListType( QUEUE_TYPE EngineType )
+        {
+            static const D3D12_COMMAND_LIST_TYPE ascNativeMap[] = {
+                D3D12_COMMAND_LIST_TYPE_DIRECT,  // GENERAL
+                D3D12_COMMAND_LIST_TYPE_COMPUTE, // COMPUTE
+                D3D12_COMMAND_LIST_TYPE_COPY,    // TRANSFER
+                D3D12_COMMAND_LIST_TYPE_NONE,    // SPARSE - not supported in DX12
+                D3D12_COMMAND_LIST_TYPE_NONE,    // PRESENT - not supported in DX12
+            };
+
+            // Update ascNativeMap when changing QUEUE_TYPE enum
+            static_assert( QUEUE_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( DESCRIPTOR_SET_TYPE EngineType )
+        {
+            static const D3D12_DESCRIPTOR_HEAP_TYPE ascNativeMap[] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // SAMPLER
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // TEXTURE
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,         // STORAGE_TEXTURE
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // READ_WRITE_TEXEL_BUFFER : basically R/W UAV
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // CONSTANT_BUFFER
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // BUFFER
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // DYNAMIC_CONSTANT_BUFFER
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // DYNAMIC_BUFFER
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,         // RENDER_TARGET
+                D3D12_DESCRIPTOR_HEAP_TYPE_DSV,         // DEPTH_STENCIL
+            };
+
+            // Update ascNativeMap when changing DESCRIPTOR_SET_TYPE enum
+            static_assert( DESCRIPTOR_SET_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        DXGI_COLOR_SPACE_TYPE GetDXGIColorSpace( COLOR_SPACE EngineColorSpace )
+        {
+            static const DXGI_COLOR_SPACE_TYPE ascNativeMap[] = {
+                DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709, // SRGB
+            };
+
+            // Update ascNativeMap when changing COLOR_SPACE enum
+            static_assert( COLOR_SPACE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineColorSpace ) ];
+        }
+
+        D3D12_SRV_DIMENSION GetSRVDimension( TEXTURE_VIEW_TYPE EngineType )
+        {
+            static const D3D12_SRV_DIMENSION ascNativeMap[] = {
+                D3D12_SRV_DIMENSION_TEXTURE1D,        // VIEW_1D
+                D3D12_SRV_DIMENSION_TEXTURE2D,        // VIEW_2D
+                D3D12_SRV_DIMENSION_TEXTURE3D,        // VIEW_3D
+                D3D12_SRV_DIMENSION_TEXTURECUBE,      // VIEW_CUBE
+                D3D12_SRV_DIMENSION_TEXTURE1DARRAY,   // VIEW_1D_ARRAY
+                D3D12_SRV_DIMENSION_TEXTURE2DARRAY,   // VIEW_2D_ARRAY
+                D3D12_SRV_DIMENSION_TEXTURECUBEARRAY, // VIEW_CUBE_ARRAY
+            };
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        D3D12_RTV_DIMENSION GetRTVDimension( TEXTURE_VIEW_TYPE EngineType )
+        {
+            static const D3D12_RTV_DIMENSION ascNativeMap[] = {
+                D3D12_RTV_DIMENSION_TEXTURE1D,      // VIEW_1D
+                D3D12_RTV_DIMENSION_TEXTURE2D,      // VIEW_2D
+                D3D12_RTV_DIMENSION_TEXTURE3D,      // VIEW_3D
+                D3D12_RTV_DIMENSION_UNKNOWN,        // VIEW_CUBE
+                D3D12_RTV_DIMENSION_TEXTURE1DARRAY, // VIEW_1D_ARRAY
+                D3D12_RTV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
+                D3D12_RTV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
+            };
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        D3D12_UAV_DIMENSION GetUAVDimension( TEXTURE_VIEW_TYPE EngineType )
+        {
+            static const D3D12_UAV_DIMENSION ascNativeMap[] = {
+                D3D12_UAV_DIMENSION_TEXTURE1D,      // VIEW_1D
+                D3D12_UAV_DIMENSION_TEXTURE2D,      // VIEW_2D
+                D3D12_UAV_DIMENSION_TEXTURE3D,      // VIEW_3D
+                D3D12_UAV_DIMENSION_UNKNOWN,        // VIEW_CUBE
+                D3D12_UAV_DIMENSION_TEXTURE1DARRAY, // VIEW_1D_ARRAY
+                D3D12_UAV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
+                D3D12_UAV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
+            };
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        D3D12_DSV_DIMENSION GetDSVDimension( TEXTURE_VIEW_TYPE EngineType )
+        {
+            static const D3D12_DSV_DIMENSION ascNativeMap[] = {
+                D3D12_DSV_DIMENSION_TEXTURE1D,      // VIEW_1D
+                D3D12_DSV_DIMENSION_TEXTURE2D,      // VIEW_2D
+                D3D12_DSV_DIMENSION_UNKNOWN,        // VIEW_3D
+                D3D12_DSV_DIMENSION_UNKNOWN,        // VIEW_CUBE
+                D3D12_DSV_DIMENSION_TEXTURE1DARRAY, // VIEW_1D_ARRAY
+                D3D12_DSV_DIMENSION_TEXTURE2DARRAY, // VIEW_2D_ARRAY
+                D3D12_DSV_DIMENSION_UNKNOWN,        // VIEW_CUBE_ARRAY
+            };
+
+            // Update ascNativeMap when changing TEXTURE_VIEW_TYPE enum
+            static_assert( TEXTURE_VIEW_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        D3D12_RESOURCE_DIMENSION GetResourceDimension( TEXTURE_TYPE EngineType )
+        {
+            // TODO(blturkot): Add support for TEXTURE_TYPE::TEX_2D_ARRAY and TEX_CUBE
+            static const D3D12_RESOURCE_DIMENSION ascNativeMap[] = {
+                D3D12_RESOURCE_DIMENSION_TEXTURE1D, // TEX_1D
+                D3D12_RESOURCE_DIMENSION_TEXTURE2D, // TEX_2D
+                D3D12_RESOURCE_DIMENSION_TEXTURE3D, // TEX_3D
+                D3D12_RESOURCE_DIMENSION_UNKNOWN,
+            };
+
+            // Update ascNativeMap when changing TEXTURE_TYPE enum
+            static_assert( TEXTURE_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType( D3D12_DESCRIPTOR_RANGE_TYPE NativeRange )
+        {
+            static const D3D12_DESCRIPTOR_HEAP_TYPE ascNativeMap[] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_SRV
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_UAV
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // D3D12_DESCRIPTOR_RANGE_TYPE_CBV
+            };
+
+            return ascNativeMap[ static_cast< size_t >( NativeRange ) ];
+        }
+
+        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE EngineState )
+        {
+            static const D3D12_RESOURCE_STATES ascNativeMap[] = {
+                D3D12_RESOURCE_STATE_COMMON,              // UNDEFINED,
+                D3D12_RESOURCE_STATE_COMMON,              // GENERAL,
+                D3D12_RESOURCE_STATE_RENDER_TARGET,       // COLOR_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE,         // DEPTH_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE,         // STENCIL_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE,         // DEPTH_STENCIL_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_BUFFER,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // STENCIL_BUFFER,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_STENCIL_BUFFER,
+                D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, // SHADER_READ,
+                D3D12_RESOURCE_STATE_COPY_SOURCE,         // TRANSFER_SRC,
+                D3D12_RESOURCE_STATE_COPY_DEST,           // TRANSFER_DST,
+                D3D12_RESOURCE_STATE_PRESENT,             // PRESENT,
+                D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, // COLOR_RENDER_TARGET_READ,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_RENDER_TARGET_READ,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // STENCIL_RENDER_TARGET_READ,
+                D3D12_RESOURCE_STATE_DEPTH_READ,          // DEPTH_STENCIL_RENDER_TARGET_READ,
+            };
+
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( TEXTURE_STATE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineState ];
+        }
+
+        D3D12_DESCRIPTOR_RANGE_TYPE GetDescriptorRangeType( BINDING_TYPE EngineType )
+        {
+            static const D3D12_DESCRIPTOR_RANGE_TYPE ascNativeMap[] = {
+                D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // SAMPLER
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // TEXTURE
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // STORAGE_TEXTURE
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_WRITE_TEXEL_BUFFER : basically R/W UAV
+                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // CONSTANT_BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // DYNAMIC_CONSTANT_BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // DYNAMIC_BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // RENDER_TARGET
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // DEPTH_STENCIL
+            };
+
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( BINDING_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineType ];
+        }
+
+        D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE
+        GetRenderPassBeginningAccessType( RENDER_TARGET_RENDER_PASS_OP EngineOp )
+        {
+            static const D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE ascNativeMap[] = {
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // COLOR, // load = dont't care, store = don't care
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // COLOR_CLEAR, // load = clear, store = dont't care
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // COLOR_STORE, // load = don't care, store = store
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // COLOR_CLEAR_STORE, // load = clear, store = store
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // DEPTH_STENCIL_CLEAR,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL_STORE,
+                D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR,     // DEPTH_STENCIL_CLEAR_STORE,
+            };
+
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( RENDER_TARGET_RENDER_PASS_OP::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineOp ];
+        }
+
+        D3D12_RENDER_PASS_ENDING_ACCESS_TYPE GetRenderPassEndingAccessType( RENDER_TARGET_RENDER_PASS_OP EngineOp )
+        {
+            static const D3D12_RENDER_PASS_ENDING_ACCESS_TYPE
+                ascNativeMap[ RenderTargetRenderPassOperations::_MAX_COUNT ] = {
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS, // UNDEFINED,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR, // load = dont't care, store = don't care
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // COLOR_CLEAR, // load = clear, store = dont't care
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_STORE, // load = don't care, store = store
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // COLOR_CLEAR_STORE, // load = clear, store = store
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,   // DEPTH_STENCIL_CLEAR,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_STORE,
+                    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,  // DEPTH_STENCIL_CLEAR_STORE,
+                };
+
+            // Update ascNativeMap when changing TEXTURE_STATE enum
+            static_assert( RENDER_TARGET_RENDER_PASS_OP::_MAX_COUNT == _countof( ascNativeMap ) );
+
+            return ascNativeMap[ EngineOp ];
+        }
+
+    }; // namespace Map
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Convert functions.
+    // These are specific functions that has complex mapping from Engine types to Native types.
+    namespace Convert
+    {
+        D3D12_SHADER_VISIBILITY GetShaderVisibility( uint16_t EngineType )
+        {
+            switch( EngineType )
+            {
+                case PipelineStages::TYPE::VERTEX:
+                    return D3D12_SHADER_VISIBILITY_VERTEX;
+
+                case PipelineStages::TYPE::TS_DOMAIN:
+                    return D3D12_SHADER_VISIBILITY_DOMAIN;
+
+                case PipelineStages::TYPE::TS_HULL:
+                    return D3D12_SHADER_VISIBILITY_HULL;
+
+                case PipelineStages::TYPE::GEOMETRY:
+                    return D3D12_SHADER_VISIBILITY_GEOMETRY;
+
+                case PipelineStages::TYPE::PIXEL:
+                    return D3D12_SHADER_VISIBILITY_PIXEL;
+
+                case PipelineStages::TYPE::MS_TASK:
+                    return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+
+                case PipelineStages::TYPE::MS_MESH:
+                    return D3D12_SHADER_VISIBILITY_MESH;
+
+                default:
+                    return D3D12_SHADER_VISIBILITY_ALL;
+            }
+        }
+
+        DXGI_FORMAT GetDXGIFormat( FORMAT EngineFormat )
+        {
+            // When changing FORMAT enum, also update g_aFormats.
+            static_assert( FORMAT::_MAX_COUNT == _countof( VKE::RenderSystem::D3D12::g_aFormats ) );
+
+            uint32_t formatIndex = static_cast< size_t >( EngineFormat );
+            return VKE::RenderSystem::D3D12::g_aFormats[ formatIndex ];
+        }
+
+        D3D12_RESOURCE_STATES GetResourceState( TEXTURE_STATE EngineState, MEMORY_ACCESS_TYPE EngineMask )
+        {
+            D3D12_RESOURCE_STATES OutState = Map::GetResourceState( EngineState );
+
+            // TODO(blturkot): Consider Mask for more accurate resource state.
+            // OutState |= Convert::GetResourceState( Mask );
+
+            return OutState;
+        }
+
+        D3D12_RESOURCE_STATES GetResourceState( MEMORY_ACCESS_TYPE EngineMask )
+        {
+            D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
+
+            if( EngineMask & ( MemoryAccessTypes::CPU_MEMORY_READ | MemoryAccessTypes::CPU_MEMORY_WRITE |
+                               MemoryAccessTypes::GPU_MEMORY_READ | MemoryAccessTypes::GPU_MEMORY_WRITE ) )
+            {
+                // DX12 requires CPU access to be in COMMON state.
+                return State;
+            }
+
+            if( EngineMask & MemoryAccessTypes::INDIRECT_BUFFER_READ )
+            {
+                State |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+            }
+
+            if( EngineMask & MemoryAccessTypes::INDEX_READ )
+            {
+                State |= D3D12_RESOURCE_STATE_INDEX_BUFFER;
+            }
+
+            if( EngineMask & ( MemoryAccessTypes::VERTEX_ATTRIBUTE_READ | MemoryAccessTypes::VS_UNIFORM_READ |
+                               MemoryAccessTypes::PS_UNIFORM_READ | MemoryAccessTypes::GS_UNIFORM_READ |
+                               MemoryAccessTypes::TS_UNIFORM_READ | MemoryAccessTypes::CS_UNIFORM_READ |
+                               MemoryAccessTypes::MS_UNIFORM_READ | MemoryAccessTypes::RT_UNIFORM_READ ) )
+            {
+                State |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            }
+
+            if( EngineMask & MemoryAccessTypes::INPUT_ATTACHMENT_READ )
+            {
+                State |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+            }
+
+            // Is this actually UAV?
+            if( EngineMask & ( MemoryAccessTypes::VS_SHADER_READ | MemoryAccessTypes::GS_SHADER_READ |
+                               MemoryAccessTypes::TS_SHADER_READ | MemoryAccessTypes::CS_SHADER_READ |
+                               MemoryAccessTypes::MS_SHADER_READ | MemoryAccessTypes::RS_SHADER_READ ) )
+            {
+                State |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            }
+            // And this?
+            if( EngineMask & MemoryAccessTypes::PS_SHADER_READ )
+            {
+                State |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+            }
+
+            if( EngineMask & ( MemoryAccessTypes::VS_SHADER_WRITE | MemoryAccessTypes::GS_SHADER_WRITE |
+                               MemoryAccessTypes::TS_SHADER_WRITE | MemoryAccessTypes::CS_SHADER_WRITE |
+                               MemoryAccessTypes::MS_SHADER_WRITE | MemoryAccessTypes::RS_SHADER_WRITE |
+                               MemoryAccessTypes::PS_SHADER_WRITE ) )
+            {
+                State |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+            }
+
+            if( EngineMask &
+                ( MemoryAccessTypes::COLOR_RENDER_TARGET_READ | MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_READ ) )
+            {
+                State |= D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE;
+            }
+
+            if( EngineMask & ( MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE |
+                               MemoryAccessTypes::DEPTH_STENCIL_RENDER_TARGET_WRITE ) )
+            {
+                State |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+            }
+
+            if( EngineMask & ( MemoryAccessTypes::DATA_TRANSFER_READ ) )
+            {
+                State |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+            }
+
+            if( EngineMask & ( MemoryAccessTypes::DATA_TRANSFER_WRITE ) )
+            {
+                State |= D3D12_RESOURCE_STATE_COPY_DEST;
+            }
+
+            return State;
+        }
+
+#if 0
+        // This is for enhanced barriers. Need to check capabilities and add another path for barriers.
+        vke_force_inline D3D12_BARRIER_SUBRESOURCE_RANGE GetSubresourceIndex( NativeAPI::Texture              hTexture,
+                                                                              const STextureSubresourceRange& Range )
+        {
+            D3D12_BARRIER_SUBRESOURCE_RANGE ddiRange;
+            ddiRange.IndexOrFirstMipLevel = Range.beginMipmapLevel;
+            ddiRange.NumMipLevels         = Range.mipmapLevelCount;
+            ddiRange.FirstArraySlice      = Range.beginArrayLayer;
+            ddiRange.NumArraySlices       = Range.layerCount;
+            ddiRange.FirstPlane           = 0;
+            ddiRange.NumPlanes            = 1;
+
+            return ddiRange;
+        }
+#endif
+        vke_force_inline UINT GetSubresourceIndex( UINT MipLevel, UINT MipCount, UINT ArraySlice, UINT ArraySliceCount,
+                                                   UINT Plane )
+        {
+            return MipLevel + ( ArraySlice * MipCount ) + ( Plane * MipCount * ArraySliceCount );
+        }
+
+        DXGI_SAMPLE_DESC GetSampleDesc( SAMPLE_COUNT EngineCount )
+        {
+            DXGI_SAMPLE_DESC Desc;
+            Desc.Count   = ( 1 << EngineCount );
+            Desc.Quality = 0;
+            return Desc;
+        }
+
+        D3D12_RESOURCE_FLAGS GetResourceFlags( TEXTURE_USAGE EngineUsage )
+        {
+            D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
+
+            if( ( EngineUsage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET ) )
+            {
+                Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+                if( ( EngineUsage & TextureUsages::SAMPLED ) == 0 )
+                {
+                    Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+                }
+            }
+            else
+            {
+                // In DX12 D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL cannot be set with either:
+                // - D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+                // - D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
+                // - D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS
+                if( ( EngineUsage & TextureUsages::STORAGE ) )
+                {
+                    Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+                }
+
+                if( ( EngineUsage & TextureUsages::COLOR_RENDER_TARGET ) )
+                {
+                    Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+                }
+            }
+            return Flags;
+        }
+
+        D3D12_RESOURCE_FLAGS GetResourceFlags( BUFFER_USAGE EngineUsage )
+        {
+            D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
+
+            if( ( EngineUsage & BufferUsages::TEXEL_BUFFER ) )
+            {
+                Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            }
+
+            return Flags;
+        }
+
+        D3D12_HEAP_DESC GetMemoryHeapDesc( MEMORY_USAGE EngineUsage, bool HeapTier2 )
+        {
+            static const MEMORY_USAGE AccessMaskBits = MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS |
+                                                       MemoryUsages::CPU_CACHED | MemoryUsages::CPU_NO_FLUSH;
+
+            static const MEMORY_USAGE vPreconfiguredHeaps[] = {
+                // D3D12_HEAP_TYPE_DEFAULT
+                MemoryUsages::GPU_ACCESS | !MemoryUsages::CPU_ACCESS,
+                // D3D12_HEAP_TYPE_UPLOAD
+                MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS | MemoryUsages::CPU_NO_FLUSH,
+                // D3D12_HEAP_TYPE_READBACK
+                MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS | MemoryUsages::CPU_CACHED,
+            };
+
+            bool AllowBuffers  = EngineUsage & MemoryUsages::BUFFER;
+            bool AllowTextures = EngineUsage & MemoryUsages::TEXTURE;
+            bool CPUAccess     = EngineUsage & MemoryUsages::CPU_ACCESS;
+            bool GPUAccess     = EngineUsage & MemoryUsages::GPU_ACCESS;
+            bool IsWriteback   = EngineUsage & MemoryUsages::CPU_CACHED;
+            bool IsUpload      = EngineUsage & MemoryUsages::CPU_NO_FLUSH;
+
+            D3D12_HEAP_DESC Desc;
+            Desc.SizeInBytes = 0;                                          // To be filled later
+            Desc.Alignment   = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT; // Default alignment
+
+            // Reset node mask
+            Desc.Properties.CreationNodeMask = 0;
+            Desc.Properties.VisibleNodeMask  = 0;
+
+            if( GPUAccess && !CPUAccess )
+            {
+                // This heap type experiences the most bandwidth for the GPU, but cannot provide CPU access. The GPU can
+                // read and write to the memory from this pool, and resource transition barriers may be changed. The
+                // majority of heaps and resources are expected to be located here, and are typically populated through
+                // resources in upload heaps.
+                Desc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+            }
+            else if( GPUAccess && CPUAccess )
+            {
+                if( EngineUsage & MemoryUsages::CPU_NO_FLUSH )
+                {
+                    // This heap type has CPU access optimized for uploading to the GPU, but does not experience the
+                    // maximum amount of bandwidth for the GPU. This heap type is best for CPU-write-once, GPU-read-once
+                    // data; but GPU-read-once is stricter than necessary. GPU-read-once-or-from-cache is an acceptable
+                    // use-case for the data; but such usages are hard to judge due to differing GPU cache designs and
+                    // sizes. If in doubt, stick to the GPU-read-once definition or profile the difference on many GPUs
+                    // between copying the data to a _DEFAULT heap vs. reading the data from an _UPLOAD heap.
+
+                    // Resources in this heap must be created with D3D12_RESOURCE_STATE_GENERIC_READ and cannot be
+                    // changed away from this. The CPU address for such heaps is commonly not efficient for CPU reads.
+                    Desc.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+                }
+                else if( EngineUsage & MemoryUsages::CPU_CACHED )
+                {
+                    // Specifies a heap used for reading back. This heap type has CPU access optimized for reading data
+                    // back from the GPU, but does not experience the maximum amount of bandwidth for the GPU. This heap
+                    // type is best for GPU-write-once, CPU-readable data. The CPU cache behavior is write-back, which
+                    // is conducive for multiple sub-cache-line CPU reads.
+
+                    // Resources in this heap must be created with D3D12_RESOURCE_STATE_COPY_DEST,
+                    // and cannot be changed away from this.
+                    Desc.Properties.Type = D3D12_HEAP_TYPE_READBACK;
+                }
+                else
+                {
+                    // The application may specify the memory pool and CPU cache properties directly, which can be
+                    // useful for UMA optimizations, multi-engine, multi-adapter, or other special cases. To do so, the
+                    // application is expected to understand the adapter architecture to make the right choice.
+                    Desc.Properties.Type = D3D12_HEAP_TYPE_CUSTOM;
+                }
+            }
+            else
+            {
+                Desc.Properties.Type = D3D12_HEAP_TYPE_CUSTOM;
+            }
+
+            // Reset remaining fields from descriptor. Predefined heaps already have correct properties and API requires
+            // to set UNKNOWN for them. Otherwise it will report runtime error.
+            Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+            Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+            // Custom heaps requires overriding.
+            if( Desc.Properties.Type == D3D12_HEAP_TYPE_CUSTOM )
+            {
+                if( !CPUAccess )
+                {
+                    // No CPU access, acts like DEFAULT heap.
+                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
+                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
+                }
+                else if( CPUAccess && IsWriteback )
+                {
+                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+                }
+                else if( CPUAccess && IsUpload )
+                {
+                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+                }
+            }
+
+            // TODO(szymansk): I've added this flag assuming engine will handle not zeroed resources. Or should we allow
+            // API to zero?
+            // desc.Flags = D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
+            Desc.Flags = D3D12_HEAP_FLAG_NONE;
+
+            if( ( AllowBuffers && AllowTextures ) || HeapTier2 )
+            {
+                // TODO(blturkot): This allows all buffers and textures but it is only required when HW supports Tier2
+                // heaps.
+                Desc.Flags |= D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES;
+            }
+            else
+            {
+                if( !AllowBuffers )
+                {
+                    Desc.Flags |= D3D12_HEAP_FLAG_DENY_BUFFERS;
+                }
+
+                if( !AllowTextures )
+                {
+                    Desc.Flags |= D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES;
+                }
+            }
+
+            return Desc;
+        }
+
+        void GetResourceDesc( const STextureDesc&                                EngineDesc,
+                              const NativeAPI::SImplementation::SDeviceFeatures& NativeFeatures,
+                              NativeAPI::D3D12ResourceDesc*                      pOut )
+        {
+            NativeAPI::D3D12ResourceDesc& OutDesc = *pOut;
+
+            OutDesc.Dimension = Map::GetResourceDimension( EngineDesc.type );
+            OutDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+            OutDesc.Width     = static_cast< UINT64 >( EngineDesc.Size.width );
+            OutDesc.Height    = static_cast< UINT >( EngineDesc.Size.height );
+
+            if( EngineDesc.type == TEXTURE_TYPE::TEXTURE_3D )
+            {
+                OutDesc.DepthOrArraySize = static_cast< UINT16 >( EngineDesc.sliceCount );
+            }
+            else
+            {
+                OutDesc.DepthOrArraySize = static_cast< UINT16 >( EngineDesc.arrayElementCount );
+            }
+
+            OutDesc.MipLevels  = static_cast< UINT16 >( EngineDesc.mipmapCount );
+            OutDesc.Format     = Convert::GetDXGIFormat( EngineDesc.format );
+            OutDesc.SampleDesc = Convert::GetSampleDesc( EngineDesc.multisampling );
+            OutDesc.Layout     = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+            OutDesc.Flags      = Convert::GetResourceFlags( EngineDesc.usage );
+
+            if( NativeFeatures.TightAlignmentSupported )
+            {
+                OutDesc.Alignment  = 0;
+                OutDesc.Flags     |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
+            }
+        }
+
+        NativeAPI::D3D12ResourceDesc
+        GetResourceDesc( const SBufferDesc&                                 EngineDesc,
+                         const NativeAPI::SImplementation::SDeviceFeatures& NativeFeatures )
+        {
+            NativeAPI::D3D12ResourceDesc OutDesc;
+
+            OutDesc.Dimension        = D3D12_RESOURCE_DIMENSION_BUFFER;
+            OutDesc.Alignment        = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+            OutDesc.Width            = static_cast< UINT64 >( EngineDesc.CalcSize() );
+            OutDesc.Height           = 1;
+            OutDesc.DepthOrArraySize = 1;
+            OutDesc.MipLevels        = 1;
+            OutDesc.Format           = DXGI_FORMAT_UNKNOWN;
+
+            OutDesc.SampleDesc.Count   = 1;
+            OutDesc.SampleDesc.Quality = 0;
+
+            OutDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+            OutDesc.Flags  = Convert::GetResourceFlags( EngineDesc.usage );
+
+            if( NativeFeatures.TightAlignmentSupported )
+            {
+                OutDesc.Alignment  = 0;
+                OutDesc.Flags     |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
+            }
+
+            return OutDesc;
+        }
+
+        UINT32 GetPixColor( const VKE::RenderSystem::SColor& EngineColor )
+        {
+            // Spec URL:
+            // https://devblogs.microsoft.com/pix/winpixeventruntime/
+            // raw DWORD noting that the format is ARGB and the alpha channel value must be 0xff
+            return PIX_COLOR( static_cast< UINT8 >( std::lround( std::clamp( EngineColor.r, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( EngineColor.g, 0.0f, 1.0f ) * 0xFF ) ),
+                              static_cast< UINT8 >( std::lround( std::clamp( EngineColor.b, 0.0f, 1.0f ) * 0xFF ) ) );
+        }
+
+        D3D12_CLEAR_VALUE GetClearValue( const SRenderTargetInfo& EngineInfo )
+        {
+            D3D12_CLEAR_VALUE ClearValue;
+            ClearValue.Format = Convert::GetDXGIFormat( EngineInfo.format );
+
+            ClearValue.Color[ 0 ] = EngineInfo.ClearColor.Color.r;
+            ClearValue.Color[ 1 ] = EngineInfo.ClearColor.Color.g;
+            ClearValue.Color[ 2 ] = EngineInfo.ClearColor.Color.b;
+            ClearValue.Color[ 3 ] = EngineInfo.ClearColor.Color.a;
+
+            return ClearValue;
+        }
+
+        D3D12_DSV_FLAGS GetDepthStencilViewFlags()
+        {
+            return D3D12_DSV_FLAG_NONE;
+        }
+
+        D3D12_CLEAR_FLAGS GetClearDepthStencilViewFlags( TEXTURE_FORMAT EngineFormat )
+        {
+            D3D12_CLEAR_FLAGS flags = (D3D12_CLEAR_FLAGS)0;
+
+            if( VKE::RenderSystem::IsDepthFormat( EngineFormat ) )
+            {
+                flags |= D3D12_CLEAR_FLAG_DEPTH;
+            }
+
+            if( VKE::RenderSystem::IsStencilFormat( EngineFormat ) )
+            {
+                flags |= D3D12_CLEAR_FLAG_STENCIL;
+            }
+
+            return flags;
+        }
+
+        void GetRect( const Rect2DI32& EngineRect, D3D12_RECT* pNativeRect )
+        {
+            pNativeRect->left   = EngineRect.Position.x;
+            pNativeRect->top    = EngineRect.Position.y;
+            pNativeRect->right  = pNativeRect->left + EngineRect.Size.width;
+            pNativeRect->bottom = pNativeRect->top + EngineRect.Size.height;
+        }
+
+    }; // namespace Convert
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Helper functions.
+    // These are not directly to translate but have common code across multiple CDDI functions. This is just to prevent
+    // duplicated code and work on function that has to be easy to refactor.
+    namespace Helper
+    {
+
+        D3D_FEATURE_LEVEL GetMaxFeatureLevel( IDXGIAdapter1* pAdapter )
+        {
+            static const D3D_FEATURE_LEVEL vFeatureLevels[] = {
+                D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
+                D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
+            };
+
+            D3D_FEATURE_LEVEL MaxLevel = vFeatureLevels[ _countof( vFeatureLevels ) - 1 ];
+
+            ID3D12Device* pDevice = NativeAPI::Null;
+            HRESULT       Result  = S_OK;
+
+            for( auto Level: vFeatureLevels )
+            {
+                Result = D3D12CreateDevice( pAdapter, Level, IID_PPV_ARGS( &pDevice ) );
+
+                if( SUCCEEDED( Result ) )
+                {
+                    MaxLevel = Level;
+                    pDevice->Release();
+                    break;
+                }
+            }
+
+            return MaxLevel;
+        }
+
+        UINT GetNodeMask()
+        {
+            // TODO(blturkot): Implement node mask when engine enable multi adapter rendering.
+            return 0;
+        }
+
+        Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter, SDeviceProperties* pOut )
+        {
+            Memory::Zero( &pOut->Features );
+            Memory::Zero( &pOut->Limits );
+            Memory::Zero( &pOut->Properties );
+
+            // Query memory properties
+            DXGI_QUERY_VIDEO_MEMORY_INFO VideoMemoryInfo = {};
+
+            HRESULT hr;
+            if( FAILED( hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &VideoMemoryInfo ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::QueryDeviceInfo: QueryVideoMemoryInfo failed with error code " +
+                             std::to_string( hr ) );
+            }
+
+            pOut->Properties.Memory.localBudget = VideoMemoryInfo.Budget;
+
+            if( FAILED(
+                    hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &VideoMemoryInfo ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::QueryDeviceInfo: QueryVideoMemoryInfo failed with error code " +
+                             std::to_string( hr ) );
+            }
+
+            pOut->Properties.Memory.hostBudget = VideoMemoryInfo.Budget;
+
+            return Result::OK;
+        }
+
+        bool ValidateBarrier( const D3D12_RESOURCE_BARRIER& Barrier, MEMORY_ACCESS_TYPE SrcAccessType,
+                              MEMORY_ACCESS_TYPE DstAccessType )
+        {
+            bool IsValid = true;
+
+            if( Barrier.Transition.StateBefore == Barrier.Transition.StateAfter )
+            {
+                VKE_LOG_WARN( "CDDI::ValidateBarrier: Translation resulted in no transition." );
+                IsValid = false;
+            }
+
+            if( IsValid == false )
+            {
+                std::stringstream src;
+                std::stringstream dst;
+
+                src << "SrcAccessType: ";
+                dst << "DstAccessType: ";
+
+                for( uint32_t i = 1; i < MemoryAccessTypes::_MAX_COUNT; i++ )
+                {
+                    if( SrcAccessType & ( 1ull << i ) )
+                    {
+                        src << i << " ";
+                    }
+                    if( DstAccessType & ( 1ull << i ) )
+                    {
+                        dst << i << " ";
+                    }
+                }
+                VKE_LOG_WARN( src.str() );
+                VKE_LOG_WARN( dst.str() );
+            }
+
+            return IsValid;
+        }
+
+        void CreateLegacySubresourceBarriers( const STextureBarrierInfo& Info, DDIBarrierArray& OutArray )
+        {
+            if( Info.currentState == Info.newState && Info.srcMemoryAccess == Info.dstMemoryAccess )
+            {
+                // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
+                VKE_LOG_WARN( "CDDI::Barrier: Source and destination memory access masks are the same, DX12 doesn't "
+                              "allow that." );
+                return;
+            }
+
+            // Used when Texture was a custom struct.
+            // const NativeAPI::D3D12ResourceDesc& desc = Info.hDDITexture->Desc;
+            NativeAPI::D3D12ResourceDesc desc = Info.hDDITexture->GetDesc();
+
+            UINT textureMipLevels = ( desc.MipLevels > 0 ) ? desc.MipLevels : 1;
+            UINT textureArraySize = ( desc.DepthOrArraySize > 0 ) ? desc.DepthOrArraySize : 1;
+
+            if( desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D )
+            {
+                textureArraySize = 1;
+            }
+
+            auto& range          = Info.SubresourceRange;
+            bool  isFullResource = ( textureMipLevels == range.mipmapLevelCount ) &&
+                                  ( textureArraySize == range.layerCount ) && ( range.beginArrayLayer == 0 ) &&
+                                  ( range.beginMipmapLevel == 0 );
+
+            if( isFullResource )
+            {
+                D3D12_RESOURCE_BARRIER barrier;
+                barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+                auto& transition       = barrier.Transition;
+                transition.pResource   = Info.hDDITexture;
+                transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                transition.StateBefore = Convert::GetResourceState( Info.currentState, Info.srcMemoryAccess );
+                transition.StateAfter  = Convert::GetResourceState( Info.newState, Info.dstMemoryAccess );
+
+                if( ValidateBarrier( barrier, Info.srcMemoryAccess, Info.dstMemoryAccess ) )
+                {
+                    OutArray.PushBack( barrier );
+                }
+            }
+            else
+            {
+                for( uint32_t layer = 0; layer < Info.SubresourceRange.layerCount; layer++ )
+                {
+                    for( uint32_t mip = 0; mip < Info.SubresourceRange.mipmapLevelCount; mip++ )
+                    {
+                        D3D12_RESOURCE_BARRIER barrier;
+                        barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+                        auto& transition     = barrier.Transition;
+                        transition.pResource = Info.hDDITexture;
+                        transition.Subresource =
+                            Convert::GetSubresourceIndex( Info.SubresourceRange.beginMipmapLevel + mip,
+                                                          textureMipLevels,
+                                                          Info.SubresourceRange.beginArrayLayer + layer,
+                                                          textureArraySize,
+                                                          1 );
+
+                        transition.StateBefore = Convert::GetResourceState( Info.currentState, Info.srcMemoryAccess );
+                        transition.StateAfter  = Convert::GetResourceState( Info.newState, Info.dstMemoryAccess );
+
+                        if( ValidateBarrier( barrier, Info.srcMemoryAccess, Info.dstMemoryAccess ) )
+                        {
+                            OutArray.PushBack( barrier );
+                        }
+                    }
+                }
+            }
+        }
+
+        void CreateLegacySubresourceBarriers( const SBufferBarrierInfo& Info, DDIBarrierArray& OutArray )
+        {
+            if( Info.srcMemoryAccess == Info.dstMemoryAccess )
+            {
+                // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
+                VKE_LOG_WARN( "CDDI::Barrier: Source and destination memory access masks are the same, DX12 doesn't "
+                              "allow that." );
+                return;
+            }
+
+            D3D12_RESOURCE_BARRIER barrier;
+            barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+            auto& transition       = barrier.Transition;
+            transition.pResource   = Info.hDDIBuffer;
+            transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            transition.StateBefore = Convert::GetResourceState( Info.srcMemoryAccess );
+            transition.StateAfter  = Convert::GetResourceState( Info.dstMemoryAccess );
+
+            if( ValidateBarrier( barrier, Info.srcMemoryAccess, Info.dstMemoryAccess ) )
+            {
+                OutArray.PushBack( barrier );
+            }
+        }
+
+        template< typename ViewDimensionType >
+        void SetCommonMipParams( ViewDimensionType& Type, const STextureSubresourceRange& SubresourceRange )
+        {
+            Type.MostDetailedMip     = SubresourceRange.beginMipmapLevel;
+            Type.MipLevels           = SubresourceRange.mipmapLevelCount;
+            Type.ResourceMinLODClamp = 0.0f;
+        }
+
+        void CreateShaderResourceView( const STextureViewDesc& TextureViewDesc, D3D12_SHADER_RESOURCE_VIEW_DESC* pOut )
+        {
+            pOut->Format                  = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension           = Map::GetSRVDimension( TextureViewDesc.type );
+            pOut->Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+            switch( TextureViewDesc.type )
+            {
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                    SetCommonMipParams( pOut->Texture1D, TextureViewDesc.SubresourceRange );
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    SetCommonMipParams( pOut->Texture2D, TextureViewDesc.SubresourceRange );
+                    pOut->Texture2D.PlaneSlice = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_3D:
+                    SetCommonMipParams( pOut->Texture3D, TextureViewDesc.SubresourceRange );
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE:
+                    SetCommonMipParams( pOut->TextureCube, TextureViewDesc.SubresourceRange );
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                    SetCommonMipParams( pOut->Texture1DArray, TextureViewDesc.SubresourceRange );
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    SetCommonMipParams( pOut->Texture2DArray, TextureViewDesc.SubresourceRange );
+                    pOut->Texture2DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture2DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    pOut->Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
+                    SetCommonMipParams( pOut->TextureCubeArray, TextureViewDesc.SubresourceRange );
+                    pOut->TextureCubeArray.First2DArrayFace = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->TextureCubeArray.NumCubes         = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateShaderResourceView: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    break;
+            }
+        }
+
+        void CreateRenderTargetView( const STextureViewDesc& TextureViewDesc, D3D12_RENDER_TARGET_VIEW_DESC* pOut )
+        {
+            pOut->Format        = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension = Map::GetRTVDimension( TextureViewDesc.type );
+
+            switch( TextureViewDesc.type )
+            {
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                    pOut->Texture1D.MipSlice = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    pOut->Texture2D.MipSlice   = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2D.PlaneSlice = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_3D:
+                    pOut->Texture3D.MipSlice    = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture3D.FirstWSlice = 0;
+                    pOut->Texture3D.WSize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE:
+                    VKE_LOG_ERR( "D3D12::CreateRenderTargetView: TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                    pOut->Texture1DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    pOut->Texture2DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture2DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    pOut->Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
+                    VKE_LOG_ERR( "D3D12::CreateRenderTargetView: TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateRenderTargetView: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    break;
+            }
+        }
+
+        void CreateUnorderedAccessView( const STextureViewDesc&           TextureViewDesc,
+                                        D3D12_UNORDERED_ACCESS_VIEW_DESC* pOut )
+        {
+            pOut->Format        = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension = Map::GetUAVDimension( TextureViewDesc.type );
+
+            switch( TextureViewDesc.type )
+            {
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                    pOut->Texture1D.MipSlice = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    pOut->Texture2D.MipSlice   = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2D.PlaneSlice = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_3D:
+                    pOut->Texture3D.MipSlice    = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture3D.FirstWSlice = 0;
+                    pOut->Texture3D.WSize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE:
+                    VKE_LOG_ERR( "D3D12::CreateUnorderedAccessView: TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                    pOut->Texture1DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    pOut->Texture2DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture2DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture2DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    pOut->Texture2DArray.PlaneSlice      = 0;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
+                    VKE_LOG_ERR(
+                        "D3D12::CreateUnorderedAccessView: TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateUnorderedAccessView: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    break;
+            }
+        }
+
+        void CreateDepthStencilViewDesc( const STextureViewDesc& TextureViewDesc, D3D12_DEPTH_STENCIL_VIEW_DESC* pOut )
+        {
+            pOut->Format        = Convert::GetDXGIFormat( TextureViewDesc.format );
+            pOut->ViewDimension = Map::GetDSVDimension( TextureViewDesc.type );
+            pOut->Flags         = Convert::GetDepthStencilViewFlags();
+
+            switch( TextureViewDesc.type )
+            {
+                case TEXTURE_VIEW_TYPE::VIEW_1D:
+                case TEXTURE_VIEW_TYPE::VIEW_2D:
+                    pOut->Texture1D.MipSlice = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    break;
+
+                case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
+                case TEXTURE_VIEW_TYPE::VIEW_2D_ARRAY:
+                    pOut->Texture1DArray.MipSlice        = TextureViewDesc.SubresourceRange.beginMipmapLevel;
+                    pOut->Texture1DArray.FirstArraySlice = TextureViewDesc.SubresourceRange.beginArrayLayer;
+                    pOut->Texture1DArray.ArraySize       = TextureViewDesc.SubresourceRange.layerCount;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "D3D12::CreateDepthStencilViewDesc: unhandled TEXTURE_VIEW_TYPE: "
+                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    break;
+            }
+        }
+
+        void ExpectResourceState( NativeAPI::D3D12Resource* pResource, D3D12_RESOURCE_STATES expectedState,
+                                  D3D12_RESOURCE_STATES                                     currentState,
+                                  NativeAPI::CustomTypes::SRenderPass::SRenderPassBarriers* pOutBarriers )
+        {
+            if( expectedState == currentState )
+            {
+                return;
+            }
+
+            D3D12_RESOURCE_BARRIER& Barrier = pOutBarriers->Reserve();
+
+            Barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            Barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            Barrier.Transition.pResource   = pResource;
+            Barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            Barrier.Transition.StateBefore = currentState;
+            Barrier.Transition.StateAfter  = expectedState;
+        }
+
+    }; // namespace Helper
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Static methods.
+    // CDDI class implementation.
+
+    Result CDDI::QueryAdapters( AdapterInfoArray* pOut )
+    {
+        static const size_t MAX_ADAPTERS = 5;
+        auto                pFactory     = NativeAPI::SImplementation::spFactory;
+
+        if( pFactory == NativeAPI::Null )
+        {
+            VKE_LOG_ERR( "CDDI::QueryAdapters: DXGI Factory is null" );
+            return VKE_FAIL;
+        }
+
+        UINT    Index  = 0;
+        HRESULT Result = S_OK;
+
+        // Limit adapters by high performance preference
+        while( Index < MAX_ADAPTERS )
+        {
+            IDXGIAdapter1*     pAdapter1 = NativeAPI::Null;
+            NativeAPI::Adapter pAdapter  = NativeAPI::Null;
+
+            Result = pFactory->EnumAdapterByGpuPreference(
+                Index++, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS( &pAdapter1 ) );
+
+            if( Result == DXGI_ERROR_NOT_FOUND )
+            {
+                break;
+            }
+
+            if( FAILED( pAdapter1->QueryInterface( IID_PPV_ARGS( &pAdapter ) ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::QueryAdapters: Query NativeAPI::Adapter failed" );
+            }
+
+            DXGI_ADAPTER_DESC3 AdapterDesc;
+            if( FAILED( pAdapter->GetDesc3( &AdapterDesc ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::QueryAdapters: Fail getting descriptor" );
+            }
+
+            VKE::RenderSystem::SAdapterInfo AdapterInfo = {};
+
+            AdapterInfo.deviceID = static_cast< uint32_t >( AdapterDesc.DeviceId ); // from: UINT
+            AdapterInfo.vendorID = static_cast< uint32_t >( AdapterDesc.VendorId ); // from: UINT
+            AdapterInfo.apiVersion =
+                static_cast< uint32_t >( Helper::GetMaxFeatureLevel( pAdapter ) ); // from: D3D_FEATURE_LEVEL
+
+            AdapterInfo.hDDIAdapter = reinterpret_cast< handle_t >( pAdapter );
+
+            LARGE_INTEGER DriverVersion = {};
+            if( SUCCEEDED( pAdapter->CheckInterfaceSupport( __uuidof( IDXGIDevice ), &DriverVersion ) ) )
+            {
+                // Intel UHD eg: 30.0.101.1273
+                // Nvidia eg: 31.0.15.3742
+                WORD VersionMajor = DriverVersion.QuadPart >> 48;
+                WORD VersionMinor = ( DriverVersion.QuadPart >> 32 ) & 0xFFFF;
+                WORD VersionPatch = ( DriverVersion.QuadPart >> 16 ) & 0xFFFF;
+                WORD VersionBuild = DriverVersion.QuadPart & 0xFFFF;
+
+                char Buffer[ 128 ];
+                sprintf_s( &Buffer[ 0 ], 128, "%u.%u.%u.%u", VersionMajor, VersionMinor, VersionPatch, VersionBuild );
+                VKE_LOG( Buffer );
+
+                AdapterInfo.driverVersion = ( VersionMajor << 16 ) | VersionPatch;
+            }
+
+            if( (UINT)AdapterDesc.Flags & (UINT)DXGI_ADAPTER_FLAG_SOFTWARE )
+            {
+                AdapterInfo.type = VKE::RenderSystem::ADAPTER_TYPE::VIRTUAL;
+            }
+            else if( AdapterDesc.DedicatedVideoMemory == 0 )
+            {
+                AdapterInfo.type = VKE::RenderSystem::ADAPTER_TYPE::INTEGRATED;
+            }
+            else
+            {
+                AdapterInfo.type = VKE::RenderSystem::ADAPTER_TYPE::DISCRETE;
+            }
+
+            // Discrepancy between Vulkan and DX12 - Vk reports char[] while DX12 wchar[] in unicode.
+            // To store info.name, conversion is needed.
+            size_t MaxSize = std::min( _countof( AdapterInfo.name ), _countof( AdapterDesc.Description ) );
+            size_t InfoSize;
+            wcstombs_s( &InfoSize, AdapterInfo.name, AdapterDesc.Description, MaxSize );
+
+            pOut->PushBack( AdapterInfo );
+        }
+
+        pOut->Resize( Index - 1 );
+
+        return Result::OK;
     }
-    //    CAPI::AdapterArray CAPI::svAdapters;
-    //
-    //    DDIExtArray GetRequiredInstanceExtensions(bool debug)
-    //    {
-    //        DDIExtArray Ret = {
-    //            // name, required, supported, enabled
-    //        };
-    //        if (debug)
-    //        {
-    //            // .PushBack( { name, required, supported, nabled } );
-    //        }
-    //        return Ret;
-    //    }
-    //
-    //    const DDIExtArray GetRequiredDeviceExtensions(bool debug)
-    //    {
-    //        const DDIExtArray Ret = {
-    //            // name, required, supported
-    //        };
-    //        return Ret;
-    //    }
-    //
-    //    namespace Map
-    //    {
-    //        Result NativeResult(HRESULT native)
-    //        {
-    //            Result ret = VKE_FAIL;
-    //            switch (native)
-    //            {
-    //            // False is basically OK but no result were produced
-    //            case S_OK:
-    //            case S_FALSE:
-    //                ret = VKE_OK;
-    //                break;
-    //            case E_FAIL:
-    //            case E_HANDLE:
-    //                ret = VKE_FAIL;
-    //                break;
-    //            case E_OUTOFMEMORY:
-    //                ret = VKE_ENOMEMORY;
-    //                break;
-    //            case E_INVALIDARG:
-    //                ret = VKE_ENOTFOUND;
-    //                break;
-    //            default:
-    //                ret = VKE_NOT_SUPPORTED;
-    //                break;
-    //            }
-    //            return ret;
-    //        }
-    //
-    //        DXGI_FORMAT Format(uint32_t format)
-    //        {
-    //            return VKE::RenderSystem::D3D12::g_aFormats[format];
-    //        }
-    //
-    //        auto Formats(const FORMAT *pFormats, uint32_t count)
-    //        {
-    //            Utils::TCDynamicArray<DXGI_FORMAT> vRet;
-    //            for (uint32_t i = 0; i < count; ++i)
-    //            {
-    //                vRet.PushBack(Format(pFormats[i]));
-    //            }
-    //            return vRet;
-    //        }
-    //
-    //        D3D12_RESOURCE_DIMENSION ImageType(RenderSystem::TEXTURE_TYPE type)
-    //        {
-    //            static const D3D12_RESOURCE_DIMENSION aResourceTypes[] = {
-    //                D3D12_RESOURCE_DIMENSION_TEXTURE1D,
-    //                D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-    //                D3D12_RESOURCE_DIMENSION_TEXTURE3D,
-    //            };
-    //
-    //            return aResourceTypes[type];
-    //        }
-    //
-    //        D3D12_SRV_DIMENSION ImageViewType(RenderSystem::TEXTURE_VIEW_TYPE type)
-    //        {
-    //            static const D3D12_SRV_DIMENSION aTypes[] = {
-    //                D3D12_SRV_DIMENSION_TEXTURE1D,       D3D12_SRV_DIMENSION_TEXTURE2D,
-    //                D3D12_SRV_DIMENSION_TEXTURE3D,       D3D12_SRV_DIMENSION_TEXTURE1DARRAY,
-    //                D3D12_SRV_DIMENSION_TEXTURE2DARRAY,  D3D12_SRV_DIMENSION_TEXTURECUBE,
-    //                D3D12_SRV_DIMENSION_TEXTURECUBEARRAY
-    //            };
-    //
-    //            return aTypes[type];
-    //        }
-    //
-    //        D3D12_RESOURCE_FLAGS ImageUsage(RenderSystem::TEXTURE_USAGE usage)
-    //        {
-    //            using namespace RenderSystem;
-    //            D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-    //
-    //            if (usage & TextureUsages::SAMPLED)
-    //            {
-    //                // No flag needed for sampled textures
-    //            }
-    //            if (usage & TextureUsages::COLOR_RENDER_TARGET)
-    //            {
-    //                flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-    //            }
-    //            else if (usage & TextureUsages::DEPTH_STENCIL_RENDER_TARGET)
-    //            {
-    //                flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-    //            }
-    //            if (usage & TextureUsages::STORAGE)
-    //            {
-    //                flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    //            }
-    //            if (usage & TextureUsages::TRANSFER_DST)
-    //            {
-    //                // No flag needed for transfer dst
-    //            }
-    //            if (usage & TextureUsages::TRANSFER_SRC)
-    //            {
-    //                // No flag needed for transfer src
-    //            }
-    //
-    //            return flags;
-    //        }
-    //
-    //        D3D12_RESOURCE_STATES ImageState(RenderSystem::TEXTURE_STATE layout)
-    //        {
-    //            static const D3D12_RESOURCE_STATES aStates[TextureStates::_MAX_COUNT] = {
-    //                D3D12_RESOURCE_STATE_COMMON,        // undefined
-    //                D3D12_RESOURCE_STATE_COMMON,        // general
-    //                D3D12_RESOURCE_STATE_RENDER_TARGET, // color rt
-    //                D3D12_RESOURCE_STATE_DEPTH_WRITE,   // depth rt
-    //                D3D12_RESOURCE_STATE_DEPTH_WRITE,   // stencil rt
-    //                D3D12_RESOURCE_STATE_DEPTH_WRITE,   // depth stencil rt
-    //                D3D12_RESOURCE_STATE_DEPTH_READ,    // depth buffer
-    //                D3D12_RESOURCE_STATE_DEPTH_READ,    // stencil buffer
-    //                D3D12_RESOURCE_STATE_DEPTH_READ,    // deptn stencil buffer
-    //                D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
-    //                D3D12_RESOURCE_STATE_COPY_SOURCE,
-    //                D3D12_RESOURCE_STATE_COPY_DEST,
-    //                D3D12_RESOURCE_STATE_PRESENT
-    //            };
-    //            return aStates[layout];
-    //        }
-    //
-    //        D3D12_FILTER Filter(RenderSystem::TEXTURE_FILTER filter)
-    //        {
-    //            static const D3D12_FILTER aFilters[RenderSystem::TextureFilters::_MAX_COUNT] = {
-    //                D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_FILTER_MIN_MAG_MIP_POINT
-    //            };
-    //            return aFilters[filter];
-    //        }
-    //
-    //        void MemoryPropertyFlags(RenderSystem::MEMORY_USAGE usages)
-    //        {
-    //            throw std::runtime_error("Unimplemented functionality");
-    //        }
-    //
-    //        D3D12_BLEND_OP BlendOp(const RenderSystem::BLEND_OPERATION &op)
-    //        {
-    //            static const D3D12_BLEND_OP aOps[] = { D3D12_BLEND_OP_ADD, D3D12_BLEND_OP_SUBTRACT,
-    //                                                   D3D12_BLEND_OP_REV_SUBTRACT, D3D12_BLEND_OP_MIN,
-    //                                                   D3D12_BLEND_OP_MAX };
-    //            return aOps[op];
-    //        }
-    //
-    //        D3D12_COLOR_WRITE_ENABLE ColorComponent(const RenderSystem::ColorComponent &component)
-    //        {
-    //            // Components match exactly D3D12 enum values
-    //            return static_cast<D3D12_COLOR_WRITE_ENABLE>(component);
-    //        }
-    //
-    //        D3D12_BLEND BlendFactor(const RenderSystem::BLEND_FACTOR &factor)
-    //        {
-    //            static const D3D12_BLEND aFactors[] = { D3D12_BLEND_ZERO,           D3D12_BLEND_ONE,
-    //                                                    D3D12_BLEND_SRC_COLOR,      D3D12_BLEND_INV_SRC_COLOR,
-    //                                                    D3D12_BLEND_DEST_COLOR,     D3D12_BLEND_INV_DEST_COLOR,
-    //                                                    D3D12_BLEND_SRC_ALPHA,      D3D12_BLEND_INV_SRC_ALPHA,
-    //                                                    D3D12_BLEND_DEST_ALPHA,     D3D12_BLEND_INV_DEST_ALPHA,
-    //                                                    D3D12_BLEND_BLEND_FACTOR,   D3D12_BLEND_INV_BLEND_FACTOR,
-    //                                                    D3D12_BLEND_ALPHA_FACTOR,   D3D12_BLEND_INV_ALPHA_FACTOR,
-    //                                                    D3D12_BLEND_SRC_ALPHA_SAT,  D3D12_BLEND_SRC1_COLOR,
-    //                                                    D3D12_BLEND_INV_SRC1_COLOR, D3D12_BLEND_SRC1_ALPHA,
-    //                                                    D3D12_BLEND_INV_SRC1_ALPHA };
-    //            return aFactors[factor];
-    //        }
-    //
-    //        D3D12_LOGIC_OP LogicOperation(const RenderSystem::LOGIC_OPERATION &op)
-    //        {
-    //            static const D3D12_LOGIC_OP aOps[] = { D3D12_LOGIC_OP_CLEAR,         D3D12_LOGIC_OP_AND,
-    //                                                   D3D12_LOGIC_OP_AND_REVERSE,   D3D12_LOGIC_OP_COPY,
-    //                                                   D3D12_LOGIC_OP_COPY_INVERTED, D3D12_LOGIC_OP_NOOP,
-    //                                                   D3D12_LOGIC_OP_XOR,           D3D12_LOGIC_OP_OR,
-    //                                                   D3D12_LOGIC_OP_NOR,           D3D12_LOGIC_OP_EQUIV,
-    //                                                   D3D12_LOGIC_OP_INVERT,        D3D12_LOGIC_OP_OR_REVERSE,
-    //                                                   D3D12_LOGIC_OP_COPY_INVERTED, D3D12_LOGIC_OP_OR_INVERTED,
-    //                                                   D3D12_LOGIC_OP_NAND,          D3D12_LOGIC_OP_SET };
-    //            return aOps[op];
-    //        }
-    //
-    //        D3D12_STENCIL_OP StencilOperation(const RenderSystem::STENCIL_FUNCTION &op)
-    //        {
-    //            static const D3D12_STENCIL_OP aOps[] = { D3D12_STENCIL_OP_KEEP,     D3D12_STENCIL_OP_ZERO,
-    //                                                     D3D12_STENCIL_OP_REPLACE,  D3D12_STENCIL_OP_INCR_SAT,
-    //                                                     D3D12_STENCIL_OP_DECR_SAT, D3D12_STENCIL_OP_INVERT,
-    //                                                     D3D12_STENCIL_OP_INCR,     D3D12_STENCIL_OP_DECR };
-    //            return aOps[op];
-    //        }
-    //
-    //        D3D12_COMPARISON_FUNC CompareOperation(const RenderSystem::COMPARE_FUNCTION &op)
-    //        {
-    //            static const D3D12_COMPARISON_FUNC aOps[] = {
-    //                D3D12_COMPARISON_FUNC_NEVER,         D3D12_COMPARISON_FUNC_LESS,    D3D12_COMPARISON_FUNC_EQUAL,
-    //                D3D12_COMPARISON_FUNC_LESS_EQUAL,    D3D12_COMPARISON_FUNC_GREATER,
-    //                D3D12_COMPARISON_FUNC_NOT_EQUAL, D3D12_COMPARISON_FUNC_GREATER_EQUAL, D3D12_COMPARISON_FUNC_ALWAYS
-    //            };
-    //            return aOps[op];
-    //        }
-    //
-    //        D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopology(const RenderSystem::PRIMITIVE_TOPOLOGY &topology)
-    //        {
-    //            static const D3D12_PRIMITIVE_TOPOLOGY_TYPE aTypes[] = {
-    //                D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT,    D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE,
-    //                D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE,     D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-    //                D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-    //                D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE,     D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE,
-    //                D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-    //                D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH
-    //            };
-    //            return aTypes[topology];
-    //        }
-    //
-    //        D3D12_CULL_MODE CullMode(const RenderSystem::CULL_MODE &mode)
-    //        {
-    //            if (mode == RenderSystem::CullModes::_MAX_COUNT)
-    //            {
-    //                throw std::runtime_error("DX12 doesn't support FRONT and BACK cull mode.");
-    //                return D3D12_CULL_MODE_NONE;
-    //            }
-    //            static const D3D12_CULL_MODE aModes[] = { D3D12_CULL_MODE_NONE, D3D12_CULL_MODE_FRONT,
-    //                                                      D3D12_CULL_MODE_BACK };
-    //            return aModes[mode];
-    //        }
-    //
-    //        D3D12_FILL_MODE PolygonMode(const RenderSystem::POLYGON_MODE &mode)
-    //        {
-    //            static const D3D12_FILL_MODE aModes[] = { D3D12_FILL_MODE_SOLID, D3D12_FILL_MODE_WIREFRAME,
-    //                                                      D3D12_FILL_MODE_WIREFRAME };
-    //            return aModes[mode];
-    //        }
-    //
-    //        D3D12_SHADER_VISIBILITY ShaderStage(const RenderSystem::SHADER_TYPE &type)
-    //        {
-    //            static const D3D12_SHADER_VISIBILITY aVisibility[RenderSystem::ShaderTypes::_MAX_COUNT] = {
-    //                D3D12_SHADER_VISIBILITY_VERTEX,   D3D12_SHADER_VISIBILITY_HULL,  D3D12_SHADER_VISIBILITY_DOMAIN,
-    //                D3D12_SHADER_VISIBILITY_GEOMETRY, D3D12_SHADER_VISIBILITY_PIXEL, D3D12_SHADER_VISIBILITY_ALL,
-    //                D3D12_SHADER_VISIBILITY_MESH,     D3D12_SHADER_VISIBILITY_MESH,  D3D12_SHADER_VISIBILITY_ALL,
-    //                D3D12_SHADER_VISIBILITY_ALL,      D3D12_SHADER_VISIBILITY_ALL,   D3D12_SHADER_VISIBILITY_ALL,
-    //                D3D12_SHADER_VISIBILITY_ALL,      D3D12_SHADER_VISIBILITY_ALL
-    //            };
-    //            return aVisibility[type];
-    //        }
-    //
-    //        D3D12_INPUT_CLASSIFICATION InputRate(const RenderSystem::VERTEX_INPUT_RATE &rate)
-    //        {
-    //            static const D3D12_INPUT_CLASSIFICATION aRates[] = { D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-    //                                                                 D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA };
-    //            return aRates[rate];
-    //        }
-    //
-    //        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorType(const RenderSystem::DESCRIPTOR_SET_TYPE &type)
-    //        {
-    //            throw std::runtime_error("Unimplemented functionality");
-    //            D3D12_DESCRIPTOR_HEAP_TYPE type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    //            return type;
-    //        }
-    //
-    //        DXGI_FORMAT IndexType(const INDEX_TYPE &type)
-    //        {
-    //            static const DXGI_FORMAT aTypes[] = { DXGI_FORMAT_R16_UINT, DXGI_FORMAT_R32_UINT };
-    //            return aTypes[type];
-    //        }
-    //
-    //        D3D12_TEXTURE_ADDRESS_MODE AddressMode(const ADDRESS_MODE &mode)
-    //        {
-    //            static const D3D12_TEXTURE_ADDRESS_MODE aModes[] = {
-    //                D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-    //                D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
-    //                D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE
-    //            };
-    //            return aModes[mode];
-    //        }
-    //
-    //    } // namespace Map
-    //
-    //    namespace Convert
-    //    {
-    //        D3D12_FILTER Filter(const SAMPLER_FILTER &filter)
-    //        {
-    //            static const D3D12_FILTER aFilters[RenderSystem::TextureFilters::_MAX_COUNT] = {
-    //                D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_FILTER_MIN_MAG_MIP_POINT
-    //            };
-    //            return aFilters[filter];
-    //        }
-    //
-    //        D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE UsageToLoadOp(RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage)
-    //        {
-    //            throw std::runtime_error("Unimplemented functionality");
-    //            return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-    //        }
-    //
-    //        D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE UsageToStoreOp(RenderSystem::RENDER_TARGET_RENDER_PASS_OP usage)
-    //        {
-    //            throw std::runtime_error("Unimplemented functionality");
-    //            return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-    //        }
-    //
-    //        RenderSystem::TEXTURE_FORMAT ImageFormat(DXGI_FORMAT dxgiFormat)
-    //        {
-    //            RenderSystem::TEXTURE_FORMAT engineFormat;
-    //            for (uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i)
-    //            {
-    //                if (VKE::RenderSystem::D3D12::g_aFormats[i] == dxgiFormat)
-    //                {
-    //                    engineFormat = static_cast<RenderSystem::TEXTURE_FORMAT>(i);
-    //                    break;
-    //                }
-    //            }
-    //
-    //            if (engineFormat == RenderSystem::TEXTURE_FORMAT::UNKNOWN)
-    //            {
-    //                throw std::runtime_error("Unsupported DXGI format");
-    //            }
-    //
-    //            return engineFormat;
-    //        }
-    //
-    //        D3D12_PIPELINE_STATE_FLAGS PipelineStages(const RenderSystem::PIPELINE_STAGES &stages)
-    //        {
-    //           return D3D12_PIPELINE_STATE_FLAG_NONE;
-    //        }
-    //
-    //        D3D12_RESOURCE_FLAGS BufferUsage(const RenderSystem::BUFFER_USAGE usage)
-    //        {
-    //            D3D12_RESOURCE_FLAGS dxgiFlags = D3D12_RESOURCE_FLAG_NONE;
-    //            throw std::runtime_error("Unimplemented functionality");
-    //            return D3D12_RESOURCE_FLAG_NONE;
-    //        }
-    //
-    //    } // namespace Convert
-    //
-    //    namespace Helper
-    //    {
-    //        struct SShaderCompiler
-    //        {
-    //            Result ProcessShaderIncludes(/*CFileManager* pFileMgr*/)
-    //            {
-    //                Result res = VKE_FAIL;
-    //                return res;
-    //            }
-    //        };
-    //
-    //        struct SAllocData
-    //        {
-    //            size_t                   size = 0;
-    //            size_t                   alignment;
-    //            void                    *pPreviousAlloc;
-    //            VkSystemAllocationScope  vkScope;
-    //            VkInternalAllocationType vkAllocationType;
-    //        };
-    //
-    //        void *VKAPI_PTR DummyAllocCallback(void *pUserData, size_t size, size_t alignment,
-    //                                           VkSystemAllocationScope vkScope)
-    //        {
-    //            SAllocData *pData = reinterpret_cast<SAllocData *>(pUserData);
-    //            pData->size += size;
-    //            pData->alignment = alignment;
-    //            pData->vkScope   = vkScope;
-    //            void *pRet       = VKE_MALLOC(size);
-    //            return pRet;
-    //        }
-    //
-    //        void *VKAPI_PTR DummyReallocCallback(void *pUserData, void *pOriginal, size_t size, size_t alignment,
-    //                                             VkSystemAllocationScope vkScope)
-    //        {
-    //            SAllocData *pData     = reinterpret_cast<SAllocData *>(pUserData);
-    //            pData->size           = size;
-    //            pData->alignment      = alignment;
-    //            pData->vkScope        = vkScope;
-    //            pData->pPreviousAlloc = pOriginal;
-    //            return VKE_REALLOC(pOriginal, size);
-    //        }
-    //
-    //        void VKAPI_PTR DummyInternalAllocCallback(void *pUserData, size_t size,
-    //                                                  VkInternalAllocationType vkAllocationType,
-    //                                                  VkSystemAllocationScope  vkAllocationScope)
-    //        {
-    //            SAllocData *pData = reinterpret_cast<SAllocData *>(pUserData);
-    //            pData->size += size;
-    //            pData->vkScope          = vkAllocationScope;
-    //            pData->vkAllocationType = vkAllocationType;
-    //        }
-    //
-    //        void VKAPI_PTR DummyFreeCallback(void *pUserData, void *pMemory)
-    //        {
-    //            // SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
-    //            VKE_FREE(pMemory);
-    //        }
-    //
-    //        void VKAPI_PTR DummyInternalFreeCallback(void *, size_t, VkInternalAllocationType,
-    //        VkSystemAllocationScope)
-    //        {
-    //            // SAllocData* pData = reinterpret_cast<SAllocData*>(pUserData);
-    //        }
-    //
-    //    vke_force_inline int32_t FindMemoryTypeIndex(const VkPhysicalDeviceMemoryProperties *pMemProps,
-    //                                                 uint32_t requiredMemBits, VkMemoryPropertyFlags
-    //                                                 requiredProperties);
-    //
-    //    Result CheckRequiredExtensions(DDIExtMap *pmExtensionsInOut, DDIExtArray *pvRequiredInOut, CStrVec
-    //    *pvNamesOut)
-    //    {
-    //        Result ret = VKE_OK;
-    //        for (auto &ReqExt : *pvRequiredInOut)
-    //        {
-    //            bool found = false;
-    //            for (auto &Pair : *pmExtensionsInOut)
-    //            {
-    //                auto &Ext = Pair.second;
-    //                if (Ext.name == ReqExt.name)
-    //                {
-    //                    found            = true;
-    //                    ReqExt.supported = true;
-    //                    ReqExt.enabled   = true;
-    //                    Ext.enabled      = true;
-    //                    Ext.required     = true;
-    //                    pvNamesOut->PushBack(ReqExt.name.c_str());
-    //                    VKE_LOG("Enable Vulkan required extension/layer: " << ReqExt.name.c_str());
-    //                    break;
-    //                }
-    //            }
-    //            if (!found)
-    //            {
-    //                if (ReqExt.required)
-    //                {
-    //                    VKE_LOG_ERR("Vulkan EXT: " << ReqExt.name << " is not supported by this Device.");
-    //                    ret = VKE_ENOTFOUND;
-    //                }
-    //                else
-    //                {
-    //                    VKE_LOG_WARN("Vulkan EXT: " << ReqExt.name << " is not supported by this Device.");
-    //                }
-    //            }
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    Result GetInstanceValidationLayers(VkICD::Global &Global, DDIExtMap *pmLayersInOut, DDIExtArray
-    //    *pvRequiredInOut,
-    //                                       CStrVec *pvNames)
-    //    {
-    //        // static const char* apNames[] =
-    //        //{
-    //        //     "VK_LAYER_KHRONOS_validation",
-    //        //     //"VK_LAYER_LUNARG_core_validation",
-    //        //     //"VK_LAYER_LUNARG_parameter_validation",
-    //        //     /*VK_LAYER_GOOGLE_threading
-    //        //     VK_LAYER_LUNARG_parameter_validation
-    //        //     VK_LAYER_LUNARG_device_limits
-    //        //     VK_LAYER_LUNARG_object_tracker
-    //        //     VK_LAYER_LUNARG_image
-    //        //     VK_LAYER_LUNARG_core_validation
-    //        //     VK_LAYER_LUNARG_swapchain
-    //        //     VK_LAYER_GOOGLE_unique_objects*/
-    //        //};
-    //        /*vNames.push_back("VK_LAYER_GOOGLE_threading");
-    //        vNames.push_back("VK_LAYER_LUNARG_parameter_validation");
-    //        vNames.push_back("VK_LAYER_LUNARG_device_limits");
-    //        vNames.push_back("VK_LAYER_LUNARG_object_tracker");
-    //        vNames.push_back("VK_LAYER_LUNARG_image");
-    //        vNames.push_back("VK_LAYER_LUNARG_core_validation");
-    //        vNames.push_back("VK_LAYER_LUNARG_swapchain");
-    //        vNames.push_back("VK_LAYER_GOOGLE_unique_objects");*/
-    //        uint32_t                                     count = 0;
-    //        Utils::TCDynamicArray<VkLayerProperties, 64> vProps;
-    //        VK_ERR(Global.vkEnumerateInstanceLayerProperties(&count, nullptr));
-    //        if (count > 0)
-    //        {
-    //            vProps.Resize(count);
-    //            VK_ERR(Global.vkEnumerateInstanceLayerProperties(&count, &vProps[0]));
-    //            pmLayersInOut->reserve(count);
-    //            vke_string tmpName;
-    //            tmpName.reserve(128);
-    //            VKE_LOG("SUPPORTED VULKAN INSTANCE LAYERS:");
-    //            for (uint32_t i = 0; i < count; ++i)
-    //            {
-    //                tmpName = vProps[i].layerName;
-    //                pmLayersInOut->insert(DDIExtMap::value_type(tmpName, { tmpName, false, true, false }));
-    //                VKE_LOG(tmpName.c_str());
-    //            }
-    //        }
-    //        else
-    //        {
-    //            VKE_LOG_WARN("Vulkan instance layers are not supported on this machine.");
-    //        }
-    //        return CheckRequiredExtensions(pmLayersInOut, pvRequiredInOut, pvNames);
-    //    }
-    //
-    //    Result CheckInstanceExtensionNames(VkICD::Global &Global, DDIExtMap *pmExtensionsInOut, DDIExtArray
-    //    *pvRequired,
-    //                                       CStrVec *pvOut)
-    //    {
-    //        VKE_LOG_PROG("VKEngine Checking instance extensions");
-    //        vke_vector<VkExtensionProperties> vProps;
-    //        uint32_t                          count = 0;
-    //        VK_ERR(Global.vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr));
-    //        VKE_LOG_PROG("VKEngine count: " << count);
-    //        vProps.resize(count);
-    //        VK_ERR(Global.vkEnumerateInstanceExtensionProperties(nullptr, &count, &vProps[0]));
-    //        VKE_LOG_PROG("VKEngine extensions queried");
-    //        pvOut->Reserve(count);
-    //        VKE_LOG_PROG("VKEngine reserve output");
-    //        pmExtensionsInOut->reserve(count);
-    //        VKE_LOG_PROG("VKEngine reserve map output");
-    //        vke_string tmpName;
-    //        tmpName.reserve(128);
-    //        VKE_LOG_PROG("VKEngine reserve tmp string");
-    //        VKE_LOG("SUPPORTED VULKAN INSTANCE EXTENSIONS:");
-    //        for (uint32_t i = 0; i < count; ++i)
-    //        {
-    //            tmpName = vProps[i].extensionName;
-    //            pmExtensionsInOut->insert(DDIExtMap::value_type(tmpName, { tmpName, false, true, false }));
-    //            VKE_LOG(tmpName.c_str());
-    //        }
-    //        return CheckRequiredExtensions(pmExtensionsInOut, pvRequired, pvOut);
-    //    }
-    //
-    //    template <class T> void AddVulkanNext(T &Struct, void ***pppNext)
-    //    {
-    //        void **ppNext = *pppNext;
-    //        *ppNext       = &Struct;
-    //        ppNext        = &Struct.pNext;
-    //    }
-    //
-    //    template <class T> void InitVulkanNext(T &Struct, void ***pppNext)
-    //    {
-    //        *pppNext = &Struct.pNext;
-    //    }
-    //
-    //    struct SVulkanNext
-    //    {
-    //        void **ppNext;
-    //
-    //        ~SVulkanNext()
-    //        {
-    //            if (ppNext)
-    //            {
-    //                *ppNext = nullptr;
-    //            }
-    //        }
-    //
-    //        template <class T> SVulkanNext(T &Struct) : ppNext((void **)&Struct.pNext)
-    //        {
-    //        }
-    //
-    //        template <class T> SVulkanNext &Add(T *pStruct, VkStructureType type)
-    //        {
-    //            auto &Struct = *pStruct;
-    //            Struct       = { type };
-    //            *ppNext      = &Struct;
-    //            ppNext       = &Struct.pNext;
-    //            return *this;
-    //        }
-    //
-    //        template <class T> SVulkanNext &Add(T *pStruct)
-    //        {
-    //            auto &Struct = *pStruct;
-    //            *ppNext      = &Struct;
-    //            ppNext       = (void **)&Struct.pNext;
-    //            return *this;
-    //        }
-    //    };
-    //
-    //    Result QueryAdapterProperties(const NativeAPI::Adapter &hAdapter, const DDIExtMap &mExts, SDeviceProperties
-    //    *pOut)
-    //    {
-    //        auto &sInstanceICD = CAPI::GetInstantceICD();
-    //        Memory::Zero(&pOut->Features);
-    //        Memory::Zero(&pOut->Limits);
-    //        Memory::Zero(&pOut->Properties);
-    //        pOut->Properties.Memory = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 };
-    //        pOut->Properties.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-    //        pOut->Features.Device   = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-    //        auto       &Features    = pOut->Features;
-    //        auto       &Properties  = pOut->Properties;
-    //        SVulkanNext NextFeatures(pOut->Features.Device);
-    //        NextFeatures.Add(&pOut->Features.Device11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES)
-    //            .Add(&pOut->Features.DynamicRendering,
-    //            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR) .Add(&pOut->Features.Device12,
-    //            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
-    //        SVulkanNext NextProperties(pOut->Properties.Device);
-    //        NextProperties.Add(&pOut->Properties.Device11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES)
-    //            .Add(&pOut->Properties.Device12, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES)
-    //            .Add(&pOut->Properties.DescriptorIndexing,
-    //                 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES);
-    //        if (mExts.find(VK_EXT_MESH_SHADER_EXTENSION_NAME) != mExts.end())
-    //        {
-    //            NextFeatures.Add(&Features.MeshShaderNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV);
-    //            NextProperties.Add(&Properties.MeshShaderNV,
-    //            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV);
-    //            NextFeatures.Add(&Features.MeshShaderEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT);
-    //            NextProperties.Add(&Properties.MeshShaderEXT,
-    //            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT);
-    //        }
-    //        if (mExts.find(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) != mExts.end())
-    //        {
-    //            NextFeatures
-    //                .Add(&Features.Raytracing10, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)
-    //                .Add(&Features.Raytracing11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR)
-    //                .Add(&Features.Raytracing12,
-    //                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MOTION_BLUR_FEATURES_NV);
-    //            NextProperties.Add(&Properties.Raytracing10,
-    //                               VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR);
-    //        }
-    //        sInstanceICD.vkGetPhysicalDeviceFeatures2(hAdapter, &pOut->Features.Device);
-    //        sInstanceICD.vkGetPhysicalDeviceMemoryProperties2(hAdapter, &pOut->Properties.Memory);
-    //        sInstanceICD.vkGetPhysicalDeviceProperties2(hAdapter, &pOut->Properties.Device);
-    // #if 0
-    //            if( sInstanceICD.vkGetPhysicalDeviceFeatures2 )
-    //            {
-    //                sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
-    //            }
-    //            else
-    //            {
-    //                sInstanceICD.vkGetPhysicalDeviceFeatures( hAdapter, &pOut->Features.Device.features );
-    //            }
-    //            if( sInstanceICD.vkGetPhysicalDeviceMemoryProperties2 )
-    //            {
-    //                sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
-    //            }
-    //            else
-    //            {
-    //                sInstanceICD.vkGetPhysicalDeviceMemoryProperties( hAdapter,
-    //                &pOut->Properties.Memory.memoryProperties );
-    //            }
-    //            if( sInstanceICD.vkGetPhysicalDeviceProperties2 )
-    //            {
-    //                sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->Properties.Device );
-    //            }
-    //            else
-    //            {
-    //                sInstanceICD.vkGetPhysicalDeviceProperties( hAdapter, &pOut->Properties.Device.properties );
-    //            }
-    // #endif // VKE_VULKAN_1_1
-    //        {
-    //            // ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties
-    //            );
-    //        }
-    //        uint32_t propCount = 0;
-    //        sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(hAdapter, &propCount, nullptr);
-    //        if (propCount == 0)
-    //        {
-    //            VKE_LOG_ERR("No device queue family properties");
-    //            return VKE_FAIL;
-    //        }
-    //        pOut->vQueueFamilyProperties.Resize(propCount);
-    //        auto &aProperties    = pOut->vQueueFamilyProperties;
-    //        auto &vQueueFamilies = pOut->vQueueFamilies;
-    //        sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(hAdapter, &propCount, &aProperties[0]);
-    //        // Choose a family index
-    //        for (uint32_t i = 0; i < propCount; ++i)
-    //        {
-    //            auto    &VkProp     = aProperties[i];
-    //            uint32_t isCompute  = VkProp.queueFlags & VK_QUEUE_COMPUTE_BIT;
-    //            uint32_t isTransfer = VkProp.queueFlags & VK_QUEUE_TRANSFER_BIT;
-    //            uint32_t isSparse   = VkProp.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
-    //            uint32_t isGraphics = VkProp.queueFlags & VK_QUEUE_GRAPHICS_BIT;
-    //            VkBool32 isPresent  = VK_FALSE;
-    // #if VKE_USE_VULKAN_WINDOWS
-    //            isPresent = sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR(hAdapter, i);
-    // #elif VKE_USE_VULKAN_LINUX
-    //            isPresent =
-    //                sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(hAdapter, i, xcb_connection, visual_id);
-    // #elif VKE_USE_VULKAN_ANDROID
-    // #error "implement"
-    // #endif
-    //            SQueueFamilyInfo Family;
-    //            Family.vQueues.Resize(aProperties[i].queueCount);
-    //            Family.vPriorities.Resize(aProperties[i].queueCount, 1.0f);
-    //            Family.index = i;
-    //            Family.type  = QueueTypes::GENERAL;
-    //            if (isSparse)
-    //            {
-    //                Family.type = QueueTypeBits::SPARSE;
-    //            }
-    //            if (isPresent)
-    //            {
-    //                Family.type = QueueTypeBits::PRESENT;
-    //            }
-    //            if (isTransfer)
-    //            {
-    //                Family.type = QueueTypeBits::TRANSFER;
-    //            }
-    //            if (isCompute)
-    //            {
-    //                Family.type = QueueTypeBits::COMPUTE;
-    //            }
-    //            if (isGraphics)
-    //            {
-    //                Family.type = QueueTypeBits::GENERAL;
-    //            }
-    //            vQueueFamilies.PushBack(Family);
-    //        }
-    //        for (uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i)
-    //        {
-    //            const auto &fmt = RenderSystem::g_aFormats[i];
-    //            sInstanceICD.vkGetPhysicalDeviceFormatProperties(hAdapter, fmt,
-    //            &pOut->Properties.aFormatProperties[i]);
-    //        }
-    //        return VKE_OK;
-    //    }
-    //
-    //    void CAPI::GetFormatFeatures(FORMAT fmt, STextureFormatFeatures *pOut) const
-    //    {
-    //        Memory::Zero(pOut);
-    //        const auto                           &Props = m_DeviceProperties.Properties.aFormatProperties[fmt];
-    //        Utils::TCBitset<VkFormatFeatureFlags> Bits(Props.optimalTilingFeatures);
-    //        pOut->sampled                  = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-    //        pOut->colorRenderTarget        = Bits == VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
-    //        pOut->storage                  = Bits == VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-    //        pOut->storageAtomic            = Bits == VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
-    //        pOut->uniformTexelBuffer       = Bits == VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
-    //        pOut->storageTexelBuffer       = Bits == VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
-    //        pOut->storageTexelBufferAtomic = Bits == VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
-    //        pOut->depthStencilRenderTarget = Bits == VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    //        pOut->blitSrc                  = Bits == VK_FORMAT_FEATURE_BLIT_SRC_BIT;
-    //        pOut->blitDst                  = Bits == VK_FORMAT_FEATURE_BLIT_DST_BIT;
-    //        pOut->linearFilter             = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
-    //        pOut->transferSrc              = Bits == VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
-    //        pOut->transferDst              = Bits == VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-    //    }
-    //
-    //    using DDIExtNameArray = Utils::TCDynamicArray<cstr_t>;
-    //
-    //    Result GetDeviceExtensions(VkPhysicalDevice vkPhysicalDevice, DDIExtMap *pmAllExtensionsOut)
-    //    {
-    //        auto    &InstanceICD = CAPI::GetInstantceICD();
-    //        uint32_t count       = 0;
-    //        VK_ERR(InstanceICD.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count, nullptr));
-    //        Utils::TCDynamicArray<VkExtensionProperties> vProperties(count);
-    //        pmAllExtensionsOut->reserve(count);
-    //        VK_ERR(InstanceICD.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count,
-    //        &vProperties[0])); std::string ext; vke_string  tmpName; tmpName.reserve(128); VKE_LOG("SUPPORTED VULKAN
-    //        DEVICE EXTENSIONS:"); for (uint32_t p = 0; p < count; ++p)
-    //        {
-    //            tmpName = vProperties[p].extensionName;
-    //            VKE_LOG(tmpName);
-    //            pmAllExtensionsOut->insert(DDIExtMap::value_type(tmpName, { tmpName, false, true, false }));
-    //        }
-    //        return VKE_OK;
-    //    }
-    //
-    //    Result CheckDeviceExtensions(const DDIExtMap &mAllExtensions, const DDIExtNameArray &vRequestedExtensions)
-    //    {
-    //        DDIExtNameArray vNotSupported;
-    //        for (uint32_t i = 0; i < vRequestedExtensions.GetCount(); ++i)
-    //        {
-    //            cstr_t pName = vRequestedExtensions[i];
-    //            if (mAllExtensions.find(pName) == mAllExtensions.end())
-    //            {
-    //                vNotSupported.PushBack(pName);
-    //            }
-    //        }
-    //        if (!vNotSupported.IsEmpty())
-    //        {
-    //            VKE_LOG_ERR("Some requested extensions are not supported:");
-    //            for (uint32_t i = 0; i < vNotSupported.GetCount(); ++i)
-    //            {
-    //                VKE_LOG_ERR(vNotSupported[i]);
-    //            }
-    //            return VKE_FAIL;
-    //        }
-    //        return VKE_OK;
-    //    }
-    //
-    //    FEATURE_LEVEL ConvertVulkanAPIToFeatureLevel(uint32_t apiVer)
-    //    {
-    //        FEATURE_LEVEL ret = FeatureLevels::LEVEL_1_0;
-    //        if (VK_API_VERSION_MAJOR(apiVer) == 1)
-    //        {
-    //            auto minor = VK_API_VERSION_MINOR(apiVer);
-    //            switch (minor)
-    //            {
-    //            case 1:
-    //                ret = FeatureLevels::LEVEL_1_1;
-    //                break;
-    //            case 2:
-    //                ret = FeatureLevels::LEVEL_1_2;
-    //                break;
-    //            case 3:
-    //                ret = FeatureLevels::LEVEL_1_3;
-    //                break;
-    //            case 4:
-    //                ret = FeatureLevels::LEVEL_1_4;
-    //                break;
-    //            }
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    uint32_t ConvertFeatureSetToVulkanAPIVersion(FEATURE_LEVEL set)
-    //    {
-    //        uint32_t ret = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    //        switch (set)
-    //        {
-    //        case FeatureLevels::LEVEL_1_1:
-    //            ret = VK_MAKE_API_VERSION(0, 1, 1, 0);
-    //            break;
-    //        case FeatureLevels::LEVEL_1_2:
-    //            ret = VK_MAKE_API_VERSION(0, 1, 2, 0);
-    //            break;
-    //        case FeatureLevels::LEVEL_1_3:
-    //            ret = VK_MAKE_API_VERSION(0, 1, 3, 0);
-    //            break;
-    //        case FeatureLevels::LEVEL_1_4:
-    //            ret = VK_MAKE_API_VERSION(0, 1, 4, 0);
-    //            break;
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::Load(const SDDILoadInfo &Info, SDriverInfo *pOut)
-    //    {
-    //        Result ret = VKE_OK;
-    //        VKE_LOG_PROG("VKEngine loading vulkan-1.dll");
-    //        shICD = Platform::DynamicLibrary::Load("vulkan-1.dll");
-    //        if (shICD != 0)
-    //        {
-    //            VKE_LOG_PROG("vulkan-1.dll loaded");
-    //            ret = Vulkan::LoadGlobalFunctions(shICD, &sGlobalICD);
-    //            if (VKE_SUCCEEDED(ret))
-    //            {
-    //                VKE_LOG_PROG("Vulkan global functions loaded");
-    //                DDIExtArray vRequiredInstanceExts = GetRequiredInstanceExtensions(Info.enableDebugMode);
-    //                DDIExtArray vRequiredDeviceExts   = GetRequiredDeviceExtensions(Info.enableDebugMode);
-    //                DDIExtArray vRequiredLayers;
-    //                if (Info.enableDebugMode)
-    //                {
-    //                    //                          name,                          required,   supported,  enabled
-    //                    vRequiredLayers.PushBack({ "VK_LAYER_KHRONOS_validation", true, false, false });
-    //                }
-    //                CStrVec   vExtNames;
-    //                DDIExtMap mExtensions;
-    //                ret = CheckInstanceExtensionNames(sGlobalICD, &mExtensions, &vRequiredInstanceExts, &vExtNames);
-    //                VKE_ASSERT2(VKE_SUCCEEDED(ret), "Required extension is not supported.");
-    //                if (VKE_FAILED(ret))
-    //                {
-    //                    return ret;
-    //                }
-    //                VKE_LOG_PROG("Vulkan ext checked");
-    //                CStrVec   vLayerNames;
-    //                DDIExtMap mLayers;
-    //                ret = GetInstanceValidationLayers(sGlobalICD, &mLayers, &vRequiredLayers, &vLayerNames);
-    //                VKE_ASSERT2(VKE_SUCCEEDED(ret), "Required validation layer is not supported.");
-    //                // Vulkan 1.1 not supported
-    //                uint32_t apiVersion;
-    //                if (sGlobalICD.vkEnumerateInstanceVersion == nullptr)
-    //                {
-    //                    apiVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    //                }
-    //                else
-    //                {
-    //                    sGlobalICD.vkEnumerateInstanceVersion(&apiVersion);
-    //                }
-    //                pOut->featureLevel = ConvertVulkanAPIToFeatureLevel(apiVersion);
-    //                if (VKE_SUCCEEDED(ret))
-    //                {
-    //                    VKE_LOG_PROG("Vulkan validation layers");
-    //                    VkApplicationInfo vkAppInfo;
-    //                    vkAppInfo.apiVersion         = apiVersion;
-    //                    vkAppInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    //                    vkAppInfo.pNext              = nullptr;
-    //                    vkAppInfo.applicationVersion = Info.AppInfo.applicationVersion;
-    //                    vkAppInfo.engineVersion      = Info.AppInfo.engineVersion;
-    //                    vkAppInfo.pApplicationName   = Info.AppInfo.pApplicationName;
-    //                    vkAppInfo.pEngineName        = Info.AppInfo.pEngineName;
-    //                    VkInstanceCreateInfo InstInfo;
-    //                    Vulkan::InitInfo(&InstInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
-    //                    Utils::TCDynamicArray<VkValidationFeatureEnableEXT> vEnableValFeatures = {
-    //                        VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
-    //                    };
-    //                    VkValidationFeaturesEXT ValidationFeatures       = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT
-    //                    }; ValidationFeatures.enabledValidationFeatureCount = vEnableValFeatures.GetCount();
-    //                    ValidationFeatures.pEnabledValidationFeatures    = vEnableValFeatures.GetData();
-    //                    VkDebugReportCallbackCreateInfoEXT DbgReport = {
-    //                    VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT }; DbgReport.pfnCallback = VkDebugCallback;
-    //                    DbgReport.pUserData                          = nullptr;
-    //                    DbgReport.flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT |
-    //                                      VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
-    //                    VkDebugUtilsMessengerCreateInfoEXT DbgUtils = {
-    //                        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT
-    //                    };
-    //                    DbgUtils.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-    //                                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-    //                                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-    //                    DbgUtils.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-    //                                           VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-    //                                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    //                    DbgUtils.pfnUserCallback = VkDebugMessengerCallback;
-    //                    SVulkanNext FeaturesNext(InstInfo);
-    //                    if (Info.enableDebugMode)
-    //                    {
-    //                        FeaturesNext.Add(&ValidationFeatures);
-    //                    }
-    //                    InstInfo.enabledExtensionCount   = static_cast<uint32_t>(vExtNames.GetCount());
-    //                    InstInfo.enabledLayerCount       = static_cast<uint32_t>(vLayerNames.GetCount());
-    //                    InstInfo.flags                   = 0;
-    //                    InstInfo.pApplicationInfo        = &vkAppInfo;
-    //                    InstInfo.ppEnabledExtensionNames = vExtNames.GetData();
-    //                    InstInfo.ppEnabledLayerNames     = vLayerNames.GetData();
-    //                    VkResult vkRes                   = sGlobalICD.vkCreateInstance(&InstInfo, nullptr,
-    //                    &sVkInstance); VK_ERR(vkRes); if (vkRes == VK_SUCCESS)
-    //                    {
-    //                        VKE_LOG_PROG("Vulkan instance created with API ver: " << VK_API_VERSION_MAJOR(apiVersion)
-    //                        << "."
-    //                                                                              <<
-    //                                                                              VK_API_VERSION_MINOR(apiVersion));
-    //                        ret = Vulkan::LoadInstanceFunctions(sVkInstance, sGlobalICD, &sInstanceICD);
-    //                        if (ret == VKE_OK)
-    //                        {
-    //                            VKE_LOG_PROG("Vk instance functions loaded");
-    //                            if (Info.enableDebugMode)
-    //                            {
-    //                                if (sInstanceICD.vkCreateDebugReportCallbackEXT)
-    //                                {
-    //                                    vkRes = sInstanceICD.vkCreateDebugReportCallbackEXT(
-    //                                        sVkInstance, &DbgReport, nullptr, &sVkDebugReportCallback);
-    //                                    VK_ERR(vkRes);
-    //                                }
-    //                                else if (sInstanceICD.vkCreateDebugUtilsMessengerEXT)
-    //                                {
-    //                                    vkRes = sInstanceICD.vkCreateDebugUtilsMessengerEXT(sVkInstance, &DbgUtils,
-    //                                    nullptr,
-    //                                                                                        &sVkDebugMessengerCallback);
-    //                                    VK_ERR(vkRes);
-    //                                }
-    //                            }
-    //                        }
-    //                    }
-    //                    else
-    //                    {
-    //                        ret = VKE_FAIL;
-    //                        VKE_LOG_ERR("Unable to create Vulkan instance: " << vkRes);
-    //                    }
-    //                }
-    //                else
-    //                {
-    //                    VKE_LOG_ERR("Unable to get Vulkan instance validation layers.");
-    //                }
-    //            }
-    //            else
-    //            {
-    //                VKE_LOG_ERR("Unable to load Vulkan global function pointers.");
-    //            }
-    //        }
-    //        else
-    //        {
-    //            VKE_LOG_ERR("Unable to load library: vulkan-1.dll");
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    void CAPI::CloseICD()
-    //    {
-    //        // sGlobalICD.vkDestroyInstance( sVkInstance, nullptr );
-    //        sInstanceICD.vkDestroyInstance(sVkInstance, nullptr);
-    //        sVkInstance = VK_NULL_HANDLE;
-    //        Platform::DynamicLibrary::Close(shICD);
-    //    }
-    //
-    //    const SDDIExtension &CAPI::GetExtensionInfo(cstr_t pName) const
-    //    {
-    //        static const SDDIExtension sDummy;
-    //        auto                       Itr = m_mExtensions.find(pName);
-    //        if (Itr != m_mExtensions.end())
-    //        {
-    //            return Itr->second;
-    //        }
-    //        return sDummy;
-    //    }
-    //
-    //    Result LoadDeviceExtensions(VkPhysicalDevice vkPhysicalDevice, DDIExtMap *pmAllExtensionsOut)
-    //    {
-    //        auto    &InstanceICD = CAPI::GetInstantceICD();
-    //        uint32_t count       = 0;
-    //        VK_ERR(InstanceICD.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count, nullptr));
-    //        Utils::TCDynamicArray<VkExtensionProperties> vProperties(count);
-    //        pmAllExtensionsOut->reserve(count);
-    //        VK_ERR(InstanceICD.vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &count,
-    //        &vProperties[0])); std::string ext; vke_string  tmpName; tmpName.reserve(128); VKE_LOG("SUPPORTED VULKAN
-    //        DEVICE EXTENSIONS:"); for (uint32_t p = 0; p < count; ++p)
-    //        {
-    //            tmpName = vProperties[p].extensionName;
-    //            VKE_LOG(tmpName);
-    //            pmAllExtensionsOut->insert(DDIExtMap::value_type(tmpName, { tmpName, false, true, false }));
-    //        }
-    //        return VKE_OK;
-    //    }
-    //
-    //    Result EnableDeviceFeatures(VkPhysicalDevice vkPhysicalDevice, SDeviceProperties *pProps, DDIExtMap *pmExts,
-    //                                SSettings *pSettingsOut, SVulkanDeviceFeatures *pEnableOut,
-    //                                VkPhysicalDeviceFeatures *pEnabledFeaturesOut, VkDeviceCreateInfo *pOut,
-    //                                DDIExtNameArray *pExtOut)
-    //    {
-    //        // Required extensions
-    //        *pExtOut   = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    //                       VK_KHR_MAINTENANCE1_EXTENSION_NAME,
-    //                       VK_KHR_MAINTENANCE2_EXTENSION_NAME,
-    //                       VK_KHR_MAINTENANCE3_EXTENSION_NAME,
-    //                       VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
-    //                       VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
-    //                       VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
-    //                       VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME };
-    //        Result ret = GetDeviceExtensions(vkPhysicalDevice, pmExts);
-    //        if (VKE_FAILED(ret))
-    //        {
-    //            return ret;
-    //        }
-    //        ret = QueryAdapterProperties(vkPhysicalDevice, *pmExts, pProps);
-    //        if (VKE_FAILED(ret))
-    //        {
-    //            return ret;
-    //        }
-    //        auto &Props              = *pProps;
-    //        auto &Device             = Props.Properties.Device;
-    //        auto &Features           = Props.Features;
-    //        auto &Device11           = Props.Features.Device11;
-    //        auto &Device12           = Props.Features.Device12;
-    //        auto &DeviceFeatures     = Props.Features.Device.features;
-    //        auto &Settings           = *pSettingsOut;
-    //        auto  deviceFeatureLevel = ConvertVulkanAPIToFeatureLevel(Device.properties.apiVersion);
-    //        auto  requestedLevel     = Settings.featureLevel;
-    //        if (requestedLevel == FeatureLevels::LEVEL_DEFAULT || requestedLevel > deviceFeatureLevel)
-    //        {
-    //            requestedLevel             = deviceFeatureLevel;
-    //            pSettingsOut->featureLevel = deviceFeatureLevel;
-    //        }
-    //        pEnabledFeaturesOut->robustBufferAccess = VKE_RENDER_SYSTEM_DEBUG && DeviceFeatures.robustBufferAccess;
-    //        VkDeviceCreateInfo &Info                = *pOut;
-    //        SVulkanNext         NextFeatures(Info);
-    //        if (requestedLevel >= FeatureLevels::LEVEL_1_0)
-    //        {
-    //            pEnabledFeaturesOut->geometryShader     = DeviceFeatures.geometryShader;
-    //            pEnabledFeaturesOut->tessellationShader = DeviceFeatures.tessellationShader;
-    //            pEnabledFeaturesOut->fillModeNonSolid   = DeviceFeatures.fillModeNonSolid;
-    //        }
-    //        if (requestedLevel >= FeatureLevels::LEVEL_1_1)
-    //        {
-    //            pEnabledFeaturesOut->sparseBinding          = DeviceFeatures.sparseBinding;
-    //            pEnabledFeaturesOut->sparseResidencyBuffer  = DeviceFeatures.sparseResidencyBuffer;
-    //            pEnabledFeaturesOut->sparseResidencyAliased = DeviceFeatures.sparseResidencyAliased;
-    //            pEnabledFeaturesOut->sparseResidencyImage2D = DeviceFeatures.sparseResidencyImage2D;
-    //            pEnabledFeaturesOut->sparseResidencyImage3D = DeviceFeatures.sparseResidencyImage3D;
-    //            if (!Device11.shaderDrawParameters)
-    //            {
-    //                VKE_LOG_ERR("Required device feature: 'Shader Draw Parameters' is not supported.");
-    //                ret = VKE_FAIL;
-    //            }
-    //            pEnableOut->Device11.sType                = Device11.sType;
-    //            pEnableOut->Device11.shaderDrawParameters = Device11.shaderDrawParameters;
-    //            NextFeatures.Add(&pEnableOut->Device11);
-    //        }
-    //        if (requestedLevel >= FeatureLevels::LEVEL_1_2)
-    //        {
-    //            if (!Features.DynamicRendering.dynamicRendering)
-    //            {
-    //                VKE_LOG_ERR("Required device feature: 'Dynamic Rendering' is not supported.");
-    //                ret = VKE_FAIL;
-    //            }
-    //            pEnableOut->DynamicRendering = Features.DynamicRendering;
-    //            NextFeatures.Add(&pEnableOut->DynamicRendering);
-    //            pExtOut->PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-    //            if (!Device12.descriptorIndexing)
-    //            {
-    //                VKE_LOG_ERR("Required device feature: 'Descriptor Indexing' is not supported.");
-    //                ret = VKE_FAIL;
-    //                if (!Device12.runtimeDescriptorArray)
-    //                {
-    //                    VKE_LOG_ERR("Required device feature: 'Runtime Descriptor Array' is not supported.");
-    //                    ret = VKE_FAIL;
-    //                }
-    //            }
-    //            pEnableOut->Device12.sType                  = Device12.sType;
-    //            pEnableOut->Device12.descriptorIndexing     = Device12.descriptorIndexing;
-    //            pEnableOut->Device12.runtimeDescriptorArray = Device12.runtimeDescriptorArray;
-    //            NextFeatures.Add(&pEnableOut->Device12);
-    //            pSettingsOut->Features.bindlessResourceAccess = (FEATURE_ENABLE_MODE)Device12.descriptorIndexing;
-    //            pSettingsOut->Features.dynamicRenderPass =
-    //            (FEATURE_ENABLE_MODE)Features.DynamicRendering.dynamicRendering;
-    //        }
-    //        if (requestedLevel >= FeatureLevels::LEVEL_1_3)
-    //        {
-    //            if (true)
-    //            {
-    //                if (!Features.Raytracing10.rayTracingPipeline)
-    //                {
-    //                    VKE_LOG_ERR("Required device feature: 'Raytracing 1.0' is not supported.");
-    //                    ret = VKE_FAIL;
-    //                }
-    //                if (!Features.Raytracing11.rayQuery)
-    //                {
-    //                    VKE_LOG_ERR("Required device feature: 'Raytracing 1.1' is not supported.");
-    //                    ret = VKE_FAIL;
-    //                }
-    //                if (!Features.MeshShaderEXT.meshShader)
-    //                {
-    //                    VKE_LOG_ERR("Required device feature: 'Mesh Shaders' is not supported.");
-    //                    ret = VKE_FAIL;
-    //                }
-    //                pEnableOut->Raytracing10 = Features.Raytracing10;
-    //                pEnableOut->Raytracing11 = Features.Raytracing11;
-    //                pEnableOut->Raytracing12 = Features.Raytracing12;
-    //                NextFeatures.Add(&pEnableOut->Raytracing10)
-    //                    .Add(&pEnableOut->Raytracing11)
-    //                    .Add(&pEnableOut->Raytracing12);
-    //                pExtOut->PushBack(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
-    //                pExtOut->PushBack(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-    //                pExtOut->PushBack(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-    //                pExtOut->PushBack(VK_KHR_RAY_QUERY_EXTENSION_NAME);
-    //                pExtOut->PushBack(VK_NV_RAY_TRACING_MOTION_BLUR_EXTENSION_NAME);
-    //            }
-    //            if (true)
-    //            {
-    //                if (Features.MeshShaderNV.meshShader && Features.MeshShaderNV.taskShader)
-    //                {
-    //                    pEnableOut->MeshShaderNV = Features.MeshShaderNV;
-    //                    pExtOut->PushBack(VK_NV_MESH_SHADER_EXTENSION_NAME);
-    //                }
-    //                if (Features.MeshShaderEXT.meshShader && Features.MeshShaderEXT.taskShader)
-    //                {
-    //                    pEnableOut->MeshShaderEXT                                        = Features.MeshShaderEXT;
-    //                    pEnableOut->MeshShaderEXT.multiviewMeshShader                    = VK_FALSE;
-    //                    pEnableOut->MeshShaderEXT.primitiveFragmentShadingRateMeshShader = VK_FALSE;
-    //                    NextFeatures.Add(&pEnableOut->MeshShaderEXT);
-    //                    pExtOut->PushBack(VK_EXT_MESH_SHADER_EXTENSION_NAME);
-    //                }
-    //            }
-    //        }
-    //        if (requestedLevel >= FeatureLevels::LEVEL_ULTIMATE)
-    //        {
-    //        }
-    //        ret = CheckDeviceExtensions(*pmExts, *pExtOut);
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::CreateDevice(const SCreateDeviceDesc &Desc, CDeviceContext *pCtx)
-    //    {
-    //        m_pCtx             = pCtx;
-    //        m_pCtx->m_Features = Desc.Settings;
-    //        auto hAdapter      = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
-    //        VKE_ASSERT2(hAdapter != INVALID_HANDLE, "");
-    //        m_hAdapter = reinterpret_cast<VkPhysicalDevice>(hAdapter);
-    //        // VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
-    //        DDIExtNameArray vDDIExtNames;
-    //        /*VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_hAdapter, &m_mExtensions ) );
-    //        DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
-    //        VKE_RETURN_IF_FAILED(
-    //            CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions,
-    //                &m_mExtensions, &vDDIExtNames ) );
-    //        VKE_RETURN_IF_FAILED( EnableDeviceExtensions(
-    //            Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features,
-    //            &vRequiredExtensions ) );
-    //        VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter,
-    //            m_mExtensions, &m_DeviceProperties ) );*/
-    //        // auto featureLevel = CheckRequestedFeatureLevel(m_DeviceInfo, Desc.Settings.featureLevel );
-    //        VkDeviceCreateInfo di;
-    //        Vulkan::InitInfo(&di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
-    //        VkPhysicalDeviceFeatures VkEnabledFeatures = {};
-    //        SVulkanDeviceFeatures    EnableFeatures    = {};
-    //        if (VKE_FAILED(EnableDeviceFeatures(m_hAdapter, &m_DeviceProperties, &m_mExtensions, &m_pCtx->m_Features,
-    //                                            &EnableFeatures, &VkEnabledFeatures, &di, &vDDIExtNames)))
-    //        {
-    //            return VKE_FAIL;
-    //        }
-    //        for (uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i)
-    //        {
-    //            m_aHeapSizes[i] = m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[i].size;
-    //        }
-    //        Utils::TCDynamicArray<VkDeviceQueueCreateInfo> vQis;
-    //        for (auto &Family : m_DeviceProperties.vQueueFamilies)
-    //        {
-    //            if (!Family.vQueues.IsEmpty())
-    //            {
-    //                VkDeviceQueueCreateInfo qi;
-    //                Vulkan::InitInfo(&qi, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-    //                qi.flags            = 0;
-    //                qi.pQueuePriorities = &Family.vPriorities[0];
-    //                qi.queueFamilyIndex = Family.index;
-    //                qi.queueCount       = static_cast<uint32_t>(Family.vQueues.GetCount());
-    //                vQis.PushBack(qi);
-    //            }
-    //        }
-    //        m_DeviceProperties.Features.Device.features.fillModeNonSolid = true;
-    //        di.enabledExtensionCount                                     = vDDIExtNames.GetCount();
-    //        di.enabledLayerCount                                         = 0;
-    //        di.pEnabledFeatures                                          = &VkEnabledFeatures;
-    //        di.ppEnabledExtensionNames                                   = vDDIExtNames.GetData();
-    //        di.ppEnabledLayerNames                                       = nullptr;
-    //        di.pQueueCreateInfos                                         = &vQis[0];
-    //        di.queueCreateInfoCount                                      = static_cast<uint32_t>(vQis.GetCount());
-    //        di.flags                                                     = 0;
-    //        VK_ERR(sInstanceICD.vkCreateDevice(m_hAdapter, &di, nullptr, &m_hDevice));
-    //        VKE_RETURN_IF_FAILED(Vulkan::LoadDeviceFunctions(m_hDevice, sInstanceICD, &m_ICD));
-    //        for (SQueueFamilyInfo &Family : m_DeviceProperties.vQueueFamilies)
-    //        {
-    //            for (uint32_t q = 0; q < Family.vQueues.GetCount(); ++q)
-    //            {
-    //                VkQueue vkQueue;
-    //                m_ICD.vkGetDeviceQueue(m_hDevice, Family.index, q, &vkQueue);
-    //                Family.vQueues[q] = vkQueue;
-    //            }
-    //        }
-    //        return VKE_OK;
-    //    }
-    //
-    //    void CAPI::DestroyDevice()
-    //    {
-    //        if (m_hDevice != NativeAPI::Null)
-    //        {
-    //            sInstanceICD.vkDestroyDevice(m_hDevice, nullptr);
-    //        }
-    //        m_hDevice = NativeAPI::Null;
-    //        m_pCtx    = nullptr;
-    //    }
-    //
-    //    Result CAPI::QueryAdapters(AdapterInfoArray *pOut)
-    //    {
-    //        Result   ret   = VKE_FAIL;
-    //        uint32_t count = 0;
-    //        VkResult vkRes = sInstanceICD.vkEnumeratePhysicalDevices(sVkInstance, &count, nullptr);
-    //        VK_ERR(vkRes);
-    //        if (vkRes == VK_SUCCESS)
-    //        {
-    //            if (count > 0)
-    //            {
-    //                svAdapters.Resize(count);
-    //                vkRes = sInstanceICD.vkEnumeratePhysicalDevices(sVkInstance, &count, &svAdapters[0]);
-    //                VK_ERR(vkRes);
-    //                if (vkRes == VK_SUCCESS)
-    //                {
-    //                    const uint32_t nameLen = Min(VK_MAX_PHYSICAL_DEVICE_NAME_SIZE, Constants::MAX_NAME_LENGTH);
-    //                    for (size_t i = 0; i < svAdapters.GetCount(); ++i)
-    //                    {
-    //                        const auto                &vkPhysicalDevice = svAdapters[i];
-    //                        VkPhysicalDeviceProperties Props;
-    //                        sInstanceICD.vkGetPhysicalDeviceProperties(vkPhysicalDevice, &Props);
-    //                        RenderSystem::SAdapterInfo Info = {};
-    //                        Info.apiVersion                 = Props.apiVersion;
-    //                        Info.deviceID                   = Props.deviceID;
-    //                        Info.driverVersion              = Props.driverVersion;
-    //                        Info.type                       =
-    //                        static_cast<RenderSystem::ADAPTER_TYPE>(Props.deviceType); Info.vendorID = Props.vendorID;
-    //                        Info.hDDIAdapter                = reinterpret_cast<handle_t>(vkPhysicalDevice);
-    //                        Memory::Copy(Info.name, sizeof(Info.name), Props.deviceName, nameLen);
-    //                        pOut->PushBack(Info);
-    //                    }
-    //                    ret = VKE_OK;
-    //                }
-    //                else
-    //                {
-    //                    VKE_LOG_ERR("No physical device available for this machine");
-    //                }
-    //            }
-    //            else
-    //            {
-    //                VKE_LOG_ERR("No physical device available for this machine");
-    //                VKE_LOG_ERR("Vulkan is not supported for this GPU");
-    //            }
-    //        }
-    //        else
-    //        {
-    //            VKE_LOG_ERR("Unable to enumerate Vulkan physical devices: " << vkRes);
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    void CAPI::QueryDeviceInfo(SDeviceInfo *pOut)
-    //    {
-    //        auto &Limits    = pOut->Limits;
-    //        auto &Alignment = Limits.Alignment;
-    //        Alignment.constantBufferOffset =
-    //            static_cast<uint32_t>(m_DeviceProperties.Limits.minUniformBufferOffsetAlignment);
-    //        Alignment.bufferCopyOffset =
-    //        static_cast<uint32_t>(m_DeviceProperties.Limits.optimalBufferCopyOffsetAlignment);
-    //        Alignment.bufferCopyRowPitch         =
-    //        (uint32_t)m_DeviceProperties.Limits.optimalBufferCopyRowPitchAlignment; Alignment.memoryMap =
-    //        (uint32_t)m_DeviceProperties.Limits.minMemoryMapAlignment; Alignment.texelBufferOffset          =
-    //        (uint32_t)m_DeviceProperties.Limits.minTexelBufferOffsetAlignment; Alignment.storageBufferOffset        =
-    //        (uint32_t)m_DeviceProperties.Limits.minStorageBufferOffsetAlignment; auto &Binding = Limits.Binding;
-    //        Binding.maxConstantBufferRange       = m_DeviceProperties.Limits.maxUniformBufferRange;
-    //        Binding.maxPushConstantsSize         = m_DeviceProperties.Limits.maxPushConstantsSize;
-    //        Binding.Stage.maxConstantBufferCount = m_DeviceProperties.Limits.maxPerStageDescriptorUniformBuffers;
-    //        Binding.Stage.maxSamplerCount        = m_DeviceProperties.Limits.maxPerStageDescriptorSamplers;
-    //        Binding.Stage.maxStorageBufferCount  = m_DeviceProperties.Limits.maxPerStageDescriptorStorageBuffers;
-    //        Binding.Stage.maxStorageTextureCount = m_DeviceProperties.Limits.maxPerStageDescriptorStorageImages;
-    //        Binding.Stage.maxResourceCount       = m_DeviceProperties.Limits.maxPerStageResources;
-    //        Binding.Stage.maxTextureCount        = m_DeviceProperties.Limits.maxPerStageDescriptorSampledImages;
-    //        auto &Memory                         = Limits.Memory;
-    //        Memory.maxAllocationCount            = m_DeviceProperties.Limits.maxMemoryAllocationCount;
-    //        Memory.minMapAlignment               = (uint32_t)m_DeviceProperties.Limits.minMemoryMapAlignment;
-    //        Memory.minTexelBufferOffsetAlignment = (uint32_t)m_DeviceProperties.Limits.minTexelBufferOffsetAlignment;
-    //        Memory.minConstantBufferOffsetAlignment =
-    //        (uint32_t)m_DeviceProperties.Limits.minUniformBufferOffsetAlignment;
-    //        Memory.minStorageBufferOffsetAlignment  =
-    //        (uint32_t)m_DeviceProperties.Limits.minStorageBufferOffsetAlignment;
-    //        // Get heaps for GPU, CPU and Upload
-    //        for (uint32_t i = 0; i < VK_MAX_MEMORY_HEAPS; ++i)
-    //        {
-    //            m_aHeapIndexToHeapTypeMap[i] = MemoryHeapTypes::OTHER;
-    //        }
-    //        for (uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; ++i)
-    //        {
-    //            m_aHeapTypeToHeapIndexMap[i] = VK_MAX_MEMORY_HEAPS - 1;
-    //        }
-    //        /// TODO: enable support other heap types
-    //        {
-    //            VkMemoryPropertyFlags vkPropertyFlags =
-    //                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-    //            // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS
-    //            ); const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties; const int32_t idx
-    //            = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //            // Memory.aHeapSizes[ MemoryHeapTypes::CPU_COHERENT ] = 0;
-    //            m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_COHERENT] = INVALID_POSITION;
-    //            if (idx >= 0)
-    //            {
-    //                const auto heapIdx                                       = VkMemProps.memoryTypes[idx].heapIndex;
-    //                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_COHERENT] = heapIdx;
-    //                m_aHeapIndexToHeapTypeMap[heapIdx]                       = MemoryHeapTypes::CPU_COHERENT;
-    //            }
-    //        }
-    //        {
-    //            VkMemoryPropertyFlags vkPropertyFlags =
-    //                VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-    //            // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS
-    //            ); const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties; const int32_t idx
-    //            = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //            // Memory.aHeapSizes[ MemoryHeapTypes::CPU_CACHED ] = 0;
-    //            m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_CACHED] = INVALID_POSITION;
-    //            if (idx >= 0)
-    //            {
-    //                const auto heapIdx                                     = VkMemProps.memoryTypes[idx].heapIndex;
-    //                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU_CACHED] = heapIdx;
-    //                m_aHeapIndexToHeapTypeMap[heapIdx]                     = MemoryHeapTypes::CPU_CACHED;
-    //            }
-    //        }
-    //        {
-    //            VkMemoryPropertyFlags vkPropertyFlags =
-    //                VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    //            // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS
-    //            ); const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties; const int32_t idx
-    //            = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //            // Memory.aHeapSizes[ MemoryHeapTypes::OTHER ] = 0;
-    //            // m_aHeapTypeToHeapIndexMap[ MemoryHeapTypes::OTHER ] = idx;
-    //            if (idx >= 0)
-    //            {
-    //                const auto heapIdx                 = VkMemProps.memoryTypes[idx].heapIndex;
-    //                m_aHeapIndexToHeapTypeMap[heapIdx] = MemoryHeapTypes::OTHER;
-    //            }
-    //        }
-    //        // Note that order of these queries matters as there can be the same heapIndex
-    //        // for the same heap type. In that case we need to override with more generic ones like CPU or GPU.
-    //        {
-    //            VkMemoryPropertyFlags vkPropertyFlags =
-    //                Convert::MemoryUsagesToVkMemoryPropertyFlags(MemoryUsages::GPU_ACCESS);
-    //            const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
-    //            const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //            // Memory.aHeapSizes[ MemoryHeapTypes::GPU ] = 0;
-    //            m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::GPU] = INVALID_POSITION;
-    //            if (idx >= 0)
-    //            {
-    //                const auto heapIdx                              = VkMemProps.memoryTypes[idx].heapIndex;
-    //                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::GPU] = heapIdx;
-    //                m_aHeapIndexToHeapTypeMap[heapIdx]              = MemoryHeapTypes::GPU;
-    //            }
-    //        }
-    //        {
-    //            VkMemoryPropertyFlags vkPropertyFlags =
-    //                Convert::MemoryUsagesToVkMemoryPropertyFlags(MemoryUsages::CPU_ACCESS);
-    //            const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
-    //            const int32_t idx        = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //            // Memory.aHeapSizes[ MemoryHeapTypes::CPU ] = 0;
-    //            m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU] = INVALID_POSITION;
-    //            if (idx >= 0)
-    //            {
-    //                const auto heapIdx                              = VkMemProps.memoryTypes[idx].heapIndex;
-    //                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::CPU] = heapIdx;
-    //                m_aHeapIndexToHeapTypeMap[heapIdx]              = MemoryHeapTypes::CPU;
-    //            }
-    //        }
-    //        {
-    //            VkMemoryPropertyFlags vkPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-    //                                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-    //                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    //            // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS
-    //            ); const auto   &VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties; const int32_t idx
-    //            = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //            m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::UPLOAD] = INVALID_POSITION;
-    //            if (idx >= 0)
-    //            {
-    //                const auto heapIdx                                 = VkMemProps.memoryTypes[idx].heapIndex;
-    //                m_aHeapTypeToHeapIndexMap[MemoryHeapTypes::UPLOAD] = heapIdx;
-    //                m_aHeapIndexToHeapTypeMap[heapIdx]                 = MemoryHeapTypes::UPLOAD;
-    //            }
-    //        }
-    //        auto &RenderPass                     = Limits.RenderPass;
-    //        RenderPass.maxColorRenderTargetCount = m_DeviceProperties.Limits.maxColorAttachments;
-    //        auto &Query                          = Limits.Query;
-    //        Query.timestampPeriod                = m_DeviceProperties.Limits.timestampPeriod;
-    //    }
-    //
-    //    uint32_t CalcAlignedSize(uint32_t size, uint32_t alignment)
-    //    {
-    //        uint32_t ret       = size;
-    //        uint32_t remainder = size % alignment;
-    //        if (remainder > 0)
-    //        {
-    //            ret = size + alignment - remainder;
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    /*void CAPI::UpdateDesc( SBufferDesc* pInOut )
-    //    {
-    //        if( pInOut->usage & BufferUsages::CONSTANT_BUFFER ||
-    //            pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
-    //        {
-    //            pInOut->size = CalcAlignedSize( pInOut->size, static_cast<uint32_t>(
-    //    m_DeviceProperties.Limits.minUniformBufferOffsetAlignment ) );
-    //        }
-    //    }*/
-    //    NativeAPI::Buffer CAPI::CreateBuffer(const SBufferDesc &Desc, const void *pAllocator)
-    //    {
-    //        VkBufferCreateInfo ci;
-    //        NativeAPI::Buffer  hBuffer = VK_NULL_HANDLE;
-    //        Vulkan::InitInfo(&ci, VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
-    //        {
-    //            ci.flags                 = 0;
-    //            ci.pQueueFamilyIndices   = nullptr;
-    //            ci.queueFamilyIndexCount = 0;
-    //            ci.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
-    //            ci.size                  = Desc.size;
-    //            ci.usage                 = Convert::BufferUsage(Desc.usage);
-    //            if (Desc.memoryUsage & MemoryUsages::GPU_ACCESS)
-    //            {
-    //                ci.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    //            }
-    //            VkResult vkRes = DDI_CREATE_OBJECT(Buffer, ci, pAllocator, &hBuffer);
-    //            VK_ERR(vkRes);
-    //            VKE_ASSERT2(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
-    //            SetObjectDebugName((uint64_t)hBuffer, VK_OBJECT_TYPE_BUFFER, Desc.GetDebugName());
-    //        }
-    //        return hBuffer;
-    //    }
-    //
-    //    void CAPI::DestroyBuffer(NativeAPI::Buffer *phBuffer, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(Buffer, phBuffer, pAllocator);
-    //    }
-    //
-    //    NativeAPI::BufferView CAPI::CreateBufferView(const SBufferViewDesc &Desc, const void *pAllocator)
-    //    {
-    //        NativeAPI::BufferView  hView = NativeAPI::Null;
-    //        VkBufferViewCreateInfo ci;
-    //        {
-    //            ci.sType  = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
-    //            ci.pNext  = nullptr;
-    //            ci.flags  = 0;
-    //            ci.format = Map::Format(Desc.format);
-    //            ci.buffer = m_pCtx->GetBuffer(Desc.hBuffer)->GetDDIObject();
-    //            ci.offset = Desc.offset;
-    //        }
-    //        VkResult vkRes = DDI_CREATE_OBJECT(BufferView, ci, pAllocator, &hView);
-    //        VK_ERR(vkRes);
-    //        VKE_ASSERT2(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
-    //        SetObjectDebugName((uint64_t)hView, VK_OBJECT_TYPE_BUFFER_VIEW, Desc.GetDebugName());
-    //        return hView;
-    //    }
-    //
-    //    void CAPI::DestroyBufferView(NativeAPI::BufferView *phBufferView, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(BufferView, phBufferView, pAllocator);
-    //    }
-    //
-    //    NativeAPI::Texture CAPI::CreateTexture(const STextureDesc &Desc, const void *pAllocator)
-    //    {
-    //        NativeAPI::Texture hImage = NativeAPI::Null;
-    //        VkImageCreateInfo  ci;
-    //        {
-    //            ci.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    //            ci.pNext                 = nullptr;
-    //            ci.flags                 = 0;
-    //            ci.format                = Map::Format(Desc.format);
-    //            ci.imageType             = Vulkan::Map::ImageType(Desc.type);
-    //            ci.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
-    //            ci.mipLevels             = Desc.mipmapCount;
-    //            ci.samples               = Vulkan::Map::SampleCount(Desc.multisampling);
-    //            ci.pQueueFamilyIndices   = nullptr;
-    //            ci.queueFamilyIndexCount = 0;
-    //            ci.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
-    //            ci.tiling                = Vulkan::Convert::ImageUsageToTiling(Desc.usage);
-    //            ci.arrayLayers           = Desc.arrayElementCount;
-    //            ci.extent.width          = Desc.Size.width;
-    //            ci.extent.height         = Desc.Size.height;
-    //            ci.extent.depth          = 1;
-    //            ci.usage                 = Vulkan::Map::ImageUsage(Desc.usage);
-    //        }
-    //        VkResult vkRes = DDI_CREATE_OBJECT(Image, ci, pAllocator, &hImage);
-    //        VK_ERR(vkRes);
-    // #if VKE_RENDER_SYSTEM_DEBUG
-    //        // VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
-    //        cstr_t pName;
-    //        if (strlen(Desc.GetDebugName()) > 0)
-    //        {
-    //            pName = Desc.GetDebugName();
-    //        }
-    //        else
-    //        {
-    //            VKE_ASSERT2(!Desc.Name.IsEmpty(), "Name must not be empty");
-    //            pName = Desc.Name.GetData();
-    //        }
-    //        SetObjectDebugName((uint64_t)hImage, VK_OBJECT_TYPE_IMAGE, pName);
-    // #endif
-    //        return hImage;
-    //    }
-    //
-    //    Result CAPI::GetTextureFormatProperties(const STextureDesc &Desc, STextureFormatProperties *pOut)
-    //    {
-    //        Result                           ret              = VKE_OK;
-    //        VkPhysicalDeviceImageFormatInfo2 NativeFormatInfo = { .sType =
-    //                                                                  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
-    //                                                              .pNext  = nullptr,
-    //                                                              .format = Map::Format(Desc.format),
-    //                                                              .type   = Map::ImageType(Desc.type),
-    //                                                              .tiling =
-    //                                                              Vulkan::Convert::ImageUsageToTiling(Desc.usage),
-    //                                                              .usage  = Map::ImageUsage(Desc.usage),
-    //                                                              .flags  = 0 };
-    //        VkImageFormatProperties2         NativeProperties = { .sType =
-    //        VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
-    //                                                              .pNext = nullptr };
-    //        auto                             nativeResult =
-    //            sInstanceICD.vkGetPhysicalDeviceImageFormatProperties2(m_hAdapter, &NativeFormatInfo,
-    //            &NativeProperties);
-    //        VK_ERR(nativeResult);
-    //        pOut->MaxSize            = { NativeProperties.imageFormatProperties.maxExtent.width };
-    //        pOut->maxDepth           = NativeProperties.imageFormatProperties.maxExtent.depth;
-    //        pOut->maxMipLevelCount   = NativeProperties.imageFormatProperties.maxMipLevels;
-    //        pOut->maxArrayLayerCount = NativeProperties.imageFormatProperties.maxArrayLayers;
-    //        pOut->maxResourceSize    = (uint32_t)NativeProperties.imageFormatProperties.maxResourceSize;
-    //        ret                      = Map::NativeResult(nativeResult);
-    //        return ret;
-    //    }
-    //
-    //    void CAPI::DestroyTexture(NativeAPI::Texture *phImage, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(Image, phImage, pAllocator);
-    //    }
-    //
-    //    NativeAPI::TextureView CAPI::CreateTextureView(const STextureViewDesc &Desc, const void *pAllocator)
-    //    {
-    //        static const VkComponentMapping DefaultMapping = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-    //                                                           VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-    //        NativeAPI::TextureView          hView          = NativeAPI::Null;
-    //        VkImageViewCreateInfo           ci;
-    //        {
-    //            Convert::TextureSubresourceRange(&ci.subresourceRange, Desc.SubresourceRange);
-    //            VKE_ASSERT2(Desc.hTexture != INVALID_HANDLE, "");
-    //            TextureRefPtr pTex = m_pCtx->GetTexture(Desc.hTexture);
-    //            VKE_ASSERT2(pTex!= nullptr, "");
-    //            ci.components = DefaultMapping;
-    //            ci.flags      = 0;
-    //            ci.format     = Map::Format(Desc.format);
-    //            ci.image      = pTex->GetDDIObject();
-    //            ci.pNext      = nullptr;
-    //            ci.sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    //            ci.viewType   = Vulkan::Map::ImageViewType(Desc.type);
-    //        }
-    //        VkResult vkRes = DDI_CREATE_OBJECT(ImageView, ci, pAllocator, &hView);
-    //        VK_ERR(vkRes);
-    // #if VKE_RENDER_SYSTEM_DEBUG
-    //        VKE_ASSERT2(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
-    //        SetObjectDebugName((uint64_t)hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName());
-    // #endif
-    //        return hView;
-    //    }
-    //
-    //    void CAPI::DestroyTextureView(NativeAPI::TextureView *phImageView, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(ImageView, phImageView, pAllocator);
-    //    }
-    //
-    //    NativeAPI::Framebuffer CAPI::CreateFramebuffer(const SFramebufferDesc &Desc, const void *pAllocator)
-    //    {
-    //        // const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
-    //        VkFramebufferCreateInfo ci;
-    //        ci.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    //        ci.pNext           = nullptr;
-    //        ci.flags           = 0;
-    //        ci.width           = Desc.Size.width;
-    //        ci.height          = Desc.Size.height;
-    //        ci.layers          = 1;
-    //        ci.attachmentCount = Desc.vDDIAttachments.GetCount();
-    //        ci.pAttachments    = Desc.vDDIAttachments.GetData();
-    //        ci.renderPass      = (NativeAPI::RenderPass)Desc.hRenderPass.handle;
-    //        // ci.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
-    //        NativeAPI::Framebuffer hFramebuffer = NativeAPI::Null;
-    //        VkResult               vkRes        = DDI_CREATE_OBJECT(Framebuffer, ci, pAllocator, &hFramebuffer);
-    //        VK_ERR(vkRes);
-    //        VKE_ASSERT2(strlen(Desc.GetDebugName()) > 0, "Debug name must be set in Debug mode");
-    //        SetObjectDebugName((uint64_t)hFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, Desc.GetDebugName());
-    //        return hFramebuffer;
-    //    }
-    //
-    //    void CAPI::DestroyFramebuffer(NativeAPI::Framebuffer *phFramebuffer, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(Framebuffer, phFramebuffer, pAllocator);
-    //    }
-    //
-    //    NativeAPI::CPUFence CAPI::CreateFence(const SFenceDesc &Desc, const void *pAllocator)
-    //    {
-    //        VkFenceCreateInfo ci;
-    //        ci.sType                 = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    //        ci.pNext                 = nullptr;
-    //        ci.flags                 = Desc.isSignaled;
-    //        NativeAPI::CPUFence hObj = NativeAPI::Null;
-    //        VkResult            res  = DDI_CREATE_OBJECT(Fence, ci, pAllocator, &hObj);
-    //        VK_ERR(res);
-    //        Helper::SetObjectDebugName(this, hObj, VK_OBJECT_TYPE_FENCE, Desc);
-    //        return hObj;
-    //    }
-    //
-    //    void CAPI::DestroyFence(NativeAPI::CPUFence *phFence, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(Fence, phFence, pAllocator);
-    //    }
-    //
-    //    NativeAPI::GPUFence CAPI::CreateSemaphore(const SSemaphoreDesc &Desc, const void *pAllocator)
-    //    {
-    //        NativeAPI::GPUFence   hSemaphore = NativeAPI::Null;
-    //        VkSemaphoreCreateInfo ci;
-    //        ci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    //        ci.pNext = nullptr;
-    //        ci.flags = 0;
-    //        VK_ERR(DDI_CREATE_OBJECT(Semaphore, ci, pAllocator, &hSemaphore));
-    //        Helper::SetObjectDebugName(this, hSemaphore, VK_OBJECT_TYPE_SEMAPHORE, Desc);
-    //        return hSemaphore;
-    //    }
-    //
-    //    void CAPI::DestroySemaphore(NativeAPI::GPUFence *phSemaphore, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(Semaphore, phSemaphore, pAllocator);
-    //    }
-    //
-    //    NativeAPI::CommandBufferPool CAPI::CreateCommandBufferPool(const SCommandBufferPoolDesc &Desc,
-    //                                                               const void                   *pAllocator)
-    //    {
-    //        NativeAPI::CommandBufferPool hPool = NativeAPI::Null;
-    //        VkCommandPoolCreateInfo      ci;
-    //        ci.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    //        ci.pNext            = nullptr;
-    //        ci.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    //        ci.queueFamilyIndex = Desc.pContext->m_pQueue->GetFamilyIndex();
-    //        VkResult res        = DDI_CREATE_OBJECT(CommandPool, ci, pAllocator, &hPool);
-    //        VK_ERR(res);
-    //        return hPool;
-    //    }
-    //
-    //    void CAPI::DestroyCommandBufferPool(NativeAPI::CommandBufferPool *phPool, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(CommandPool, phPool, pAllocator);
-    //    }
-    //
-    //    static int32_t FindTextureHandle(const SRenderPassDesc::AttachmentDescArray &vAttachments,
-    //                                     const TextureViewHandle                    &hTexView)
-    //    {
-    //        int32_t res = -1;
-    //        for (uint32_t a = 0; a < vAttachments.GetCount(); ++a)
-    //        {
-    //            if (hTexView == vAttachments[a].hTextureView)
-    //            {
-    //                res = a;
-    //                break;
-    //            }
-    //        }
-    //        return res;
-    //    }
-    //
-    //    static bool MakeAttachmentRef(const SRenderPassDesc::AttachmentDescArray &vAttachments,
-    //                                  const SSubpassAttachmentDesc &SubpassAttachmentDesc, VkAttachmentReference
-    //                                  *pRefOut)
-    //    {
-    //        int32_t idx = FindTextureHandle(vAttachments, SubpassAttachmentDesc.hTextureView);
-    //        bool    res = false;
-    //        if (idx >= 0)
-    //        {
-    //            pRefOut->attachment = idx;
-    //            pRefOut->layout     = Vulkan::Map::ImageLayout(SubpassAttachmentDesc.state);
-    //            res                 = true;
-    //        }
-    //        return res;
-    //    }
-    //
-    //    NativeAPI::RenderPass CAPI::CreateRenderPass(const SRenderPassDesc &Desc, const void *)
-    //    {
-    //        NativeAPI::RenderPass hPass        = NativeAPI::Null;
-    //        using VkAttachmentDescriptionArray = Utils::TCDynamicArray<VkAttachmentDescription, 8>;
-    //        using VkAttachmentRefArray         = Utils::TCDynamicArray<VkAttachmentReference>;
-    //
-    //        struct SSubpassDesc
-    //        {
-    //            VkAttachmentRefArray   vInputAttachmentRefs;
-    //            VkAttachmentRefArray   vColorAttachmentRefs;
-    //            VkAttachmentReference  vkDepthStencilRef;
-    //            VkAttachmentReference *pVkDepthStencilRef = nullptr;
-    //        };
-    //
-    //        using SubpassDescArray   = Utils::TCDynamicArray<SSubpassDesc>;
-    //        using VkSubpassDescArray = Utils::TCDynamicArray<VkSubpassDescription>;
-    //        using VkClearValueArray  = Utils::TCDynamicArray<VkClearValue>;
-    //        using VkImageViewArray   = Utils::TCDynamicArray<VkImageView>;
-    //        VkAttachmentDescriptionArray vVkAttachmentDescriptions;
-    //        SubpassDescArray             vSubpassDescs;
-    //        VkSubpassDescArray           vVkSubpassDescs;
-    //        // VkClearValueArray vVkClearValues;
-    //        for (uint32_t a = 0; a < Desc.vRenderTargets.GetCount(); ++a)
-    //        {
-    //            const SRenderPassAttachmentDesc &AttachmentDesc = Desc.vRenderTargets[a];
-    //            // const VkImageCreateInfo& vkImgInfo = ResMgr.GetTextureDesc( AttachmentDesc.hTextureView );
-    //            VkAttachmentDescription vkAttachmentDesc;
-    //            vkAttachmentDesc.finalLayout    = Vulkan::Map::ImageLayout(AttachmentDesc.endState);
-    //            vkAttachmentDesc.flags          = 0;
-    //            vkAttachmentDesc.format         = Map::Format(AttachmentDesc.format);
-    //            vkAttachmentDesc.initialLayout  = Vulkan::Map::ImageLayout(AttachmentDesc.beginState);
-    //            vkAttachmentDesc.loadOp         = Vulkan::Convert::UsageToLoadOp(AttachmentDesc.usage);
-    //            vkAttachmentDesc.storeOp        = Vulkan::Convert::UsageToStoreOp(AttachmentDesc.usage);
-    //            vkAttachmentDesc.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    //            vkAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    //            vkAttachmentDesc.samples        = Vulkan::Map::SampleCount(AttachmentDesc.sampleCount);
-    //            vVkAttachmentDescriptions.PushBack(vkAttachmentDesc);
-    //        }
-    //        VkAttachmentReference *pVkDepthStencilRef = nullptr;
-    //        VkAttachmentReference  VkDepthStencilRef;
-    //        if (Desc.vSubpasses.IsEmpty())
-    //        {
-    //            SRenderPassDesc::SSubpassDesc PassDesc;
-    //            SSubpassDesc                  SubDesc;
-    //            VkSubpassDescription          VkSubpassDesc;
-    //            for (uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i)
-    //            {
-    //                auto &Curr          = Desc.vRenderTargets[i];
-    //                bool  isDepthBuffer = Curr.format == Formats::D24_UNORM_S8_UINT ||
-    //                                     Curr.format == Formats::X8_D24_UNORM_PACK32 ||
-    //                                     Curr.format == Formats::D32_SFLOAT_S8_UINT || Curr.format ==
-    //                                     Formats::D32_SFLOAT;
-    //                if (isDepthBuffer)
-    //                {
-    //                    VkDepthStencilRef.attachment = i;
-    //                    VkDepthStencilRef.layout     = Map::ImageLayout(Curr.beginState);
-    //                    pVkDepthStencilRef           = &VkDepthStencilRef;
-    //                }
-    //                else
-    //                {
-    //                    // Find attachment
-    //                    VkAttachmentReference vkRef;
-    //                    vkRef.attachment = i;
-    //                    vkRef.layout     = Vulkan::Map::ImageLayout(Curr.beginState);
-    //                    SubDesc.vColorAttachmentRefs.PushBack(vkRef);
-    //                }
-    //            }
-    //            VkSubpassDesc.colorAttachmentCount    = SubDesc.vColorAttachmentRefs.GetCount();
-    //            VkSubpassDesc.inputAttachmentCount    = 0;
-    //            VkSubpassDesc.pColorAttachments       = SubDesc.vColorAttachmentRefs.GetData();
-    //            VkSubpassDesc.pDepthStencilAttachment = pVkDepthStencilRef;
-    //            VkSubpassDesc.pInputAttachments       = nullptr;
-    //            VkSubpassDesc.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    //            VkSubpassDesc.pPreserveAttachments    = nullptr;
-    //            VkSubpassDesc.pResolveAttachments     = nullptr;
-    //            VkSubpassDesc.preserveAttachmentCount = 0;
-    //            VkSubpassDesc.flags                   = 0;
-    //            vVkSubpassDescs.PushBack(VkSubpassDesc);
-    //        }
-    //        for (uint32_t s = 0; s < Desc.vSubpasses.GetCount(); ++s)
-    //        {
-    //            SSubpassDesc SubDesc;
-    //            const auto  &SubpassDesc = Desc.vSubpasses[s];
-    //            for (uint32_t r = 0; r < SubpassDesc.vRenderTargets.GetCount(); ++r)
-    //            {
-    //                const auto &RenderTargetDesc = SubpassDesc.vRenderTargets[r];
-    //                // Find attachment
-    //                VkAttachmentReference vkRef;
-    //                if (MakeAttachmentRef(Desc.vRenderTargets, RenderTargetDesc, &vkRef))
-    //                {
-    //                    SubDesc.vColorAttachmentRefs.PushBack(vkRef);
-    //                }
-    //            }
-    //            for (uint32_t t = 0; t < SubpassDesc.vTextures.GetCount(); ++t)
-    //            {
-    //                const auto &TexDesc = SubpassDesc.vTextures[t];
-    //                // Find attachment
-    //                VkAttachmentReference vkRef;
-    //                if (MakeAttachmentRef(Desc.vRenderTargets, TexDesc, &vkRef))
-    //                {
-    //                    SubDesc.vInputAttachmentRefs.PushBack(vkRef);
-    //                }
-    //            }
-    //            // Find attachment
-    //            pVkDepthStencilRef = nullptr;
-    //            if (SubpassDesc.DepthBuffer.hTextureView != INVALID_HANDLE)
-    //            {
-    //                VkAttachmentReference vkRef;
-    //                if (MakeAttachmentRef(Desc.vRenderTargets, SubpassDesc.DepthBuffer, &vkRef))
-    //                {
-    //                    SubDesc.vkDepthStencilRef  = vkRef;
-    //                    SubDesc.pVkDepthStencilRef = &SubDesc.vkDepthStencilRef;
-    //                }
-    //            }
-    //            VkSubpassDescription VkSubpassDesc;
-    //            const auto           colorCount       = SubDesc.vColorAttachmentRefs.GetCount();
-    //            const auto           inputCount       = SubDesc.vInputAttachmentRefs.GetCount();
-    //            VkSubpassDesc.colorAttachmentCount    = colorCount;
-    //            VkSubpassDesc.pColorAttachments       = (colorCount > 0) ? &SubDesc.vColorAttachmentRefs[0] : nullptr;
-    //            VkSubpassDesc.inputAttachmentCount    = inputCount;
-    //            VkSubpassDesc.pInputAttachments       = (inputCount > 0) ? &SubDesc.vInputAttachmentRefs[0] : nullptr;
-    //            VkSubpassDesc.pDepthStencilAttachment = pVkDepthStencilRef;
-    //            VkSubpassDesc.flags                   = 0;
-    //            VkSubpassDesc.pResolveAttachments     = nullptr;
-    //            VkSubpassDesc.preserveAttachmentCount = 0;
-    //            VkSubpassDesc.pPreserveAttachments    = nullptr;
-    //            VkSubpassDesc.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    //            vSubpassDescs.PushBack(SubDesc);
-    //            vVkSubpassDescs.PushBack(VkSubpassDesc);
-    //        }
-    //        {
-    //            VkRenderPassCreateInfo ci;
-    //            ci.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    //            ci.pNext           = nullptr;
-    //            ci.attachmentCount = vVkAttachmentDescriptions.GetCount();
-    //            ci.pAttachments    = &vVkAttachmentDescriptions[0];
-    //            ci.dependencyCount = 0;
-    //            ci.pDependencies   = nullptr;
-    //            ci.subpassCount    = vVkSubpassDescs.GetCount();
-    //            ci.pSubpasses      = &vVkSubpassDescs[0];
-    //            ci.flags           = 0;
-    //            VkResult res       = m_ICD.vkCreateRenderPass(m_hDevice, &ci, nullptr, &hPass);
-    //            VK_ERR(res);
-    //            SetObjectDebugName((uint64_t)hPass, VK_OBJECT_TYPE_RENDER_PASS, Desc.GetDebugName());
-    //        }
-    //        return hPass;
-    //    }
-    //
-    //    void CAPI::DestroyRenderPass(NativeAPI::RenderPass *phRenderPass, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(RenderPass, phRenderPass, pAllocator);
-    //    }
-    //
-    //    NativeAPI::DescriptorPool CAPI::CreateDescriptorPool(const SDescriptorPoolDesc &Desc, const void *pAllocator)
-    //    {
-    //        NativeAPI::DescriptorPool  hPool = NativeAPI::Null;
-    //        VkDescriptorPoolCreateInfo ci;
-    //        ci.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    //        ci.pNext         = nullptr;
-    //        ci.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    //        ci.maxSets       = Desc.maxSetCount;
-    //        ci.poolSizeCount = Desc.vPoolSizes.GetCount();
-    //        Utils::TCDynamicArray<VkDescriptorPoolSize> vVkSizes;
-    //        vVkSizes.Resize(ci.poolSizeCount);
-    //        for (uint32_t i = 0; i < ci.poolSizeCount; ++i)
-    //        {
-    //            vVkSizes[i].descriptorCount = Desc.vPoolSizes[i].count;
-    //            vVkSizes[i].type            = Map::DescriptorType(Desc.vPoolSizes[i].type);
-    //        }
-    //        ci.pPoolSizes = &vVkSizes[0];
-    //        // VkResult res = m_ICD.vkCreateDescriptorPool( m_hDevice, &ci, pVkAllocator, &hPool );
-    //        VkResult res = DDI_CREATE_OBJECT(DescriptorPool, ci, pAllocator, &hPool);
-    //        VK_ERR(res);
-    //        SetObjectDebugName((uint64_t)hPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, Desc.GetDebugName());
-    //        return hPool;
-    //    }
-    //
-    //    void CAPI::DestroyDescriptorPool(NativeAPI::DescriptorPool *phPool, const void *pAllocator)
-    //    {
-    //        throw std::runtime_error("Unimplemented functionality");
-    //    }
-    //
-    //    NativeAPI::Pipeline CAPI::CreatePipeline(const SPipelineDesc &Desc, const void *pAllocator)
-    //    {
-    //        throw std::runtime_error("Unimplemented functionality");
-    //        NativeAPI::Pipeline hPipeline = NativeAPI::Null;
-    //        return hPipeline;
-    //    }
-    //
-    //    void CAPI::DestroyPipeline(NativeAPI::Pipeline *phPipeline, const void *pAllocator)
-    //    {
-    //        throw std::runtime_error("Unimplemented functionality");
-    //    }
-    //
-    //    NativeAPI::DescriptorSetLayout CAPI::CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc &Desc,
-    //                                                                   const void                     *pAllocator)
-    //    {
-    //        NativeAPI::DescriptorSetLayout  hLayout = NativeAPI::Null;
-    //        VkDescriptorSetLayoutCreateInfo ci;
-    //        ci.sType             = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    //        ci.pNext             = nullptr;
-    //        ci.flags             = 0;
-    //        ci.bindingCount      = Desc.vBindings.GetCount();
-    //        using VkBindingArray = Utils::TCDynamicArray<VkDescriptorSetLayoutBinding,
-    //                                                     Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_BINDING_COUNT>;
-    //        VkBindingArray vVkBindings;
-    //        if (vVkBindings.Resize(ci.bindingCount))
-    //        {
-    //            for (uint32_t i = 0; i < ci.bindingCount; ++i)
-    //            {
-    //                auto       &VkBinding        = vVkBindings[i];
-    //                const auto &Binding          = Desc.vBindings[i];
-    //                VkBinding.binding            = Binding.idx;
-    //                VkBinding.descriptorCount    = Binding.count;
-    //                VkBinding.descriptorType     = Vulkan::Map::DescriptorType(Binding.type);
-    //                VkBinding.pImmutableSamplers = nullptr;
-    //                VkBinding.stageFlags         = Convert::ShaderStages(Binding.stages);
-    //                vVkBindings[i]               = (VkBinding);
-    //            }
-    //            ci.pBindings = vVkBindings.GetData();
-    //            VK_ERR(DDI_CREATE_OBJECT(DescriptorSetLayout, ci, pAllocator, &hLayout));
-    //            VKE_ASSERT2(strlen(Desc.GetDebugName()) > 0, "");
-    //            SetObjectDebugName((uint64_t)hLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, Desc.GetDebugName());
-    //        }
-    //        return hLayout;
-    //    }
-    //
-    //    void CAPI::Update(const SUpdateBufferDescriptorSetInfo &Info)
-    //    {
-    //        VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-    //        VkWrite.descriptorType       = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //        VkWrite.dstBinding           = Info.binding;
-    //        VkWrite.descriptorCount      = Info.count;
-    //        VkWrite.dstSet               = Info.hDDISet;
-    //        VkWrite.dstArrayElement      = 0;
-    //        const auto pVkBufferInfos    = reinterpret_cast<const VkDescriptorBufferInfo
-    //        *>(Info.vBufferInfos.GetData()); VkWrite.pBufferInfo          = pVkBufferInfos;
-    //        m_ICD.vkUpdateDescriptorSets(m_hDevice, 1, &VkWrite, 0, nullptr);
-    //    }
-    //
-    //    void CAPI::Update(const SUpdateTextureDescriptorSetInfo &Info)
-    //    {
-    //        Utils::TCDynamicArray<VkDescriptorImageInfo, 8> vVkInfos;
-    //        for (uint32_t i = 0; i < Info.vTextureInfos.GetCount(); ++i)
-    //        {
-    //            const auto           &Curr = Info.vTextureInfos[i];
-    //            VkDescriptorImageInfo VkInfo;
-    //            VkInfo.imageLayout = Map::ImageLayout(Curr.textureState);
-    //            VkInfo.imageView   = Curr.hDDITextureView;
-    //            VkInfo.sampler     = Curr.hDDISampler;
-    //            vVkInfos.PushBack(VkInfo);
-    //        }
-    //        VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-    //        VkWrite.descriptorCount      = Info.count;
-    //        VkWrite.descriptorType       = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    //        VkWrite.dstArrayElement      = 0;
-    //        VkWrite.dstBinding           = Info.binding;
-    //        VkWrite.dstSet               = Info.hDDISet;
-    //        VkWrite.pImageInfo           = vVkInfos.GetData();
-    //        m_ICD.vkUpdateDescriptorSets(m_hDevice, 1, &VkWrite, 0, nullptr);
-    //    }
-    //
-    //    void CAPI::Update(const NativeAPI::DescriptorSet &hDDISet, const SUpdateBindingsHelper &Info)
-    //    {
-    //        Utils::TCDynamicArray<VkWriteDescriptorSet> vVkWrites;
-    //        VkWriteDescriptorSet                        VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-    //        using ImageViewInfosArray                           = Utils::TCDynamicArray<VkDescriptorImageInfo, 128>;
-    //        using ImageViewInfosArrays                          = Utils::TCDynamicArray<ImageViewInfosArray, 32>;
-    //        using RenderTargetInfosArray                        = Utils::TCDynamicArray<VkDescriptorImageInfo, 8>;
-    //        using RenderTargetInfosArrays                       = Utils::TCDynamicArray<RenderTargetInfosArray, 8>;
-    //        using SamplerInfoArray                              = Utils::TCDynamicArray<VkDescriptorImageInfo, 128>;
-    //        using SamplerInfosArrays                            = Utils::TCDynamicArray<SamplerInfoArray, 32>;
-    //        VKE_ASSERT2(Info.vRTs.GetCount() < 8, "Too many render targets to bind");
-    //        VKE_ASSERT2(Info.vTexViews.GetCount() < 32, "Too many texture views to bind");
-    //        VKE_ASSERT2(Info.vSamplers.GetCount() < 32, "Too many samplers to bind.");
-    //        VKE_ASSERT2(Info.vSamplerAndTextures.GetCount() < 32, "Too many samplers to bind.");
-    //        RenderTargetInfosArrays vvVkRenderTargetInfos(Info.vRTs.GetCount());
-    //        ImageViewInfosArrays    vvVkImageViewsInfos(Info.vTexViews.GetCount());
-    //        SamplerInfosArrays      vvVkSamplerInfos(Info.vSamplers.GetCount());
-    //        ImageViewInfosArrays    vvVkImageSamplerInfosArrays(Info.vSamplerAndTextures.GetCount());
-    //        for (uint32_t i = 0; i < Info.vRTs.GetCount(); ++i)
-    //        {
-    //            const auto &Curr = Info.vRTs[i];
-    //            for (uint32_t j = 0; j < Curr.count; ++j)
-    //            {
-    //                VkDescriptorImageInfo VkInfo;
-    //                VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //                VkInfo.imageView   = m_pCtx->GetTextureView(Curr.ahHandles[j])->GetDDIObject();
-    //                VkInfo.sampler     = NativeAPI::Null;
-    //                vvVkRenderTargetInfos[i].PushBack(VkInfo);
-    //            }
-    //            VkWrite.descriptorCount = Curr.count;
-    //            VkWrite.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    //            VkWrite.dstArrayElement = 0;
-    //            VkWrite.dstBinding      = Curr.binding;
-    //            VkWrite.pImageInfo      = vvVkRenderTargetInfos[i].GetData();
-    //            VkWrite.dstSet          = hDDISet;
-    //            vVkWrites.PushBack(VkWrite);
-    //        }
-    //        /*for( uint32_t i = 0; i < Info.vTexs.GetCount(); ++i )
-    //        {
-    //            vVkImgInfos[1].Clear();
-    //            const auto& Curr = Info.vTexs[i];
-    //            for( uint32_t j = 0; j < Curr.count; ++j )
-    //            {
-    //                VkDescriptorImageInfo VkInfo;
-    //                VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //                VkInfo.imageView = m_pCtx->GetTextureView( Curr.ahHandles[j] )->GetDDIObject();
-    //                VkInfo.sampler = NativeAPI::Null;
-    //                vVkImgInfos[1].PushBack( VkInfo );
-    //            }
-    //
-    //            VkWrite.descriptorCount = Curr.count;
-    //            VkWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    //            VkWrite.dstArrayElement = 0;
-    //            VkWrite.dstBinding = Curr.binding;
-    //            VkWrite.pImageInfo = vVkImgInfos[1].GetData();
-    //            VkWrite.dstSet = hDDISet;
-    //            vVkWrites.PushBack( VkWrite );
-    //        }*/
-    //        for (uint32_t i = 0; i < Info.vTexViews.GetCount(); ++i)
-    //        {
-    //            const auto           &Curr = Info.vTexViews[i];
-    //            VkDescriptorImageInfo VkInfo;
-    //            for (uint32_t j = 0; j < Curr.count; ++j)
-    //            {
-    //                VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //                VkInfo.imageView   = m_pCtx->GetTextureView(Curr.ahHandles[j])->GetDDIObject();
-    //                VkInfo.sampler     = NativeAPI::Null;
-    //                vvVkImageViewsInfos[i].PushBack(VkInfo);
-    //                /*VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
-    //                         j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );*/
-    //            }
-    //            VkWrite.descriptorCount = Curr.count;
-    //            VkWrite.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    //            VkWrite.dstArrayElement = 0;
-    //            VkWrite.dstBinding      = Curr.binding;
-    //            VkWrite.pImageInfo      = vvVkImageViewsInfos[i].GetData();
-    //            VkWrite.dstSet          = hDDISet;
-    //            vVkWrites.PushBack(VkWrite);
-    //        }
-    //        for (uint32_t i = 0; i < Info.vSamplers.GetCount(); ++i)
-    //        {
-    //            const auto &Curr = Info.vSamplers[i];
-    //            for (uint32_t j = 0; j < Curr.count; ++j)
-    //            {
-    //                VkDescriptorImageInfo VkInfo;
-    //                VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //                VkInfo.imageView   = NativeAPI::Null;
-    //                VkInfo.sampler     = m_pCtx->GetSampler(Curr.ahHandles[j])->GetDDIObject();
-    //                vvVkSamplerInfos[i].PushBack(VkInfo);
-    //            }
-    //            VkWrite.descriptorCount = Curr.count;
-    //            VkWrite.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER;
-    //            VkWrite.dstArrayElement = 0;
-    //            VkWrite.dstBinding      = Curr.binding;
-    //            VkWrite.pImageInfo      = vvVkSamplerInfos[i].GetData();
-    //            VkWrite.dstSet          = hDDISet;
-    //            vVkWrites.PushBack(VkWrite);
-    //        }
-    //        for (uint32_t i = 0; i < Info.vSamplerAndTextures.GetCount(); ++i)
-    //        {
-    //            const auto &Curr = Info.vSamplerAndTextures[i];
-    //            for (uint32_t j = 0; j < Curr.count; ++j)
-    //            {
-    //                VkDescriptorImageInfo VkInfo;
-    //                VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //                VkInfo.imageView   = m_pCtx->GetTextureView(Curr.ahTexViews[j])->GetDDIObject();
-    //                VkInfo.sampler     = m_pCtx->GetSampler(Curr.ahSamplers[j])->GetDDIObject();
-    //                vvVkImageSamplerInfosArrays[i].PushBack(VkInfo);
-    //            }
-    //            VkWrite.descriptorCount = Curr.count;
-    //            VkWrite.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    //            VkWrite.dstArrayElement = 0;
-    //            VkWrite.dstBinding      = Curr.binding;
-    //            VkWrite.pImageInfo      = vvVkImageSamplerInfosArrays[i].GetData();
-    //            VkWrite.dstSet          = hDDISet;
-    //            vVkWrites.PushBack(VkWrite);
-    //        }
-    //        using VkBufferInfoArray = Utils::TCDynamicArray<VkDescriptorBufferInfo>;
-    //        Utils::TCDynamicArray<VkBufferInfoArray> vvVkBuffInfos;
-    //        vvVkBuffInfos.Resize(Info.vBuffers.GetCount());
-    //        for (uint32_t i = 0; i < Info.vBuffers.GetCount(); ++i)
-    //        {
-    //            auto       &vVkBuffInfos = vvVkBuffInfos[i];
-    //            const auto &Curr         = Info.vBuffers[i];
-    //            for (uint32_t j = 0; j < Curr.count; ++j)
-    //            {
-    //                VkDescriptorBufferInfo VkInfo;
-    //                VkInfo.buffer = m_pCtx->GetBuffer(Curr.ahHandles[j])->GetDDIObject();
-    //                VkInfo.offset = Curr.offset;
-    //                VkInfo.range  = Curr.range;
-    //                vVkBuffInfos.PushBack(VkInfo);
-    //            }
-    //            VkWrite.descriptorCount = vVkBuffInfos.GetCount();
-    //            VkWrite.descriptorType  = Map::DescriptorType(Curr.type);
-    //            VkWrite.dstArrayElement = 0;
-    //            VkWrite.dstBinding      = Curr.binding;
-    //            VkWrite.pBufferInfo     = vVkBuffInfos.GetData();
-    //            VkWrite.dstSet          = hDDISet;
-    //            vVkWrites.PushBack(VkWrite);
-    //        }
-    //        m_ICD.vkUpdateDescriptorSets(m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr);
-    //    }
-    //
-    //    void CAPI::Update(const NativeAPI::DescriptorSet &hDDISrcSet, NativeAPI::DescriptorSet *phDDIDstOut)
-    //    {
-    //        VkCopyDescriptorSet vkCopy;
-    //        vkCopy.sType           = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
-    //        vkCopy.pNext           = nullptr;
-    //        vkCopy.descriptorCount = 1;
-    //        vkCopy.dstArrayElement = 0;
-    //        vkCopy.dstBinding      = 0;
-    //        vkCopy.srcArrayElement = 0;
-    //        vkCopy.srcBinding      = 1;
-    //        vkCopy.srcSet          = hDDISrcSet;
-    //        vkCopy.dstSet          = *phDDIDstOut;
-    //        m_ICD.vkUpdateDescriptorSets(m_hDevice, 0, 0, 1, &vkCopy);
-    //    }
-    //
-    //    void CAPI::DestroyDescriptorSetLayout(NativeAPI::DescriptorSetLayout *phLayout, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(DescriptorSetLayout, phLayout, pAllocator);
-    //    }
-    //
-    //    NativeAPI::PipelineLayout CAPI::CreatePipelineLayout(const SPipelineLayoutDesc &Desc, const void *pAllocator)
-    //    {
-    //        NativeAPI::PipelineLayout  hLayout = NativeAPI::Null;
-    //        VkPipelineLayoutCreateInfo ci;
-    //        ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    //        ci.pNext = nullptr;
-    //        ci.flags = 0;
-    //        // VKE_ASSERT2( !Desc.vDescriptorSetLayouts.IsEmpty(), "There should be at least one DescriptorSetLayout."
-    //        // );
-    //        ci.setLayoutCount           = Desc.vDescriptorSetLayouts.GetCount();
-    //        static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-    //        Utils::TCDynamicArray<VkDescriptorSetLayout, MAX_COUNT> vVkDescLayouts;
-    //        for (uint32_t i = 0; i < ci.setLayoutCount; ++i)
-    //        {
-    //            // NativeAPI::DescriptorSetLayout hDDIObj = m_pCtx->GetDescriptorSetLayout(
-    //            // Desc.vDescriptorSetLayouts[i] )->GetDDIObject();
-    //            NativeAPI::DescriptorSetLayout hDDIObj =
-    //            m_pCtx->GetDescriptorSetLayout(Desc.vDescriptorSetLayouts[i]); vVkDescLayouts.PushBack(hDDIObj);
-    //        }
-    //        ci.pSetLayouts            = vVkDescLayouts.GetData();
-    //        ci.pPushConstantRanges    = nullptr;
-    //        ci.pushConstantRangeCount = 0;
-    //        VK_ERR(DDI_CREATE_OBJECT(PipelineLayout, ci, pAllocator, &hLayout));
-    //        return hLayout;
-    //    }
-    //
-    //    void CAPI::DestroyPipelineLayout(NativeAPI::PipelineLayout *phLayout, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(PipelineLayout, phLayout, pAllocator);
-    //    }
-    //
-    //    NativeAPI::Shader CAPI::CreateShader(const SShaderData &Data, const void *pAllocator)
-    //    {
-    //        VKE_ASSERT2(Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY && Data.codeSize > 0 &&
-    //                        Data.codeSize % 4 == 0 && Data.pCode != nullptr,
-    //                    "Invalid shader data.");
-    //        NativeAPI::Shader        hShader = NativeAPI::Null;
-    //        VkShaderModuleCreateInfo ci;
-    //        ci.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    //        ci.pNext    = nullptr;
-    //        ci.flags    = 0;
-    //        ci.pCode    = reinterpret_cast<const uint32_t *>(Data.pCode);
-    //        ci.codeSize = Data.codeSize;
-    //        VK_ERR(DDI_CREATE_OBJECT(ShaderModule, ci, pAllocator, &hShader));
-    //        return hShader;
-    //    }
-    //
-    //    void CAPI::DestroyShader(NativeAPI::Shader *phShader, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(ShaderModule, phShader, pAllocator);
-    //    }
-    //
-    //    NativeAPI::Sampler CAPI::CreateSampler(const SSamplerDesc &Desc, const void *pAllocator)
-    //    {
-    //        NativeAPI::Sampler  hSampler = NativeAPI::Null;
-    //        VkSamplerCreateInfo ci;
-    //        ci.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    //        ci.pNext                   = nullptr;
-    //        ci.flags                   = 0;
-    //        ci.addressModeU            = Map::AddressMode(Desc.AddressMode.U);
-    //        ci.addressModeV            = Map::AddressMode(Desc.AddressMode.V);
-    //        ci.addressModeW            = Map::AddressMode(Desc.AddressMode.W);
-    //        ci.anisotropyEnable        = Desc.enableAnisotropy;
-    //        ci.borderColor             = Convert::BorderColor(Desc.borderColor);
-    //        ci.compareEnable           = Desc.enableCompare;
-    //        ci.compareOp               = Map::CompareOperation(Desc.compareFunc);
-    //        ci.magFilter               = Convert::Filter(Desc.Filter.mag);
-    //        ci.maxAnisotropy           = Desc.maxAnisotropy;
-    //        ci.maxLod                  = Desc.LOD.max;
-    //        ci.minFilter               = Convert::Filter(Desc.Filter.min);
-    //        ci.minLod                  = Desc.LOD.min;
-    //        ci.mipLodBias              = Desc.mipLODBias;
-    //        ci.mipmapMode              = Map::MipmapMode(Desc.mipmapMode);
-    //        ci.unnormalizedCoordinates = Desc.unnormalizedCoordinates;
-    //        VK_ERR(DDI_CREATE_OBJECT(Sampler, ci, pAllocator, &hSampler));
-    //        return hSampler;
-    //    }
-    //
-    //    void CAPI::DestroySampler(NativeAPI::Sampler *phSampler, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(Sampler, phSampler, pAllocator);
-    //    }
-    //
-    //    NativeAPI::Event CAPI::CreateEvent(const SEventDesc &, const void *pAllocator)
-    //    {
-    //        static const VkEventCreateInfo ci = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
-    //        NativeAPI::Event               hRet;
-    //        VK_ERR(DDI_CREATE_OBJECT(Event, ci, pAllocator, &hRet));
-    //        return hRet;
-    //    }
-    //
-    //    void CAPI::DestroyEvent(NativeAPI::Event *phEvent, const void *pAllocator)
-    //    {
-    //        DDI_DESTROY_OBJECT(Event, phEvent, pAllocator);
-    //    }
-    //
-    //    Result CAPI::AllocateObjects(const AllocateDescs::SDescSet &Info, NativeAPI::DescriptorSet *pSets)
-    //    {
-    //        Result                      ret = VKE_FAIL;
-    //        VkDescriptorSetAllocateInfo ai;
-    //        ai.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    //        ai.pNext              = nullptr;
-    //        ai.descriptorPool     = Info.hPool;
-    //        ai.descriptorSetCount = Info.count;
-    //        ai.pSetLayouts        = Info.phLayouts;
-    //        VkResult res          = m_ICD.vkAllocateDescriptorSets(m_hDevice, &ai, pSets);
-    //        switch (res)
-    //        {
-    //        case VK_SUCCESS:
-    //            ret = VKE_OK;
-    //            break;
-    //        case VK_ERROR_OUT_OF_POOL_MEMORY:
-    //            ret = VKE_ENOMEMORY;
-    //            break;
-    //        default:
-    //            VK_ERR(res);
-    //        }
-    //        VKE_ASSERT2(strlen(Info.GetDebugName()) > 0, "Debug name must be set in Debug mode");
-    // #if VKE_RENDER_SYSTEM_DEBUG
-    //        if (VKE_SUCCEEDED(ret))
-    //        {
-    //            for (uint32_t i = 0; i < ai.descriptorSetCount; ++i)
-    //            {
-    //                SetObjectDebugName((uint64_t)pSets[i], VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName());
-    //            }
-    //        }
-    // #endif
-    //        return ret;
-    //    }
-    //
-    //    void CAPI::FreeObjects(const FreeDescs::SDescSet &Desc)
-    //    {
-    //        m_ICD.vkFreeDescriptorSets(m_hDevice, Desc.hPool, Desc.count, Desc.phSets);
-    //    }
-    //
-    //    Result CAPI::AllocateObjects(const SAllocateCommandBufferInfo &Info, NativeAPI::CommandBuffer *pBuffers)
-    //    {
-    //        Result                      ret = VKE_FAIL;
-    //        VkCommandBufferAllocateInfo ai;
-    //        ai.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    //        ai.pNext              = nullptr;
-    //        ai.level              = Map::CommandBufferLevel(Info.level);
-    //        ai.commandBufferCount = Info.count;
-    //        ai.commandPool        = Info.hDDIPool;
-    //        VkResult res          = m_ICD.vkAllocateCommandBuffers(m_hDevice, &ai, pBuffers);
-    //        VK_ERR(res);
-    //        ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
-    //        return ret;
-    //    }
-    //
-    //    void CAPI::FreeObjects(const SFreeCommandBufferInfo &Info)
-    //    {
-    //        m_ICD.vkFreeCommandBuffers(m_hDevice, Info.hDDIPool, Info.count, Info.pDDICommandBuffers);
-    //    }
-    //
-    //    size_t CAPI::GetMemoryHeapTotalSize(MEMORY_HEAP_TYPE type) const
-    //    {
-    //        const auto idx = m_aHeapTypeToHeapIndexMap[type];
-    //        return m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[idx].size;
-    //    }
-    //
-    //    size_t CAPI::GetMemoryHeapCurrentSize(MEMORY_HEAP_TYPE type) const
-    //    {
-    //        const auto idx = m_aHeapTypeToHeapIndexMap[type];
-    //        return m_aHeapSizes[idx];
-    //    }
-    //
-    //    vke_force_inline int32_t FindMemoryTypeIndex(const VkPhysicalDeviceMemoryProperties *pMemProps,
-    //                                                 uint32_t requiredMemBits, VkMemoryPropertyFlags
-    //                                                 requiredProperties)
-    //    {
-    //        const uint32_t memCount = pMemProps->memoryTypeCount;
-    //        for (uint32_t memIdx = 0; memIdx < memCount; ++memIdx)
-    //        {
-    //            const uint32_t              memTypeBits       = (1 << memIdx);
-    //            const bool                  isRequiredMemType = requiredMemBits & memTypeBits;
-    //            const VkMemoryPropertyFlags props             = pMemProps->memoryTypes[memIdx].propertyFlags;
-    //            const bool                  hasRequiredProps  = (props & requiredProperties) == requiredProperties;
-    //            if (isRequiredMemType && hasRequiredProps)
-    //            {
-    //                return static_cast<int32_t>(memIdx);
-    //            }
-    //        }
-    //        return -1;
-    //    }
-    //
-    //    MEMORY_HEAP_TYPE CAPI::GetMemoryHeapType(MEMORY_USAGE usage) const
-    //    {
-    //        MEMORY_HEAP_TYPE      ret             = MemoryHeapTypes::OTHER;
-    //        VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags(usage);
-    //        const auto           &VkMemProps      = m_DeviceProperties.Properties.Memory.memoryProperties;
-    //        const int32_t         idx             = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //        if (idx >= 0)
-    //        {
-    //            // const auto heapIdx = VkMemProps.memoryTypes[ idx ].heapIndex;
-    //            const auto memFlags = VkMemProps.memoryTypes[idx].propertyFlags;
-    //            if ((memFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-    //            {
-    //                ret = MemoryHeapTypes::GPU;
-    //                if ((memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-    //                {
-    //                    ret = MemoryHeapTypes::UPLOAD;
-    //                }
-    //            }
-    //            else if ((memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-    //            {
-    //                ret = MemoryHeapTypes::CPU;
-    //            }
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::Allocate(const SAllocateMemoryDesc &Desc, SAllocateMemoryData *pOut)
-    //    {
-    //        Result                ret             = VKE_FAIL;
-    //        VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags(Desc.usage);
-    //        const auto           &VkMemProps      = m_DeviceProperties.Properties.Memory.memoryProperties;
-    //        int32_t               idx             = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //        // const uint32_t idx = m_aHeapTypeToHeapIndexMap[  ];
-    //        NativeAPI::Memory hMemory;
-    //        if (idx >= 0)
-    //        {
-    //            auto heapIdx  = VkMemProps.memoryTypes[idx].heapIndex;
-    //            auto memFlags = VkMemProps.memoryTypes[idx].propertyFlags;
-    //            // If there is no space left in upload heap try to allocate on CPU
-    //            if ((Desc.usage & MemoryUsages::UPLOAD) == MemoryUsages::UPLOAD && m_aHeapSizes[heapIdx] < Desc.size)
-    //            {
-    //                VKE_LOG_WARN("No free space left on UPLOAD heap: "
-    //                             << VKE_LOG_MEM_SIZE(m_aHeapSizes[heapIdx]) << ", requested allocation size: "
-    //                             << VKE_LOG_MEM_SIZE(Desc.size) << ". Trying to allocate on a CPU heap instead.");
-    //                MEMORY_USAGE newUsages = MemoryUsages::STAGING_BUFFER;
-    //                vkPropertyFlags        = Convert::MemoryUsagesToVkMemoryPropertyFlags(newUsages);
-    //                idx                    = FindMemoryTypeIndex(&VkMemProps, UINT32_MAX, vkPropertyFlags);
-    //                VKE_ASSERT2(idx >= 0, "");
-    //                heapIdx  = VkMemProps.memoryTypes[idx].heapIndex;
-    //                memFlags = VkMemProps.memoryTypes[idx].propertyFlags;
-    //            }
-    //            VKE_ASSERT2(m_aHeapSizes[heapIdx] >= Desc.size, "");
-    //            VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-    //            ai.allocationSize       = Desc.size;
-    //            ai.memoryTypeIndex      = idx;
-    //            VkResult res            = m_ICD.vkAllocateMemory(m_hDevice, &ai, nullptr, &hMemory);
-    //            VK_ERR(res);
-    //            if (res == VK_SUCCESS)
-    //            {
-    //                m_aHeapSizes[heapIdx] -= ai.allocationSize;
-    //                pOut->hDDIMemory = hMemory;
-    //                pOut->sizeLeft   = static_cast<uint32_t>(m_aHeapSizes[heapIdx]);
-    //                pOut->heapType   = Map::VkMemPropertyFlagsToHeapType(memFlags);
-    //            }
-    //            ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
-    //        }
-    //        else
-    //        {
-    //            VKE_LOG_ERR("Required memory usage: " << Desc.usage << " is not suitable for this GPU.");
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::GetTextureMemoryRequirements(const NativeAPI::Texture         &hTexture,
-    //                                              SAllocationMemoryRequirementInfo *pOut)
-    //    {
-    //        VkMemoryRequirements VkReq;
-    //        m_ICD.vkGetImageMemoryRequirements(m_hDevice, hTexture, &VkReq);
-    //        pOut->alignment = static_cast<uint32_t>(VkReq.alignment);
-    //        pOut->size      = static_cast<uint32_t>(VkReq.size);
-    //        return VKE_OK;
-    //    }
-    //
-    //    Result CAPI::GetBufferMemoryRequirements(const NativeAPI::Buffer &hBuffer, SAllocationMemoryRequirementInfo
-    //    *pOut)
-    //    {
-    //        VkMemoryRequirements VkReq;
-    //        m_ICD.vkGetBufferMemoryRequirements(m_hDevice, hBuffer, &VkReq);
-    //        pOut->alignment = static_cast<uint32_t>(VkReq.alignment);
-    //        pOut->size      = static_cast<uint32_t>(VkReq.size);
-    //        return VKE_OK;
-    //    }
-    //
-    //    void CAPI::Free(NativeAPI::Memory *phMemory, const void *pAllocator)
-    //    {
-    //        if (*phMemory != NativeAPI::Null)
-    //        {
-    //            m_ICD.vkFreeMemory(m_hDevice, *phMemory, reinterpret_cast<const VkAllocationCallbacks *>(pAllocator));
-    //        }
-    //        *phMemory = NativeAPI::Null;
-    //    }
-    //
-    //    bool CAPI::IsSignaled(const NativeAPI::CPUFence &hFence) const
-    //    {
-    //        // return WaitForFences( hFence, 0 ) == VKE_OK;
-    //        VkResult res = m_ICD.vkGetFenceStatus(m_hDevice, hFence);
-    //        return res == VK_SUCCESS;
-    //    }
-    //
-    //    void CAPI::Reset(NativeAPI::CPUFence *phFence)
-    //    {
-    //        VK_ERR(m_ICD.vkResetFences(m_hDevice, 1, phFence));
-    //    }
-    //
-    //    Result CAPI::WaitForFences(const NativeAPI::CPUFence &hFence, uint64_t timeout)
-    //    {
-    //        VkResult res = m_ICD.vkWaitForFences(m_hDevice, 1, &hFence, VK_TRUE, timeout);
-    //        Result   ret = VKE_FAIL;
-    //        switch (res)
-    //        {
-    //        case VK_SUCCESS:
-    //            ret = VKE_OK;
-    //            break;
-    //        case VK_TIMEOUT:
-    //            ret = VKE_TIMEOUT;
-    //            break;
-    //        default:
-    //            VK_ERR(res);
-    //            break;
-    //        };
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::WaitForQueue(const NativeAPI::Queue &hQueue)
-    //    {
-    //        VkResult res = m_ICD.vkQueueWaitIdle(hQueue);
-    //        VK_ERR(res);
-    //        return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
-    //    }
-    //
-    //    Result CAPI::WaitForDevice()
-    //    {
-    //        VkResult res = m_ICD.vkDeviceWaitIdle(m_hDevice);
-    //        VK_ERR(res);
-    //        return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
-    //    }
-    //
-    //    void *CAPI::MapMemory(const SMapMemoryInfo &Info)
-    //    {
-    //        void    *pData;
-    //        VkResult res = m_ICD.vkMapMemory(m_hDevice, Info.hMemory, Info.offset, Info.size, 0, &pData);
-    //        if (res != VK_SUCCESS)
-    //        {
-    //            pData = nullptr;
-    //        }
-    //        VK_ERR(res);
-    //        return pData;
-    //    }
-    //
-    //    void CAPI::UnmapMemory(const NativeAPI::Memory &hDDIMemory)
-    //    {
-    //        m_ICD.vkUnmapMemory(m_hDevice, hDDIMemory);
-    //    }
-    //
-    //    void CAPI::Draw(const NativeAPI::CommandBuffer &hCommandBuffer, const uint32_t &vertexCount,
-    //                    const uint32_t &instanceCount, const uint32_t &firstVertex, const uint32_t &firstInstance)
-    //    {
-    //        m_ICD.vkCmdDraw(hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
-    //    }
-    //
-    //    void CAPI::DrawIndexed(const NativeAPI::CommandBuffer &hCommandBuffer, const SDrawParams &Params)
-    //    {
-    //        m_ICD.vkCmdDrawIndexed(hCommandBuffer, Params.Indexed.indexCount, Params.Indexed.instanceCount,
-    //                               Params.Indexed.startIndex, Params.Indexed.vertexOffset,
-    //                               Params.Indexed.startInstance);
-    //    }
-    //
-    //    void CAPI::DrawMesh(const NativeAPI::CommandBuffer &hCommandBuffer, uint32_t width, uint32_t height, uint32_t
-    //    depth)
-    //    {
-    //        m_ICD.vkCmdDrawMeshTasksEXT(hCommandBuffer, width, height, depth);
-    //    }
-    //
-    //    void CAPI::BeginRenderPass(NativeAPI::CommandBuffer hCommandBuffer, const SBeginRenderPassInfo2 &Info)
-    //    {
-    //        Utils::TCDynamicArray<VkRenderingAttachmentInfoKHR, CRenderPass::MAX_RT_COUNT> vVkAttachments;
-    //        VkRenderingInfoKHR                                                             vkInfo;
-    //        vkInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
-    //        vkInfo.pNext                = nullptr;
-    //        vkInfo.flags                = 0;
-    //        vkInfo.colorAttachmentCount = Info.vColorRenderTargetInfos.GetCount();
-    //        Convert::RenderSystemToVkRect2D(Info.RenderArea, &vkInfo.renderArea);
-    //        vkInfo.layerCount = Info.renderTargetLayerCount;
-    //        vkInfo.viewMask   = Info.renderTargetLayerIndex;
-    //        VkRenderingAttachmentInfoKHR vkRTInfo;
-    //        vkRTInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-    //        vkRTInfo.pNext = nullptr;
-    //        for (uint32_t i = 0; i < Info.vColorRenderTargetInfos.GetCount(); ++i)
-    //        {
-    //            const auto &RTInfo = Info.vColorRenderTargetInfos[i];
-    //            Convert::ClearValues(&RTInfo.ClearColor, 1, &vkRTInfo.clearValue);
-    //            vkRTInfo.imageLayout        = Map::ImageLayout(RTInfo.state);
-    //            vkRTInfo.imageView          = RTInfo.hDDIView;
-    //            vkRTInfo.loadOp             = Convert::UsageToLoadOp(RTInfo.renderPassOp);
-    //            vkRTInfo.storeOp            = Convert::UsageToStoreOp(RTInfo.renderPassOp);
-    //            vkRTInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    //            vkRTInfo.resolveImageView   = VK_NULL_HANDLE;
-    //            vkRTInfo.resolveMode        = VK_RESOLVE_MODE_NONE;
-    //            vVkAttachments.PushBack(vkRTInfo);
-    //        }
-    //        VkRenderingAttachmentInfoKHR vkDepthAttachment   = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
-    //        VkRenderingAttachmentInfoKHR vkStencilAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR };
-    //        vkInfo.pDepthAttachment                          = nullptr;
-    //        vkInfo.pStencilAttachment                        = nullptr;
-    //        if (Info.DepthRenderTargetInfo.hDDIView != NativeAPI::Null)
-    //        {
-    //            const auto &RT           = Info.DepthRenderTargetInfo;
-    //            auto       &vkAttachment = vkDepthAttachment;
-    //            Convert::ClearValues(&RT.ClearColor, 1, &vkAttachment.clearValue);
-    //            vkAttachment.imageLayout        = Map::ImageLayout(RT.state);
-    //            vkAttachment.imageView          = RT.hDDIView;
-    //            vkAttachment.loadOp             = Convert::UsageToLoadOp(RT.renderPassOp);
-    //            vkAttachment.storeOp            = Convert::UsageToStoreOp(RT.renderPassOp);
-    //            vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    //            vkAttachment.resolveImageView   = VK_NULL_HANDLE;
-    //            vkAttachment.resolveMode        = VK_RESOLVE_MODE_NONE;
-    //            vkInfo.pDepthAttachment         = &vkAttachment;
-    //        }
-    //        if (Info.StencilRenderTargetInfo.hDDIView != NativeAPI::Null)
-    //        {
-    //            const auto &RT           = Info.StencilRenderTargetInfo;
-    //            auto       &vkAttachment = vkStencilAttachment;
-    //            Convert::ClearValues(&RT.ClearColor, 1, &vkAttachment.clearValue);
-    //            vkAttachment.imageLayout        = Map::ImageLayout(RT.state);
-    //            vkAttachment.imageView          = RT.hDDIView;
-    //            vkAttachment.loadOp             = Convert::UsageToLoadOp(RT.renderPassOp);
-    //            vkAttachment.storeOp            = Convert::UsageToStoreOp(RT.renderPassOp);
-    //            vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    //            vkAttachment.resolveImageView   = VK_NULL_HANDLE;
-    //            vkAttachment.resolveMode        = VK_RESOLVE_MODE_NONE;
-    //            vkInfo.pStencilAttachment       = &vkAttachment;
-    //        }
-    //        vkInfo.pColorAttachments = vVkAttachments.GetDataOrNull();
-    //        m_ICD.vkCmdBeginRenderingKHR(hCommandBuffer, &vkInfo);
-    //    }
-    //
-    //    void CAPI::EndRenderPass(NativeAPI::CommandBuffer hDDICommandBuffer)
-    //    {
-    //        m_ICD.vkCmdEndRenderingKHR(hDDICommandBuffer);
-    //    }
-    //
-    //    void CAPI::Copy(const NativeAPI::CommandBuffer &hCmdBuffer, const SCopyBufferToTextureInfo &Info)
-    //    {
-    //        Utils::TCDynamicArray<VkBufferImageCopy> vRegions(Info.vRegions.GetCount());
-    //        for (uint32_t i = 0; i < vRegions.GetCount(); ++i)
-    //        {
-    //            const auto &Region                   = Info.vRegions[i];
-    //            auto       &VkRegion                 = vRegions[i];
-    //            VkRegion.bufferImageHeight           = Region.bufferTextureHeight;
-    //            VkRegion.bufferRowLength             = Region.bufferRowLength;
-    //            VkRegion.bufferOffset                = Region.bufferOffset;
-    //            VkRegion.imageExtent                 = { Region.textureWidth, Region.textureHeight,
-    //            Region.textureDepth }; VkRegion.imageOffset                 = { (int32_t)Region.textureOffsetX,
-    //            (int32_t)Region.textureOffsetY,
-    //                                                     (int32_t)Region.textureOffsetZ };
-    //            VkRegion.imageSubresource.aspectMask = Map::ImageAspect(Region.TextureSubresource.aspect);
-    //            VkRegion.imageSubresource.baseArrayLayer = Region.TextureSubresource.beginArrayLayer;
-    //            VkRegion.imageSubresource.layerCount     = Region.TextureSubresource.layerCount;
-    //            VkRegion.imageSubresource.mipLevel       = Region.TextureSubresource.beginMipmapLevel;
-    //        }
-    //        VkImageLayout vkLayout = Map::ImageLayout(Info.textureState);
-    //        m_ICD.vkCmdCopyBufferToImage(hCmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstTexture, vkLayout,
-    //        vRegions.GetCount(),
-    //                                     &vRegions[0]);
-    //    }
-    //
-    //    void CAPI::Copy(const NativeAPI::CommandBuffer &hDDICmdBuffer, const SCopyBufferInfo &Info)
-    //    {
-    //        VkBufferCopy VkCopy;
-    //        VkCopy.srcOffset = Info.Region.srcBufferOffset;
-    //        VkCopy.dstOffset = Info.Region.dstBufferOffset;
-    //        VkCopy.size      = Info.Region.size;
-    //        m_ICD.vkCmdCopyBuffer(hDDICmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstBuffer, 1, &VkCopy);
-    //    }
-    //
-    //    void TextureSubresourceToNativeSubresource(const STextureSubresourceRange &Subres, VkImageSubresourceLayers
-    //    *pOut)
-    //    {
-    //        pOut->aspectMask     = Map::ImageAspect(Subres.aspect);
-    //        pOut->baseArrayLayer = Subres.beginArrayLayer;
-    //        pOut->layerCount     = Subres.layerCount;
-    //        pOut->mipLevel       = Subres.beginMipmapLevel;
-    //    }
-    //
-    //    void CAPI::Copy(const NativeAPI::CommandBuffer &hDDICmdBuffer, const SCopyTextureInfoEx &Info)
-    //    {
-    //        VkImageLayout vkSrcLayout = Map::ImageLayout(Info.srcTextureState);
-    //        VkImageLayout vkDstLayout = Map::ImageLayout(Info.dstTextureState);
-    //        VkImageCopy   VkCopy;
-    //        VkCopy.extent    = { Info.pBaseInfo->Size.width, Info.pBaseInfo->Size.height,
-    //                             Math::Max(1u, Info.pBaseInfo->depth) };
-    //        VkCopy.srcOffset = { Info.pBaseInfo->SrcOffset.x, Info.pBaseInfo->SrcOffset.y };
-    //        VkCopy.dstOffset = { Info.pBaseInfo->DstOffset.x, Info.pBaseInfo->DstOffset.y };
-    //        TextureSubresourceToNativeSubresource(Info.DstSubresource, &VkCopy.dstSubresource);
-    //        TextureSubresourceToNativeSubresource(Info.SrcSubresource, &VkCopy.srcSubresource);
-    //        m_ICD.vkCmdCopyImage(hDDICmdBuffer, Info.pBaseInfo->hDDISrcTexture, vkSrcLayout,
-    //        Info.pBaseInfo->hDDIDstTexture,
-    //                             vkDstLayout, 1, &VkCopy);
-    //    }
-    //
-    //    void CAPI::Blit(const NativeAPI::CommandBuffer &hAPICmdBuffer, const SBlitTextureInfo &Info)
-    //    {
-    //        Utils::TCDynamicArray<VkImageBlit2KHR> vNativeRegions(Info.vRegions.GetCount());
-    //        for (uint32_t i = 0; i < Info.vRegions.GetCount(); ++i)
-    //        {
-    //            const auto &Region = Info.vRegions[i];
-    //            auto       &Native = vNativeRegions[i];
-    //            Native.sType       = VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR;
-    //            Native.pNext       = nullptr;
-    //            TextureSubresourceToNativeSubresource(Region.SrcSubresource, &Native.srcSubresource);
-    //            TextureSubresourceToNativeSubresource(Region.DstSubresource, &Native.dstSubresource);
-    //            for (uint32_t o = 0; o < 2; ++o)
-    //            {
-    //                Native.srcOffsets[o].x = Region.srcOffsets[o].x;
-    //                Native.srcOffsets[o].y = Region.srcOffsets[o].y;
-    //                Native.srcOffsets[o].z = Region.srcOffsets[o].z;
-    //                Native.dstOffsets[o].x = Region.dstOffsets[o].x;
-    //                Native.dstOffsets[o].y = Region.dstOffsets[o].y;
-    //                Native.dstOffsets[o].z = Region.dstOffsets[o].z;
-    //            }
-    //        }
-    //        VkBlitImageInfo2KHR NativeInfo = { .sType          = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR,
-    //                                           .pNext          = nullptr,
-    //                                           .srcImage       = Info.hAPISrcTexture,
-    //                                           .srcImageLayout = Map::ImageLayout(Info.srcTextureState),
-    //                                           .dstImage       = Info.hAPIDstTexture,
-    //                                           .dstImageLayout = Map::ImageLayout(Info.dstTextureState),
-    //                                           .regionCount    = Info.vRegions.GetCount(),
-    //                                           .pRegions       = vNativeRegions.GetData(),
-    //                                           .filter         = Map::Filter(Info.filter) };
-    //        m_ICD.vkCmdBlitImage2KHR(hAPICmdBuffer, &NativeInfo);
-    //    }
-    //
-    //    void CAPI::SetEvent(const NativeAPI::Event &hDDIEvent)
-    //    {
-    //        m_ICD.vkSetEvent(m_hDevice, hDDIEvent);
-    //    }
-    //
-    //    void CAPI::SetEvent(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Event &hDDIEvent,
-    //                        const PIPELINE_STAGES &stages)
-    //    {
-    //        m_ICD.vkCmdSetEvent(hDDICmdBuffer, hDDIEvent, Convert::PipelineStages(stages));
-    //    }
-    //
-    //    void CAPI::Reset(const NativeAPI::Event &hDDIInOut)
-    //    {
-    //        m_ICD.vkResetEvent(m_hDevice, hDDIInOut);
-    //    }
-    //
-    //    void CAPI::Reset(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Event &hDDIEvent,
-    //                     const PIPELINE_STAGES &stages)
-    //    {
-    //        m_ICD.vkCmdResetEvent(hDDICmdBuffer, hDDIEvent, Convert::PipelineStages(stages));
-    //    }
-    //
-    //    bool CAPI::IsSet(const NativeAPI::Event &hDDIEvent)
-    //    {
-    //        VkResult res = m_ICD.vkGetEventStatus(m_hDevice, hDDIEvent);
-    //        return res == VK_EVENT_SET;
-    //    }
-    //
-    //    Result CAPI::Submit(const SSubmitInfo &Info)
-    //    {
-    //        Result                                      ret        = VKE_FAIL;
-    //        static VkPipelineStageFlags                 vkWaitMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    //        Utils::TCDynamicArray<VkPipelineStageFlags> vWaitMask(Info.waitSemaphoreCount, vkWaitMask);
-    //        VkSubmitInfo                                si;
-    //        si.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    //        si.pNext                = nullptr;
-    //        si.pSignalSemaphores    = Info.pDDISignalSemaphores;
-    //        si.signalSemaphoreCount = Info.signalSemaphoreCount;
-    //        si.pWaitSemaphores      = Info.pDDIWaitSemaphores;
-    //        si.waitSemaphoreCount   = Info.waitSemaphoreCount;
-    //        si.pWaitDstStageMask    = vWaitMask.GetData();
-    //        si.commandBufferCount   = Info.commandBufferCount;
-    //        si.pCommandBuffers      = &Info.pDDICommandBuffers[0];
-    //        // VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
-    //        VkResult res = m_ICD.vkQueueSubmit(Info.hDDIQueue, 1, &si, Info.hDDIFence);
-    //        VK_ERR(res);
-    //        ret = res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::Present(const SPresentData &Info)
-    //    {
-    //        VkPresentInfoKHR pi;
-    //        pi.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    //        pi.pNext              = nullptr;
-    //        pi.pImageIndices      = &Info.vImageIndices[0];
-    //        pi.pSwapchains        = &Info.vSwapchains[0];
-    //        pi.pWaitSemaphores    = Info.vWaitSemaphores.GetData();
-    //        pi.pResults           = nullptr;
-    //        pi.swapchainCount     = Info.vSwapchains.GetCount();
-    //        pi.waitSemaphoreCount = Info.vWaitSemaphores.GetCount();
-    //        VkResult res          = m_ICD.vkQueuePresentKHR(Info.hQueue, &pi);
-    //        Result   ret          = VKE_OK;
-    //        // VK_ERR( res );
-    //        // return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
-    //        if (res != VK_SUCCESS)
-    //        {
-    //            switch (res)
-    //            {
-    //            case VK_ERROR_OUT_OF_DATE_KHR:
-    //            case VK_ERROR_SURFACE_LOST_KHR:
-    //            {
-    //                ret = VKE_EOUTOFDATE;
-    //            }
-    //            break;
-    //            default:
-    //            {
-    //                ret = VKE_FAIL;
-    //                VK_ERR(res);
-    //            }
-    //            break;
-    //            }
-    //        }
-    //        VKE_ASSERT2(ret != VKE_FAIL, "TDR");
-    //        return ret;
-    //    }
-    //
-    //    Result ConvertVkSurfaceFormatToPresentSurfaceFormat(const VkSurfaceFormatKHR &vkFormat, SPresentSurfaceFormat
-    //    *pOut)
-    //    {
-    //        Result ret = VKE_OK;
-    //        switch (vkFormat.colorSpace)
-    //        {
-    //        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
-    //        {
-    //            pOut->colorSpace = ColorSpaces::SRGB;
-    //        }
-    //        break;
-    //        default:
-    //        {
-    //            ret = VKE_FAIL;
-    //        }
-    //        break;
-    //        };
-    //        // pOut->format = Vulkan::Convert::ImageFormat( vkFormat.format );
-    //        pOut->format = Convert::ImageFormat(vkFormat.format);
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::CreateSwapChain(const SSwapChainDesc &Desc, const void *, SDDISwapChain *pOut)
-    //    {
-    //        Result                    ret = VKE_FAIL;
-    //        VkResult                  vkRes;
-    //        NativeAPI::PresentSurface hSurface     = pOut->hSurface;
-    //        uint16_t                  elementCount = Desc.backBufferCount;
-    //        VkSwapchainKHR            hSwapChain   = NativeAPI::Null;
-    //        ExtentU16                 Size         = Desc.Size;
-    //        if (Desc.pWindow!= nullptr)
-    //        {
-    //            Size = Desc.pWindow->GetDesc().Size;
-    //        }
-    //        Helper::SAllocData    AllocData;
-    //        VkAllocationCallbacks VkDummyCallbacks;
-    //        VkDummyCallbacks.pUserData                = &AllocData;
-    //        VkDummyCallbacks.pfnAllocation            = Helper::DummyAllocCallback;
-    //        VkDummyCallbacks.pfnInternalAllocation    = Helper::DummyInternalAllocCallback;
-    //        VkDummyCallbacks.pfnFree                  = Helper::DummyFreeCallback;
-    //        VkDummyCallbacks.pfnInternalFree          = Helper::DummyInternalFreeCallback;
-    //        VkDummyCallbacks.pfnReallocation          = Helper::DummyReallocCallback;
-    //        VkAllocationCallbacks       *pVkCallbacks = nullptr;
-    //        Helper::SSwapChainAllocator *pInternalAllocator =
-    //            reinterpret_cast<Helper::SSwapChainAllocator *>(pOut->pInternalAllocator);
-    //        if (pOut->pInternalAllocator == nullptr)
-    //        {
-    //            // pInternalAllocator = VKE_NEW Helper::SSwapChainAllocator;
-    //            if (VKE_SUCCEEDED(Memory::CreateObject(&HeapAllocator, &pInternalAllocator)))
-    //            {
-    //                if (VKE_SUCCEEDED(pInternalAllocator->Create(VKE_MEGABYTES(1), 2)))
-    //                {
-    //                    pOut->pInternalAllocator = pInternalAllocator;
-    //                }
-    //                else
-    //                {
-    //                    VKE_LOG_ERR("Unable to create CSwapChain internal allocator.");
-    //                    goto ERR;
-    //                }
-    //            }
-    //            else
-    //            {
-    //                VKE_LOG_ERR("Unable to create memory for CSwapChain internal allocator.");
-    //                goto ERR;
-    //            }
-    //        }
-    //        {
-    //            pVkCallbacks = &pInternalAllocator->VkCallbacks;
-    //        }
-    //        if (pVkCallbacks == nullptr)
-    //        {
-    //            return VKE_ENOMEMORY;
-    //        }
-    //        if (pOut->hSurface == NativeAPI::Null)
-    //        {
-    // #if VKE_USE_VULKAN_WINDOWS
-    //            HINSTANCE                   hInst = reinterpret_cast<HINSTANCE>(Desc.pWindow->GetDesc().hProcess);
-    //            HWND                        hWnd  = reinterpret_cast<HWND>(Desc.pWindow->GetDesc().hWnd);
-    //            VkWin32SurfaceCreateInfoKHR SurfaceCI;
-    //            Vulkan::InitInfo(&SurfaceCI, VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
-    //            SurfaceCI.flags     = 0;
-    //            SurfaceCI.hinstance = hInst;
-    //            SurfaceCI.hwnd      = hWnd;
-    //            vkRes = sInstanceICD.vkCreateWin32SurfaceKHR(sVkInstance, &SurfaceCI, pVkCallbacks, &hSurface);
-    // #elif VKE_USE_VULKAN_LINUX
-    //            VkXcbSurfaceCreateInfoKHR SurfaceCI;
-    //            Vulkan::InitInfo(&SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR);
-    //            SurfaceCI.flags      = 0;
-    //            SurfaceCI.connection = reinterpret_cast<xcb_connection_t *>(m_Desc.hPlatform);
-    //            SurfaceCI.window     = m_Desc.hWnd;
-    //            EXPECT_SUCCESS(Vk.vkCreateXcbSurfaceKHR(s_instance, &SurfaceCI, NO_ALLOC_CALLBACK, &s_surface))
-    // #elif VKE_USE_VULKAN_ANDROID
-    //            VkAndroidSurfaceCreateInfoKHR SurfaceCI;
-    //            Vulkan::InitInfo(&SurfaceCI, VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR);
-    //            SurfaceCI.flags  = 0;
-    //            SurfaceCI.window = m_Desc.hWnd;
-    //            EXPECT_SUCCESS(Vk.vkCreateAndroidSurfaceKHR(s_instance, s_window.window->getNativeHandle(),
-    //                                                        NO_ALLOC_CALLBACK, &s_surface));
-    // #endif
-    //            VK_ERR(vkRes);
-    //            if (vkRes == VK_SUCCESS)
-    //            {
-    //                VkBool32   isSurfaceSupported = VK_FALSE;
-    //                const auto queueIndex         = Desc.queueFamilyIndex;
-    //                VK_ERR(sInstanceICD.vkGetPhysicalDeviceSurfaceSupportKHR(m_hAdapter, queueIndex, hSurface,
-    //                                                                         &isSurfaceSupported));
-    //                if (!isSurfaceSupported)
-    //                {
-    //                    VKE_LOG_ERR("Queue index: " << queueIndex << " does not support the surface.");
-    //                    sInstanceICD.vkDestroySurfaceKHR(sVkInstance, hSurface, pVkCallbacks);
-    //                }
-    //            }
-    //        }
-    //        {
-    //            SPresentSurfaceCaps &Caps = pOut->Caps;
-    //            ret                       = QueryPresentSurfaceCaps(hSurface, &Caps);
-    //            Size                      = Caps.CurrentSize;
-    //            if (!Caps.canBeUsedAsRenderTarget)
-    //            {
-    //                VKE_LOG_ERR("Created present surface can't be used as render target.");
-    //                goto ERR;
-    //            }
-    //            bool found = false;
-    //            for (auto &format : Caps.vFormats)
-    //            {
-    //                if (format.colorSpace == Desc.colorSpace)
-    //                {
-    //                    if (Desc.format == Formats::UNDEFINED || format.format == Desc.format)
-    //                    {
-    //                        pOut->Format = format;
-    //                        found        = true;
-    //                        break;
-    //                    }
-    //                }
-    //            }
-    //            if (!found)
-    //            {
-    //                VKE_LOG_ERR("Requested format: " << Desc.format << " / " << Desc.colorSpace
-    //                                                 << " is not supported for present surface.");
-    //                goto ERR;
-    //            }
-    //            found = false;
-    //            if (Desc.enableVSync)
-    //            {
-    //                pOut->mode = PresentModes::FIFO;
-    //                found      = Caps.vModes.Find(pOut->mode) != Caps.vModes.Npos();
-    //            }
-    //            else
-    //            {
-    //                pOut->mode = PresentModes::MAILBOX;
-    //                found      = Caps.vModes.Find(pOut->mode) != Caps.vModes.Npos();
-    //            }
-    //            if (!found)
-    //            {
-    //                if (Caps.vModes.IsEmpty())
-    //                {
-    //                    VKE_LOG_WARN("The device doesn't support presentation mode.");
-    //                    goto ERR;
-    //                }
-    //                // Get any supported
-    //                pOut->mode = Caps.vModes[0];
-    //                VKE_LOG_WARN("Requested presentation mode is not supported for presentation surface.");
-    //                found = true;
-    //            }
-    //            pOut->Size     = Caps.CurrentSize;
-    //            pOut->hSurface = hSurface;
-    //            if (Constants::_SOptimal::IsOptimal(elementCount))
-    //            {
-    //                elementCount = std::min<uint16_t>(static_cast<uint16_t>(Caps.minImageCount), 2u);
-    //            }
-    //            else
-    //            {
-    //                elementCount = std::min<uint16_t>(elementCount, static_cast<uint16_t>(Caps.maxImageCount));
-    //            }
-    //        }
-    //        static const VkColorSpaceKHR    aVkColorSpaces[] = { VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
-    //        static const VkPresentModeKHR   aVkModes[]       = { VK_PRESENT_MODE_FIFO_KHR,      // as undefined
-    //                                                             VK_PRESENT_MODE_IMMEDIATE_KHR, // immediate
-    //                                                             VK_PRESENT_MODE_MAILBOX_KHR,   // mailbox
-    //                                                             VK_PRESENT_MODE_FIFO_KHR,      // fifo
-    //                                                             VK_PRESENT_MODE_FIFO_KHR };
-    //        static const VkComponentMapping vkDefaultMapping = {
-    //            // VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
-    //            VK_COMPONENT_SWIZZLE_IDENTITY,
-    //            VK_COMPONENT_SWIZZLE_IDENTITY,
-    //            VK_COMPONENT_SWIZZLE_IDENTITY,
-    //            VK_COMPONENT_SWIZZLE_IDENTITY,
-    //        };
-    //        {
-    //            uint32_t                 familyIndex = Desc.queueFamilyIndex;
-    //            VkResult                 res;
-    //            VkSwapchainCreateInfoKHR SwapChainCI;
-    //            {
-    //                auto &ci                 = SwapChainCI;
-    //                ci.sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    //                ci.pNext                 = nullptr;
-    //                ci.clipped               = VK_TRUE;
-    //                ci.compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    //                ci.flags                 = 0;
-    //                ci.imageArrayLayers      = 1;
-    //                ci.imageColorSpace       = aVkColorSpaces[pOut->Format.colorSpace];
-    //                ci.imageExtent.width     = Size.width;
-    //                ci.imageExtent.height    = Size.height;
-    //                ci.imageFormat           = Map::Format(pOut->Format.format);
-    //                ci.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
-    //                ci.imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    //                ci.minImageCount         = elementCount;
-    //                ci.oldSwapchain          = pOut->hSwapChain;
-    //                ci.pQueueFamilyIndices   = &familyIndex;
-    //                ci.queueFamilyIndexCount = 1;
-    //                ci.presentMode           = aVkModes[pOut->mode];
-    //                ci.preTransform          = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    //                ci.surface               = pOut->hSurface;
-    //                res                      = m_ICD.vkCreateSwapchainKHR(m_hDevice, &ci, pVkCallbacks, &hSwapChain);
-    //            }
-    //            VK_ERR(res);
-    //            if (res == VK_SUCCESS)
-    //            {
-    //                uint32_t imgCount = 0;
-    //                res               = m_ICD.vkGetSwapchainImagesKHR(m_hDevice, hSwapChain, &imgCount, nullptr);
-    //                VK_ERR(res);
-    //                if (res == VK_SUCCESS)
-    //                {
-    //                    if (imgCount <= Desc.backBufferCount)
-    //                    {
-    //                        pOut->vImages.Resize(imgCount);
-    //                        pOut->vImageViews.Resize(imgCount);
-    //                        pOut->vFramebuffers.Resize(imgCount);
-    //                        res = m_ICD.vkGetSwapchainImagesKHR(m_hDevice, hSwapChain, &imgCount, &pOut->vImages[0]);
-    //                        VK_ERR(res);
-    //                        if (res == VK_SUCCESS)
-    //                        {
-    //                            Utils::TCDynamicArray<VkImageMemoryBarrier> vVkBarriers;
-    //                            // Create renderpass
-    //                            {
-    //                                VkAttachmentReference ColorAttachmentRef;
-    //                                ColorAttachmentRef.attachment    = 0;
-    //                                ColorAttachmentRef.layout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //                                VkSubpassDescription SubPassDesc = {};
-    //                                SubPassDesc.colorAttachmentCount = 1;
-    //                                SubPassDesc.pColorAttachments    = &ColorAttachmentRef;
-    //                                SubPassDesc.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    //                                VkAttachmentDescription AtDesc   = {};
-    //                                // AtDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //                                // AtDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //                                AtDesc.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-    //                                AtDesc.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    //                                AtDesc.format         = SwapChainCI.imageFormat;
-    //                                AtDesc.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    //                                AtDesc.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
-    //                                AtDesc.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    //                                AtDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    //                                AtDesc.samples        = VK_SAMPLE_COUNT_1_BIT;
-    //                                if (pOut->hDDIRenderPass == NativeAPI::Null)
-    //                                {
-    //                                    VkRenderPassCreateInfo ci = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    //                                    ci.flags                  = 0;
-    //                                    ci.attachmentCount        = 1;
-    //                                    ci.pAttachments           = &AtDesc;
-    //                                    ci.pDependencies          = nullptr;
-    //                                    ci.pSubpasses             = &SubPassDesc;
-    //                                    ci.subpassCount           = 1;
-    //                                    ci.dependencyCount        = 0;
-    //                                    res = m_ICD.vkCreateRenderPass(m_hDevice, &ci, pVkCallbacks,
-    //                                    &pOut->hDDIRenderPass); VK_ERR(res); if (res != VK_SUCCESS)
-    //                                    {
-    //                                        VKE_LOG_ERR("Unable to create SwapChain RenderPass");
-    //                                        goto ERR;
-    //                                    }
-    //                                    _CreateDebugInfo<VK_OBJECT_TYPE_RENDER_PASS>(pOut->hDDIRenderPass,
-    //                                                                                 "Swapchain RenderPass");
-    //                                }
-    //                            }
-    //                            for (uint32_t i = 0; i < imgCount; ++i)
-    //                            {
-    //                                VkImageViewCreateInfo ci;
-    //                                ci.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    //                                ci.pNext                           = nullptr;
-    //                                ci.flags                           = 0;
-    //                                ci.format                          = SwapChainCI.imageFormat;
-    //                                ci.image                           = pOut->vImages[i];
-    //                                ci.components                      = vkDefaultMapping;
-    //                                ci.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    //                                ci.subresourceRange.baseArrayLayer = 0;
-    //                                ci.subresourceRange.baseMipLevel   = 0;
-    //                                ci.subresourceRange.layerCount     = 1;
-    //                                ci.subresourceRange.levelCount     = 1;
-    //                                ci.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-    //                                NativeAPI::TextureView hView;
-    //                                res = m_ICD.vkCreateImageView(m_hDevice, &ci, pVkCallbacks, &hView);
-    //                                VK_ERR(res);
-    //                                if (res != VK_SUCCESS)
-    //                                {
-    //                                    VKE_LOG_ERR("Unable to create ImageView for SwapChain image.");
-    //                                    goto ERR;
-    //                                }
-    //                                pOut->vImageViews[i] = hView;
-    //                                // Do a barrier for image
-    //                                {
-    //                                    VkImageMemoryBarrier vkBarrier;
-    //                                    vkBarrier.sType                           =
-    //                                    VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER; vkBarrier.pNext = nullptr;
-    //                                    vkBarrier.image                           = pOut->vImages[i];
-    //                                    vkBarrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
-    //                                    vkBarrier.newLayout                       = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    //                                    vkBarrier.dstAccessMask                   = VK_ACCESS_MEMORY_READ_BIT;
-    //                                    vkBarrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    //                                    vkBarrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    //                                    vkBarrier.srcAccessMask                   = 0;
-    //                                    vkBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    //                                    vkBarrier.subresourceRange.baseArrayLayer = 0;
-    //                                    vkBarrier.subresourceRange.baseMipLevel   = 0;
-    //                                    vkBarrier.subresourceRange.layerCount     = 1;
-    //                                    vkBarrier.subresourceRange.levelCount     = 1;
-    //                                    vVkBarriers.PushBack(vkBarrier);
-    //                                }
-    //                                // Create framebuffers for render pass
-    //                                {
-    //                                    VkFramebufferCreateInfo fbci = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-    //                                    fbci.attachmentCount         = 1;
-    //                                    fbci.pAttachments            = &pOut->vImageViews[i];
-    //                                    fbci.width                   = Size.width;
-    //                                    fbci.height                  = Size.height;
-    //                                    fbci.renderPass              = pOut->hDDIRenderPass;
-    //                                    fbci.layers                  = 1;
-    //                                    res = m_ICD.vkCreateFramebuffer(m_hDevice, &fbci, pVkCallbacks,
-    //                                                                    &pOut->vFramebuffers[i]);
-    //                                    VK_ERR(res);
-    //                                    if (res != VK_SUCCESS)
-    //                                    {
-    //                                        VKE_LOG_ERR("Unable to create Framebuffer for SwapChain");
-    //                                        goto ERR;
-    //                                    }
-    //                                    _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE>(pOut->vImages[i], "Swapchain Image");
-    //                                    _CreateDebugInfo<VK_OBJECT_TYPE_IMAGE_VIEW>(pOut->vImageViews[i],
-    //                                                                                "Swapchain ImageView");
-    //                                    _CreateDebugInfo<VK_OBJECT_TYPE_FRAMEBUFFER>(pOut->vFramebuffers[i],
-    //                                                                                 "Swapchain Framebuffer");
-    //                                }
-    //                                {
-    //                                    /*STextureBarrierInfo Info;
-    //                                    Info.hDDITexture = pOut->vImages[ i ];
-    //                                    Info.currentState = TextureStates::UNDEFINED;
-    //                                    Info.newState = TextureStates::PRESENT;
-    //                                    Info.srcMemoryAccess = MemoryAccessTypes::GPU_MEMORY_WRITE;
-    //                                    Info.dstMemoryAccess = MemoryAccessTypes::GPU_MEMORY_READ;
-    //                                    Info.SubresourceRange.aspect = TextureAspects::COLOR;
-    //                                    Info.SubresourceRange.beginArrayLayer = 0;
-    //                                    Info.SubresourceRange.beginMipmapLevel = 0;
-    //                                    Info.SubresourceRange.layerCount = 1;
-    //                                    Info.SubresourceRange.mipmapLevelCount = 1;
-    //                                    Desc.pCtx->GetCommandBuffer()->Barrier( Info );*/
-    //                                }
-    //                            }
-    //                            {
-    //                                // Change image layout UNDEFINED -> PRESENT
-    //                                // VKE_ASSERT2( Desc.pCtx != nullptr, "GraphicsContext must be set." );
-    //                            }
-    //                        }
-    //                        else
-    //                        {
-    //                            VKE_LOG_ERR("Unable to get Vulkan SwapChain images.");
-    //                            goto ERR;
-    //                        }
-    //                    }
-    //                    else
-    //                    {
-    //                        VKE_LOG_ERR("imgCount > Desc.elementCount");
-    //                        goto ERR;
-    //                    }
-    //                }
-    //                else
-    //                {
-    //                    VKE_LOG_ERR("Unable to get Vulkan SwapChain images.");
-    //                    goto ERR;
-    //                }
-    //            }
-    //            else
-    //            {
-    //                VKE_LOG_ERR("Unable to create a SwapChain Vulkan object.");
-    //                goto ERR;
-    //            }
-    //        }
-    //        pOut->hSwapChain = hSwapChain;
-    //        ret              = VKE_OK;
-    //        return ret;
-    //    ERR:
-    //        for (uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i)
-    //        {
-    //            DestroyTextureView(&pOut->vImageViews[i], pVkCallbacks);
-    //        }
-    //        if (hSwapChain != NativeAPI::Null)
-    //        {
-    //            m_ICD.vkDestroySwapchainKHR(m_hDevice, hSwapChain, pVkCallbacks);
-    //        }
-    //        if (hSurface != NativeAPI::Null)
-    //        {
-    //            sInstanceICD.vkDestroySurfaceKHR(sVkInstance, hSurface, pVkCallbacks);
-    //        }
-    //        pInternalAllocator->Reset();
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::ReCreateSwapChain(const SSwapChainDesc &Desc, SDDISwapChain *pOut)
-    //    {
-    //        Result ret                          = VKE_FAIL;
-    //        auto   pInternalAllocator           = reinterpret_cast<Helper::SSwapChainAllocator
-    //        *>(pOut->pInternalAllocator); VkAllocationCallbacks *pVkAllocator = &pInternalAllocator->VkCallbacks;
-    //        // Desc.pCtx->GetCommandBuffer()->ExecuteBarriers();
-    //        for (uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i)
-    //        {
-    //            DestroyTextureView(&pOut->vImageViews[i], pVkAllocator);
-    //            DestroyFramebuffer(&pOut->vFramebuffers[i], pVkAllocator);
-    //        }
-    //        if (pOut->hSwapChain != NativeAPI::Null)
-    //        {
-    //            m_ICD.vkDestroySwapchainKHR(m_hDevice, pOut->hSwapChain, pVkAllocator);
-    //            pOut->hSwapChain = NativeAPI::Null;
-    //        }
-    //        if (pOut->hSurface != NativeAPI::Null)
-    //        {
-    //            sInstanceICD.vkDestroySurfaceKHR(sVkInstance, pOut->hSurface, pVkAllocator);
-    //            pOut->hSurface = NativeAPI::Null;
-    //        }
-    //        if (pOut->hDDIRenderPass != NativeAPI::Null)
-    //        {
-    //            m_ICD.vkDestroyRenderPass(m_hDevice, pOut->hDDIRenderPass, pVkAllocator);
-    //            pOut->hDDIRenderPass = NativeAPI::Null;
-    //        }
-    //        pOut->vFramebuffers.Clear();
-    //        pOut->vImages.Clear();
-    //        pOut->vImageViews.Clear();
-    //        pOut->hSwapChain = NativeAPI::Null;
-    //        pInternalAllocator->FreeCurrentChunk();
-    //        // DestroySwapChain( pOut, nullptr );
-    //        ret = CreateSwapChain(Desc, nullptr, pOut);
-    //        return ret;
-    //    }
-    //
-    //    Result CAPI::QueryPresentSurfaceCaps(const NativeAPI::PresentSurface &hSurface, SPresentSurfaceCaps *pOut)
-    //    {
-    //        Result                   ret = VKE_FAIL;
-    //        VkResult                 res;
-    //        VkSurfaceCapabilitiesKHR vkSurfaceCaps;
-    //        sInstanceICD.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_hAdapter, hSurface, &vkSurfaceCaps);
-    //        auto hasColorAttachment = vkSurfaceCaps.supportedUsageFlags | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    //        // Select surface format
-    //        Utils::TCDynamicArray<VkSurfaceFormatKHR> vSurfaceFormats;
-    //        uint32_t                                  formatCount = 0;
-    //        res = sInstanceICD.vkGetPhysicalDeviceSurfaceFormatsKHR(m_hAdapter, hSurface, &formatCount, nullptr);
-    //        VK_ERR(res);
-    //        if (res == VK_SUCCESS)
-    //        {
-    //            if (formatCount > 0)
-    //            {
-    //                vSurfaceFormats.Resize(formatCount);
-    //                res = sInstanceICD.vkGetPhysicalDeviceSurfaceFormatsKHR(m_hAdapter, hSurface, &formatCount,
-    //                                                                        &vSurfaceFormats[0]);
-    //                VK_ERR(res);
-    //                if (res == VK_SUCCESS)
-    //                {
-    //                    for (VkSurfaceFormatKHR &vkFormat : vSurfaceFormats)
-    //                    {
-    //                        SPresentSurfaceFormat Format;
-    //                        if (VKE_SUCCEEDED(ConvertVkSurfaceFormatToPresentSurfaceFormat(vkFormat, &Format)))
-    //                        {
-    //                            pOut->vFormats.PushBack(Format);
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //            // Select present mode
-    //            uint32_t                                   presentCount = 0;
-    //            Utils::TCDynamicArray<VkPresentModeKHR, 8> vPresents;
-    //            res = sInstanceICD.vkGetPhysicalDeviceSurfacePresentModesKHR(m_hAdapter, hSurface, &presentCount,
-    //            nullptr); VK_ERR(res); if (res == VK_SUCCESS)
-    //            {
-    //                if (presentCount > 0)
-    //                {
-    //                    vPresents.Resize(presentCount);
-    //                    res = sInstanceICD.vkGetPhysicalDeviceSurfacePresentModesKHR(m_hAdapter, hSurface,
-    //                    &presentCount,
-    //                                                                                 &vPresents[0]);
-    //                    VK_ERR(res);
-    //                    if (res == VK_SUCCESS)
-    //                    {
-    //                        static const PRESENT_MODE aModes[] = {
-    //                            PresentModes::IMMEDIATE, PresentModes::MAILBOX, PresentModes::FIFO,
-    //                            PresentModes::FIFO, // VK FIFO RELAXED
-    //                        };
-    //                        for (VkPresentModeKHR &vkMode : vPresents)
-    //                        {
-    //                            pOut->vModes.PushBack(aModes[vkMode]);
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //            if (vkSurfaceCaps.maxImageCount == 0)
-    //            {
-    //                vkSurfaceCaps.maxImageCount = Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS;
-    //            }
-    //            pOut->MinSize.width           = static_cast<uint16_t>(vkSurfaceCaps.minImageExtent.width);
-    //            pOut->MinSize.height          = static_cast<uint16_t>(vkSurfaceCaps.minImageExtent.height);
-    //            pOut->MaxSize.width           = static_cast<uint16_t>(vkSurfaceCaps.maxImageExtent.width);
-    //            pOut->MaxSize.height          = static_cast<uint16_t>(vkSurfaceCaps.maxImageExtent.height);
-    //            pOut->CurrentSize.width       = static_cast<uint16_t>(vkSurfaceCaps.currentExtent.width);
-    //            pOut->CurrentSize.height      = static_cast<uint16_t>(vkSurfaceCaps.currentExtent.height);
-    //            pOut->minImageCount           = static_cast<uint16_t>(vkSurfaceCaps.minImageCount);
-    //            pOut->maxImageCount           = static_cast<uint16_t>(vkSurfaceCaps.maxImageCount);
-    //            pOut->canBeUsedAsRenderTarget = hasColorAttachment;
-    //            // pOut->transform = vkSurfaceCaps.currentTransform
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    void CAPI::DestroySwapChain(SDDISwapChain *pInOut, const void *)
-    //    {
-    //        Helper::SSwapChainAllocator *pInternalAllocator =
-    //            reinterpret_cast<Helper::SSwapChainAllocator *>(pInOut->pInternalAllocator);
-    //        const VkAllocationCallbacks *pVkAllocator = &pInternalAllocator->VkCallbacks;
-    //        for (uint32_t i = 0; i < pInOut->vImageViews.GetCount(); ++i)
-    //        {
-    //            DestroyTextureView(&pInOut->vImageViews[i], pVkAllocator);
-    //        }
-    //        if (pInOut->hSwapChain != NativeAPI::Null)
-    //        {
-    //            m_ICD.vkDestroySwapchainKHR(m_hDevice, pInOut->hSwapChain, pVkAllocator);
-    //            pInOut->hSwapChain = NativeAPI::Null;
-    //        }
-    //        if (pInOut->hSurface != NativeAPI::Null)
-    //        {
-    //            sInstanceICD.vkDestroySurfaceKHR(sVkInstance, pInOut->hSurface, pVkAllocator);
-    //            pInOut->hSurface = NativeAPI::Null;
-    //        }
-    //        if (pInternalAllocator != nullptr)
-    //        {
-    //            pInternalAllocator->Destroy();
-    //            Memory::DestroyObject(&HeapAllocator, &pInternalAllocator);
-    //            pInOut->pInternalAllocator = nullptr;
-    //        }
-    //    }
-    //
-    //    Result CAPI::GetCurrentBackBufferIndex(const SDDISwapChain &SwapChain, const SDDIGetBackBufferInfo &Info,
-    //                                           uint32_t *pOut)
-    //    {
-    //        Result   ret = VKE_FAIL;
-    //        VkResult res = m_ICD.vkAcquireNextImageKHR(m_hDevice, SwapChain.hSwapChain, Info.waitTimeout,
-    //                                                   Info.hSignalGPUFence, Info.hSignalCPUFence, pOut);
-    //        switch (res)
-    //        {
-    //        case VK_SUCCESS:
-    //        {
-    //            ret = VKE_OK;
-    //        }
-    //        break;
-    //        case VK_TIMEOUT:
-    //        {
-    //            ret = VKE_TIMEOUT;
-    //            break;
-    //        }
-    //        case VK_NOT_READY:
-    //        case VK_SUBOPTIMAL_KHR:
-    //        {
-    //            ret = VKE_ENOTREADY;
-    //            break;
-    //        }
-    //        case VK_ERROR_VALIDATION_FAILED_EXT:
-    //        {
-    //            VKE_LOG(res);
-    //        }
-    //        break;
-    //        case VK_ERROR_DEVICE_LOST:
-    //        {
-    //            ret = VKE_EDEVICELOST;
-    //        }
-    //        break;
-    //        case VK_ERROR_OUT_OF_DATE_KHR:
-    //        case VK_ERROR_SURFACE_LOST_KHR:
-    //        {
-    //            ret = VKE_EOUTOFDATE;
-    //        }
-    //        break;
-    //        default:
-    //        {
-    //            VK_ERR(res);
-    //        }
-    //        break;
-    //        }
-    //        return ret;
-    //    }
-    //
-    //    void CAPI::Reset(const NativeAPI::CommandBuffer &hCommandBuffer)
-    //    {
-    //        const auto flags = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
-    //        VK_ERR(m_ICD.vkResetCommandBuffer(hCommandBuffer, flags));
-    //    }
-    //
-    //    void CAPI::BeginCommandBuffer(const NativeAPI::CommandBuffer &hCommandBuffer)
-    //    {
-    //        VkCommandBufferBeginInfo bi;
-    //        bi.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    //        bi.pNext            = nullptr;
-    //        bi.flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    //        bi.pInheritanceInfo = nullptr;
-    //        VK_ERR(m_ICD.vkBeginCommandBuffer(hCommandBuffer, &bi));
-    //    }
-    //
-    //    void CAPI::EndCommandBuffer(const NativeAPI::CommandBuffer &hCommandBuffer)
-    //    {
-    //        VK_ERR(m_ICD.vkEndCommandBuffer(hCommandBuffer));
-    //    }
-    //
-    //    void CAPI::Bind(const SBindPipelineInfo &Info)
-    //    {
-    //        VKE_ASSERT2(Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != NativeAPI::Null &&
-    //                        Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != NativeAPI::Null,
-    //                    "Invalid parameter");
-    //        m_ICD.vkCmdBindPipeline(Info.pCmdBuffer->GetDDIObject(),
-    //                                Convert::PipelineTypeToBindPoint(Info.pPipeline->GetType()),
-    //                                Info.pPipeline->GetDDIObject());
-    //    }
-    //
-    //    void CAPI::UnbindPipeline(const NativeAPI::CommandBuffer &, const NativeAPI::Pipeline &)
-    //    {
-    //    }
-    //
-    //    void CAPI::Bind(const SBindRenderPassInfo &Info)
-    //    {
-    //        VKE_ASSERT2(Info.pBeginInfo != nullptr, "");
-    //        {
-    //            VkRenderPassBeginInfo bi;
-    //            bi.sType                    = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    //            bi.pNext                    = nullptr;
-    //            bi.clearValueCount          = Info.pBeginInfo->vDDIClearValues.GetCount();
-    //            bi.pClearValues             = Info.pBeginInfo->vDDIClearValues.GetData();
-    //            bi.renderArea.extent.width  = Info.pBeginInfo->RenderArea.Size.width;
-    //            bi.renderArea.extent.height = Info.pBeginInfo->RenderArea.Size.height;
-    //            bi.renderArea.offset = { Info.pBeginInfo->RenderArea.Position.x,
-    //            Info.pBeginInfo->RenderArea.Position.y };
-    //            // bi.renderPass = reinterpret_cast<NativeAPI::RenderPass>(Info.hPass.handle);
-    //            // bi.framebuffer = reinterpret_cast<NativeAPI::Framebuffer>(Info.hFramebuffer.handle);
-    //            bi.renderPass  = Info.pBeginInfo->hDDIRenderPass;
-    //            bi.framebuffer = Info.pBeginInfo->hDDIFramebuffer;
-    //            m_ICD.vkCmdBeginRenderPass(Info.hDDICommandBuffer, &bi, VK_SUBPASS_CONTENTS_INLINE);
-    //        }
-    //    }
-    //
-    //    void CAPI::UnbindRenderPass(const NativeAPI::CommandBuffer &hCb, const NativeAPI::RenderPass &)
-    //    {
-    //        m_ICD.vkCmdEndRenderPass(hCb);
-    //    }
-    //
-    //    void CAPI::Bind(const SBindDDIDescriptorSetsInfo &Info)
-    //    {
-    //        m_ICD.vkCmdBindDescriptorSets(Info.hDDICommandBuffer, Convert::PipelineTypeToBindPoint(Info.pipelineType),
-    //                                      Info.hDDIPipelineLayout, Info.firstSet, Info.setCount, Info.aDDISetHandles,
-    //                                      Info.dynamicOffsetCount, Info.aDynamicOffsets);
-    //    }
-    //
-    //    void CAPI::Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
-    //                    const uint32_t offset)
-    //    {
-    //        VkDeviceSize ddiOffset = offset;
-    //        m_ICD.vkCmdBindVertexBuffers(hDDICmdBuffer, 0, 1, &hDDIBuffer, &ddiOffset);
-    //    }
-    //
-    //    void CAPI::Bind(const NativeAPI::CommandBuffer &hDDICmdBuffer, const NativeAPI::Buffer &hDDIBuffer,
-    //                    const uint32_t offset, const INDEX_TYPE &type)
-    //    {
-    //        m_ICD.vkCmdBindIndexBuffer(hDDICmdBuffer, hDDIBuffer, offset, Map::IndexType(type));
-    //    }
-    //
-    //    void CAPI::SetState(const NativeAPI::CommandBuffer &hCommandBuffer, const SViewportDesc &Desc)
-    //    {
-    //        VkViewport Viewport;
-    //        Viewport.width = Desc.Size.width;
-    //        Viewport.x     = Desc.Position.x;
-    // #if VKE_VULKAN_NEGATIVE_VIEWPORT_HEIGT
-    //        Viewport.y      = Desc.Size.height + Desc.Position.y;
-    //        Viewport.height = -Viewport.y;
-    // #else
-    //        Viewport.height = Desc.Size.height;
-    //        Viewport.y      = Desc.Position.y;
-    // #endif
-    //        Viewport.minDepth = Desc.MinMaxDepth.min;
-    //        Viewport.maxDepth = Desc.MinMaxDepth.max;
-    //        m_ICD.vkCmdSetViewport(hCommandBuffer, 0, 1, &Viewport);
-    //    }
-    //
-    //    void CAPI::SetState(const NativeAPI::CommandBuffer &hCommandBuffer, const SScissorDesc &Desc)
-    //    {
-    //        VkRect2D Scissor;
-    //        Scissor.extent.width  = Desc.Size.width;
-    //        Scissor.extent.height = Desc.Size.height;
-    //        Scissor.offset.x      = Desc.Position.x;
-    //        Scissor.offset.y      = Desc.Position.y;
-    //        m_ICD.vkCmdSetScissor(hCommandBuffer, 0, 1, &Scissor);
-    //    }
-    //
-    //    void CAPI::Barrier(const NativeAPI::CommandBuffer &hCommandBuffer, const SBarrierInfo &Info)
-    //    {
-    //        VkMemoryBarrier                                                        *pVkMemBarriers = nullptr;
-    //        VkImageMemoryBarrier                                                   *pVkImgBarriers = nullptr;
-    //        VkBufferMemoryBarrier                                                  *pVkBuffBarrier = nullptr;
-    //        VkPipelineStageFlags                                                    srcStage       = 0;
-    //        VkPipelineStageFlags                                                    dstStage       = 0;
-    //        Utils::TCDynamicArray<VkMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT> vVkMemBarriers(
-    //            Info.vMemoryBarriers.GetCount());
-    //        Utils::TCDynamicArray<VkImageMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT>
-    //            vVkImgBarriers /*( Info.vTextureBarriers.GetCount() )*/;
-    //        Utils::TCDynamicArray<VkBufferMemoryBarrier, SBarrierInfo::MAX_BARRIER_COUNT> vVkBufferBarriers(
-    //            Info.vBufferBarriers.GetCount());
-    //        {
-    //            const auto &Barriers = Info.vMemoryBarriers;
-    //            if (!Barriers.IsEmpty())
-    //            {
-    //                for (uint32_t i = 0; i < Barriers.GetCount(); ++i)
-    //                {
-    //                    vVkMemBarriers[i] = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-    //                    Convert::Barrier(&vVkMemBarriers[i], Barriers[i]);
-    //                    dstStage |= Convert::AccessMaskToPipelineStage(Barriers[i].dstMemoryAccess);
-    //                    srcStage |= Convert::AccessMaskToPipelineStage(Barriers[i].srcMemoryAccess);
-    //                }
-    //                pVkMemBarriers = vVkMemBarriers.GetData();
-    //            }
-    //        }
-    //        {
-    //            const auto &Barriers = Info.vTextureBarriers;
-    //            if (!Barriers.IsEmpty())
-    //            {
-    //                for (uint32_t i = 0; i < Barriers.GetCount(); ++i)
-    //                {
-    //                    // vVkImgBarriers[i] = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    //                    vVkImgBarriers.PushBack({ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER });
-    //                    auto &VkBarrier = vVkImgBarriers.Back();
-    //                    Convert::Barrier(&VkBarrier, Barriers[i]);
-    //                    VkBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    //                    VkBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    //                    dstStage |= Convert::AccessMaskToPipelineStage(Barriers[i].dstMemoryAccess);
-    //                    srcStage |= Convert::AccessMaskToPipelineStage(Barriers[i].srcMemoryAccess);
-    //                }
-    //                pVkImgBarriers = vVkImgBarriers.GetData();
-    //            }
-    //        }
-    //        {
-    //            const auto &Barriers = Info.vBufferBarriers;
-    //            if (!Barriers.IsEmpty())
-    //            {
-    //                for (uint32_t i = 0; i < Barriers.GetCount(); ++i)
-    //                {
-    //                    vVkBufferBarriers[i] = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-    //                    Convert::Barrier(&vVkBufferBarriers[i], Barriers[i]);
-    //                    vVkBufferBarriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    //                    vVkBufferBarriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    //                    // const VkAccessFlags flags = vVkBufferBarriers[i].dstAccessMask;
-    //                    dstStage |= Convert::AccessMaskToPipelineStage(Barriers[i].dstMemoryAccess);
-    //                    srcStage |= Convert::AccessMaskToPipelineStage(Barriers[i].srcMemoryAccess);
-    //                }
-    //                pVkBuffBarrier = vVkBufferBarriers.GetData();
-    //            }
-    //        }
-    //        m_ICD.vkCmdPipelineBarrier(hCommandBuffer, srcStage, dstStage, 0, Info.vMemoryBarriers.GetCount(),
-    //                                   pVkMemBarriers, Info.vBufferBarriers.GetCount(), pVkBuffBarrier,
-    //                                   Info.vTextureBarriers.GetCount(), pVkImgBarriers);
-    //    }
-    //
-    //    void CAPI::Convert(const SClearValue &In, NativeAPI::ClearValue *pOut)
-    //    {
-    //        Memory::Copy(pOut, sizeof(NativeAPI::ClearValue), &In, sizeof(SClearValue));
-    //    }
-    //
-    //    void CAPI::BeginDebugInfo(const NativeAPI::CommandBuffer &hDDICmdBuff, const SDebugInfo *pInfo)
-    //    {
-    //        if (sInstanceICD.vkCmdBeginDebugUtilsLabelEXT && pInfo)
-    //        {
-    //            VkDebugUtilsLabelEXT li = {};
-    //            li.color[0]             = pInfo->Color.r;
-    //            li.color[1]             = pInfo->Color.g;
-    //            li.color[2]             = pInfo->Color.b;
-    //            li.color[3]             = pInfo->Color.a;
-    //            li.pLabelName           = pInfo->pText;
-    //            li.pNext                = nullptr;
-    //            li.sType                = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-    //            sInstanceICD.vkCmdBeginDebugUtilsLabelEXT(hDDICmdBuff, &li);
-    //        }
-    //    }
-    //
-    //    void CAPI::EndDebugInfo(const NativeAPI::CommandBuffer &hDDICmdBuff)
-    //    {
-    //        if (sInstanceICD.vkCmdEndDebugUtilsLabelEXT)
-    //        {
-    //            sInstanceICD.vkCmdEndDebugUtilsLabelEXT(hDDICmdBuff);
-    //        }
-    //    }
-    //
-    //    void CAPI::SetObjectDebugName(const uint64_t &handle, const uint32_t &objType, cstr_t pName) const
-    //    {
-    // #if VKE_RENDER_SYSTEM_DEBUG
-    //        if (sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName)
-    //        {
-    //            VKE_ASSERT2(strlen(pName) > 0, "VKE_RENDER_SYSTEM_DEBUG requires debug names for all objects.");
-    //            VKE_ASSERT2(m_hDevice != NativeAPI::Null, "Device must be created first!");
-    //            VkDebugUtilsObjectNameInfoEXT ni;
-    //            ni.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-    //            ni.pNext        = nullptr;
-    //            ni.objectHandle = handle;
-    //            ni.objectType   = (VkObjectType)objType;
-    //            ni.pObjectName  = pName;
-    //            sInstanceICD.vkSetDebugUtilsObjectNameEXT(m_hDevice, &ni);
-    //        }
-    // #endif
-    //    }
-    //
-    //    void CAPI::SetQueueDebugName(uint64_t handle, cstr_t pName) const
-    //    {
-    //        SetObjectDebugName(handle, VK_OBJECT_TYPE_QUEUE, pName);
-    //    }
-    //
-    //    VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback(VkDebugReportFlagsEXT msgFlags, VkDebugReportObjectTypeEXT
-    //    objType,
-    //                                                   uint64_t srcObject, size_t location, int32_t msgCode,
-    //                                                   const char *pLayerPrefix, const char *pMsg, void *)
-    //    {
-    //        std::ostringstream message;
-    //        (void)location;
-    //        (void)srcObject;
-    //        (void)objType;
-    //        if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
-    //        {
-    //            message << "ERROR: ";
-    //        }
-    //        else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
-    //        {
-    //            message << "WARNING: ";
-    //        }
-    //        else if (msgFlags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-    //        {
-    //            message << "PERFORMANCE WARNING: ";
-    //        }
-    //        else if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
-    //        {
-    //            message << "INFO: ";
-    //        }
-    //        else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
-    //        {
-    //            message << "DEBUG: ";
-    //        }
-    //        message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
-    //        auto str = std::regex_replace(message.str(), std::regex(" : "), "\n");
-    //        str      = std::regex_replace(str, std::regex(";"), "\n");
-    //        VKE_LOG(str);
-    //        VKE_ASSERT2((msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) == 0, message.str().c_str());
-    // #ifdef _WIN32
-    //        if (msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT)
-    //        {
-    //            MessageBox(NULL, message.str().c_str(), "VULKAN API ERROR", MB_OK | MB_ICONERROR);
-    //        }
-    // #else
-    //        std::cout << message.str() << std::endl;
-    // #endif
-    //        /*
-    //         * false indicates that layer should not bail-out of an
-    //         * API call that had validation failures. This may mean that the
-    //         * app dies inside the driver due to invalid parameter(s).
-    //         * That's what would happen without validation layers, so we'll
-    //         * keep that behavior here.
-    //         */
-    //        return false;
-    //    }
-    //
-    //    VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT
-    //    messageSeverity,
-    //                                                            VkDebugUtilsMessageTypeFlagsEXT messageTypes, const
-    //                                                            VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-    //                                                            void * /*pUserData*/)
-    //    {
-    // #if VKE_LOG_RENDER_API_ERRORS
-    //        (void)messageTypes;
-    // #define MSG pCallbackData->pMessageIdName << ": " << pCallbackData->pMessage
-    //        if (pCallbackData && pCallbackData->pMessageIdName)
-    //        {
-    //            switch (messageSeverity)
-    //            {
-    //            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-    //                VKE_LOG_ERR(MSG);
-    //                break;
-    //            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-    //                VKE_LOG_WARN(MSG);
-    //                break;
-    //            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-    //                VKE_LOG_WARN(MSG);
-    //                break;
-    //            default:
-    //                VKE_LOG(MSG);
-    //                break;
-    //            }
-    //        }
-    //        VKE_ASSERT2(messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-    //        pCallbackData->pMessageIdName);
-    // #endif
-    //        return VK_FALSE;
-    //    }
+
+    Result CDDI::Load( const SDDILoadInfo& Info, SDriverInfo* pOut )
+    {
+        if( Info.enableDebugMode )
+        {
+            ID3D12Debug* pDebug;
+            if( FAILED( D3D12GetDebugInterface( IID_PPV_ARGS( &pDebug ) ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::Load: Error while getting debug interface." );
+            }
+            else
+            {
+                pDebug->EnableDebugLayer();
+                NativeAPI::SImplementation::sDebugLayerEnabled = true;
+            }
+        }
+
+        // DX12 doesn't actually have a driver to load, just create the DXGI Factory via DXGI.
+        Result Res = VKE_OK;
+
+        UINT Flags = Info.enableDebugMode ? DXGI_CREATE_FACTORY_DEBUG : 0;
+
+        if( FAILED( CreateDXGIFactory2( Flags, IID_PPV_ARGS( &NativeAPI::SImplementation::spFactory ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::Load: Failed to create DXGI Factory" );
+            return VKE_FAIL;
+        }
+
+        BOOL AllowTearing = FALSE;
+        if( FAILED( NativeAPI::SImplementation::spFactory->CheckFeatureSupport(
+                DXGI_FEATURE_PRESENT_ALLOW_TEARING, &AllowTearing, sizeof( AllowTearing ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::QueryAdapters: Check tearing support failed" );
+            return VKE_FAIL;
+        }
+
+        NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported = ( AllowTearing == TRUE );
+
+        return Res;
+    }
+
+    // Object methods
+
+    void BitTest()
+    {
+        Utils::TCBitPool< uint8_t > Pool;
+        Pool.Create( 100 );
+        Utils::TCDynamicArray< ExtentU32 > vAllocated;
+
+        for( uint32_t i = 0; i < 20; ++i )
+        {
+            uint32_t s         = rand() % 15;
+            uint32_t firstSlot = Pool.AllocateSlots( s );
+            Pool.Print( std::format( "+({},{})", firstSlot, s ) );
+
+            bool doFree = vAllocated.GetCount() > 4 && ( ( rand() % 12 ) % 3 == 0 );
+
+            if( doFree )
+            {
+                s       = rand() % vAllocated.GetCount();
+                auto al = vAllocated[ s ];
+                Pool.FreeSlots( al.begin, al.end );
+                vAllocated.RemoveFast( s );
+                Pool.Print( std::format( "-({},{})", al.begin, al.end ) );
+            }
+            vAllocated.PushBack( { firstSlot, s } );
+        }
+    }
+
+    Result CDDI::CreateDevice( const SCreateDeviceDesc& Info, CDeviceContext* pCtx )
+    {
+
+        m_hAdapter = reinterpret_cast< NativeAPI::Adapter >( pCtx->m_Desc.pAdapterInfo->hDDIAdapter );
+        m_pCtx     = pCtx;
+
+        VKE_ASSERT2( m_hAdapter != NativeAPI::Null, "CDDI::CreateDevice: Adapter is null" );
+        VKE_RETURN_IF_FAILED( Helper::QueryAdapterProperties( m_hAdapter, &m_DeviceProperties ) );
+
+        // TODO(blturkot): Compare pCtx->m_Desc.pAdapterInfo->apiVersion with Info.Settings.Features
+
+        if( NativeAPI::SImplementation::sDebugLayerEnabled )
+        {
+            // Enable TDR extended info (DRED)
+            ID3D12DeviceRemovedExtendedDataSettings1* pDREDSettings = nullptr;
+            if( SUCCEEDED( D3D12GetDebugInterface( IID_PPV_ARGS( &pDREDSettings ) ) ) )
+            {
+                pDREDSettings->SetAutoBreadcrumbsEnablement( D3D12_DRED_ENABLEMENT_FORCED_ON );
+                pDREDSettings->SetPageFaultEnablement( D3D12_DRED_ENABLEMENT_FORCED_ON );
+                pDREDSettings->SetBreadcrumbContextEnablement( D3D12_DRED_ENABLEMENT_FORCED_ON );
+
+                pDREDSettings->Release();
+                VKE_LOG( "CDDI::CreateDevice: DRED enabled with auto-breadcrumbs and page fault reporting" );
+            }
+        }
+
+        HRESULT Result = D3D12CreateDevice( m_hAdapter,
+                                            static_cast< D3D_FEATURE_LEVEL >( pCtx->m_Desc.pAdapterInfo->apiVersion ),
+                                            IID_PPV_ARGS( &m_hDevice ) );
+        if( FAILED( Result ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateDevice: D3D12CreateDevice failed" );
+            return VKE_FAIL;
+        }
+
+        if( NativeAPI::SImplementation::sDebugLayerEnabled )
+        {
+            ID3D12InfoQueue* pInfoQueue = NativeAPI::Null;
+            if( FAILED( m_hDevice->QueryInterface( &pInfoQueue ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::CreateDevice: QueryInterface for ID3D12InfoQueue failed" );
+            }
+            else
+            {
+                pInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE );
+                pInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_ERROR, TRUE );
+                pInfoQueue->SetBreakOnSeverity( D3D12_MESSAGE_SEVERITY_WARNING, TRUE );
+                pInfoQueue->Release();
+            }
+        }
+
+        CD3DX12FeatureSupport FeatureSupport;
+        FeatureSupport.Init( m_hDevice );
+
+        auto& Features = m_Implementation.Features;
+
+        Features.TightAlignmentSupported =
+            ( FeatureSupport.TightAlignmentSupportTier() != D3D12_TIGHT_ALIGNMENT_TIER_NOT_SUPPORTED );
+
+        Features.BindlessResourceAccessSupported =
+            ( FeatureSupport.ResourceBindingTier() >= D3D12_RESOURCE_BINDING_TIER_3 );
+
+        Features.ResourceHeapTier = static_cast< uint8_t >( FeatureSupport.ResourceHeapTier() );
+
+        Features.RayTracingSupported = ( FeatureSupport.RaytracingTier() != D3D12_RAYTRACING_TIER_NOT_SUPPORTED );
+        Features.MeshShaderSupported = ( FeatureSupport.MeshShaderTier() != D3D12_MESH_SHADER_TIER_NOT_SUPPORTED );
+
+        Features.EnhancedBarriersSupported = FeatureSupport.EnhancedBarriersSupported();
+        Features.UploadHeapSupported       = FeatureSupport.GPUUploadHeapSupported();
+
+        for( UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i++ )
+        {
+            m_Implementation.Properties.Memory.DescriptorHeapSizes[ i ] =
+                m_hDevice->GetDescriptorHandleIncrementSize( static_cast< D3D12_DESCRIPTOR_HEAP_TYPE >( i ) );
+        }
+
+        if( Info.Settings.Features.bindlessResourceAccess == FeatureEnableModes::ENABLE &&
+            !m_Implementation.Features.BindlessResourceAccessSupported )
+        {
+            VKE_LOG_WARN( "CDDI::CreateDevice: Bindless Resource Access not fully supported on this device" );
+        }
+
+        if( Info.Settings.Features.meshShaders == FeatureEnableModes::ENABLE &&
+            !m_Implementation.Features.MeshShaderSupported )
+        {
+            VKE_LOG_ERR( "CDDI::CreateDevice: Mesh Shaders not supported on this device" );
+            return VKE_FAIL;
+        }
+
+        if( Info.Settings.Features.raytracing == FeatureEnableModes::ENABLE &&
+            !m_Implementation.Features.RayTracingSupported )
+        {
+            VKE_LOG_ERR( "CDDI::CreateDevice: Raytracing not supported on this device" );
+            return VKE_FAIL;
+        }
+
+        if( m_Implementation.Features.ResourceHeapTier < 2 )
+        {
+            VKE_LOG_WARN( "CDDI::CreateDevice: Hardware does not support Tier2 resource heaps." );
+        }
+
+        return Result::OK;
+    }
+
+    void CDDI::DestroyDevice()
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::Queue CreateCommandQueue( NativeAPI::Device pDevice, D3D12_COMMAND_LIST_TYPE Type,
+                                         bool Required = false )
+    {
+        D3D12_COMMAND_QUEUE_DESC Desc = {};
+        Desc.Type                     = Type;
+        Desc.Priority                 = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+        Desc.Flags                    = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        Desc.NodeMask                 = Helper::GetNodeMask();
+
+        NativeAPI::Queue pQueue = NativeAPI::Null;
+        if( FAILED( pDevice->CreateCommandQueue( &Desc, IID_PPV_ARGS( &pQueue ) ) ) && Required )
+        {
+            VKE_LOG_ERR( "CDDI::CreateCommandQueue: Failed to create command queue" );
+        }
+
+        return pQueue;
+    }
+
+    void CDDI::QueryDeviceInfo( SDeviceInfo* pOut )
+    {
+        TRACK_CALL_ONCE( "CDDI::QueryDeviceInfo" );
+
+        auto& Limits = pOut->Limits;
+
+        auto& Alignment                = Limits.Alignment;
+        Alignment.constantBufferOffset = 256;
+        Alignment.bufferCopyOffset     = 0;
+        Alignment.bufferCopyRowPitch   = 256;
+        Alignment.memoryMap =
+            0; // DX12 doesn't require alignments for memory mapping but resources needs to be aligned
+               // appropriately, eg.:  64KB for default buffers/textures, 4KB for upload/readback buffers/textures.
+        Alignment.texelBufferOffset   = 0;
+        Alignment.storageBufferOffset = 0;
+
+        auto& Binding                        = Limits.Binding;
+        Binding.maxConstantBufferRange       = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16; // 16 bytes per element
+        Binding.maxPushConstantsSize         = 0; // DX12 doesn't have push constants
+        Binding.Stage.maxConstantBufferCount = D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT;
+        Binding.Stage.maxSamplerCount        = D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
+        Binding.Stage.maxStorageBufferCount  = 0; // DX12 doesn't have storage buffers
+        Binding.Stage.maxStorageTextureCount = 0; // DX12 doesn't have storage textures
+        Binding.Stage.maxResourceCount       = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
+        Binding.Stage.maxTextureCount        = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
+
+        auto& Memory                            = Limits.Memory;
+        Memory.maxAllocationCount               = UINT32_MAX; // No documented limit
+        Memory.minMapAlignment                  = 0;          // No documented limit
+        Memory.minTexelBufferOffsetAlignment    = 0;          // No documented limit
+        Memory.minConstantBufferOffsetAlignment = 256;        // Must be 256-byte aligned
+        Memory.minStorageBufferOffsetAlignment  = 0;          // No documented limit
+
+        auto& l1Budget = m_Implementation.Properties.Memory.localBudget;
+        auto& l0Budget = m_Implementation.Properties.Memory.hostBudget;
+
+        // Right now just assume budgets for heaps for each level.
+        auto& Heaps                            = m_Implementation.Properties.Memory.HeapProperties;
+        Heaps[ MemoryHeapTypes::CPU ]          = { D3D12_HEAP_TYPE_DEFAULT, D3D12_MEMORY_POOL_L0, l0Budget };
+        Heaps[ MemoryHeapTypes::GPU ]          = { D3D12_HEAP_TYPE_DEFAULT, D3D12_MEMORY_POOL_L1, l1Budget };
+        Heaps[ MemoryHeapTypes::UPLOAD ]       = { D3D12_HEAP_TYPE_UPLOAD, D3D12_MEMORY_POOL_UNKNOWN, l1Budget };
+        Heaps[ MemoryHeapTypes::CPU_CACHED ]   = { D3D12_HEAP_TYPE_READBACK, D3D12_MEMORY_POOL_L0, l0Budget };
+        Heaps[ MemoryHeapTypes::CPU_COHERENT ] = { D3D12_HEAP_TYPE_READBACK, D3D12_MEMORY_POOL_L0, l0Budget };
+        Heaps[ MemoryHeapTypes::OTHER ]        = { D3D12_HEAP_TYPE_CUSTOM, D3D12_MEMORY_POOL_UNKNOWN, l1Budget };
+
+        auto& RenderPass                     = Limits.RenderPass;
+        RenderPass.maxColorRenderTargetCount = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
+
+        auto& Query           = Limits.Query;
+        Query.timestampPeriod = 0.0; // This should in nanoseconds to match other API.
+                                     // DX12 needs to query the timestamp frequency from the command queue.
+
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "Device cannot be Null when calling QueryDeviceIndo" );
+
+        // TODO(any): Think about queue priorities and multiple queues per family.
+        for( int i = 0; i < QUEUE_TYPE::_MAX_COUNT; i++ )
+        {
+            NativeAPI::Queue pQueue = NativeAPI::Null;
+
+            SQueueFamilyInfo QueueInfo = {};
+
+            QueueInfo.index = i;
+            QueueInfo.type  = static_cast< QUEUE_TYPE >( i );
+
+            D3D12_COMMAND_LIST_TYPE Type = Map::GetCommandListType( QueueInfo.type );
+
+            if( Type != D3D12_COMMAND_LIST_TYPE_NONE )
+            {
+                pQueue = CreateCommandQueue( m_hDevice, Type, Type == D3D12_COMMAND_LIST_TYPE_DIRECT );
+            }
+
+            if( pQueue != NativeAPI::Null )
+            {
+                QueueInfo.vQueues.PushBack( pQueue );
+                QueueInfo.vPriorities.PushBack( 1.0f );
+            }
+            else
+            {
+                QueueInfo.vQueues.Resize( 0 );
+                QueueInfo.vPriorities.Resize( 0 );
+            }
+
+            m_DeviceProperties.vQueueFamilies.PushBack( QueueInfo );
+        }
+    }
+
+    NativeAPI::D3D12Resource* CreateResource( NativeAPI::Device                   pDevice,
+                                              const NativeAPI::D3D12ResourceDesc& ResourceDesc,
+                                              const SBindMemoryInfo&              MemInfo )
+    {
+        NativeAPI::D3D12Resource* pResource = NativeAPI::Null;
+
+        if( FAILED( pDevice->CreatePlacedResource( MemInfo.hDDIMemory,
+                                                   MemInfo.offset,
+                                                   &ResourceDesc,
+                                                   D3D12_RESOURCE_STATE_COMMON,
+                                                   nullptr,
+                                                   IID_PPV_ARGS( &pResource ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateResource: Create resource failure." );
+        }
+        else
+        {
+            if( ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER )
+            {
+                VKE_LOG( std::format( "CDDI::CreateResource: Placed resource created at GPU VA: {}",
+                                      pResource->GetGPUVirtualAddress() ) );
+            }
+            else
+            {
+                VKE_LOG(
+                    std::format( "CDDI::CreateResource: Placed resource created at heap offset: {}", MemInfo.offset ) );
+            }
+        }
+
+        return pResource;
+    }
+
+    NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateBuffer: m_hDevice can't be null" );
+
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_Implementation.Features );
+        NativeAPI::Buffer            pBuffer      = CreateResource( m_hDevice, ResourceDesc, MemInfo );
+
+        if( pBuffer != NativeAPI::Null )
+        {
+            SetObjectDebugName( (const uint64_t)pBuffer, ApiObjectTypes::BUFFER, "Unnamed buffer" );
+        }
+
+        return pBuffer;
+    }
+
+    void CDDI::DestroyBuffer( NativeAPI::Buffer* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::BufferView CDDI::CreateBufferView( const SBufferViewDesc& Desc, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return NativeAPI::Null;
+    }
+
+    void CDDI::DestroyBufferView( NativeAPI::BufferView* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    Result CDDI::GetTextureFormatProperties( const STextureDesc& Desc, STextureFormatProperties* pOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return Result::OK;
+    }
+
+    NativeAPI::Texture CDDI::CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateTexture: m_hDevice can't be null" );
+
+        NativeAPI::D3D12ResourceDesc ResourceDesc;
+        Convert::GetResourceDesc( Desc, m_Implementation.Features, &ResourceDesc );
+        NativeAPI::Texture pTexture = CreateResource( m_hDevice, ResourceDesc, MemInfo );
+
+        if( pTexture != NativeAPI::Null )
+        {
+            SetObjectDebugName( (const uint64_t)pTexture, ApiObjectTypes::TEXTURE, Desc.Name.GetData() );
+        }
+
+        return pTexture;
+    }
+
+    void CDDI::DestroyTexture( NativeAPI::Texture* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    namespace Map
+    {
+        D3D12_UAV_DIMENSION DimmensionToUAVDimmension( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_UAV_DIMENSION cValues[] = {
+                D3D12_UAV_DIMENSION_UNKNOWN,   // unknown
+                D3D12_UAV_DIMENSION_BUFFER,    // buffer
+                D3D12_UAV_DIMENSION_TEXTURE1D, // texture 1d
+                D3D12_UAV_DIMENSION_TEXTURE2D, // texture 2d
+                D3D12_UAV_DIMENSION_TEXTURE3D, // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_UAV_DIMENSION DimmensionToUAVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_UAV_DIMENSION cValues[] = {
+                D3D12_UAV_DIMENSION_UNKNOWN,        // unknown
+                D3D12_UAV_DIMENSION_BUFFER,         // buffer
+                D3D12_UAV_DIMENSION_TEXTURE1DARRAY, // texture 1d
+                D3D12_UAV_DIMENSION_TEXTURE2DARRAY, // texture 2d
+                D3D12_UAV_DIMENSION_TEXTURE3D,      // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_SRV_DIMENSION DimmensionToSRVDimmension( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_SRV_DIMENSION cValues[] = {
+                D3D12_SRV_DIMENSION_UNKNOWN,   // unknown
+                D3D12_SRV_DIMENSION_BUFFER,    // buffer
+                D3D12_SRV_DIMENSION_TEXTURE1D, // texture 1d
+                D3D12_SRV_DIMENSION_TEXTURE2D, // texture 2d
+                D3D12_SRV_DIMENSION_TEXTURE3D, // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_SRV_DIMENSION DimmensionToSRVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_SRV_DIMENSION cValues[] = {
+                D3D12_SRV_DIMENSION_UNKNOWN,        // unknown
+                D3D12_SRV_DIMENSION_BUFFER,         // buffer
+                D3D12_SRV_DIMENSION_TEXTURE1DARRAY, // texture 1d
+                D3D12_SRV_DIMENSION_TEXTURE2DARRAY, // texture 2d
+                D3D12_SRV_DIMENSION_TEXTURE3D,      // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorPoolTypeToDescriptorHeapType( RenderSystem::DESCRIPTOR_POOL_TYPE type )
+        {
+            /*
+            struct DescriptorPoolTypes
+            {
+                enum TYPE
+                {
+                    TEXTURE_BUFFER_CBUFFER,
+                    SAMPLER,
+                    RENDER_TARGET,
+                    DEPTH_STENCIL,
+                    _MAX_COUNT
+                };
+            };
+            */
+            static const D3D12_DESCRIPTOR_HEAP_TYPE scValues[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+                D3D12_DESCRIPTOR_HEAP_TYPE_DSV
+            };
+            return scValues[ type ];
+        }
+
+        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorBindingTypeToHeapType( RenderSystem::BINDING_TYPE type )
+        {
+            /*struct BindingTypes
+            {
+                enum TYPE : uint8_t
+                {
+                    SAMPLER,             // only sampler
+                    TEXTURE,             // only texture without sampler
+                    STORAGE_TEXTURE,
+                    READ_ONLY_TEXEL_BUFFER,
+                    READ_WRITE_TEXEL_BUFFER,
+                    CONSTANT_BUFFER,
+                    BUFFER,
+                    DYNAMIC_CONSTANT_BUFFER,
+                    DYNAMIC_BUFFER,
+                    RENDER_TARGET,
+                    DEPTH_STENCIL,
+                    _MAX_COUNT,
+                    UNKNOWN = _MAX_COUNT
+                };
+            };*/
+            static const D3D12_DESCRIPTOR_HEAP_TYPE ascValues[ RenderSystem::BindingTypes::_MAX_COUNT ] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // sampler
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // texture
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // storage tex
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // ro tex buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // rw tex buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // cbuff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // buffer
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn cbuffer
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,         // render target
+                D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES    // depth stencil
+            };
+            return ascValues[ type ];
+        }
+    } // namespace Map
+
+    NativeAPI::TextureView CDDI::CreateTextureView( const STextureViewDesc& TextureViewDesc, const void* pAllocator )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
+
+        NativeAPI::TextureView pTextureView = NativeAPI::Null;
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTextureView ) ) )
+        {
+            VKE_LOG_ERR( "Out of memory" );
+            return pTextureView;
+        }
+
+        pTextureView->pResource                   = m_pCtx->GetTexture( TextureViewDesc.hTexture )->GetDDIObject();
+        NativeAPI::D3D12ResourceDesc ResourceDesc = pTextureView->pResource->GetDesc();
+
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
+        {
+            Helper::CreateShaderResourceView( TextureViewDesc, &pTextureView->ShaderResourceViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::SRV );
+        }
+
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ) )
+        {
+            Helper::CreateRenderTargetView( TextureViewDesc, &pTextureView->RenderTargetViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::RTV );
+        }
+
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS ) )
+        {
+            Helper::CreateUnorderedAccessView( TextureViewDesc, &pTextureView->UnorderedAccessViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::UAV );
+        }
+
+        if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL ) )
+        {
+            Helper::CreateDepthStencilViewDesc( TextureViewDesc, &pTextureView->DepthStencilViewDesc );
+            pTextureView->Enable( NativeAPI::ResourceViewTypes::DSV );
+        }
+
+        return pTextureView;
+    }
+
+    void CDDI::DestroyTextureView( NativeAPI::TextureView* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::Framebuffer CDDI::CreateFramebuffer( const SFramebufferDesc& Desc, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return NativeAPI::Null;
+    }
+
+    void CDDI::DestroyFramebuffer( NativeAPI::Framebuffer* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::CPUFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator ) const
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
+
+        NativeAPI::CPUFence pFence = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pFence );
+
+        D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
+
+        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
+        }
+
+        pFence->Value = Desc.startValue;
+
+        return pFence;
+    }
+
+    NativeAPI::Fence CDDI::CreateFence2( const SFenceDesc& Desc ) const
+    {
+        NativeAPI::Fence pFence = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pFence );
+
+        D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
+
+        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
+        }
+
+        pFence->Value = Desc.startValue;
+
+        return pFence;
+    }
+
+    void CDDI::DestroyFence( NativeAPI::CPUFence* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::DestroyFence( NativeAPI::Fence* pInOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator ) const
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
+
+        NativeAPI::GPUFence pFence;
+        Memory::CreateObject( &HeapAllocator, &pFence );
+
+        D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
+
+        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateFence: Failed to create fence" );
+        }
+
+        pFence->Value = Desc.startValue;
+        return pFence;
+    }
+
+    void CDDI::DestroySemaphore( NativeAPI::GPUFence* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::RenderPass CDDI::CreateRenderPass( const SRenderPassDesc& EngineRenderPassDesc, const void* pAllocator )
+    {
+        NativeAPI::RenderPass pNativeRenderPass = NativeAPI::Null;
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeRenderPass ) ) )
+        {
+            VKE_LOG_ERR(
+                "CDDI::CreateRenderPass: Unable to allocate memory for RenderPass: " << EngineRenderPassDesc.Name );
+            return NativeAPI::Null;
+        }
+
+        bool createDefaultSubpass = EngineRenderPassDesc.vSubpasses.IsEmpty();
+
+        NativeAPI::CustomTypes::SRenderPass::SSubpass* pDefaultSubpass = NativeAPI::Null;
+        if( createDefaultSubpass && VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pDefaultSubpass ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateRenderPass: Unable to allocate memory for subpass" );
+            return NativeAPI::Null;
+        }
+
+        // TODO(szymansk): Currently we're having global descriptor heaps in SImplementation class. Right now they are
+        // not under control of the engine. The ideal situation would be to:
+        // 1. Have a collection of render targets in engine
+        // 2. Engine calls something like: NativeAPI::RenderTarget CDDI::CreateRenderTarget( RenderTargetPool ),
+        // CDDI
+        // returns it's own handle:
+        // - DX12: D3D12_CPU_DESCRIPTOR_HANDLE
+        // - Vulkan: Texture pointer?
+        // 3. SRenderPassDesc will include RendeTarget
+
+        auto pDescriptorHeapRTV = m_Implementation.GetDescriptorHeap(
+            m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+
+        auto pDescriptorHeapDSV = m_Implementation.GetDescriptorHeap(
+            m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+
+        // Desc.vRenderTargetDescs seems to be never used by engine at the time, so CDDI skips it for now.
+        // TODO(szymansk): Remove it from engine?
+        // ---
+        // Reserve slots in descriptor heap and get offset for the first descriptor to be used in render pass for
+        // later binding.
+        D3D12_CPU_DESCRIPTOR_HANDLE hNativeCPUDescriptor =
+            pDescriptorHeapRTV->Allocate( EngineRenderPassDesc.vRenderTargets.GetCount() );
+
+        for( uint32_t index = 0; index < EngineRenderPassDesc.vRenderTargets.GetCount(); index++ )
+        {
+            const auto& EngineRenderTarget = EngineRenderPassDesc.vRenderTargets[ index ];
+            const auto& NativeResourceView = *EngineRenderTarget.hNativeView;
+
+            D3D12_RESOURCE_STATES NativeTrackedResourceState = Map::GetResourceState( EngineRenderTarget.beginState );
+
+            bool isRenderTargetView = false;
+            bool isDepthStencilView = false;
+            bool isClearOp          = false;
+            bool isStoreOp          = false;
+
+            switch( EngineRenderTarget.usage )
+            {
+                case RENDER_TARGET_RENDER_PASS_OP::UNDEFINED:
+                    // No access?
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR:
+                    isRenderTargetView = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR_CLEAR:
+                    isRenderTargetView = true;
+                    isClearOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR_STORE:
+                    isRenderTargetView = true;
+                    isStoreOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::COLOR_CLEAR_STORE:
+                    isRenderTargetView = true;
+                    isClearOp          = true;
+                    isStoreOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL:
+                    isDepthStencilView = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_CLEAR:
+                    isDepthStencilView = true;
+                    isClearOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_STORE:
+                    isDepthStencilView = true;
+                    isStoreOp          = true;
+                    break;
+
+                case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_CLEAR_STORE:
+                    isDepthStencilView = true;
+                    isClearOp          = true;
+                    isStoreOp          = true;
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "CDDI::CreateRenderPass: Unhandled usage" );
+                    return NativeAPI::Null;
+            }
+
+            if( isRenderTargetView )
+            {
+                if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::RTV ) )
+                {
+                    VKE_LOG_ERR( "CDDI::CreateRenderPass: COLOR render targets must have resource valid for "
+                                 "RENDER_TARGET_VIEW" );
+                    return NativeAPI::Null;
+                }
+
+                m_hDevice->CreateRenderTargetView(
+                    NativeResourceView.pResource, &NativeResourceView.RenderTargetViewDesc, hNativeCPUDescriptor );
+                hNativeCPUDescriptor.ptr += pDescriptorHeapRTV->DescriptorSize;
+
+                auto& NativeRenderTargetView = pNativeRenderPass->RenderTargetViews.Reserve();
+                NativeRenderTargetView.ptr   = hNativeCPUDescriptor.ptr;
+
+                if( isClearOp )
+                {
+                    auto& ClearArgs = pNativeRenderPass->Clear.Reserve();
+                    ClearArgs.Type  = NativeAPI::CustomTypes::SRenderPass::SClearArgs::RENDER_TARGET;
+
+                    auto& ClearArgsRTV             = ClearArgs.RenderTargetView;
+                    ClearArgsRTV.hRenderTargetView = hNativeCPUDescriptor;
+
+                    Memory::Copy( &ClearArgsRTV.aColorRGBA,
+                                  sizeof( ClearArgsRTV.aColorRGBA ),
+                                  EngineRenderTarget.ClearValue.Color.floats,
+                                  sizeof( EngineRenderTarget.ClearValue.Color.floats ) );
+
+                    ClearArgsRTV.Rect.left   = EngineRenderPassDesc.PositionOffset.x;
+                    ClearArgsRTV.Rect.top    = EngineRenderPassDesc.PositionOffset.y;
+                    ClearArgsRTV.Rect.right  = EngineRenderPassDesc.Size.x;
+                    ClearArgsRTV.Rect.bottom = EngineRenderPassDesc.Size.y;
+
+                    // ClearRenderTargetView() requires resource state D3D12_RESOURCE_STATE_RENDER_TARGET.
+                    Helper::ExpectResourceState( NativeResourceView.pResource,
+                                                 D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                 NativeTrackedResourceState,
+                                                 &pNativeRenderPass->Clear.Barriers );
+
+                    // After clear resource state is left in D3D12_RESOURCE_STATE_RENDER_TARGET.
+                    NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                }
+
+                if( createDefaultSubpass )
+                {
+                    auto& NativeDefaultSubpassRenderTarget          = pDefaultSubpass->RenderTargetViews.Reserve();
+                    NativeDefaultSubpassRenderTarget.hCPUDescriptor = hNativeCPUDescriptor;
+                    NativeDefaultSubpassRenderTarget.resourceState  = NativeTrackedResourceState;
+                }
+
+                // Barriers for BeginRenderPass() after Clear() is done.
+                Helper::ExpectResourceState( NativeResourceView.pResource,
+                                             Map::GetResourceState( EngineRenderTarget.beginState ),
+                                             NativeTrackedResourceState,
+                                             &pDefaultSubpass->BeginBarriers );
+
+                // TODO(blturkot): Handle STORE/DEFAULT usage
+            }
+            else if( isDepthStencilView )
+            {
+                if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::DSV ) )
+                {
+                    VKE_LOG_ERR( "CDDI::CreateRenderPass: DEPTH_STENCIL render targets must have resource valid "
+                                 "for DEPTH_STENCIL_VIEW" );
+                    return NativeAPI::Null;
+                }
+
+                pNativeRenderPass->DepthStencilView.hCPUDescriptor = pDescriptorHeapDSV->Allocate( 1 );
+                m_hDevice->CreateDepthStencilView( NativeResourceView.pResource,
+                                                   &NativeResourceView.DepthStencilViewDesc,
+                                                   pNativeRenderPass->DepthStencilView.hCPUDescriptor );
+
+                if( isClearOp )
+                {
+                    auto& ClearArgs = pNativeRenderPass->Clear.Reserve();
+                    ClearArgs.Type  = NativeAPI::CustomTypes::SRenderPass::SClearArgs::DEPTH_STENCIL_VIEW;
+
+                    auto& ClearArgsDSV             = ClearArgs.DepthStencilView;
+                    ClearArgsDSV.hDepthStencilView = pNativeRenderPass->DepthStencilView.hCPUDescriptor;
+                    ClearArgsDSV.ClearFlags = Convert::GetClearDepthStencilViewFlags( EngineRenderTarget.format );
+                    ClearArgsDSV.depth      = EngineRenderTarget.ClearValue.DepthStencil.depth;
+                    ClearArgsDSV.stencil = static_cast< UINT8 >( EngineRenderTarget.ClearValue.DepthStencil.stencil );
+
+                    ClearArgsDSV.Rect.left   = EngineRenderPassDesc.PositionOffset.x;
+                    ClearArgsDSV.Rect.top    = EngineRenderPassDesc.PositionOffset.y;
+                    ClearArgsDSV.Rect.right  = EngineRenderPassDesc.Size.x;
+                    ClearArgsDSV.Rect.bottom = EngineRenderPassDesc.Size.y;
+                }
+
+                // ClearDepthStencilView() requires resource state D3D12_RESOURCE_STATE_DEPTH_WRITE.
+                Helper::ExpectResourceState( NativeResourceView.pResource,
+                                             D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                             NativeTrackedResourceState,
+                                             &pNativeRenderPass->Clear.Barriers );
+
+                // After clear resource state is left in D3D12_RESOURCE_STATE_RENDER_TARGET.
+                NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                auto EngineRequestedState  = Map::GetResourceState( EngineRenderTarget.beginState );
+
+                // Barriers for BeginRenderPass() after Clear() is done.
+                Helper::ExpectResourceState( NativeResourceView.pResource,
+                                             EngineRequestedState,
+                                             NativeTrackedResourceState,
+                                             &pDefaultSubpass->BeginBarriers );
+                NativeTrackedResourceState = EngineRequestedState;
+
+                // TODO(blturkot): Decde if STORE/DEFAULT usage
+            }
+            else
+            {
+                VKE_LOG_ERR( "CDDI::CreateRenderPass: Render target must have RTV or DSV set." );
+                return NativeAPI::Null;
+            }
+
+            // Append baked barriers on EndRenderPass(). This may be valid for RenderPasses with default subpass.
+            // TODO(blturkot): EndRenderPass() should track resource state from last used subpass.
+            Helper::ExpectResourceState( NativeResourceView.pResource,
+                                         Map::GetResourceState( EngineRenderTarget.endState ),
+                                         NativeTrackedResourceState,
+                                         &pNativeRenderPass->EndBarriers );
+        }
+
+        for( const auto& Subpass: EngineRenderPassDesc.vSubpasses )
+        {
+            VKE_LOG( "Subpass" << Subpass.GetDebugName() );
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        pNativeRenderPass->pName = EngineRenderPassDesc.GetDebugName();
+        return pNativeRenderPass;
+    }
+
+    void CDDI::DestroyRenderPass( NativeAPI::RenderPass* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::CommandBufferPool CDDI::CreateCommandBufferPool( const SCommandBufferPoolDesc& Desc,
+                                                                const void*                   pAllocator )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateCommandBufferPool: m_hDevice can't be null" );
+
+        NativeAPI::CommandBufferPool pCommandBufferPool = NativeAPI::Null;
+        Memory::CreateObject( &HeapAllocator, &pCommandBufferPool );
+
+        D3D12_COMMAND_LIST_TYPE type = Map::GetCommandListType( Desc.pContext->m_pQueue->GetType() );
+        if( type == D3D12_COMMAND_LIST_TYPE_NONE )
+        {
+            VKE_LOG_ERR( "CDDI::CreateCommandBufferPool: Unsupported command list type" );
+            return NativeAPI::Null;
+        }
+
+        // if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator->pAllocator ) ) ) )
+        //{
+        //     VKE_LOG_ERR( "CDDI::CreateCommandBufferPool: Failed to create command allocator" );
+        // }
+
+        pCommandBufferPool->EngineType = Desc.pContext->m_pQueue->GetType();
+        pCommandBufferPool->NativeType = type;
+
+        return pCommandBufferPool;
+    }
+
+    void CDDI::DestroyCommandBufferPool( NativeAPI::CommandBufferPool* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::DescriptorPool CDDI::CreateDescriptorPool( const SDescriptorPoolDesc& EngineDesc,
+                                                          const void*                pAllocator )
+    {
+        if( EngineDesc.IsValid() == false )
+        {
+            VKE_LOG_ERR(
+                "Invalid DescriptorPool desc. Descriptor pool must have only one type (DESCRIPTOR_POOL_TYPE). Make "
+                "sure that textures/buffers, sampler, render targets, depth stencils are not mixed together." );
+
+            return NativeAPI::Null;
+        }
+
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateDescriptorPool: m_hDevice can't be null" );
+
+        NativeAPI::DescriptorPool pPool = NativeAPI::Null;
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPool ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateDescriptorPool: Unable to allocate memory" );
+            return NativeAPI::Null;
+        }
+
+        auto     poolType                 = BindingTypeToPoolType( EngineDesc.vPoolSizes[ 0 ].type );
+        uint32_t totalDescriptorSlotCount = 0;
+
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+        // D3D12_DESCRIPTOR_HEAP_TYPE heapType = {};
+
+        for( auto& poolSize: EngineDesc.vPoolSizes )
+        {
+            totalDescriptorSlotCount += poolSize.count;
+        }
+
+        if( VKE_FAILED(
+                pPool->DescriptorSetMemMgr.Create( totalDescriptorSlotCount, sizeof( NativeAPI::DescriptorSet ), 1 ) ) )
+        {
+            Memory::DestroyObject( &HeapAllocator, &pPool );
+            VKE_LOG_ERR( "Critical: Not enouth memory to create descriptor pool. Required number of descriptor slots: "
+                         << totalDescriptorSlotCount );
+            return pPool;
+        }
+
+        {
+            auto nativePoolType   = Map::DescriptorPoolTypeToDescriptorHeapType( poolType );
+            pPool->descriptorSize = m_hDevice->GetDescriptorHandleIncrementSize( nativePoolType );
+            if( pPool->descriptorSize )
+            {
+                heapDesc.Type           = nativePoolType;
+                heapDesc.NumDescriptors = totalDescriptorSlotCount;
+                heapDesc.NodeMask       = Helper::GetNodeMask();
+                heapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+                if( heapDesc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ||
+                    heapDesc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER )
+                {
+                    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+                }
+
+                if( VKE_FAILED( pPool->SlotMgr.Create( heapDesc.NumDescriptors ) ) )
+                {
+                    DestroyDescriptorPool( &pPool, pAllocator );
+                    VKE_LOG_ERR( "Unable to create descriptor heap slot pool. Out of memory." );
+                    return pPool;
+                }
+
+                if( FAILED( m_hDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &pPool->pHeap ) ) ) )
+                {
+                    VKE_LOG_ERR( "CDDI::CreateDescriptorPool: Failed to create descriptor heap" );
+                }
+
+                pPool->type = nativePoolType;
+            }
+        }
+
+        return pPool;
+    }
+
+    void CDDI::DestroyDescriptorPool( NativeAPI::DescriptorPool* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::DescriptorSetLayout CDDI::CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc,
+                                                                    const void*                     pAllocator )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateDescriptorSetLayout: m_hDevice can't be null" );
+
+        if( !Desc.IsValid() )
+        {
+            return NativeAPI::Null;
+        }
+        if( Desc.vBindings.IsEmpty() )
+        {
+            VKE_LOG_ERRF( "Unable to create DescriptorSetLayout: '{}' because number of resource bindings is 0.",
+                          Desc.GetDebugName() );
+            return NativeAPI::Null;
+        }
+
+        NativeAPI::DescriptorSetLayout pNativeDescriptorSetLayout = NativeAPI::Null;
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDescriptorSetLayout ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateDescriptorSetLayout: Unable to allocate memory" );
+        }
+
+        NativeAPI::D3D12RootParameter& rootParameter = pNativeDescriptorSetLayout->RootParameter;
+        pNativeDescriptorSetLayout->type             = Map::DescriptorBindingTypeToHeapType( Desc.vBindings[ 0 ].type );
+        pNativeDescriptorSetLayout->numSlots         = 0;
+
+        // Assume shader visibility all, see notes below.
+        rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        rootParameter.ParameterType    = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+
+        for( auto& binding: Desc.vBindings )
+        {
+            // We can prevent shader visibility set to all by create each range for a specific visibility. For
+            // example range with visibility PIXEL, VERTEX. But it still won't match Vulkan as theres no possibility
+            // for combining like PIXEL | VERTEX. D3D12_SHADER_VISIBILITY visibility = Convert::getShaderVisibility(
+            // binding.stages );
+            NativeAPI::D3D12DescriptorRange range;
+
+            range.RangeType          = Map::GetDescriptorRangeType( binding.type );
+            range.NumDescriptors     = binding.count;
+            range.BaseShaderRegister = binding.idx;
+            range.RegisterSpace      = 0;
+
+            // This flag allows us to update descriptors in descriptor table on command list execution.
+            // Same as in vulkan.
+            range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+            range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+            pNativeDescriptorSetLayout->vDescriptorRanges.PushBack( range );
+            pNativeDescriptorSetLayout->numSlots += binding.count;
+        }
+
+        rootParameter.DescriptorTable.NumDescriptorRanges = pNativeDescriptorSetLayout->vDescriptorRanges.GetCount();
+        rootParameter.DescriptorTable.pDescriptorRanges   = pNativeDescriptorSetLayout->vDescriptorRanges.GetData();
+
+        return pNativeDescriptorSetLayout;
+    }
+
+    void CDDI::DestroyDescriptorSetLayout( NativeAPI::DescriptorSetLayout* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    VKE::Result CDDI::CreateDescriptorSets( const AllocateDescs::SDescSet& EngineDescriptorSetInfo,
+                                            NativeAPI::DescriptorSet*      pOutNativeDescriptorSets )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateDescriptorSets: m_hDevice can't be null" );
+
+        auto pNativePool = EngineDescriptorSetInfo.hPool;
+
+        VKE::Result result = VKE_OK;
+
+        for( uint32_t layoutIndex = 0; layoutIndex < EngineDescriptorSetInfo.count; layoutIndex++ )
+        {
+            pOutNativeDescriptorSets[ layoutIndex ] = nullptr;
+            NativeAPI::DescriptorSet& pCurrentSet   = pOutNativeDescriptorSets[ layoutIndex ];
+
+            if( VKE_FAILED( Memory::CreateObject( &pNativePool->DescriptorSetMemMgr, &pCurrentSet ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::CreateDescriptorSets: Unable to allocate memory" );
+                return VKE_FAIL;
+            }
+
+            const NativeAPI::DescriptorSetLayout pLayout = EngineDescriptorSetInfo.phLayouts[ layoutIndex ];
+            pCurrentSet->pLayout                         = pLayout;
+
+            // CreateDescriptorSet is supposed to only handle D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV.
+            // We're ignoring RTV, DSV as they are handled by CreateRenderPass().
+            // TODO(blturkot): Handle SAMPLER heaps if ever used.
+            VKE_ASSERT( pLayout->numSlots > 0 );
+            auto firstSlotIndex = EngineDescriptorSetInfo.hPool->SlotMgr.AllocateSlots( pLayout->numSlots );
+            if( firstSlotIndex != UNDEFINED_U32 )
+            {
+                pCurrentSet->PoolSlots             = { firstSlotIndex, pLayout->numSlots };
+                pCurrentSet->pPool                 = EngineDescriptorSetInfo.hPool;
+                pCurrentSet->descTableCPUStartAddr = pCurrentSet->GetCpuDescriptorHandle( 0 ).ptr;
+                pCurrentSet->descTableGPUStartAddr = pCurrentSet->GetGpuDescriptorHandle( 0 ).ptr;
+            }
+            else
+            {
+                result = VKE_FAIL;
+                // Not an error since it is possible to create new descriptor pool
+                VKE_LOG_WARN( "Not enough free slot ranges in descriptor heap pool of type: " << pLayout->type );
+            }
+        }
+        if( VKE_FAILED( result ) )
+        {
+            FreeDescs::SDescSet Free;
+            Free.hPool  = EngineDescriptorSetInfo.hPool;
+            Free.phSets = pOutNativeDescriptorSets;
+            Free.count  = EngineDescriptorSetInfo.count;
+            FreeObjects( Free );
+        }
+        return result;
+    }
+
+    void CDDI::FreeObjects( const FreeDescs::SDescSet& )
+    {
+        // Must add freed ranges to heaps
+        // The best option would be to not destroy memory directly but to place objects to some free list instead
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Update( const SUpdateBufferDescriptorSetInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Update( const SUpdateTextureDescriptorSetInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
+    {
+        VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() == 0,
+                     "CDDI::Update: Sampler and texture heaps are not supported in DX12" );
+
+        auto&                           pPool          = hDDISet->pPool;
+        NativeAPI::D3D12DescriptorHeap* DescriptorHeap = pPool->pHeap;
+        const UINT                      srvDescriptorSize =
+            m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
+        (void)srvDescriptorSize;
+        (void)DescriptorHeap;
+
+        for( auto& Binding: Info.vRTs )
+        {
+            (void)Binding;
+            /*NativeAPI::D3D12DescriptorHeap* DescriptorHeap = hDDISet->Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
+            VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
+            Binding.ahHandles;
+            Binding.binding;
+            Binding.count;
+            Binding.type;*/
+
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        // Texture is meant to be write
+        for( auto& Binding: Info.vTexs )
+        {
+            UNIMPLEMENTED_D3D12_METHOD();
+
+            VKE_ASSERT( Binding.type == BindingTypes::STORAGE_TEXTURE );
+
+            for( uint32_t i = 0; i < Binding.count; ++i )
+            {
+                D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
+                const auto                       pTexture = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
+                const auto&                      ViewDesc = pTexture->GetView()->GetDesc();
+                // const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
+
+                UavDesc.Format        = pTexture->GetDDIObject()->GetDesc().Format; /// TODO: handle typeless format
+                UavDesc.ViewDimension = Map::DimmensionToUAVDimmension( pTexture->GetDDIObject()->GetDesc().Dimension );
+                Helper::CreateUnorderedAccessView( ViewDesc, &UavDesc );
+
+                D3D12_CPU_DESCRIPTOR_HANDLE hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+
+                m_hDevice->CreateUnorderedAccessView( pTexture->GetDDIObject(), nullptr, &UavDesc, hCpu );
+            }
+        }
+
+        /// TODO: validate
+        for( auto& Binding: Info.vTexViews )
+        {
+            UNIMPLEMENTED_D3D12_METHOD();
+
+            for( uint32_t i = 0; i < Binding.count; ++i )
+            {
+                const auto  pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
+                const auto& TexViewDesc = pTexView->GetDesc();
+                const auto  pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
+
+                D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+                Helper::CreateShaderResourceView( TexViewDesc, &SrvDesc );
+
+                auto hCpu = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+                m_hDevice->CreateShaderResourceView( pTexture->GetDDIObject(), &SrvDesc, hCpu );
+            }
+        }
+
+        for( auto& Binding: Info.vSamplers )
+        {
+            (void)Binding;
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+
+        for( auto& Binding: Info.vBuffers )
+        {
+            for( uint32_t index = 0; index < Binding.count; index++ )
+            {
+                const auto EngineBuffer    = m_pCtx->GetBuffer( Binding.ahHandles[ index ] );
+                const auto pNativeResource = EngineBuffer->GetDDIObject();
+
+                D3D12_CPU_DESCRIPTOR_HANDLE hCpuDescriptorHandle = hDDISet->GetCpuDescriptorHandle( Binding.binding );
+
+                switch( Binding.type )
+                {
+                    case BINDING_TYPE::CONSTANT_BUFFER:
+                    case BINDING_TYPE::DYNAMIC_CONSTANT_BUFFER:
+                        // Initialize as CBV
+                        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+                        cbvDesc.BufferLocation = pNativeResource->GetGPUVirtualAddress();
+                        cbvDesc.SizeInBytes    = Binding.elementSize * Binding.elementCount;
+
+                        m_hDevice->CreateConstantBufferView( &cbvDesc, hCpuDescriptorHandle );
+                        break;
+
+                    case BINDING_TYPE::BUFFER:
+                    case BINDING_TYPE::DYNAMIC_BUFFER:
+                        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+                        srvDesc.Format                     = DXGI_FORMAT_UNKNOWN;
+                        srvDesc.ViewDimension              = D3D12_SRV_DIMENSION_BUFFER;
+                        srvDesc.Shader4ComponentMapping    = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                        srvDesc.Buffer.FirstElement        = Binding.offset;
+                        srvDesc.Buffer.NumElements         = Binding.elementCount;
+                        srvDesc.Buffer.StructureByteStride = Binding.elementSize;
+                        srvDesc.Buffer.Flags               = D3D12_BUFFER_SRV_FLAG_NONE;
+
+                        m_hDevice->CreateShaderResourceView( pNativeResource, &srvDesc, hCpuDescriptorHandle );
+                        break;
+
+                    case BINDING_TYPE::READ_ONLY_TEXEL_BUFFER:
+                    case BINDING_TYPE::READ_WRITE_TEXEL_BUFFER:
+                        D3D12_RESOURCE_DESC ResourceDesc;
+                        ResourceDesc = pNativeResource->GetDesc();
+
+                        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+                        uavDesc.Format                      = ResourceDesc.Format;
+                        uavDesc.ViewDimension               = D3D12_UAV_DIMENSION_BUFFER;
+                        uavDesc.Buffer.FirstElement         = Binding.offset;
+                        uavDesc.Buffer.NumElements          = Binding.elementCount;
+                        uavDesc.Buffer.StructureByteStride  = Binding.elementSize;
+                        uavDesc.Buffer.CounterOffsetInBytes = 0;
+                        uavDesc.Buffer.Flags                = D3D12_BUFFER_UAV_FLAG_NONE;
+
+                        m_hDevice->CreateUnorderedAccessView(
+                            pNativeResource, nullptr, &uavDesc, hCpuDescriptorHandle );
+                        VKE_LOG_ERR( "CDDI::Update: Unhandled buffer type" );
+                        break;
+
+                    default:
+                        VKE_LOG_ERR( "CDDI::Update: Invalid buffer type" );
+                        break;
+                }
+            }
+        }
+    }
+
+    void CDDI::Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::Pipeline CDDI::CreatePipeline( const SPipelineDesc& Desc, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return NativeAPI::Null;
+    }
+
+    void CDDI::DestroyPipeline( NativeAPI::Pipeline* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::PipelineLayout CDDI::CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* pAllocator )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreatePipelineLayout: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pCtx != nullptr, "CDDI::CreatePipelineLayout: m_pCtx can't be null" );
+
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignature;
+        versionedRootSignature.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+        D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc = versionedRootSignature.Desc_1_1;
+
+        rootSignatureDesc.NumStaticSamplers = 0;
+        rootSignatureDesc.pStaticSamplers   = nullptr;
+        rootSignatureDesc.NumParameters     = 0;
+        rootSignatureDesc.Flags             = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+        Utils::TCDynamicArray< D3D12_ROOT_PARAMETER1, 32 > vRootParameters;
+        for( auto& layout: Desc.vDescriptorSetLayouts )
+        {
+            const NativeAPI::DescriptorSetLayout& hDescriptorSetLayout = m_pCtx->GetDescriptorSetLayout( layout );
+            vRootParameters.PushBack( hDescriptorSetLayout->RootParameter );
+        }
+
+        // Right now push constants are not being used in Engine. Root signature includes information about push
+        // constants should be enabled. Enable this once completed.
+        /* for( auto& pushConst: Desc.vPushConstants )
+        {
+            D3D12_ROOT_PARAMETER1 param;
+            param.ParameterType    = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+            param.ShaderVisibility = Convert::getShaderVisibility( pushConst.stages );
+
+            // stages, size, offset
+            param.Constants.Num32BitValues = pushConst.size;
+            param.Constants.RegisterSpace  = 0;
+            param.Constants.ShaderRegister;
+        } */
+
+        rootSignatureDesc.NumParameters = vRootParameters.GetCount();
+        rootSignatureDesc.pParameters   = vRootParameters.GetData();
+
+        ID3DBlob* pSignatureBlob = nullptr;
+        ID3DBlob* pErrorBlob     = nullptr;
+
+        if( FAILED( D3D12SerializeVersionedRootSignature( &versionedRootSignature, &pSignatureBlob, &pErrorBlob ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreatePipelineLayout: Unable to serialize root signature." );
+        }
+
+        NativeAPI::D3D12RootSignature* pRootSignature;
+
+        if( FAILED( m_hDevice->CreateRootSignature( Helper::GetNodeMask(),
+                                                    pSignatureBlob->GetBufferPointer(),
+                                                    pSignatureBlob->GetBufferSize(),
+                                                    IID_PPV_ARGS( &pRootSignature ) ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreatePipelineLayout: Unable to create root signature." );
+        }
+
+        return pRootSignature;
+    }
+
+    void CDDI::DestroyPipelineLayout( NativeAPI::PipelineLayout* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::Shader CDDI::CreateShader( const SShaderData& Desc, const void* pAllocator )
+    {
+        NativeAPI::Shader shader;
+        Memory::CreateObject( &HeapAllocator, &shader );
+
+        shader->pShaderBytecode = (BYTE*)Desc.pCode;
+        shader->BytecodeLength  = Desc.codeSize;
+
+        return shader;
+    }
+
+    void CDDI::DestroyShader( NativeAPI::Shader* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::Sampler CDDI::CreateSampler( const SSamplerDesc& Desc, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return NativeAPI::Null;
+    }
+
+    void CDDI::DestroySampler( NativeAPI::Sampler* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::Event CDDI::CreateEvent( const SEventDesc& Desc, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return NativeAPI::Null;
+    }
+
+    void CDDI::DestroyEvent( NativeAPI::Event* pInOut, const void* pAllocator )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    Result CDDI::CreateCommandBuffers( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers )
+    {
+        Result result = VKE_OK;
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::AllocateObjects: m_hDevice can't be null" );
+
+        D3D12_COMMAND_LIST_TYPE type = ( Info.level == COMMAND_BUFFER_LEVEL::PRIMARY ) ? Info.hDDIPool->NativeType
+                                                                                       : D3D12_COMMAND_LIST_TYPE_BUNDLE;
+
+        if( type == D3D12_COMMAND_LIST_TYPE_NONE )
+        {
+            VKE_LOG_WARN( "CDDI::AllocateObjects: Unsupported command list type" );
+            return result;
+        }
+
+        for( uint32_t i = 0; i < Info.count; i++ )
+        {
+            NativeAPI::CustomTypes::SCommandBufferPool::SCommandListWithAllocator Pair;
+
+            if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &Pair.pAllocator ) ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::AllocateObjects: Failed to create command allocator" );
+                result = VKE_FAIL;
+                break;
+            }
+
+            if( FAILED( m_hDevice->CreateCommandList(
+                    0, type, Pair.pAllocator, NativeAPI::Null, IID_PPV_ARGS( &Pair.pCmdList ) ) ) )
+            {
+                VKE_LOG_ERR( "CDDI::AllocateObjects: Failed to create command list" );
+                result = VKE_FAIL;
+                break;
+            }
+
+            // CreateCommandList always create command list in open state. In order to allocate more objects
+            // every command list needs to be in closed state.
+            Pair.pCmdList->Close();
+            pBuffers[ i ] = Pair.pCmdList;
+
+            Info.hDDIPool->vCommandListsWithAllocators.PushBack( Pair );
+        }
+
+        return result;
+    }
+
+    void CDDI::FreeObjects( const SFreeCommandBufferInfo& )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    Result CDDI::GetBufferMemoryRequirements( const SBufferDesc& InDesc, SAllocationMemoryRequirementInfo* pOut )
+    {
+        // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateBuffer.
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( InDesc, m_Implementation.Features );
+
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
+
+        pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
+        pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
+
+        // Constants buffers in D3D12 has to be aligned to 256B.
+        if( InDesc.usage & BufferUsages::CONSTANT_BUFFER )
+        {
+            pOut->alignment = 256u;
+        }
+
+        return Result::OK;
+    }
+
+    Result CDDI::GetTextureMemoryRequirements( const STextureDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
+    {
+        // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateTexture.
+        NativeAPI::D3D12ResourceDesc ResourceDesc;
+
+        Convert::GetResourceDesc( Desc, m_Implementation.Features, &ResourceDesc );
+
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
+
+        pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
+        pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
+
+        return Result::OK;
+    }
+
+    void CDDI::UpdateDesc( SBufferDesc* pInOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Bind( const SBindPipelineInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Bind( const SBindDDIDescriptorSetsInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    /*void CDDI::Bind( const SBindRenderPassInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }*/
+
+    void CDDI::Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+                     const uint32_t offset )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+                     const uint32_t offset, const INDEX_TYPE& type )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::UnbindPipeline( const NativeAPI::CommandBuffer&, const NativeAPI::Pipeline& )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::UnbindRenderPass( const NativeAPI::CommandBuffer&, const NativeAPI::RenderPass& )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Free( NativeAPI::Memory* phMemory, const void* )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    Result CDDI::Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::Allocate: m_hDevice can't be null" );
+
+        D3D12_HEAP_DESC heapDesc =
+            Convert::GetMemoryHeapDesc( Desc.usage, m_Implementation.Features.ResourceHeapTier >= 2 );
+        heapDesc.SizeInBytes = Desc.size;
+
+        // TODO(any): For multi-adapter systems, need to set proper masks.
+        heapDesc.Properties.CreationNodeMask = Helper::GetNodeMask();
+        heapDesc.Properties.VisibleNodeMask  = Helper::GetNodeMask();
+
+        Result  res = Result::OK;
+        HRESULT hr  = S_OK;
+        if( FAILED( hr = m_hDevice->CreateHeap( &heapDesc, IID_PPV_ARGS( &pOut->hDDIMemory ) ) ) )
+        {
+            if( hr == E_OUTOFMEMORY )
+            {
+                res = Result::NO_MEMORY;
+            }
+            else
+            {
+                res = Result::FAIL;
+            }
+        }
+        else
+        {
+            pOut->heapType = GetMemoryHeapType( Desc.usage );
+            pOut->sizeLeft = Desc.size;
+        }
+
+        return res;
+    }
+
+    MEMORY_HEAP_TYPE CDDI::GetMemoryHeapType( MEMORY_USAGE usage ) const
+    {
+        /*
+        MEMORY_HEAP_TYPE:
+        - CPU,
+        - GPU,
+        - UPLOAD,
+        - CPU_CACHED,
+        - CPU_COHERENT,
+        - OTHER,
+        */
+
+        static const MEMORY_USAGE cMask =
+            MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_NO_FLUSH | MemoryUsages::CPU_CACHED;
+
+        static MEMORY_USAGE vMap[] = {
+            MemoryUsages::CPU_ACCESS,                                                         // CPU
+            MemoryUsages::GPU_ACCESS,                                                         // GPU
+            MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_NO_FLUSH, // UPLOAD
+            MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_CACHED,   // CPU_CACHED
+            MemoryUsages::CPU_ACCESS | MemoryUsages::GPU_ACCESS,                              // CPU_COHERENT
+            MemoryUsages::UNDEFINED,                                                          // OTHER
+        };
+
+        MEMORY_HEAP_TYPE result = MEMORY_HEAP_TYPE::_MAX_COUNT;
+
+        for( uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; i++ )
+        {
+            if( vMap[ i ] == ( usage & cMask ) )
+            {
+                result = static_cast< MEMORY_HEAP_TYPE >( i );
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    size_t CDDI::GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE type ) const
+    {
+        VKE_ASSERT2( type < MemoryHeapTypes::_MAX_COUNT, "Incorrect MEMORY_HEAP_TYPE" );
+        return m_Implementation.Properties.Memory.HeapProperties[ type ].SizeInBytes;
+    }
+
+    size_t CDDI::GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return 0;
+    }
+
+    void* CDDI::MapMemory( const SMapMemoryInfo& Info )
+    {
+        VKE_ASSERT2( Info.hBuffer != NativeAPI::Null, "CDDI::MapMemory: DX12 can map only resources, not memory." );
+
+        D3D12_RANGE range;
+        range.Begin = Info.offset;
+        range.End   = Info.offset + Info.size;
+
+        void* pData = nullptr;
+        if( FAILED( Info.hBuffer->Map( 0, &range, &pData ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::MapMemory: Failed to map memory" );
+        }
+
+        return pData;
+    }
+
+    void CDDI::UnmapMemory( const SMapMemoryInfo& Info )
+    {
+        VKE_ASSERT2( Info.hBuffer != NativeAPI::Null, "CDDI::MapMemory: DX12 can map only resources, not memory." );
+        Info.hBuffer->Unmap( 0, nullptr );
+    }
+
+    void CDDI::Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
+                      const NativeAPI::CommandBufferPool& hCommandBufferPool )
+    {
+        // No-op
+    }
+
+    void CDDI::BeginCommandBuffer( const NativeAPI::CommandBuffer&     hCommandBuffer,
+                                   const NativeAPI::CommandBufferPool& hCommandBufferPool )
+    {
+        NativeAPI::D3D12CommandAllocator* pCommandAllocator = hCommandBufferPool->getAllocator( hCommandBuffer );
+        VKE_ASSERT( pCommandAllocator != nullptr );
+
+        if( FAILED( pCommandAllocator->Reset() ) )
+        {
+            VKE_LOG_ERR( "CDDI::Reset: Failed to reset command buffer pool" );
+        }
+
+        if( FAILED( hCommandBuffer->Reset( pCommandAllocator, NativeAPI::Null ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::Reset: Failed to reset command buffer" );
+        }
+    }
+
+    void CDDI::EndCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer )
+    {
+        if( FAILED( hCommandBuffer->Close() ) )
+        {
+            VKE_LOG_ERR( "CDDI::EndCommandBuffer: Failed to close command buffer" );
+        }
+    }
+
+    void CDDI::Barrier( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
+    {
+        DDIBarrierArray vBarriers( 0 );
+
+        // Global memory barriers are not supported in D3D12
+        // for( auto& barrier: Info.vMemoryBarriers )
+        //{
+        //    Convert::TransitionBarrier( vBarriers[ barrierIndex++ ], barrier );
+        //}
+
+        for( auto& barrier: Info.vTextureBarriers )
+        {
+            Helper::CreateLegacySubresourceBarriers( barrier, vBarriers );
+        }
+
+        for( auto& barrier: Info.vBufferBarriers )
+        {
+            Helper::CreateLegacySubresourceBarriers( barrier, vBarriers );
+        }
+
+        if( vBarriers.GetCount() > 0 )
+        {
+            hCommandBuffer->ResourceBarrier( vBarriers.GetCount(), vBarriers.GetData() );
+        }
+        else
+        {
+            VKE_LOG_WARN( "CDDI::Barrier: Requested barrier resulted in 0 actual barriers." );
+        }
+    }
+
+    void CDDI::SetState( const NativeAPI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::SetState( const NativeAPI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Draw( const NativeAPI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::DrawIndexed( const NativeAPI::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::DrawMesh( const NativeAPI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+                         uint32_t depth )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer     pNativeCommandBuffer,
+                                const SBeginRenderPassInfo2& EngineRenderPassInfo )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::BeginRenderPass( NativeAPI::CommandBuffer    pNativeCommandBuffer,
+                                const SBeginRenderPassInfo& EngineRenderPassInfo )
+    {
+        if( EngineRenderPassInfo.hDDIRenderPass == NativeAPI::Null )
+        {
+            VKE_LOG_ERR( "CDDI::BeginRenderPass: Render pass is NULL" );
+            return;
+        }
+
+        const NativeAPI::RenderPass pNativeRenderPass = EngineRenderPassInfo.hDDIRenderPass;
+        pNativeRenderPass->Reset();
+
+        const auto& NativeFirstSubpass = pNativeRenderPass->CurrentSubpass();
+        const auto& NativeClearInfo    = pNativeRenderPass->Clear;
+
+        // Add custom breadcrumb before BeginRenderPass() insert anything on cmdlist
+        PIXBeginEvent( pNativeCommandBuffer,
+                       PIX_COLOR( 255, 0, 0 ),
+                       "EmulatedRenderPass: Begin: %s",
+                       EngineRenderPassInfo.hDDIRenderPass->pName );
+
+        // Record barriers for potential clear operations.
+        if( NativeClearInfo.Barriers.count > 0 )
+        {
+            pNativeCommandBuffer->ResourceBarrier( NativeClearInfo.count, &NativeClearInfo.Barriers.Data[ 0 ] );
+        }
+
+        // Record clear operations
+        for( uint32_t index = 0; index < NativeClearInfo.count; index++ )
+        {
+            const auto& NativeClearInfoSurface = pNativeRenderPass->Clear.Data[ index ];
+
+            if( NativeClearInfoSurface.Type == NativeClearInfoSurface.RENDER_TARGET )
+            {
+                const auto& Args = NativeClearInfoSurface.RenderTargetView;
+                pNativeCommandBuffer->ClearRenderTargetView( Args.hRenderTargetView, Args.aColorRGBA, 1, &Args.Rect );
+            }
+            else if( NativeClearInfoSurface.Type == NativeClearInfoSurface.DEPTH_STENCIL_VIEW )
+            {
+                const auto& Args = NativeClearInfoSurface.DepthStencilView;
+                pNativeCommandBuffer->ClearDepthStencilView(
+                    Args.hDepthStencilView, Args.ClearFlags, Args.depth, Args.stencil, 1, &Args.Rect );
+            }
+        }
+
+        // Record barriers for default subpass
+        if( NativeFirstSubpass.BeginBarriers.count > 0 )
+        {
+            pNativeCommandBuffer->ResourceBarrier( NativeFirstSubpass.BeginBarriers.count,
+                                                   &NativeFirstSubpass.BeginBarriers.Data[ 0 ] );
+        }
+
+        // TODO(blturkot): DepthStencilView need to be passed to
+        // D3D12_GRAPHICS_PIPELINE_STATE_DESC::D3D12_DEPTH_STENCIL_DESC
+        // TODO(blturkot): D3D12_GRAPHICS_PIPELINE_STATE_DESC also knows about RTVFormat, DSVFormat and number of render
+        // targets.
+
+        // Configure output merger
+        pNativeCommandBuffer->OMSetRenderTargets( pNativeRenderPass->RenderTargetViews.count,
+                                                  &pNativeRenderPass->RenderTargetViews.Data[ 0 ],
+                                                  FALSE, // TRUE if render targets are like descriptor table
+                                                  &pNativeRenderPass->DepthStencilView.hCPUDescriptor );
+
+        // Configure rasterizer
+        D3D12_RECT scizzorRect;
+        Convert::GetRect( EngineRenderPassInfo.RenderArea, &scizzorRect );
+        pNativeCommandBuffer->RSSetScissorRects( 1, &scizzorRect );
+    }
+
+    void CDDI::EndRenderPass( NativeAPI::CommandBuffer pNativeCommandBuffer, NativeAPI::RenderPass pNativeRenderPass )
+    {
+        if( pNativeRenderPass == NativeAPI::Null )
+        {
+            VKE_LOG_ERR( "CDDI::EndRenderPass: Render pass is NULL" );
+            return;
+        }
+
+        // TODO(blturkot): When subpasses will be fully implemented in engine, we'll need to check which was last and
+        // issue proper barrier to end state. Right now it's primitive technology and assumes just one subpass with so
+        // end barriers are baked into render pass.
+        if( pNativeRenderPass->EndBarriers.count > 0 )
+        {
+            pNativeCommandBuffer->ResourceBarrier( pNativeRenderPass->EndBarriers.count,
+                                                   &pNativeRenderPass->EndBarriers.Data[ 0 ] );
+        }
+
+        // Add end custom breadcrumb after everything was done on cmdlist.
+        PIXEndEvent( pNativeCommandBuffer );
+    }
+
+    void CDDI::Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Copy( const NativeAPI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info )
+    {
+        hCmdBuffer->CopyBufferRegion( Info.pDstBuffer->GetDDIObject(),
+                                      Info.Region.dstBufferOffset,
+                                      Info.hDDISrcBuffer,
+                                      Info.Region.srcBufferOffset,
+                                      Info.Region.size );
+    }
+
+    void CDDI::Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Blit( const NativeAPI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::SetEvent( const NativeAPI::Event& hDDIEvent )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::SetEvent( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent,
+                         const PIPELINE_STAGES& stages )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Reset( const NativeAPI::Event& hDDIInOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    void CDDI::Reset( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent,
+                      const PIPELINE_STAGES& stages )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    bool CDDI::IsSet( const NativeAPI::Event& hDDIEvent )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return false;
+    }
+
+    Result CDDI::Submit( const SSubmitInfo& Info )
+    {
+        NativeAPI::D3D12CommandList* const* ppCommandLists =
+            (NativeAPI::D3D12CommandList* const*)&Info.pDDICommandBuffers[ 0 ];
+        Info.hDDIQueue->ExecuteCommandLists( Info.commandBufferCount, ppCommandLists );
+        return Result::OK;
+    }
+
+    Result CDDI::Present( const SPresentData& Info )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return Result::OK;
+    }
+
+    Result CDDI::CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pOut )
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::CreateSwapChain: m_hDevice can't be null" );
+
+        QueryPresentSurfaceCaps( nullptr, &pOut->Caps );
+
+        UINT backBufferCount = Desc.backBufferCount;
+        if( Constants::_SOptimal::IsOptimal( Desc.backBufferCount ) )
+        {
+            // Default to triple buffering
+            backBufferCount = 2u;
+        }
+        else if( Desc.backBufferCount > DXGI_MAX_SWAP_CHAIN_BUFFERS )
+        {
+            VKE_LOG_ERR( "CDDI::CreateSwapChain: Unspecified number of backBufferCount or exceeds max supported." );
+            return Result::NOT_SUPPORTED;
+        }
+
+        auto dxgiFormat = Convert::GetDXGIFormat( Desc.format );
+        if( dxgiFormat == DXGI_FORMAT_UNKNOWN )
+        {
+            VKE_LOG_ERR( "CDDI::CreateSwapChain: Unsupported swapchain format (no matching engine with DXGI format)." );
+            return Result::NOT_SUPPORTED;
+        }
+
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { .Format = dxgiFormat };
+        m_hDevice->CheckFeatureSupport( D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof( formatSupport ) );
+
+        if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET ) == 0 )
+        {
+            VKE_LOG_ERR( "CDDI::CreateSwapChain: Format can't be used as render target (required)." );
+            return Result::NOT_SUPPORTED;
+        }
+
+        if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE ) == 0 )
+        {
+            VKE_LOG_ERR( "CDDI::CreateSwapChain: Format can't be used as shader resource (required)." );
+            return Result::NOT_SUPPORTED;
+        }
+
+        if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY ) == 0 )
+        {
+            VKE_LOG_ERR( "CDDI::CreateSwapChain: Format can't be used to present() (required)." );
+            return Result::NOT_SUPPORTED;
+        }
+
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+        swapChainDesc.Width  = Desc.Size.width;
+        swapChainDesc.Height = Desc.Size.height;
+        // TODO(blturkot): Validate for proper swapchain render target
+        swapChainDesc.Format             = dxgiFormat;
+        swapChainDesc.Stereo             = FALSE; // This is to enable stereoscopic rendering for 3D glasses.
+        swapChainDesc.SampleDesc.Count   = 1;
+        swapChainDesc.SampleDesc.Quality = 0;
+        swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+        swapChainDesc.BufferCount = backBufferCount;
+        swapChainDesc.Scaling     = DXGI_SCALING_NONE;
+        swapChainDesc.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+        swapChainDesc.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED;
+        swapChainDesc.Flags       = 0;
+
+        // Enable tearing if supported and allowed by application.
+        // if( NativeAPI::SImplementation::sTearingSupported )
+        //{
+        //    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+        //}
+
+        // TODO(blturkot): Implement support for fullscreen.
+        // TODO(blturkot): Support for vsync
+        DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc;
+        fullscreenDesc.RefreshRate.Numerator   = 0;
+        fullscreenDesc.RefreshRate.Denominator = 0;
+        fullscreenDesc.ScanlineOrdering        = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+        fullscreenDesc.Scaling                 = DXGI_MODE_SCALING_UNSPECIFIED;
+        fullscreenDesc.Windowed                = TRUE;
+        (void)fullscreenDesc;
+
+        HWND  hWnd  = reinterpret_cast< HWND >( Desc.pWindow->GetDesc().hWnd );
+        auto& queue = m_DeviceProperties.vQueueFamilies[ Desc.queueFamilyIndex ].vQueues[ 0 ];
+
+        IDXGISwapChain1* pSwapChain1 = nullptr;
+        if( FAILED( m_Implementation.spFactory->CreateSwapChainForHwnd(
+                queue, hWnd, &swapChainDesc, NULL, NULL, &pSwapChain1 ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateSwapChain: Failed to create swap chain" );
+            return Result::FAIL;
+        }
+
+        // Update out handle to higher SwapChain ptr. Similar to .As() on ComPtr
+        pOut->hSwapChain = reinterpret_cast< NativeAPI::SwapChain >( pSwapChain1 );
+
+        // DXGI has already bound the swapchain to the window.
+        IDXGIOutput* pPresentOutput;
+        pOut->hSwapChain->GetContainingOutput( &pPresentOutput );
+        pOut->hSurface = reinterpret_cast< NativeAPI::PresentSurface >( pPresentOutput );
+
+        DXGI_COLOR_SPACE_TYPE dxgiColorSpace        = Map::GetDXGIColorSpace( Desc.colorSpace );
+        UINT                  dxgiColorSpaceSupport = 0;
+
+        pOut->hSwapChain->CheckColorSpaceSupport( dxgiColorSpace, &dxgiColorSpaceSupport );
+        if( ( dxgiColorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT ) == 0 )
+        {
+            VKE_LOG_WARN( "CDDI::CreateSwapChain: Color space not supported for swapchain." );
+        }
+        else
+        {
+            pOut->hSwapChain->SetColorSpace1( dxgiColorSpace );
+        }
+
+        for( UINT i = 0; i < backBufferCount; i++ )
+        {
+            NativeAPI::Texture bbTexture = NativeAPI::Null;
+            // This is required when NativeAPI::Texture is a custom object.
+            // if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &bbTexture ) ) )
+            //{
+            //    VKE_LOG_ERR( "CDDI::CreateSwapChain: Failed to create back buffer texture object." );
+            //}
+
+            pOut->hSwapChain->GetBuffer( i, IID_PPV_ARGS( &bbTexture ) );
+
+            // Create swapchain already creates required resources but doesn't have views.
+            // To cheat engine, we can store the texture in vImages and create null views.
+            pOut->vImages.PushBack( bbTexture );
+            pOut->vImageViews.PushBack( nullptr );
+        }
+
+        // Update size from SwapChain after creation
+        UINT width = 0, height = 0;
+        pOut->hSwapChain->GetSourceSize( &width, &height );
+        pOut->Size.width        = (VKE::RenderSystem::TextureSizeType)width;
+        pOut->Size.height       = (VKE::RenderSystem::TextureSizeType)height;
+        pOut->Format.format     = Desc.format;
+        pOut->Format.colorSpace = Desc.colorSpace;
+
+        return Result::OK;
+    }
+
+    void CDDI::DestroySwapChain( SDDISwapChain* pInOut, const void* )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    Result CDDI::ReCreateSwapChain( const SSwapChainDesc& Desc, SDDISwapChain* pOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return Result::OK;
+    }
+
+    Result CDDI::QueryPresentSurfaceCaps( const NativeAPI::PresentSurface& hSurface, SPresentSurfaceCaps* pOut )
+    {
+        // No enum or list for DXGI, need to loop and query supported formats.
+        struct DXGI_ENGINE_FORMAT_PAIR
+        {
+            DXGI_FORMAT dxgiFormat;
+            FORMAT      engineFormat;
+        };
+
+        static const DXGI_ENGINE_FORMAT_PAIR vApiAllowedFormats[] = {
+            // Feature l1evel >= 9.1
+            { DXGI_FORMAT_R8G8B8A8_UNORM, FORMAT::R8G8B8A8_UNORM },
+            { DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, FORMAT::R8G8B8A8_SRGB },
+            { DXGI_FORMAT_B8G8R8A8_UNORM, FORMAT::B8G8R8A8_UNORM },     // Except 10.x on Windows Vista
+            { DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, FORMAT::B8G8R8A8_SRGB }, // Except 10.x on Windows Vista
+            // Feature level >= 10.0
+            { DXGI_FORMAT_R16G16B16A16_FLOAT, FORMAT::R16G16B16A16_SFLOAT },
+            { DXGI_FORMAT_R10G10B10A2_UNORM, FORMAT::R10G10B10A2_UNORM },
+            // Feature level >= 11.0
+            { DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM, FORMAT::R10G10B10_XR_BIAS_A2_UNORM },
+        };
+
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = {};
+
+        for( auto& format: vApiAllowedFormats )
+        {
+            formatSupport.Format = format.dxgiFormat;
+            m_hDevice->CheckFeatureSupport( D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof( formatSupport ) );
+            if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY ) != 0 )
+            {
+                pOut->vFormats.PushBack( { format.engineFormat, COLOR_SPACE::SRGB } );
+            }
+        }
+
+        // Present modes - only FIFO is guaranteed to be supported.
+        pOut->vModes.PushBack( PRESENT_MODE::FIFO );
+
+        // Mailbox is similar to FIFO but allows replacing the queued frames if the queue is full.
+        // This is not supported in DXGI natively and requires emulation.
+        // TODO(Any): Uncomment once emulation is implemented.
+        // pOut->vModes.PushBack( PRESENT_MODE::MAILBOX );
+
+        if( NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported )
+        {
+            pOut->vModes.PushBack( PRESENT_MODE::IMMEDIATE );
+        }
+
+        pOut->canBeUsedAsRenderTarget = true;
+        pOut->minImageCount           = 1;
+        pOut->maxImageCount           = DXGI_MAX_SWAP_CHAIN_BUFFERS;
+
+        // If size is 0, 0 CreateSwapChain will use the window's client area size.
+        pOut->MinSize = { 1, 1 };
+        pOut->MaxSize = { D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION, D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION };
+
+        return Result::OK;
+    }
+
+    Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
+                                            uint32_t* pOut )
+    {
+        *pOut = static_cast< uint32_t >( SwapChain.hSwapChain->GetCurrentBackBufferIndex() );
+        return Result::OK;
+    }
+
+    void CDDI::Convert( const SClearValue& In, NativeAPI::ClearValue* pOut )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    // Debug
+
+    void CDDI::BeginDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
+    {
+        if( pInfo != nullptr )
+        {
+            PIXBeginEvent( hDDICmdBuff, Convert::GetPixColor( pInfo->Color ), pInfo->pText );
+        }
+    }
+
+    void CDDI::EndDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff )
+    {
+        PIXEndEvent( hDDICmdBuff );
+    }
+
+    void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const
+    {
+        VKE_ASSERT2( handle != 0, "CDDI::SetObjectDebugName: Attempting to SetName on Null object." );
+
+        wchar_t buffer[ 256 ];
+        MultiByteToWideChar( CP_UTF8, 0, pName, -1, buffer, 256 );
+
+        switch( objType )
+        {
+            case ApiObjectTypes::ADAPTER:
+                ( (NativeAPI::Adapter)handle )->SetPrivateData( WKPDID_D3DDebugObjectName, sizeof( pName ), pName );
+                break;
+            case ApiObjectTypes::DEVICE:
+                ( (NativeAPI::Device)handle )->SetName( buffer );
+                break;
+            case ApiObjectTypes::GPU_FENCE:
+                ( (NativeAPI::GPUFence)handle )->pObject->SetName( buffer );
+                break;
+            case ApiObjectTypes::COMMAND_BUFFER:
+                ( (NativeAPI::CommandBuffer)handle )->SetName( buffer );
+                break;
+            case ApiObjectTypes::CPU_FENCE:
+                ( (NativeAPI::CPUFence)handle )->pObject->SetName( buffer );
+                break;
+            case ApiObjectTypes::BUFFER:
+                ( (NativeAPI::Buffer)handle )->SetName( buffer );
+                break;
+            case ApiObjectTypes::TEXTURE:
+                ( (NativeAPI::Texture)handle )->SetName( buffer );
+                break;
+            /*case ApiObjectTypes::BUFFER_VIEW:
+                ( (NativeAPI::BufferView)handle )->SetName( buffer );
+                break;
+            case ApiObjectTypes::TEXTURE_VIEW:
+                ( (NativeAPI::BufferView)handle )->SetName( buffer );
+                break;*/
+            case ApiObjectTypes::PIPELINE_LAYOUT:
+                ( (NativeAPI::PipelineLayout)handle )->SetName( buffer );
+                break;
+            case ApiObjectTypes::PIPELINE:
+                ( (NativeAPI::Pipeline)handle )->SetName( buffer );
+                break;
+                /* case ApiObjectTypes::DESCRIPTOR_SET:
+                     ( (NativeAPI::DescriptorSet)handle )->SetName( buffer );
+                     break;*/
+            case ApiObjectTypes::FRAMEBUFFER:
+                ( (NativeAPI::Framebuffer)handle )->SetName( buffer );
+                break;
+            case ApiObjectTypes::COMMAND_POOL:
+                ( (NativeAPI::CommandBufferPool)handle )->SetName( buffer );
+                break;
+
+            case ApiObjectTypes::CONTEXT:
+            case ApiObjectTypes::DEVICE_MEMORY:
+            case ApiObjectTypes::QUERY_POOL:
+            case ApiObjectTypes::EVENT:
+            case ApiObjectTypes::SHADER:
+            case ApiObjectTypes::PIPELINE_CACHE:
+            case ApiObjectTypes::RENDER_PASS:
+            case ApiObjectTypes::DESCRIPTOR_SET_LAYOUT:
+            case ApiObjectTypes::SAMPLER:
+            case ApiObjectTypes::DESCRIPTOR_POOL:
+                VKE_LOG_WARN( "CDDI::SetObjectDebugName: Unsupported objType" );
+                break;
+
+            default:
+                VKE_LOG_ERR( "CDDI::SetObjectDebugName: Unhandled objType" );
+                break;
+        }
+    }
+
+    void CDDI::SetQueueDebugName( uint64_t handle, cstr_t pName ) const
+    {
+        NativeAPI::Queue pQueue = (NativeAPI::Queue)handle;
+        VKE_ASSERT2( pQueue != NativeAPI::Null, "CDDI::SetQueueDebugName: Queue is null" );
+        pQueue->SetName( (LPCWSTR)pName );
+    }
+
+    bool CDDI::IsSignaled( const NativeAPI::CPUFence& hFence ) const
+    {
+        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CDDI::IsSignaled: m_hDevice is null" );
+        return hFence->pObject->GetCompletedValue() >= hFence->Value;
+    }
+
+    void CDDI::Reset( NativeAPI::CPUFence* phFence )
+    {
+        NativeAPI::CPUFence pFence = *phFence;
+        pFence->Value              = 0;
+
+        if( FAILED( pFence->pObject->Signal( 0 ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::Reset: Failed to reset fence" );
+        }
+    }
+
+    void CDDI::Reset( NativeAPI::Fence* phFence, NativeAPI::FenceValue value )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+    }
+
+    NativeAPI::FenceValue CDDI::GetCompletedValue( const NativeAPI::Fence& hFence ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+
+        return 0;
+    }
+
+    Result CDDI::WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        // TODO(blturkot): Wait for fence implementation.
+        return Result::OK;
+    }
+
+    Result CDDI::WaitForFence( NativeAPI::Fence Fence, NativeAPI::FenceValue value ) const
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return Result::OK;
+    }
+
+    Result CDDI::WaitForQueue( const NativeAPI::Queue& hQueue )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        // TODO(blturkot): Each queue needs to have its own fence for synchronization.
+        return Result::OK;
+    }
+
+    Result CDDI::WaitForDevice()
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        // TODO(blturkot): Get all queues and wait for them.
+        return Result::OK;
+    }
+
 } // namespace VKE::RenderSystem
-#endif // VKE_D3D12_RENDER_SYSTEM
+
+#endif // VKE_RENDER_SYSTEM_D3D12

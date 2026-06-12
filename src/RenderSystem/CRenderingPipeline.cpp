@@ -2,7 +2,6 @@
 
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/CRenderPass.h"
 
 namespace VKE
 {
@@ -19,11 +18,7 @@ namespace VKE
 
         void CRenderingPipeline::Destroy()
         {
-            for( auto& pPass: m_vpRenderPasses )
-            {
-                Memory::DestroyObject( &HeapAllocator, &pPass );
-            }
-            m_vpRenderPasses.Clear();
+
         }
 
         Result CRenderingPipeline::Create( const SRenderingPipelineDesc& Desc )
