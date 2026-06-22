@@ -394,117 +394,120 @@ namespace VKE::RenderSystem::D3D12
             D3D12_VIEW_TYPE_RT_ACC_STRUCT,
         };
 
-        struct SImplementation
-        {
-            static const uint32_t MAX_MEMORY_HEAPS = 16;
-
-            static NativeAPI::D3D12Factory* spFactory;
-            static bool                     sDebugLayerEnabled;
-
-            struct SMemoryHeapProperties
-            {
-                D3D12_HEAP_TYPE   Type;
-                D3D12_MEMORY_POOL Pool;
-                size_t            SizeInBytes;
-            };
-
-            // TODO(blturkot): Fill with private data
-            struct SDeviceProperties
-            {
-                struct
-                {
-                    struct
-                    {
-                        DeviceLimits limits;
-                    } properties;
-
-                } Device;
-
-                struct
-                {
-                    UINT                  DescriptorHeapSizes[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
-                    SMemoryHeapProperties HeapProperties[ MAX_MEMORY_HEAPS ];
-                    UINT64                localBudget;
-                    UINT64                hostBudget;
-                } Memory;
-
-                void* aFormatProperties[ Formats::_MAX_COUNT ];
-            } Properties; // struct SDeviceProperties
-
-            struct SDeviceFeatures
-            {
-                static bool sTearingSupported;
-
-                uint8_t ResourceHeapTier;
-
-                bool BindlessResourceAccessSupported;
-                bool EnhancedBarriersSupported;
-                bool UploadHeapSupported;
-                bool MeshShaderSupported;
-                bool RayTracingSupported;
-                bool TightAlignmentSupported;
-            } Features; // struct SDeviceFeatures
-
-            struct SDescriptorHeapInfo
-            {
-                static const size_t scMaxDescriptorsInHeap = 1000;
-
-                NativeAPI::D3D12DescriptorHeap* pDescriptorHeap;
-                D3D12_DESCRIPTOR_HEAP_TYPE      Type;
-                D3D12_DESCRIPTOR_HEAP_FLAGS     Flags;
-                SIZE_T                          NumDescriptors = 0;
-                SIZE_T                          DescriptorSize;
-                Utils::TCBitPool< uint8_t >     SlotPool;
-
-                bool IsFull() const
-                {
-                    return NumDescriptors >= scMaxDescriptorsInHeap;
-                }
-
-                bool HasSpace( uint32_t Count = 0 ) const
-                {
-                    return ( NumDescriptors + Count ) <= scMaxDescriptorsInHeap;
-                }
-
-                bool Matches( D3D12_DESCRIPTOR_HEAP_TYPE InType, D3D12_DESCRIPTOR_HEAP_FLAGS InFlags ) const
-                {
-                    return this->Type == InType && this->Flags == InFlags;
-                }
-
-                D3D12_CPU_DESCRIPTOR_HANDLE Allocate( uint32_t numDescriptors )
-                {
-                    uint32_t                    firstSlotIndex = SlotPool.AllocateSlots( numDescriptors );
-                    D3D12_CPU_DESCRIPTOR_HANDLE Handle         = {};
-
-                    if( firstSlotIndex != UNDEFINED_U32 )
-                    {
-                        Handle          = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-                        Handle.ptr     += firstSlotIndex * DescriptorSize;
-                        NumDescriptors += numDescriptors;
-                    }
-
-                    return Handle;
-                }
-
-                void Free( size_t firstSlotPtr, uint32_t numDescriptors )
-                {
-                    uint32_t firstSlotIndex = static_cast< uint32_t >( firstSlotPtr / DescriptorSize );
-                    SlotPool.FreeSlots( firstSlotIndex, numDescriptors );
-                }
-            };
-
-            SDescriptorHeapInfo* CreateDescriptorHeap( const NativeAPI::Device&    pDevice,
-                                                       D3D12_DESCRIPTOR_HEAP_TYPE  Type,
-                                                       D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
-
-            SDescriptorHeapInfo* GetDescriptorHeap( const NativeAPI::Device& pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type,
-                                                    D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
-
-        private:
-            Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
-        };
+       
 
     }; // struct NativeTypes
+
+    struct SImplementation
+    {
+        static const uint32_t MAX_MEMORY_HEAPS = 16;
+
+        static NativeAPI::D3D12Factory* spFactory;
+        static bool                     sDebugLayerEnabled;
+        NativeAPI::Device               m_hDevice;
+        NativeAPI::Adapter              m_hAdapter;
+
+        struct SMemoryHeapProperties
+        {
+            D3D12_HEAP_TYPE   Type;
+            D3D12_MEMORY_POOL Pool;
+            size_t            SizeInBytes;
+        };
+
+        // TODO(blturkot): Fill with private data
+        struct SDeviceProperties
+        {
+            struct
+            {
+                struct
+                {
+                    NativeAPI::DeviceLimits limits;
+                } properties;
+
+            } Device;
+
+            struct
+            {
+                UINT                  DescriptorHeapSizes[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ];
+                SMemoryHeapProperties HeapProperties[ MAX_MEMORY_HEAPS ];
+                UINT64                localBudget;
+                UINT64                hostBudget;
+            } Memory;
+
+            void* aFormatProperties[ Formats::_MAX_COUNT ];
+        } Properties; // struct SDeviceProperties
+
+        struct SDeviceFeatures
+        {
+            static bool sTearingSupported;
+
+            uint8_t ResourceHeapTier;
+
+            bool BindlessResourceAccessSupported;
+            bool EnhancedBarriersSupported;
+            bool UploadHeapSupported;
+            bool MeshShaderSupported;
+            bool RayTracingSupported;
+            bool TightAlignmentSupported;
+        } Features; // struct SDeviceFeatures
+
+        struct SDescriptorHeapInfo
+        {
+            static const size_t scMaxDescriptorsInHeap = 1000;
+
+            NativeAPI::D3D12DescriptorHeap* pDescriptorHeap;
+            D3D12_DESCRIPTOR_HEAP_TYPE      Type;
+            D3D12_DESCRIPTOR_HEAP_FLAGS     Flags;
+            SIZE_T                          NumDescriptors = 0;
+            SIZE_T                          DescriptorSize;
+            Utils::TCBitPool< uint8_t >     SlotPool;
+
+            bool IsFull() const
+            {
+                return NumDescriptors >= scMaxDescriptorsInHeap;
+            }
+
+            bool HasSpace( uint32_t Count = 0 ) const
+            {
+                return ( NumDescriptors + Count ) <= scMaxDescriptorsInHeap;
+            }
+
+            bool Matches( D3D12_DESCRIPTOR_HEAP_TYPE InType, D3D12_DESCRIPTOR_HEAP_FLAGS InFlags ) const
+            {
+                return this->Type == InType && this->Flags == InFlags;
+            }
+
+            D3D12_CPU_DESCRIPTOR_HANDLE Allocate( uint32_t numDescriptors )
+            {
+                uint32_t                    firstSlotIndex = SlotPool.AllocateSlots( numDescriptors );
+                D3D12_CPU_DESCRIPTOR_HANDLE Handle         = {};
+
+                if( firstSlotIndex != UNDEFINED_U32 )
+                {
+                    Handle          = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                    Handle.ptr     += firstSlotIndex * DescriptorSize;
+                    NumDescriptors += numDescriptors;
+                }
+
+                return Handle;
+            }
+
+            void Free( size_t firstSlotPtr, uint32_t numDescriptors )
+            {
+                uint32_t firstSlotIndex = static_cast< uint32_t >( firstSlotPtr / DescriptorSize );
+                SlotPool.FreeSlots( firstSlotIndex, numDescriptors );
+            }
+        };
+
+        SDescriptorHeapInfo* CreateDescriptorHeap( const NativeAPI::Device& pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type,
+                                                   D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
+
+        SDescriptorHeapInfo* GetDescriptorHeap( const NativeAPI::Device& pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type,
+                                                D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
+
+    private:
+        Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
+    };
 
 } // namespace VKE::RenderSystem
 

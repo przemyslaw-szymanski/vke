@@ -14,6 +14,8 @@
 
 #include "RenderSystem/D3D12/dxgiFormats.h"
 
+#include "RenderSystem/D3D12/CDDITypes.h"
+
 namespace VKE::RenderSystem::D3D12
 {
     template<typename T>
@@ -41,10 +43,10 @@ namespace VKE::RenderSystem::D3D12
 
     // -----------------------------------------------------------------------------------------------------------------
     // Initialization of static members.
-    NativeAPI::D3D12Factory* NativeAPI::SImplementation::spFactory = NativeAPI::Null;
+    NativeAPI::D3D12Factory* SImplementation::spFactory = NativeAPI::Null;
 
-    bool NativeAPI::SImplementation::sDebugLayerEnabled                 = false;
-    bool NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported = false;
+    bool SImplementation::sDebugLayerEnabled                 = false;
+    bool SImplementation::SDeviceFeatures::sTearingSupported = false;
 
     CD3D12API::AdapterArray CD3D12API::svAdapters;
 
@@ -54,8 +56,8 @@ namespace VKE::RenderSystem::D3D12
     // Implementation functions.
     // These functions are specific to D3D12 implementation that requires long lasting members, which are members of
     // SImplementation class.
-    NativeAPI::SImplementation::SDescriptorHeapInfo*
-    NativeAPI::SImplementation::CreateDescriptorHeap( const NativeAPI::Device& pDevice,
+    SImplementation::SDescriptorHeapInfo*
+    SImplementation::CreateDescriptorHeap( const NativeAPI::Device& pDevice,
                                                                                     D3D12_DESCRIPTOR_HEAP_TYPE Type,
                                                                                     D3D12_DESCRIPTOR_HEAP_FLAGS Flags )
     {
@@ -86,12 +88,12 @@ namespace VKE::RenderSystem::D3D12
         return &m_vDescriptorHeapPool[ Index ];
     }
 
-    NativeAPI::SImplementation::SDescriptorHeapInfo*
-    NativeAPI::SImplementation::GetDescriptorHeap( const NativeAPI::Device& pDevice,
+    SImplementation::SDescriptorHeapInfo*
+    SImplementation::GetDescriptorHeap( const NativeAPI::Device& pDevice,
                                                                                 D3D12_DESCRIPTOR_HEAP_TYPE  Type,
                                                                                 D3D12_DESCRIPTOR_HEAP_FLAGS Flags )
     {
-        NativeAPI::SImplementation::SDescriptorHeapInfo* pDescriptorHeap = nullptr;
+        SImplementation::SDescriptorHeapInfo* pDescriptorHeap = nullptr;
         for( auto& HeapInfo: m_vDescriptorHeapPool )
         {
             if( HeapInfo.Matches( Type, Flags ) && !HeapInfo.IsFull() )
@@ -197,10 +199,10 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT2( pDevice != NativeAPI::Null, "HandleDeviceRemoval: pDevice is NULL" );
 
-        if( !NativeAPI::SImplementation::sDebugLayerEnabled )
+        if( !SImplementation::sDebugLayerEnabled )
         {
             VKE_LOG(
-                "HandleDeviceRemoval: DRED is not enabled without NativeAPI::SImplementation::sDebugLayerEnabled" );
+                "HandleDeviceRemoval: DRED is not enabled without SImplementation::sDebugLayerEnabled" );
             return;
         }
 
@@ -837,7 +839,7 @@ namespace VKE::RenderSystem::D3D12
         }
 
         void GetResourceDesc( const STextureDesc&                                EngineDesc,
-                              const NativeAPI::SImplementation::SDeviceFeatures& NativeFeatures,
+                              const SImplementation::SDeviceFeatures& NativeFeatures,
                               NativeAPI::D3D12ResourceDesc*                      pOut )
         {
             NativeAPI::D3D12ResourceDesc& OutDesc = *pOut;
@@ -871,7 +873,7 @@ namespace VKE::RenderSystem::D3D12
 
         NativeAPI::D3D12ResourceDesc
         GetResourceDesc( const SBufferDesc&                                 EngineDesc,
-                         const NativeAPI::SImplementation::SDeviceFeatures& NativeFeatures )
+                         const SImplementation::SDeviceFeatures& NativeFeatures )
         {
             NativeAPI::D3D12ResourceDesc OutDesc;
 
@@ -993,7 +995,7 @@ namespace VKE::RenderSystem::D3D12
             return 0;
         }
 
-        Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter, NativeAPI::SImplementation* pOut )
+        Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter, SImplementation* pOut )
         {
             Memory::Zero( &pOut->Features );
             /// TODO: add limits
@@ -1375,10 +1377,20 @@ namespace VKE::RenderSystem::D3D12
     // Static methods.
     // CD3D12API class implementation.
 
+    CD3D12API::CD3D12API()
+    {
+        VKE::Memory::CreateObject( &HeapAllocator, &m_pImplementation );
+    }
+
+    CD3D12API::~CD3D12API()
+    {
+        VKE::Memory::DestroyObject( &HeapAllocator, &m_pImplementation );
+    }
+
     Result CD3D12API::QueryAdaptersImpl( AdapterInfoArray* pOut )
     {
         static const size_t MAX_ADAPTERS = 5;
-        auto                pFactory     = NativeAPI::SImplementation::spFactory;
+        auto                pFactory     = SImplementation::spFactory;
 
         if( pFactory == NativeAPI::Null )
         {
@@ -1479,7 +1491,7 @@ namespace VKE::RenderSystem::D3D12
             else
             {
                 pDebug->EnableDebugLayer();
-                NativeAPI::SImplementation::sDebugLayerEnabled = true;
+                SImplementation::sDebugLayerEnabled = true;
             }
         }
 
@@ -1488,21 +1500,21 @@ namespace VKE::RenderSystem::D3D12
 
         UINT Flags = Info.enableDebugMode ? DXGI_CREATE_FACTORY_DEBUG : 0;
 
-        if( FAILED( CreateDXGIFactory2( Flags, IID_PPV_ARGS( &NativeAPI::SImplementation::spFactory ) ) ) )
+        if( FAILED( CreateDXGIFactory2( Flags, IID_PPV_ARGS( &SImplementation::spFactory ) ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::Load: Failed to create DXGI Factory" );
             return VKE_FAIL;
         }
 
         BOOL AllowTearing = FALSE;
-        if( FAILED( NativeAPI::SImplementation::spFactory->CheckFeatureSupport(
+        if( FAILED( SImplementation::spFactory->CheckFeatureSupport(
                 DXGI_FEATURE_PRESENT_ALLOW_TEARING, &AllowTearing, sizeof( AllowTearing ) ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::QueryAdapters: Check tearing support failed" );
             return VKE_FAIL;
         }
 
-        NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported = ( AllowTearing == TRUE );
+        SImplementation::SDeviceFeatures::sTearingSupported = ( AllowTearing == TRUE );
 
         return Res;
     }
@@ -1538,15 +1550,15 @@ namespace VKE::RenderSystem::D3D12
     Result CD3D12API::CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx )
     {
 
-        m_hAdapter = reinterpret_cast< NativeAPI::Adapter >( pCtx->m_Desc.pAdapterInfo->hDDIAdapter );
+        m_pImplementation->m_hAdapter = reinterpret_cast< NativeAPI::Adapter >( pCtx->m_Desc.pAdapterInfo->hDDIAdapter );
         m_pCtx     = pCtx;
 
-        VKE_ASSERT2( m_hAdapter != NativeAPI::Null, "CD3D12API::CreateDevice: Adapter is null" );
-        VKE_RETURN_IF_FAILED( Helper::QueryAdapterProperties( m_hAdapter, &m_Implementation ) );
+        VKE_ASSERT2( m_pImplementation->m_hAdapter != NativeAPI::Null, "CD3D12API::CreateDevice: Adapter is null" );
+        VKE_RETURN_IF_FAILED( Helper::QueryAdapterProperties( m_pImplementation->m_hAdapter, m_pImplementation ) );
 
         // TODO(blturkot): Compare pCtx->m_Desc.pAdapterInfo->apiVersion with Info.Settings.Features
 
-        if( NativeAPI::SImplementation::sDebugLayerEnabled )
+        if( SImplementation::sDebugLayerEnabled )
         {
             // Enable TDR extended info (DRED)
             ID3D12DeviceRemovedExtendedDataSettings1* pDREDSettings = nullptr;
@@ -1561,19 +1573,19 @@ namespace VKE::RenderSystem::D3D12
             }
         }
 
-        HRESULT Result = D3D12CreateDevice( m_hAdapter,
+        HRESULT Result = D3D12CreateDevice( m_pImplementation->m_hAdapter,
                                             static_cast< D3D_FEATURE_LEVEL >( pCtx->m_Desc.pAdapterInfo->apiVersion ),
-                                            IID_PPV_ARGS( &m_hDevice ) );
+                                            IID_PPV_ARGS( &m_pImplementation->m_hDevice ) );
         if( FAILED( Result ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateDevice: D3D12CreateDevice failed" );
             return VKE_FAIL;
         }
 
-        if( NativeAPI::SImplementation::sDebugLayerEnabled )
+        if( SImplementation::sDebugLayerEnabled )
         {
             ID3D12InfoQueue* pInfoQueue = NativeAPI::Null;
-            if( FAILED( m_hDevice->QueryInterface( &pInfoQueue ) ) )
+            if( FAILED( m_pImplementation->m_hDevice->QueryInterface( &pInfoQueue ) ) )
             {
                 VKE_LOG_ERR( "CD3D12API::CreateDevice: QueryInterface for ID3D12InfoQueue failed" );
             }
@@ -1587,9 +1599,9 @@ namespace VKE::RenderSystem::D3D12
         }
 
         CD3DX12FeatureSupport FeatureSupport;
-        FeatureSupport.Init( m_hDevice );
+        FeatureSupport.Init( m_pImplementation->m_hDevice );
 
-        auto& Features = m_Implementation.Features;
+        auto& Features = m_pImplementation->Features;
 
         Features.TightAlignmentSupported =
             ( FeatureSupport.TightAlignmentSupportTier() != D3D12_TIGHT_ALIGNMENT_TIER_NOT_SUPPORTED );
@@ -1607,31 +1619,31 @@ namespace VKE::RenderSystem::D3D12
 
         for( UINT i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; i++ )
         {
-            m_Implementation.Properties.Memory.DescriptorHeapSizes[ i ] =
-                m_hDevice->GetDescriptorHandleIncrementSize( static_cast< D3D12_DESCRIPTOR_HEAP_TYPE >( i ) );
+            m_pImplementation->Properties.Memory.DescriptorHeapSizes[ i ] =
+                m_pImplementation->m_hDevice->GetDescriptorHandleIncrementSize( static_cast< D3D12_DESCRIPTOR_HEAP_TYPE >( i ) );
         }
 
         if( Info.Settings.Features.bindlessResourceAccess == FeatureEnableModes::ENABLE &&
-            !m_Implementation.Features.BindlessResourceAccessSupported )
+            !m_pImplementation->Features.BindlessResourceAccessSupported )
         {
             VKE_LOG_WARN( "CD3D12API::CreateDevice: Bindless Resource Access not fully supported on this device" );
         }
 
         if( Info.Settings.Features.meshShaders == FeatureEnableModes::ENABLE &&
-            !m_Implementation.Features.MeshShaderSupported )
+            !m_pImplementation->Features.MeshShaderSupported )
         {
             VKE_LOG_ERR( "CD3D12API::CreateDevice: Mesh Shaders not supported on this device" );
             return VKE_FAIL;
         }
 
         if( Info.Settings.Features.raytracing == FeatureEnableModes::ENABLE &&
-            !m_Implementation.Features.RayTracingSupported )
+            !m_pImplementation->Features.RayTracingSupported )
         {
             VKE_LOG_ERR( "CD3D12API::CreateDevice: Raytracing not supported on this device" );
             return VKE_FAIL;
         }
 
-        if( m_Implementation.Features.ResourceHeapTier < 2 )
+        if( m_pImplementation->Features.ResourceHeapTier < 2 )
         {
             VKE_LOG_WARN( "CD3D12API::CreateDevice: Hardware does not support Tier2 resource heaps." );
         }
@@ -1695,11 +1707,11 @@ namespace VKE::RenderSystem::D3D12
         Memory.minConstantBufferOffsetAlignment = 256;        // Must be 256-byte aligned
         Memory.minStorageBufferOffsetAlignment  = 0;          // No documented limit
 
-        auto& l1Budget = m_Implementation.Properties.Memory.localBudget;
-        auto& l0Budget = m_Implementation.Properties.Memory.hostBudget;
+        auto& l1Budget = m_pImplementation->Properties.Memory.localBudget;
+        auto& l0Budget = m_pImplementation->Properties.Memory.hostBudget;
 
         // Right now just assume budgets for heaps for each level.
-        auto& Heaps                            = m_Implementation.Properties.Memory.HeapProperties;
+        auto& Heaps                            = m_pImplementation->Properties.Memory.HeapProperties;
         Heaps[ MemoryHeapTypes::CPU ]          = { D3D12_HEAP_TYPE_DEFAULT, D3D12_MEMORY_POOL_L0, l0Budget };
         Heaps[ MemoryHeapTypes::GPU ]          = { D3D12_HEAP_TYPE_DEFAULT, D3D12_MEMORY_POOL_L1, l1Budget };
         Heaps[ MemoryHeapTypes::UPLOAD ]       = { D3D12_HEAP_TYPE_UPLOAD, D3D12_MEMORY_POOL_UNKNOWN, l1Budget };
@@ -1714,7 +1726,7 @@ namespace VKE::RenderSystem::D3D12
         Query.timestampPeriod = 0.0; // This should in nanoseconds to match other API.
                                      // DX12 needs to query the timestamp frequency from the command queue.
 
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "Device cannot be Null when calling QueryDeviceIndo" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "Device cannot be Null when calling QueryDeviceIndo" );
 
         // TODO(any): Think about queue priorities and multiple queues per family.
         for( int i = 0; i < QUEUE_TYPE::_MAX_COUNT; i++ )
@@ -1730,7 +1742,7 @@ namespace VKE::RenderSystem::D3D12
 
             if( Type != D3D12_COMMAND_LIST_TYPE_NONE )
             {
-                pQueue = CreateCommandQueue( m_hDevice, Type, Type == D3D12_COMMAND_LIST_TYPE_DIRECT );
+                pQueue = CreateCommandQueue( m_pImplementation->m_hDevice, Type, Type == D3D12_COMMAND_LIST_TYPE_DIRECT );
             }
 
             if( pQueue != NativeTypes::Null )
@@ -1782,10 +1794,10 @@ namespace VKE::RenderSystem::D3D12
 
     NativeTypes::Buffer CD3D12API::CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreateBuffer: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateBuffer: m_pImplementation->m_hDevice can't be null" );
 
-        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_Implementation.Features );
-        NativeAPI::Buffer            pBuffer      = CreateResource( m_hDevice, ResourceDesc, MemInfo );
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_pImplementation->Features );
+        NativeAPI::Buffer            pBuffer      = CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo );
 
         if( pBuffer != NativeAPI::Null )
         {
@@ -1820,11 +1832,11 @@ namespace VKE::RenderSystem::D3D12
 
     NativeTypes::Texture CD3D12API::CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreateTexture: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateTexture: m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::D3D12ResourceDesc ResourceDesc;
-        Convert::GetResourceDesc( Desc, m_Implementation.Features, &ResourceDesc );
-        NativeAPI::Texture pTexture = CreateResource( m_hDevice, ResourceDesc, MemInfo );
+        Convert::GetResourceDesc( Desc, m_pImplementation->Features, &ResourceDesc );
+        NativeAPI::Texture pTexture = CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo );
 
         if( pTexture != NativeAPI::Null )
         {
@@ -1954,7 +1966,7 @@ namespace VKE::RenderSystem::D3D12
     NativeTypes::TextureView CD3D12API::CreateTextureViewImpl( const STextureViewDesc& TextureViewDesc,
                                                                const void*             pAllocator )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::TextureView pTextureView = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTextureView ) ) )
@@ -2011,14 +2023,14 @@ namespace VKE::RenderSystem::D3D12
 
     NativeTypes::CPUFence CD3D12API::CreateFenceImpl( const SFenceDesc& Desc, const void* pAllocator ) const
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::CPUFence pFence = NativeAPI::Null;
         Memory::CreateObject( &HeapAllocator, &pFence );
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
-        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        if( FAILED( m_pImplementation->m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateFence: Failed to create fence" );
         }
@@ -2035,7 +2047,7 @@ namespace VKE::RenderSystem::D3D12
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
-        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        if( FAILED( m_pImplementation->m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateFence: Failed to create fence" );
         }
@@ -2057,14 +2069,14 @@ namespace VKE::RenderSystem::D3D12
 
     NativeTypes::GPUFence CD3D12API::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::GPUFence pFence = NativeAPI::Null;
         Memory::CreateObject( &HeapAllocator, &pFence );
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
-        if( FAILED( m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
+        if( FAILED( m_pImplementation->m_hDevice->CreateFence( Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateFence: Failed to create fence" );
         }
@@ -2108,11 +2120,11 @@ namespace VKE::RenderSystem::D3D12
         // - Vulkan: Texture pointer?
         // 3. SRenderPassDesc will include RendeTarget
 
-        auto pDescriptorHeapRTV = m_Implementation.GetDescriptorHeap(
-            m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+        auto pDescriptorHeapRTV = m_pImplementation->GetDescriptorHeap(
+            m_pImplementation->m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
 
-        auto pDescriptorHeapDSV = m_Implementation.GetDescriptorHeap(
-            m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
+        auto pDescriptorHeapDSV = m_pImplementation->GetDescriptorHeap(
+            m_pImplementation->m_hDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
 
         // Desc.vRenderTargetDescs seems to be never used by engine at the time, so CD3D12API skips it for now.
         // TODO(szymansk): Remove it from engine?
@@ -2194,7 +2206,7 @@ namespace VKE::RenderSystem::D3D12
                     return NativeTypes::Null;
                 }
 
-                m_hDevice->CreateRenderTargetView(
+                m_pImplementation->m_hDevice->CreateRenderTargetView(
                     NativeResourceView.pResource, &NativeResourceView.RenderTargetViewDesc, hNativeCPUDescriptor );
                 hNativeCPUDescriptor.ptr += pDescriptorHeapRTV->DescriptorSize;
 
@@ -2254,7 +2266,7 @@ namespace VKE::RenderSystem::D3D12
                 }
 
                 pNativeRenderPass->DepthStencilView.hCPUDescriptor = pDescriptorHeapDSV->Allocate( 1 );
-                m_hDevice->CreateDepthStencilView( NativeResourceView.pResource,
+                m_pImplementation->m_hDevice->CreateDepthStencilView( NativeResourceView.pResource,
                                                    &NativeResourceView.DepthStencilViewDesc,
                                                    pNativeRenderPass->DepthStencilView.hCPUDescriptor );
 
@@ -2326,7 +2338,7 @@ namespace VKE::RenderSystem::D3D12
     NativeTypes::CommandBufferPool CD3D12API::CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc,
                                                                 const void*                   pAllocator )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreateCommandBufferPool: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateCommandBufferPool: m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::CommandBufferPool pCommandBufferPool = NativeAPI::Null;
         Memory::CreateObject( &HeapAllocator, &pCommandBufferPool );
@@ -2338,7 +2350,7 @@ namespace VKE::RenderSystem::D3D12
             return NativeTypes::Null;
         }
 
-        // if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator->pAllocator ) ) ) )
+        // if( FAILED( m_pImplementation->m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator->pAllocator ) ) ) )
         //{
         //     VKE_LOG_ERR( "CD3D12API::CreateCommandBufferPool: Failed to create command allocator" );
         // }
@@ -2366,7 +2378,7 @@ namespace VKE::RenderSystem::D3D12
             return NativeTypes::Null;
         }
 
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorPool: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorPool: m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::DescriptorPool pPool = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPool ) ) )
@@ -2397,7 +2409,7 @@ namespace VKE::RenderSystem::D3D12
 
         {
             auto nativePoolType   = Map::DescriptorPoolTypeToDescriptorHeapType( poolType );
-            pPool->descriptorSize = m_hDevice->GetDescriptorHandleIncrementSize( nativePoolType );
+            pPool->descriptorSize = m_pImplementation->m_hDevice->GetDescriptorHandleIncrementSize( nativePoolType );
             if( pPool->descriptorSize )
             {
                 heapDesc.Type           = nativePoolType;
@@ -2419,7 +2431,7 @@ namespace VKE::RenderSystem::D3D12
                     return FromNative<NativeTypes::DescriptorPool>(pPool);
                 }
 
-                if( FAILED( m_hDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &pPool->pHeap ) ) ) )
+                if( FAILED( m_pImplementation->m_hDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &pPool->pHeap ) ) ) )
                 {
                     VKE_LOG_ERR( "CD3D12API::CreateDescriptorPool: Failed to create descriptor heap" );
                 }
@@ -2439,7 +2451,7 @@ namespace VKE::RenderSystem::D3D12
     NativeTypes::DescriptorSetLayout CD3D12API::CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
                                                                     const void*                     pAllocator )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorSetLayout: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorSetLayout: m_pImplementation->m_hDevice can't be null" );
 
         if( !Desc.IsValid() )
         {
@@ -2502,7 +2514,7 @@ namespace VKE::RenderSystem::D3D12
     VKE::Result CD3D12API::CreateDescriptorSetsImpl( const AllocateDescs::SDescSet& EngineDescriptorSetInfo,
                                             NativeTypes::DescriptorSet*      pOutNativeDescriptorSets )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorSets: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorSets: m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::DescriptorPool pNativePool = ToNative( EngineDescriptorSetInfo.hPool );
 
@@ -2578,7 +2590,7 @@ namespace VKE::RenderSystem::D3D12
         auto&                           pPool          = pNativeDescriptorSet->pPool;
         NativeAPI::D3D12DescriptorHeap* DescriptorHeap = pPool->pHeap;
         const UINT                      srvDescriptorSize =
-            m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
+            m_pImplementation->m_hDevice->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
         (void)srvDescriptorSize;
         (void)DescriptorHeap;
 
@@ -2615,7 +2627,7 @@ namespace VKE::RenderSystem::D3D12
 
                 D3D12_CPU_DESCRIPTOR_HANDLE hCpu = pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
 
-                m_hDevice->CreateUnorderedAccessView( NativeTexture, nullptr, &UavDesc, hCpu );
+                m_pImplementation->m_hDevice->CreateUnorderedAccessView( NativeTexture, nullptr, &UavDesc, hCpu );
             }
         }
 
@@ -2634,7 +2646,7 @@ namespace VKE::RenderSystem::D3D12
                 Helper::CreateShaderResourceView( TexViewDesc, &SrvDesc );
 
                 auto hCpu = pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
-                m_hDevice->CreateShaderResourceView( ToNative( pTexture->GetDDIObject() ), &SrvDesc, hCpu );
+                m_pImplementation->m_hDevice->CreateShaderResourceView( ToNative( pTexture->GetDDIObject() ), &SrvDesc, hCpu );
             }
         }
 
@@ -2662,7 +2674,7 @@ namespace VKE::RenderSystem::D3D12
                         cbvDesc.BufferLocation = pNativeResource->GetGPUVirtualAddress();
                         cbvDesc.SizeInBytes    = Binding.elementSize * Binding.elementCount;
 
-                        m_hDevice->CreateConstantBufferView( &cbvDesc, hCpuDescriptorHandle );
+                        m_pImplementation->m_hDevice->CreateConstantBufferView( &cbvDesc, hCpuDescriptorHandle );
                         break;
 
                     case BINDING_TYPE::BUFFER:
@@ -2676,7 +2688,7 @@ namespace VKE::RenderSystem::D3D12
                         srvDesc.Buffer.StructureByteStride = Binding.elementSize;
                         srvDesc.Buffer.Flags               = D3D12_BUFFER_SRV_FLAG_NONE;
 
-                        m_hDevice->CreateShaderResourceView( pNativeResource, &srvDesc, hCpuDescriptorHandle );
+                        m_pImplementation->m_hDevice->CreateShaderResourceView( pNativeResource, &srvDesc, hCpuDescriptorHandle );
                         break;
 
                     case BINDING_TYPE::READ_ONLY_TEXEL_BUFFER:
@@ -2693,7 +2705,7 @@ namespace VKE::RenderSystem::D3D12
                         uavDesc.Buffer.CounterOffsetInBytes = 0;
                         uavDesc.Buffer.Flags                = D3D12_BUFFER_UAV_FLAG_NONE;
 
-                        m_hDevice->CreateUnorderedAccessView(
+                        m_pImplementation->m_hDevice->CreateUnorderedAccessView(
                             pNativeResource, nullptr, &uavDesc, hCpuDescriptorHandle );
                         VKE_LOG_ERR( "CD3D12API::Update: Unhandled buffer type" );
                         break;
@@ -2725,7 +2737,7 @@ namespace VKE::RenderSystem::D3D12
     NativeTypes::PipelineLayout CD3D12API::CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc,
                                                                      const void*                pAllocator )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreatePipelineLayout: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreatePipelineLayout: m_pImplementation->m_hDevice can't be null" );
         VKE_ASSERT2( m_pCtx != nullptr, "CD3D12API::CreatePipelineLayout: m_pCtx can't be null" );
 
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignature;
@@ -2772,7 +2784,7 @@ namespace VKE::RenderSystem::D3D12
 
         NativeAPI::D3D12RootSignature* pRootSignature;
 
-        if( FAILED( m_hDevice->CreateRootSignature( Helper::GetNodeMask(),
+        if( FAILED( m_pImplementation->m_hDevice->CreateRootSignature( Helper::GetNodeMask(),
                                                     pSignatureBlob->GetBufferPointer(),
                                                     pSignatureBlob->GetBufferSize(),
                                                     IID_PPV_ARGS( &pRootSignature ) ) ) )
@@ -2830,7 +2842,7 @@ namespace VKE::RenderSystem::D3D12
                                                 NativeTypes::CommandBuffer*       pBuffers )
     {
         Result result = VKE_OK;
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::AllocateObjects: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::AllocateObjects: m_pImplementation->m_hDevice can't be null" );
 
         D3D12_COMMAND_LIST_TYPE type = ( Info.level == COMMAND_BUFFER_LEVEL::PRIMARY ) ? ToNative( Info.hDDIPool )->NativeType
                                                                                        : D3D12_COMMAND_LIST_TYPE_BUNDLE;
@@ -2845,14 +2857,14 @@ namespace VKE::RenderSystem::D3D12
         {
             NativeAPI::CustomTypes::SCommandBufferPool::SCommandListWithAllocator Pair;
 
-            if( FAILED( m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &Pair.pAllocator ) ) ) )
+            if( FAILED( m_pImplementation->m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &Pair.pAllocator ) ) ) )
             {
                 VKE_LOG_ERR( "CD3D12API::AllocateObjects: Failed to create command allocator" );
                 result = VKE_FAIL;
                 break;
             }
 
-            if( FAILED( m_hDevice->CreateCommandList(
+            if( FAILED( m_pImplementation->m_hDevice->CreateCommandList(
                     0, type, Pair.pAllocator, NativeAPI::Null, IID_PPV_ARGS( &Pair.pCmdList ) ) ) )
             {
                 VKE_LOG_ERR( "CD3D12API::AllocateObjects: Failed to create command list" );
@@ -2880,9 +2892,9 @@ namespace VKE::RenderSystem::D3D12
                                                        SAllocationMemoryRequirementInfo* pOut )
     {
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateBuffer.
-        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( InDesc, m_Implementation.Features );
+        NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( InDesc, m_pImplementation->Features );
 
-        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_pImplementation->m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
 
         pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
         pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
@@ -2902,9 +2914,9 @@ namespace VKE::RenderSystem::D3D12
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateTexture.
         NativeAPI::D3D12ResourceDesc ResourceDesc;
 
-        Convert::GetResourceDesc( Desc, m_Implementation.Features, &ResourceDesc );
+        Convert::GetResourceDesc( Desc, m_pImplementation->Features, &ResourceDesc );
 
-        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo = m_pImplementation->m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
 
         pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
         pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
@@ -2966,10 +2978,10 @@ namespace VKE::RenderSystem::D3D12
 
     Result CD3D12API::AllocateImpl( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::Allocate: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::Allocate: m_pImplementation->m_hDevice can't be null" );
 
         D3D12_HEAP_DESC heapDesc =
-            Convert::GetMemoryHeapDesc( Desc.usage, m_Implementation.Features.ResourceHeapTier >= 2 );
+            Convert::GetMemoryHeapDesc( Desc.usage, m_pImplementation->Features.ResourceHeapTier >= 2 );
         heapDesc.SizeInBytes = Desc.size;
 
         // TODO(any): For multi-adapter systems, need to set proper masks.
@@ -2979,7 +2991,7 @@ namespace VKE::RenderSystem::D3D12
         Result  res = Result::OK;
         HRESULT hr  = S_OK;
         NativeAPI::MemoryHeap    pNativeMemory = ToNative( pOut->hDDIMemory );
-        if( FAILED( hr = m_hDevice->CreateHeap( &heapDesc, IID_PPV_ARGS( &pNativeMemory ) ) ) )
+        if( FAILED( hr = m_pImplementation->m_hDevice->CreateHeap( &heapDesc, IID_PPV_ARGS( &pNativeMemory ) ) ) )
         {
             if( hr == E_OUTOFMEMORY )
             {
@@ -3040,7 +3052,7 @@ namespace VKE::RenderSystem::D3D12
     size_t CD3D12API::GetMemoryHeapTotalSizeImpl( MEMORY_HEAP_TYPE type ) const
     {
         VKE_ASSERT2( type < MemoryHeapTypes::_MAX_COUNT, "Incorrect MEMORY_HEAP_TYPE" );
-        return m_Implementation.Properties.Memory.HeapProperties[ type ].SizeInBytes;
+        return m_pImplementation->Properties.Memory.HeapProperties[ type ].SizeInBytes;
     }
 
     size_t CD3D12API::GetMemoryHeapCurrentSizeImpl( MEMORY_HEAP_TYPE ) const
@@ -3326,7 +3338,7 @@ namespace VKE::RenderSystem::D3D12
 
     Result CD3D12API::CreateSwapChainImpl( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pOut )
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::CreateSwapChain: m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateSwapChain: m_pImplementation->m_hDevice can't be null" );
 
         QueryPresentSurfaceCaps( NativeTypes::Null, &pOut->Caps );
 
@@ -3350,7 +3362,7 @@ namespace VKE::RenderSystem::D3D12
         }
 
         D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { .Format = dxgiFormat };
-        m_hDevice->CheckFeatureSupport( D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof( formatSupport ) );
+        m_pImplementation->m_hDevice->CheckFeatureSupport( D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof( formatSupport ) );
 
         if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET ) == 0 )
         {
@@ -3386,7 +3398,7 @@ namespace VKE::RenderSystem::D3D12
         swapChainDesc.Flags       = 0;
 
         // Enable tearing if supported and allowed by application.
-        // if( NativeAPI::SImplementation::sTearingSupported )
+        // if( SImplementation::sTearingSupported )
         //{
         //    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
         //}
@@ -3405,7 +3417,7 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::Queue pQueue = ToNative( m_DeviceProperties.vQueueFamilies[ Desc.queueFamilyIndex ].vQueues[ 0 ] );
 
         IDXGISwapChain1* pSwapChain1 = nullptr;
-        if( FAILED( m_Implementation.spFactory->CreateSwapChainForHwnd(
+        if( FAILED( m_pImplementation->spFactory->CreateSwapChainForHwnd(
                 pQueue, hWnd, &swapChainDesc, NULL, NULL, &pSwapChain1 ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateSwapChain: Failed to create swap chain" );
@@ -3502,7 +3514,7 @@ namespace VKE::RenderSystem::D3D12
         for( auto& format: vApiAllowedFormats )
         {
             formatSupport.Format = format.dxgiFormat;
-            m_hDevice->CheckFeatureSupport( D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof( formatSupport ) );
+            m_pImplementation->m_hDevice->CheckFeatureSupport( D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof( formatSupport ) );
             if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY ) != 0 )
             {
                 pOut->vFormats.PushBack( { format.engineFormat, COLOR_SPACE::SRGB } );
@@ -3517,7 +3529,7 @@ namespace VKE::RenderSystem::D3D12
         // TODO(Any): Uncomment once emulation is implemented.
         // pOut->vModes.PushBack( PRESENT_MODE::MAILBOX );
 
-        if( NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported )
+        if( SImplementation::SDeviceFeatures::sTearingSupported )
         {
             pOut->vModes.PushBack( PRESENT_MODE::IMMEDIATE );
         }
@@ -3640,7 +3652,7 @@ namespace VKE::RenderSystem::D3D12
 
     bool CD3D12API::IsSignaledImpl( const NativeTypes::CPUFence& hFence ) const
     {
-        VKE_ASSERT2( m_hDevice != NativeAPI::Null, "CD3D12API::IsSignaled: m_hDevice is null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::IsSignaled: m_pImplementation->m_hDevice is null" );
         return ToNative( hFence )->pObject->GetCompletedValue() >= ToNative( hFence )->Value;
     }
 

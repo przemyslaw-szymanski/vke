@@ -4,7 +4,6 @@
 #include <RenderSystem/TCAPI.h>
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Memory/CMemoryPoolManager.h"
-#include "RenderSystem/Vulkan/CDDITypes.h"
 
 namespace VKE::RenderSystem
 {
@@ -14,20 +13,18 @@ namespace VKE::RenderSystem
 
 namespace VKE::RenderSystem::Vulkan
 {
-    using namespace NativeTypes;
+    struct NativeAPI;
+    struct SImplementation;
     // CAPI: Common Device Driver Interface for any render system
-    class VKE_API CVulkanAPI : public TCAPI<CVulkanAPI>
+    class VKE_API CVulkanAPI : public TCRHI<CVulkanAPI>
     {
-        friend class TCAPI< CVulkanAPI >;
+        friend class TCRHI< CVulkanAPI >;
         friend class CDeviceContext;
-        using AdapterArray = Utils::TCDynamicArray< NativeAPI::Adapter >;
 
     public:
 
-        CVulkanAPI()
-        {
-
-        }
+        CVulkanAPI();
+        ~CVulkanAPI();
 
     private:
 
@@ -40,10 +37,7 @@ namespace VKE::RenderSystem::Vulkan
 
         const NativeTypes::Adapter GetAdapterImpl() const;
 
-        const QueueFamilyInfoArray& GetDeviceQueueInfosImpl() const
-        {
-            return m_Implementation.EngineDeviceProperties.vQueueFamilies;
-        }
+        const QueueFamilyInfoArray& GetDeviceQueueInfosImpl() const;
 
         static Result QueryAdaptersImpl( AdapterInfoArray* pOut );
 
@@ -190,17 +184,13 @@ namespace VKE::RenderSystem::Vulkan
         Result                WaitForQueueImpl( const NativeTypes::Queue& hQueue );
         Result                WaitForDeviceImpl();
 
-        NativeAPI::SImplementation& getImplementation()
-        {
-            return m_Implementation;
-        };
-
     protected:
-        static AdapterArray svAdapters;
+        //static AdapterArray svAdapters;
         
-        NativeAPI::SImplementation m_Implementation;
-        NativeAPI::Device          m_hDevice  = NativeAPI::Null;
-        NativeAPI::Adapter         m_hAdapter = NativeAPI::Null;
+        SImplementation* m_pImplementation;
+        //SImplementation m_Implementation;
+        //NativeAPI::Device          m_pImplementation->m_hDevice  = NativeAPI::Null;
+        //NativeAPI::Adapter         m_pImplementation->m_hAdapter = NativeAPI::Null;
 
         CDeviceContext*   m_pCtx;
         SDeviceInfo       m_DeviceInfo;
@@ -208,7 +198,7 @@ namespace VKE::RenderSystem::Vulkan
         struct
         {
             uint32_t         TypeToIndex[ MemoryHeapTypes::_MAX_COUNT ];
-            MEMORY_HEAP_TYPE IndexToType[ NativeAPI::SImplementation::MAX_MEMORY_HEAPS ];
+            MEMORY_HEAP_TYPE IndexToType[ 16 ];
         } HeapMap;
     };
 

@@ -10,7 +10,7 @@ namespace VKE::RenderSystem
     class CDeviceContext;
 
     template<class RenderApiT>
-    class VKE_API TCAPI
+    class VKE_API TCRHI
     {
     protected:
 

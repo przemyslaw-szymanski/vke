@@ -4,7 +4,7 @@
 #include <RenderSystem/TCAPI.h>
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Memory/CMemoryPoolManager.h"
-#include "RenderSystem/D3D12/CDDITypes.h"
+
 
 namespace VKE::RenderSystem
 {
@@ -14,12 +14,19 @@ namespace VKE::RenderSystem
 
 namespace VKE::RenderSystem::D3D12
 {
+    struct NativeAPI;
+    struct SImplementation;
     // CAPI: Common Device Driver Interface for any render system
-    class VKE_API CD3D12API : public TCAPI< CD3D12API >
+    class VKE_API CD3D12API : public TCRHI< CD3D12API >
     {
-        friend class TCAPI< CD3D12API >;
+        friend class TCRHI< CD3D12API >;
         friend class CDeviceContext;
         using AdapterArray = Utils::TCDynamicArray< NativeTypes::Adapter >;
+
+    public:
+
+        CD3D12API();
+        ~CD3D12API();
 
     private:
 
@@ -31,15 +38,9 @@ namespace VKE::RenderSystem::D3D12
         Result CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx );
         void   DestroyDeviceImpl();
 
-        const NativeTypes::Device GetDeviceImpl() const
-        {
-            return NativeTypes::Device{ reinterpret_cast<handle_t>( m_hDevice ) };
-        }
+        const NativeTypes::Device GetDeviceImpl() const;
 
-        const NativeTypes::Adapter GetAdapterImpl() const
-        {
-            return NativeTypes::Adapter{ reinterpret_cast<handle_t>( m_hAdapter ) };
-        }
+        const NativeTypes::Adapter GetAdapterImpl() const;
 
         const QueueFamilyInfoArray& GetDeviceQueueInfosImpl() const
         {
@@ -186,17 +187,10 @@ namespace VKE::RenderSystem::D3D12
         Result                  WaitForQueueImpl( const NativeTypes::Queue& hQueue );
         Result                  WaitForDeviceImpl();
 
-        NativeAPI::SImplementation& getImplementation()
-        {
-            return m_Implementation;
-        };
-
     protected:
         static AdapterArray svAdapters;
 
-        NativeAPI::SImplementation m_Implementation;
-        NativeAPI::Device          m_hDevice  = NativeAPI::Null;
-        NativeAPI::Adapter         m_hAdapter = NativeAPI::Null;
+        SImplementation* m_pImplementation;
 
         CDeviceContext*   m_pCtx;
         SDeviceInfo       m_DeviceInfo;
@@ -205,7 +199,7 @@ namespace VKE::RenderSystem::D3D12
         struct
         {
             uint32_t         TypeToIndex[ MemoryHeapTypes::_MAX_COUNT ];
-            MEMORY_HEAP_TYPE IndexToType[ NativeAPI::SImplementation::MAX_MEMORY_HEAPS ];
+            MEMORY_HEAP_TYPE IndexToType[ 16 ];
         } HeapMap;
     };
 
