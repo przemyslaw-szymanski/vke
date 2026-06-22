@@ -18,6 +18,7 @@ namespace VKE::RenderSystem::Vulkan
     // CAPI: Common Device Driver Interface for any render system
     class VKE_API CVulkanAPI : public TCAPI<CVulkanAPI>
     {
+        friend class TCAPI< CVulkanAPI >;
         friend class CDeviceContext;
         using AdapterArray = Utils::TCDynamicArray< NativeAPI::Adapter >;
 
@@ -28,10 +29,12 @@ namespace VKE::RenderSystem::Vulkan
 
         }
 
+    private:
+
         Result CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx );
         void   DestroyDeviceImpl();
 
-        static Result Load( const SDDILoadInfo& Info, SDriverInfo* pOut );
+        static Result LoadImpl( const SDDILoadInfo& Info, SDriverInfo* pOut );
 
         const NativeTypes::Device GetDeviceImpl() const;
 

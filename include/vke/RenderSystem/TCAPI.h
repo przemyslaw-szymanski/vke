@@ -12,8 +12,7 @@ namespace VKE::RenderSystem
     template<class RenderApiT>
     class VKE_API TCAPI
     {
-        friend RenderApiT;
-    public:
+    protected:
 
         RenderApiT* Reinterpret()
         {
@@ -26,6 +25,8 @@ namespace VKE::RenderSystem
             return static_cast< const RenderApiT* >( this );
         }
 
+        public:
+
         Result CreateDevice(const SCreateDeviceDesc& Info, CDeviceContext* pCtx)
         {
             return Reinterpret()->CreateDeviceImpl( Info, pCtx );
@@ -37,7 +38,7 @@ namespace VKE::RenderSystem
 
         static Result Load(const SDDILoadInfo& Info, SDriverInfo* pOut)
         {
-            return RenderApiT::Load( Info, pOut );
+            return RenderApiT::LoadImpl( Info, pOut );
         }
 
         const NativeTypes::Device GetDevice() const

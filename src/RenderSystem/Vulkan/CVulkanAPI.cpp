@@ -1254,12 +1254,12 @@ namespace VKE
                         SSemaphoreDesc SemDesc;
                         SemDesc.SetDebugName( Desc.GetDebugName() );
                         SemDesc.startValue = Desc.startValue;
-                        Fences.hSemaphore  = ToNative( pApi->CreateSemaphoreImpl( SemDesc, nullptr ) );
+                        Fences.hSemaphore  = ToNative( pApi->CreateGPUFence( SemDesc ) );
                         if( isBinary )
                         {
                             SFenceDesc FenceDesc;
                             FenceDesc.SetDebugName( Desc.GetDebugName() );
-                            Fences.hFence = ToNative( pApi->CreateFenceImpl( FenceDesc, nullptr ) );
+                            Fences.hFence = ToNative( pApi->CreateFence( FenceDesc ) );
                         }
                         vFences.PushBack( Fences );
                         vValues.PushBack( Desc.startValue );
@@ -1305,29 +1305,29 @@ namespace VKE
                             SFenceDesc FenDesc;
                             FenDesc.startValue = 0;
                             FenDesc.SetDebugName( "%s_%d", GetDebugName(), idx2 );
-                            Fences.hFence = ToNative( pApi->CreateFenceImpl( FenDesc, nullptr ) );
+                            Fences.hFence = ToNative( pApi->CreateFence( FenDesc ) );
                             SSemaphoreDesc SemDesc;
                             SemDesc.SetDebugName( FenDesc.GetDebugName() );
-                            Fences.hSemaphore = ToNative( pApi->CreateSemaphoreImpl( SemDesc, nullptr ) );
+                            Fences.hSemaphore = ToNative( pApi->CreateGPUFence( SemDesc ) );
                             return &Fences;
                         }
                     }
                     // Fence must be signaled if it is recycled
                     NativeTypes::CPUFence       hFence = FromNative< NativeTypes::CPUFence >( vFences[ idx ].hFence );
-                    const bool signaled = pApi->IsSignaledImpl( hFence );
+                    const bool signaled = pApi->IsSignaled( hFence );
                     VKE_ASSERT( signaled );
                     VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
                     
-                    pApi->ResetImpl( &hFence );
+                    pApi->Reset( &hFence );
                     vValues[ idx ] = value;
                     return &vFences[ idx ];
                 }
                 else if( isBinary )
                 {
                     NativeTypes::Fence hFence = FromNative< NativeTypes::Fence >( this );
-                    pApi->WaitForFenceImpl( hFence, 0 );
+                    pApi->WaitForFence( hFence, 0 );
                     NativeTypes::CPUFence hCPUFence = FromNative< NativeTypes::CPUFence >( vFences[ 0 ].hFence );
-                    pApi->ResetImpl( &hCPUFence );
+                    pApi->Reset( &hCPUFence );
                 }
                 return &vFences[ 0 ];
             }
@@ -1366,7 +1366,7 @@ namespace VKE
                     auto value = vValues[ i ];
                     if( value > 0 )
                     {
-                        if( pApi->IsSignaledImpl( FromNative( vFences[ i ].hFence ) ) )
+                        if( pApi->IsSignaled( FromNative( vFences[ i ].hFence ) ) )
                         {
                             vValues[ i ] = 0; // reset this fence as it is no longer valid
                             lastSignaledValue          = Math::Max( lastSignaledValue, value );
@@ -2050,7 +2050,7 @@ namespace VKE
             return ret;
         }
 
-        Result CVulkanAPI::Load( const SDDILoadInfo& Info, SDriverInfo* pOut )
+        Result CVulkanAPI::LoadImpl( const SDDILoadInfo& Info, SDriverInfo* pOut )
         {
             Result ret = VKE_OK;
             VKE_LOG_PROG( "VKEngine loading vulkan-1.dll" );

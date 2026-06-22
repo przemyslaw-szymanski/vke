@@ -222,10 +222,7 @@ if(VKE_COMPILE_D3D12_RHI)
 
     # D3D12Core.dll exists in both bin/ and debug/bin; pick by config at build time.
     # d3d12SDKLayers.dll only ships in debug/bin, so it is only copied for Debug builds.
-    set(D3D12_AGILITY_DLLS
-        "$<IF:$<CONFIG:Debug>,${_AGILITY_DBG_BIN_DIR},${_AGILITY_BIN_DIR}>/D3D12Core.dll"
-        "$<$<CONFIG:Debug>:${_AGILITY_DBG_BIN_DIR}/d3d12SDKLayers.dll>"
-    )
+
 endif()
 
 message("Third Party Libs:")
