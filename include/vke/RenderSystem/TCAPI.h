@@ -40,12 +40,12 @@ namespace VKE::RenderSystem
             return RenderApiT::Load( Info, pOut );
         }
 
-        const NativeAPI::Device& GetDevice() const
+        const NativeTypes::Device GetDevice() const
         {
             return Reinterpret()->GetDeviceImpl();
         }
 
-        const NativeAPI::Adapter& GetAdapter() const
+        const NativeTypes::Adapter& GetAdapter() const
         {
             return Reinterpret()->GetAdapterImpl();
         }
@@ -65,19 +65,19 @@ namespace VKE::RenderSystem
             Reinterpret()->QueryDeviceInfoImpl( pOut );
         }
 
-        NativeAPI::Buffer CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
+        NativeTypes::Buffer CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
             return Reinterpret()->CreateBufferImpl( Desc, MemInfo );
         }
-        void                           DestroyBuffer(NativeAPI::Buffer* phBuffer)
+        void                           DestroyBuffer(NativeTypes::Buffer* phBuffer)
         {
             return Reinterpret()->DestroyBufferImpl( phBuffer, nullptr );
         }
-        NativeAPI::BufferView          CreateBufferView(const SBufferViewDesc& Desc)
+        NativeTypes::BufferView          CreateBufferView(const SBufferViewDesc& Desc)
         {
             return Reinterpret()->CreateBufferView( Desc, nullptr );
         }
-        void                           DestroyBufferView(NativeAPI::BufferView* phBufferView)
+        void                           DestroyBufferView(NativeTypes::BufferView* phBufferView)
         {
             return Reinterpret()->DestroyBufferViewImpl( phBufferView, nullptr );
         }
@@ -86,143 +86,143 @@ namespace VKE::RenderSystem
             return Reinterpret()->GetTextureFormatPropertiesImpl( Desc, pOut );
         }
 
-        NativeAPI::Texture CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
+        NativeTypes::Texture CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
             return Reinterpret()->CreateTextureImpl( Desc, MemInfo );
         }
 
-        void DestroyTexture( NativeAPI::Texture* phImage )
+        void DestroyTexture( NativeTypes::Texture* phImage )
         {
             return Reinterpret()->DestroyTextureImpl( phImage, nullptr );
         }
-        NativeAPI::TextureView         CreateTextureView(const STextureViewDesc& Desc)
+        NativeTypes::TextureView         CreateTextureView(const STextureViewDesc& Desc)
         {
             return Reinterpret()->CreateTextureViewImpl( Desc, nullptr );
         }
 
-        void DestroyTextureView( NativeAPI::TextureView* phImageView )
+        void DestroyTextureView( NativeTypes::TextureView* phImageView )
         {
             return Reinterpret()->DestroyTextureViewImpl( phImageView, nullptr );
         }
-        NativeAPI::Framebuffer         CreateFramebuffer(const SFramebufferDesc& Desc)
+        NativeTypes::Framebuffer         CreateFramebuffer(const SFramebufferDesc& Desc)
         {
             return Reinterpret()->CreateFramebufferImpl( Desc, nullptr );
         }
 
-        void DestroyFramebuffer( NativeAPI::Framebuffer* phFramebuffer )
+        void DestroyFramebuffer( NativeTypes::Framebuffer* phFramebuffer )
         {
             return Reinterpret()->DestroyFramebufferImpl( phFramebuffer, nullptr );
         }
 
-        NativeAPI::CPUFence CreateFence( const SFenceDesc& Desc ) const
+        NativeTypes::CPUFence CreateFence( const SFenceDesc& Desc ) const
         {
             return Reinterpret()->CreateFenceImpl( Desc, nullptr );
         }
-        NativeAPI::Fence               CreateFence2(const SFenceDesc& Desc) const
+        NativeTypes::Fence               CreateFence2(const SFenceDesc& Desc) const
         {
             return Reinterpret()->CreateFence2Impl( Desc );
         }
-        void                           DestroyFence(NativeAPI::CPUFence* phFence)
+        void                           DestroyFence(NativeTypes::CPUFence* phFence)
         {
             return Reinterpret()->DestroyFenceImpl( phFence, nullptr );
         }
 
-        void DestroyFence( NativeAPI::Fence* phFence )
+        void DestroyFence( NativeTypes::Fence* phFence )
         {
             return Reinterpret()->DestroyFenceImpl( phFence );
         }
-        NativeAPI::GPUFence            CreateSemaphore(const SSemaphoreDesc& Desc) const
+        NativeTypes::GPUFence            CreateGPUFence(const SSemaphoreDesc& Desc) const
         {
             return Reinterpret()->CreateSemaphoreImpl( Desc, nullptr );
         }
 
-        void DestroySemaphore( NativeAPI::GPUFence* phSemaphore )
+        void DestroyGPUFence( NativeTypes::GPUFence* phSemaphore )
         {
             return Reinterpret()->DestroySemaphoreImpl( phSemaphore, nullptr );
         }
-        NativeAPI::RenderPass          CreateRenderPass(const SRenderPassDesc& Desc)
+        NativeTypes::RenderPass          CreateRenderPass(const SRenderPassDesc& Desc)
         {
             return Reinterpret()->CreateRenderPassImpl( Desc, nullptr );
         }
 
-        void DestroyRenderPass( NativeAPI::RenderPass* phPass )
+        void DestroyRenderPass( NativeTypes::RenderPass* phPass )
         {
             return Reinterpret()->DestroyRenderPassImpl( phPass, nullptr );
         }
-        NativeAPI::CommandBufferPool   CreateCommandBufferPool(const SCommandBufferPoolDesc& Desc)
+        NativeTypes::CommandBufferPool   CreateCommandBufferPool(const SCommandBufferPoolDesc& Desc)
         {
             return Reinterpret()->CreateCommandBufferPoolImpl( Desc, nullptr );
         }
 
-        void DestroyCommandBufferPool( NativeAPI::CommandBufferPool* phPool )
+        void DestroyCommandBufferPool( NativeTypes::CommandBufferPool* phPool )
         {
             return Reinterpret()->DestroyCommandBufferPoolImpl( phPool, nullptr );
         }
-        NativeAPI::DescriptorPool      CreateDescriptorPool(const SDescriptorPoolDesc& Desc)
+        NativeTypes::DescriptorPool      CreateDescriptorPool(const SDescriptorPoolDesc& Desc)
         {
             return Reinterpret()->CreateDescriptorPoolImpl( Desc, nullptr );
         }
 
-        void DestroyDescriptorPool( NativeAPI::DescriptorPool* phPool )
+        void DestroyDescriptorPool( NativeTypes::DescriptorPool* phPool )
         {
             return Reinterpret()->DestroyDescriptorPoolImpl( phPool, nullptr );
         }
-        NativeAPI::DescriptorSetLayout CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc)
+        NativeTypes::DescriptorSetLayout CreateDescriptorSetLayout(const SDescriptorSetLayoutDesc& Desc)
         {
             return Reinterpret()->CreateDescriptorSetLayoutImpl( Desc, nullptr );
         }
 
-        void DestroyDescriptorSetLayout( NativeAPI::DescriptorSetLayout* phLayout )
+        void DestroyDescriptorSetLayout( NativeTypes::DescriptorSetLayout* phLayout )
         {
             return Reinterpret()->DestroyDescriptorSetLayoutImpl( phLayout, nullptr );
         }
-        NativeAPI::Pipeline       CreatePipeline(const SPipelineDesc& Desc)
+        NativeTypes::Pipeline       CreatePipeline(const SPipelineDesc& Desc)
         {
             return Reinterpret()->CreatePipelineImpl( Desc, nullptr );
         }
 
-        void DestroyPipeline( NativeAPI::Pipeline* phPipeline )
+        void DestroyPipeline( NativeTypes::Pipeline* phPipeline )
         {
             return Reinterpret()->DestroyPipelineImpl( phPipeline, nullptr );
         }
-        NativeAPI::PipelineLayout CreatePipelineLayout(const SPipelineLayoutDesc& Desc)
+        NativeTypes::PipelineLayout CreatePipelineLayout(const SPipelineLayoutDesc& Desc)
         {
             return Reinterpret()->CreatePipelineLayoutImpl( Desc, nullptr );
         }
 
-        void DestroyPipelineLayout( NativeAPI::PipelineLayout* phLayout )
+        void DestroyPipelineLayout( NativeTypes::PipelineLayout* phLayout )
         {
             return Reinterpret()->DestroyPipelineLayoutImpl( phLayout, nullptr );
         }
-        NativeAPI::Shader         CreateShader(const SShaderData& Desc)
+        NativeTypes::Shader         CreateShader(const SShaderData& Desc)
         {
             return Reinterpret()->CreateShaderImpl( Desc, nullptr );
         }
 
-        void DestroyShader( NativeAPI::Shader* phShader )
+        void DestroyShader( NativeTypes::Shader* phShader )
         {
             return Reinterpret()->DestroyShaderImpl( phShader, nullptr );
         }
-        NativeAPI::Sampler        CreateSampler(const SSamplerDesc& Desc)
+        NativeTypes::Sampler        CreateSampler(const SSamplerDesc& Desc)
         {
             return Reinterpret()->CreateSamplerImpl( Desc, nullptr );
         }
 
-        void DestroySampler( NativeAPI::Sampler* phSampler )
+        void DestroySampler( NativeTypes::Sampler* phSampler )
         {
             return Reinterpret()->DestroySamplerImpl( phSampler, nullptr );
         }
-        NativeAPI::Event          CreateEvent(const SEventDesc& Desc)
+        NativeTypes::Event          CreateEvent(const SEventDesc& Desc)
         {
             return Reinterpret()->CreateEventImpl( Desc, nullptr );
         }
 
-        void DestroyEvent( NativeAPI::Event* phEvent )
+        void DestroyEvent( NativeTypes::Event* phEvent )
         {
             return Reinterpret()->DestroyEventImpl( phEvent, nullptr );
         }
 
-        Result CreateDescriptorSets( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
+        Result CreateDescriptorSets( const AllocateDescs::SDescSet& Info, NativeTypes::DescriptorSet* pSets )
         {
             return Reinterpret()->CreateDescriptorSetsImpl( Info, pSets );
         }
@@ -232,7 +232,7 @@ namespace VKE::RenderSystem
             return Reinterpret()->FreeObjectsImpl( Sets );
         }
 
-        Result CreateCommandBuffers( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers )
+        Result CreateCommandBuffers( const SAllocateCommandBufferInfo& Info, NativeTypes::CommandBuffer* pBuffers )
         {
             return Reinterpret()->CreateCommandBuffersImpl( Info, pBuffers );
         }
@@ -276,26 +276,26 @@ namespace VKE::RenderSystem
         {
             return Reinterpret()->BindImpl( Info );
         }
-        void   Bind(const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+        void   Bind(const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
             const uint32_t offset)
         {
             return Reinterpret()->BindImpl( hDDICmdBuffer, hDDIBuffer, offset );
         }
-        void   Bind(const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+        void   Bind(const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
             const uint32_t offset, const INDEX_TYPE& type)
         {
             return Reinterpret()->BindImpl( hDDICmdBuffer, hDDIBuffer, offset, type );
         }
-        void   UnbindPipeline(const NativeAPI::CommandBuffer& hCmdBuffer, const NativeAPI::Pipeline& hPipeline)
+        void   UnbindPipeline(const NativeTypes::CommandBuffer& hCmdBuffer, const NativeTypes::Pipeline& hPipeline)
         {
             return Reinterpret()->UnbindPipelineImpl( hCmdBuffer, hPipeline );
         }
-        void   UnbindRenderPass(const NativeAPI::CommandBuffer& hCmdBuffer, const NativeAPI::RenderPass& hRenderPass)
+        void   UnbindRenderPass(const NativeTypes::CommandBuffer& hCmdBuffer, const NativeTypes::RenderPass& hRenderPass)
         {
             return Reinterpret()->UnbindRenderPassImpl( hCmdBuffer, hRenderPass );
         }
 
-        void Free(NativeAPI::Memory* phMemory = nullptr)
+        void Free(NativeTypes::MemoryHeap* phMemory = nullptr)
         {
             return Reinterpret()->FreeImpl( phMemory );
         }
@@ -308,12 +308,12 @@ namespace VKE::RenderSystem
         {
             return Reinterpret()->UpdateImpl( Info );
         }
-        void Update(const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info)
+        void Update(const NativeTypes::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info)
         {
             return Reinterpret()->UpdateImpl( hDDISet, Info );
         }
 
-        void Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut )
+        void Update( const NativeTypes::DescriptorSet& hDDISrcSet, NativeTypes::DescriptorSet* phDDIDstOut )
         {
             return Reinterpret()->UpdateImpl( hDDISrcSet, phDDIDstOut );
         }
@@ -346,87 +346,87 @@ namespace VKE::RenderSystem
             return Reinterpret()->UnmapMemoryImpl( Info );
         }
 
-        void Reset(const NativeAPI::CommandBuffer& hCommandBuffer)
+        void Reset(const NativeTypes::CommandBuffer& hCommandBuffer)
         {
             return Reinterpret()->ResetImpl( hCommandBuffer );
         }
 
-        void BeginCommandBuffer(const NativeAPI::CommandBuffer& hCommandBuffer,
-            const NativeAPI::CommandBufferPool& hCommandBufferPool)
+        void BeginCommandBuffer(const NativeTypes::CommandBuffer& hCommandBuffer,
+            const NativeTypes::CommandBufferPool& hCommandBufferPool)
         {
             return Reinterpret()->BeginCommandBufferImpl( hCommandBuffer, hCommandBufferPool );
         }
-        void EndCommandBuffer(const NativeAPI::CommandBuffer& hCommandBuffer)
+        void EndCommandBuffer(const NativeTypes::CommandBuffer& hCommandBuffer)
         {
             return Reinterpret()->EndCommandBufferImpl( hCommandBuffer );
         }
 
-        void Reset(const NativeAPI::CommandBuffer& hCommandBuffer,
-            const NativeAPI::CommandBufferPool& hCommandBufferPool)
+        void Reset(const NativeTypes::CommandBuffer& hCommandBuffer,
+            const NativeTypes::CommandBufferPool& hCommandBufferPool)
         {
             return Reinterpret()->ResetImpl( hCommandBuffer, hCommandBufferPool );
         }
 
-        void Barrier(const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info)
+        void Barrier(const NativeTypes::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info)
         {
             return Reinterpret()->BarrierImpl( hCommandBuffer, Info );
         }
 
         // Command Buffer
-        void SetState(const NativeAPI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc)
+        void SetState(const NativeTypes::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc)
         {
             return Reinterpret()->SetStateImpl( hCommandBuffer, Desc );
         }
-        void SetState( const NativeAPI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
+        void SetState( const NativeTypes::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
         {
             return Reinterpret()->SetStateImpl( hCommandBuffer, Desc );
         }
 
-        void Draw(const NativeAPI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+        void Draw(const NativeTypes::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
             const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance)
         {
             return Reinterpret()->DrawImpl( hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
         }
-        void DrawIndexed(const NativeAPI::CommandBuffer& hCommandBuffer, const SDrawParams& Params)
+        void DrawIndexed(const NativeTypes::CommandBuffer& hCommandBuffer, const SDrawParams& Params)
         {
             return Reinterpret()->DrawIndexedImpl( hCommandBuffer, Params );
         }
-        void DrawMesh(const NativeAPI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+        void DrawMesh(const NativeTypes::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
             uint32_t depth)
         {
             return Reinterpret()->DrawMeshImpl( hCommandBuffer, width, height, depth );
         }
 
         // Dynamic rendering
-        void BeginRenderPass(NativeAPI::CommandBuffer hCmdBuffer, const SBeginRenderPassInfo2& Info)
+        void BeginRenderPass(NativeTypes::CommandBuffer hCmdBuffer, const SBeginRenderPassInfo2& Info)
         {
             return Reinterpret()->BeginRenderPassImpl( hCmdBuffer, Info );
         }
 
-        void BeginRenderPass( NativeAPI::CommandBuffer hCmdBuffer, const SBeginRenderPassInfo& Info )
+        void BeginRenderPass( NativeTypes::CommandBuffer hCmdBuffer, const SBeginRenderPassInfo& Info )
         {
             return Reinterpret()->BeginRenderPassImpl( hCmdBuffer, Info );
         }
 
-        void EndRenderPass( NativeAPI::CommandBuffer hCmdBuffer, NativeAPI::RenderPass hPass)
+        void EndRenderPass( NativeTypes::CommandBuffer hCmdBuffer, NativeTypes::RenderPass hPass)
         {
             return Reinterpret()->EndRenderPassImpl( hCmdBuffer, hPass );
         }
 
         // Copy
-        void Copy(const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info)
+        void Copy(const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info)
         {
             return Reinterpret()->CopyImpl( hDDICmdBuffer, Info );
         }
-        void Copy(const NativeAPI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info)
+        void Copy(const NativeTypes::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info)
         {
             return Reinterpret()->CopyImpl( hCmdBuffer, Info );
         }
-        void Copy(const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info)
+        void Copy(const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info)
         {
             return Reinterpret()->CopyImpl( hDDICmdBuffer, Info );
         }
-        void Blit(const NativeAPI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info)
+        void Blit(const NativeTypes::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info)
         {
             return Reinterpret()->BlitImpl( hAPICmdBuffer, Info );
         }
@@ -456,7 +456,7 @@ namespace VKE::RenderSystem
             return Reinterpret()->ReCreateSwapChainImpl( Desc, pOut );
         }
 
-        Result QueryPresentSurfaceCaps( const NativeAPI::PresentSurface& hSurface, SPresentSurfaceCaps* pOut )
+        Result QueryPresentSurfaceCaps( const NativeTypes::PresentSurface& hSurface, SPresentSurfaceCaps* pOut )
         {
             return Reinterpret()->QueryPresentSurfaceCapsImpl( hSurface, pOut );
         }
@@ -466,17 +466,17 @@ namespace VKE::RenderSystem
             return Reinterpret()->GetCurrentBackBufferIndexImpl( SwapChain, Info, pOut );
         }
 
-        static void Convert(const SClearValue& In, NativeAPI::ClearValue* pOut)
+        /*static void Convert(const SClearValue& In, NativeTypes::ClearValue* pOut)
         {
             typename RenderApiT::Convert( In, pOut );
-        }
+        }*/
 
         // Debug
-        void BeginDebugInfo(const NativeAPI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo)
+        void BeginDebugInfo(const NativeTypes::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo)
         {
             return Reinterpret()->BeginDebugInfoImpl( hDDICmdBuff, pInfo );
         }
-        void EndDebugInfo(const NativeAPI::CommandBuffer& hDDICmdBuff)
+        void EndDebugInfo(const NativeTypes::CommandBuffer& hDDICmdBuff)
         {
             return Reinterpret()->EndDebugInfoImpl( hDDICmdBuff );
         }
@@ -489,40 +489,40 @@ namespace VKE::RenderSystem
             return Reinterpret()->SetQueueDebugNameImpl( handle, pName );
         }
 
-        bool   IsSignaled(const NativeAPI::CPUFence& hFence) const
+        bool   IsSignaled(const NativeTypes::CPUFence& hFence) const
         {
             return Reinterpret()->IsSignaledImpl( hFence );
         }
 
-        bool IsSignaled( const NativeAPI::Fence& hFence ) const
+        bool IsSignaled( const NativeTypes::Fence& hFence ) const
         {
             return Reinterpret()->IsSignaledImpl( hFence );
         }
-        NativeAPI::FenceValue GetCompletedValue(const NativeAPI::Fence& hFence) const
+        NativeTypes::FenceValue GetCompletedValue(const NativeTypes::Fence& hFence) const
         {
             return Reinterpret()->GetCompletedValueImpl( hFence );
         }
-        void   Reset(NativeAPI::CPUFence* phFence)
+        void   Reset(NativeTypes::CPUFence* phFence)
         {
             return Reinterpret()->ResetImpl( phFence );
         }
 
-        void Reset( NativeAPI::Fence* phFence, NativeAPI::FenceValue value )
+        void Reset( NativeTypes::Fence* phFence, NativeTypes::FenceValue value )
         {
             return Reinterpret()->ResetImpl( phFence, value );
         }
 
-        Result WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const
+        Result WaitForFences( const NativeTypes::CPUFence& hFence, uint64_t timeout ) const
         {
             return Reinterpret()->WaitForFencesImpl( hFence, timeout );
         }
 
-        Result WaitForFence( NativeAPI::Fence      Fence, NativeAPI::FenceValue value ) const
+        Result WaitForFence( NativeTypes::Fence      Fence, NativeTypes::FenceValue value ) const
         {
             return Reinterpret()->WaitForFenceImpl( Fence, value );
         }
 
-        Result WaitForQueue( const NativeAPI::Queue& hQueue )
+        Result WaitForQueue( const NativeTypes::Queue& hQueue )
         {
             return Reinterpret()->WaitForQueueImpl( hQueue );
         }

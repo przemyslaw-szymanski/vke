@@ -23,12 +23,12 @@ namespace VKE
             static const uint32_t MAX_RT_COUNT = 8;
 
         protected:
-            using ImageArray       = Utils::TCDynamicArray< NativeAPI::Texture, 8 >;
-            using ImageViewArray   = Utils::TCDynamicArray< NativeAPI::TextureView, 8 >;
+            using ImageArray       = Utils::TCDynamicArray< NativeTypes::Texture, 8 >;
+            using ImageViewArray   = Utils::TCDynamicArray< NativeTypes::TextureView, 8 >;
             using ClearValueArray  = Utils::TCDynamicArray< SClearValue, 8 >;
-            using FramebufferArray = Utils::TCDynamicArray< NativeAPI::Framebuffer, 8 >;
+            using FramebufferArray = Utils::TCDynamicArray< NativeTypes::Framebuffer, 8 >;
 
-            VKE_ADD_DDI_OBJECT( NativeAPI::RenderPass );
+            VKE_ADD_DDI_OBJECT( NativeTypes::RenderPass );
             VKE_DECL_BASE_OBJECT( RenderPassHandle );
 
             using SRenderTargetDesc = SRenderPassDesc::SRenderTargetDesc;
@@ -36,7 +36,7 @@ namespace VKE
 
             /*struct SRenderTargetInfo
             {
-                NativeAPI::TextureView hView;
+                NativeTypes::TextureView hView;
                 TEXTURE_STATE state;
                 RENDER_TARGET_RENDER_PASS_OP renderPassOp;
                 SClearValue ClearValue;
@@ -57,12 +57,12 @@ namespace VKE
             Result Update( const SRenderPassDesc& Desc );
             void   Clear( const SColor& ClearColor, float clearDepth, float clearStencil );
 
-            NativeAPI::Texture GetColorRenderTarget( uint32_t idx ) const
+            NativeTypes::Texture GetColorRenderTarget( uint32_t idx ) const
             {
                 return m_vImages[ idx ];
             }
 
-            NativeAPI::TextureView GetColorRenderTargetView( uint32_t idx ) const
+            NativeTypes::TextureView GetColorRenderTargetView( uint32_t idx ) const
             {
                 return m_vImageViews[ idx ];
             }
@@ -127,7 +127,7 @@ namespace VKE
             CDeviceContext*        m_pCtx;
             ImageArray             m_vImages;
             ImageViewArray         m_vImageViews; // color only
-            NativeAPI::Framebuffer m_hDDIFramebuffer = NativeAPI::Null;
+            NativeTypes::Framebuffer m_hDDIFramebuffer = NativeTypes::Null;
             bool                   m_isActive        = false;
             bool                   m_isDirty         = false;
         };

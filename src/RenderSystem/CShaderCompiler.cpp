@@ -1,6 +1,9 @@
 #include "RenderSystem/CShaderCompiler.h"
 
 #if VKE_USE_DIRECTX_SHADER_COMPILER
+#if VKE_WINDOWS
+#include <windows.h>
+#endif
 #include <directx-dxc/dxcapi.h>
 
 #include <codecvt>
@@ -317,7 +320,7 @@ namespace VKE
 #else
                 vArgs.push_back( L"-O3" );
 #endif
-#if VKE_RENDER_SYSTEM_VULKAN
+#if VKE_COMPILE_VULKAN_RHI
                 vArgs.push_back( L"-spirv" );
                 vArgs.push_back( L"-fvk-use-gl-layout" );
                 vArgs.push_back( L"-fspv-target-env=vulkan1.2" );

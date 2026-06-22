@@ -40,20 +40,20 @@ namespace VKE
             struct SPreparationData
             {
                 CCommandBuffer*     pCmdBuffer = nullptr;
-                NativeAPI::CPUFence hDDIFence  = NativeAPI::Null;
+                NativeTypes::CPUFence hDDIFence  = NativeTypes::Null;
             };
 
             using DescPoolArray = Utils::TCDynamicArray< handle_t >;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using CommandBufferArray    = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
-            using DDICommandBufferArray = Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
+            using DDICommandBufferArray = Utils::TCDynamicArray< NativeTypes::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
             using UintArray             = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
 
             struct SCommandBufferBatch
             {
                 CommandBufferArray  vCmdBuffers;
-                NativeAPI::CPUFence vkFence        = NativeAPI::Null;
+                NativeTypes::CPUFence vkFence        = NativeTypes::Null;
                 bool                readyToExecute = false;
 
                 void Reset()
@@ -65,11 +65,11 @@ namespace VKE
 
             using SubmitArray    = Utils::TCDynamicArray< SCommandBufferBatch >;
             using SubmitList     = std::list< SCommandBufferBatch >;
-            using SemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 >;
+            using SemaphoreArray = Utils::TCDynamicArray< NativeTypes::GPUFence, 8 >;
 
             struct SExecuteData
             {
-                // NativeAPI::GPUFence            hDDISemaphoreBackBufferReady;
+                // NativeTypes::GPUFence            hDDISemaphoreBackBufferReady;
                 SemaphoreArray       vWaitSemaphores;
                 CCommandBufferBatch* pBatch;
                 uint32_t             ddiImageIndex;
@@ -100,7 +100,7 @@ namespace VKE
                 return m_pDeviceCtx;
             }
 
-            NativeAPI::Queue GetNativeQueue() const
+            NativeTypes::Queue GetNativeQueue() const
             {
                 return m_pQueue->GetDDIObject();
             }
@@ -127,7 +127,7 @@ namespace VKE
             }
 
             /*DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
-            const NativeAPI::DescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
+            const NativeTypes::DescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
             DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
             void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
             void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut
@@ -173,12 +173,12 @@ namespace VKE
                 return static_cast< T* >( this );
             }
 
-            Result Wait( NativeAPI::CPUFence hFence )
+            Result Wait( NativeTypes::CPUFence hFence )
             {
                 return m_pQueue->Wait( hFence );
             }
 
-            Result Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
+            Result Wait( NativeTypes::Fence hFence, NativeTypes::FenceValue value )
             {
                 return m_pQueue->Wait( hFence, value );
             }

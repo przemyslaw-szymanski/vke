@@ -4,6 +4,7 @@
 #include <RenderSystem/TCAPI.h>
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Memory/CMemoryPoolManager.h"
+#include "RenderSystem/Vulkan/CDDITypes.h"
 
 namespace VKE::RenderSystem
 {
@@ -13,6 +14,7 @@ namespace VKE::RenderSystem
 
 namespace VKE::RenderSystem::Vulkan
 {
+    using namespace NativeTypes;
     // CAPI: Common Device Driver Interface for any render system
     class VKE_API CVulkanAPI : public TCAPI<CVulkanAPI>
     {
@@ -31,65 +33,59 @@ namespace VKE::RenderSystem::Vulkan
 
         static Result Load( const SDDILoadInfo& Info, SDriverInfo* pOut );
 
-        const NativeAPI::Device& GetDeviceImpl() const
-        {
-            return m_hDevice;
-        }
+        const NativeTypes::Device GetDeviceImpl() const;
 
-        const NativeAPI::Adapter& GetAdapterImpl() const
-        {
-            return m_hAdapter;
-        }
+        const NativeTypes::Adapter GetAdapterImpl() const;
 
         const QueueFamilyInfoArray& GetDeviceQueueInfosImpl() const
         {
-            return m_DeviceProperties.vQueueFamilies;
+            return m_Implementation.EngineDeviceProperties.vQueueFamilies;
         }
 
         static Result QueryAdaptersImpl( AdapterInfoArray* pOut );
 
         void QueryDeviceInfoImpl( SDeviceInfo* pOut );
 
-        NativeAPI::Buffer              CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo );
-        void                           DestroyBufferImpl( NativeAPI::Buffer* phBuffer, const void* );
-        NativeAPI::BufferView          CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* );
-        void                           DestroyBufferViewImpl( NativeAPI::BufferView* phBufferView, const void* );
+        NativeTypes::Buffer              CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo );
+        void                           DestroyBufferImpl( NativeTypes::Buffer* phBuffer, const void* );
+        NativeTypes::BufferView          CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* );
+        void                           DestroyBufferViewImpl( NativeTypes::BufferView* phBufferView, const void* );
         Result                         GetTextureFormatPropertiesImpl( const STextureDesc&, STextureFormatProperties* );
-        NativeAPI::Texture             CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo );
-        void                           DestroyTextureImpl( NativeAPI::Texture* phImage, const void* );
-        NativeAPI::TextureView         CreateTextureViewImpl( const STextureViewDesc& Desc, const void* );
-        void                           DestroyTextureViewImpl( NativeAPI::TextureView* phImageView, const void* );
-        NativeAPI::Framebuffer         CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* );
-        void                           DestroyFramebufferImpl( NativeAPI::Framebuffer* phFramebuffer, const void* );
-        NativeAPI::CPUFence            CreateFenceImpl( const SFenceDesc& Desc, const void* ) const;
-        NativeAPI::Fence               CreateFence2Impl( const SFenceDesc& Desc ) const;
-        void                           DestroyFenceImpl( NativeAPI::CPUFence* phFence, const void* );
-        void                           DestroyFenceImpl( NativeAPI::Fence* phFence );
-        NativeAPI::GPUFence            CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* ) const;
-        void                           DestroySemaphoreImpl( NativeAPI::GPUFence* phSemaphore, const void* );
-        NativeAPI::RenderPass          CreateRenderPassImpl( const SRenderPassDesc& Desc, const void* );
-        void                           DestroyRenderPassImpl( NativeAPI::RenderPass* phPass, const void* );
-        NativeAPI::CommandBufferPool   CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc, const void* );
-        void                           DestroyCommandBufferPoolImpl( NativeAPI::CommandBufferPool* phPool, const void* );
-        NativeAPI::DescriptorPool      CreateDescriptorPoolImpl( const SDescriptorPoolDesc& Desc, const void* );
-        void                           DestroyDescriptorPoolImpl( NativeAPI::DescriptorPool* phPool, const void* );
-        NativeAPI::DescriptorSetLayout CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
+        NativeTypes::Texture             CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo );
+        void                           DestroyTextureImpl( NativeTypes::Texture* phImage, const void* );
+        NativeTypes::TextureView         CreateTextureViewImpl( const STextureViewDesc& Desc, const void* );
+        void                           DestroyTextureViewImpl( NativeTypes::TextureView* phImageView, const void* );
+        NativeTypes::Framebuffer         CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* );
+        void                           DestroyFramebufferImpl( NativeTypes::Framebuffer* phFramebuffer, const void* );
+        NativeTypes::CPUFence            CreateFenceImpl( const SFenceDesc& Desc, const void* ) const;
+        NativeTypes::Fence               CreateFence2Impl( const SFenceDesc& Desc ) const;
+        void                           DestroyFenceImpl( NativeTypes::CPUFence* phFence, const void* );
+        void                           DestroyFenceImpl( NativeTypes::Fence* phFence );
+        NativeTypes::GPUFence            CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* ) const;
+        void                           DestroySemaphoreImpl( NativeTypes::GPUFence* phSemaphore, const void* );
+        NativeTypes::RenderPass          CreateRenderPassImpl( const SRenderPassDesc& Desc, const void* );
+        void                           DestroyRenderPassImpl( NativeTypes::RenderPass* phPass, const void* );
+        NativeTypes::CommandBufferPool   CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc, const void* );
+        void                           DestroyCommandBufferPoolImpl( NativeTypes::CommandBufferPool* phPool, const void* );
+        NativeTypes::DescriptorPool      CreateDescriptorPoolImpl( const SDescriptorPoolDesc& Desc, const void* );
+        void                           DestroyDescriptorPoolImpl( NativeTypes::DescriptorPool* phPool, const void* );
+        NativeTypes::DescriptorSetLayout CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
                                                                       const void* );
-        void                      DestroyDescriptorSetLayoutImpl( NativeAPI::DescriptorSetLayout* phLayout, const void* );
-        NativeAPI::Pipeline       CreatePipelineImpl( const SPipelineDesc& Desc, const void* );
-        void                      DestroyPipelineImpl( NativeAPI::Pipeline* phPipeline, const void* );
-        NativeAPI::PipelineLayout CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc, const void* );
-        void                      DestroyPipelineLayoutImpl( NativeAPI::PipelineLayout* phLayout, const void* );
-        NativeAPI::Shader         CreateShaderImpl( const SShaderData& Desc, const void* );
-        void                      DestroyShaderImpl( NativeAPI::Shader* phShader, const void* );
-        NativeAPI::Sampler        CreateSamplerImpl( const SSamplerDesc& Desc, const void* );
-        void                      DestroySamplerImpl( NativeAPI::Sampler* phSampler, const void* );
-        NativeAPI::Event          CreateEventImpl( const SEventDesc& Desc, const void* );
-        void                      DestroyEventImpl( NativeAPI::Event* phEvent, const void* );
+        void                      DestroyDescriptorSetLayoutImpl( NativeTypes::DescriptorSetLayout* phLayout, const void* );
+        NativeTypes::Pipeline       CreatePipelineImpl( const SPipelineDesc& Desc, const void* );
+        void                      DestroyPipelineImpl( NativeTypes::Pipeline* phPipeline, const void* );
+        NativeTypes::PipelineLayout CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc, const void* );
+        void                      DestroyPipelineLayoutImpl( NativeTypes::PipelineLayout* phLayout, const void* );
+        NativeTypes::Shader         CreateShaderImpl( const SShaderData& Desc, const void* );
+        void                      DestroyShaderImpl( NativeTypes::Shader* phShader, const void* );
+        NativeTypes::Sampler        CreateSamplerImpl( const SSamplerDesc& Desc, const void* );
+        void                      DestroySamplerImpl( NativeTypes::Sampler* phSampler, const void* );
+        NativeTypes::Event          CreateEventImpl( const SEventDesc& Desc, const void* );
+        void                      DestroyEventImpl( NativeTypes::Event* phEvent, const void* );
 
-        Result CreateDescriptorSetsImpl( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets );
+        Result CreateDescriptorSetsImpl( const AllocateDescs::SDescSet& Info, NativeTypes::DescriptorSet* pSets );
         void   FreeObjectsImpl( const FreeDescs::SDescSet& );
-        Result CreateCommandBuffersImpl( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers );
+        Result CreateCommandBuffersImpl( const SAllocateCommandBufferInfo& Info, NativeTypes::CommandBuffer* pBuffers );
         void   FreeObjectsImpl( const SFreeCommandBufferInfo& );
 
         Result GetBufferMemoryRequirementsImpl( const SBufferDesc& Desc, SAllocationMemoryRequirementInfo* pOut );
@@ -102,19 +98,19 @@ namespace VKE::RenderSystem::Vulkan
         void   BindImpl( const SBindPipelineInfo& Info );
         void   BindImpl( const SBindDDIDescriptorSetsInfo& Info );
         void   BindImpl( const SBindRenderPassInfo& Info );
-        void   BindImpl( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+        void   BindImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
                      const uint32_t offset );
-        void   BindImpl( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+        void   BindImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
                      const uint32_t offset, const INDEX_TYPE& type );
-        void   UnbindPipelineImpl( const NativeAPI::CommandBuffer&, const NativeAPI::Pipeline& );
-        void   UnbindRenderPassImpl( const NativeAPI::CommandBuffer&, const NativeAPI::RenderPass& );
+        void   UnbindPipelineImpl( const NativeTypes::CommandBuffer&, const NativeTypes::Pipeline& );
+        void   UnbindRenderPassImpl( const NativeTypes::CommandBuffer&, const NativeTypes::RenderPass& );
 
-        void FreeImpl( NativeAPI::Memory* phMemory, const void* = nullptr );
+        void FreeImpl( NativeTypes::MemoryHeap* phMemory, const void* = nullptr );
 
         void UpdateImpl( const SUpdateBufferDescriptorSetInfo& Info );
         void UpdateImpl( const SUpdateTextureDescriptorSetInfo& Info );
-        void UpdateImpl( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
-        void UpdateImpl( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut );
+        void UpdateImpl( const NativeTypes::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
+        void UpdateImpl( const NativeTypes::DescriptorSet& hDDISrcSet, NativeTypes::DescriptorSet* phDDIDstOut );
 
         Result           AllocateImpl( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut );
         MEMORY_HEAP_TYPE GetMemoryHeapTypeImpl( MEMORY_USAGE usage ) const;
@@ -123,45 +119,45 @@ namespace VKE::RenderSystem::Vulkan
         void*            MapMemoryImpl( const SMapMemoryInfo& Info );
         void             UnmapMemoryImpl( const SMapMemoryInfo& Info );
 
-        void ResetImpl( const NativeAPI::CommandBuffer& hCommandBuffer );
-        void BeginCommandBufferImpl( const NativeAPI::CommandBuffer& hCommandBuffer );
-        void BeginCommandBufferImpl( const NativeAPI::CommandBuffer&     hCommandBuffer,
-                                 const NativeAPI::CommandBufferPool& hCommandBufferPool );
-        void EndCommandBufferImpl( const NativeAPI::CommandBuffer& hCommandBuffer );
-        void ResetImpl( const NativeAPI::CommandBuffer&     hCommandBuffer,
-                    const NativeAPI::CommandBufferPool& hCommandBufferPool );
+        void ResetImpl( const NativeTypes::CommandBuffer& hCommandBuffer );
+        void BeginCommandBufferImpl( const NativeTypes::CommandBuffer& hCommandBuffer );
+        void BeginCommandBufferImpl( const NativeTypes::CommandBuffer&     hCommandBuffer,
+                                 const NativeTypes::CommandBufferPool& hCommandBufferPool );
+        void EndCommandBufferImpl( const NativeTypes::CommandBuffer& hCommandBuffer );
+        void ResetImpl( const NativeTypes::CommandBuffer&     hCommandBuffer,
+                    const NativeTypes::CommandBufferPool& hCommandBufferPool );
 
-        void BarrierImpl( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
+        void BarrierImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info );
 
         // Command Buffer
-        void SetStateImpl( const NativeAPI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc );
-        void SetStateImpl( const NativeAPI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc );
+        void SetStateImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc );
+        void SetStateImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc );
 
-        void DrawImpl( const NativeAPI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+        void DrawImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                    const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance );
-        void DrawIndexedImpl( const NativeAPI::CommandBuffer& hCommandBuffer, const SDrawParams& Params );
-        void DrawMeshImpl( const NativeAPI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+        void DrawIndexedImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SDrawParams& Params );
+        void DrawMeshImpl( const NativeTypes::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
                        uint32_t depth );
 
         // Dynamic rendering
-        void BeginRenderPassImpl( NativeAPI::CommandBuffer, const SBeginRenderPassInfo2& );
-        void BeginRenderPassImpl( NativeAPI::CommandBuffer, const SBeginRenderPassInfo& );
-        void EndRenderPassImpl( NativeAPI::CommandBuffer, NativeAPI::RenderPass );
+        void BeginRenderPassImpl( NativeTypes::CommandBuffer, const SBeginRenderPassInfo2& );
+        void BeginRenderPassImpl( NativeTypes::CommandBuffer, const SBeginRenderPassInfo& );
+        void EndRenderPassImpl( NativeTypes::CommandBuffer, NativeTypes::RenderPass );
 
         // Copy
-        void CopyImpl( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
-        void CopyImpl( const NativeAPI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
-        void CopyImpl( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
-        void BlitImpl( const NativeAPI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info );
+        void CopyImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
+        void CopyImpl( const NativeTypes::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
+        void CopyImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
+        void BlitImpl( const NativeTypes::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info );
 
         // Events
-        void SetEventImpl( const NativeAPI::Event& hDDIEvent );
-        void SetEventImpl( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent,
+        void SetEventImpl( const NativeTypes::Event& hDDIEvent );
+        void SetEventImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Event& hDDIEvent,
                        const PIPELINE_STAGES& stages );
-        void ResetImpl( const NativeAPI::Event& hDDIInOut );
-        void ResetImpl( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent,
+        void ResetImpl( const NativeTypes::Event& hDDIInOut );
+        void ResetImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Event& hDDIEvent,
                     const PIPELINE_STAGES& stages );
-        bool IsSetImpl( const NativeAPI::Event& hDDIEvent );
+        bool IsSetImpl( const NativeTypes::Event& hDDIEvent );
 
         Result SubmitImpl( const SSubmitInfo& Info );
         Result PresentImpl( const SPresentData& Info );
@@ -169,26 +165,26 @@ namespace VKE::RenderSystem::Vulkan
         Result CreateSwapChainImpl( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pInOut );
         void   DestroySwapChainImpl( SDDISwapChain* pInOut, const void* = nullptr );
         Result ReCreateSwapChainImpl( const SSwapChainDesc& Desc, SDDISwapChain* pOut );
-        Result QueryPresentSurfaceCapsImpl( const NativeAPI::PresentSurface& hSurface, SPresentSurfaceCaps* pOut );
+        Result QueryPresentSurfaceCapsImpl( const NativeTypes::PresentSurface& hSurface, SPresentSurfaceCaps* pOut );
         Result GetCurrentBackBufferIndexImpl( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
                                           uint32_t* pOut );
 
-        static void ConvertImpl( const SClearValue& In, NativeAPI::ClearValue* pOut );
+        //static void ConvertImpl( const SClearValue& In, NativeTypes::ClearValue* pOut );
 
         // Debug
-        void BeginDebugInfoImpl( const NativeAPI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo );
-        void EndDebugInfoImpl( const NativeAPI::CommandBuffer& hDDICmdBuff );
+        void BeginDebugInfoImpl( const NativeTypes::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo );
+        void EndDebugInfoImpl( const NativeTypes::CommandBuffer& hDDICmdBuff );
         void SetObjectDebugNameImpl( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const;
         void SetQueueDebugNameImpl( uint64_t, cstr_t ) const;
 
-        bool                  IsSignaledImpl( const NativeAPI::CPUFence& hFence ) const;
-        bool                  IsSignaledImpl( const NativeAPI::Fence& hFence ) const;
-        NativeAPI::FenceValue GetCompletedValueImpl( const NativeAPI::Fence& hFence ) const;
-        void                  ResetImpl( NativeAPI::CPUFence* phFence );
-        void                  ResetImpl( NativeAPI::Fence* phFence, NativeAPI::FenceValue value );
-        Result                WaitForFencesImpl( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const;
-        Result                WaitForFenceImpl( NativeAPI::Fence Fence, NativeAPI::FenceValue value ) const;
-        Result                WaitForQueueImpl( const NativeAPI::Queue& hQueue );
+        bool                  IsSignaledImpl( const NativeTypes::CPUFence& hFence ) const;
+        bool                  IsSignaledImpl( const NativeTypes::Fence& hFence ) const;
+        NativeTypes::FenceValue GetCompletedValueImpl( const NativeTypes::Fence& hFence ) const;
+        void                  ResetImpl( NativeTypes::CPUFence* phFence );
+        void                  ResetImpl( NativeTypes::Fence* phFence, NativeTypes::FenceValue value );
+        Result                WaitForFencesImpl( const NativeTypes::CPUFence& hFence, uint64_t timeout ) const;
+        Result                WaitForFenceImpl( NativeTypes::Fence Fence, NativeTypes::FenceValue value ) const;
+        Result                WaitForQueueImpl( const NativeTypes::Queue& hQueue );
         Result                WaitForDeviceImpl();
 
         NativeAPI::SImplementation& getImplementation()
@@ -198,14 +194,13 @@ namespace VKE::RenderSystem::Vulkan
 
     protected:
         static AdapterArray svAdapters;
-        int                        m_a = 3;
+        
         NativeAPI::SImplementation m_Implementation;
         NativeAPI::Device          m_hDevice  = NativeAPI::Null;
         NativeAPI::Adapter         m_hAdapter = NativeAPI::Null;
 
         CDeviceContext*   m_pCtx;
         SDeviceInfo       m_DeviceInfo;
-        SDeviceProperties m_DeviceProperties;
 
         struct
         {

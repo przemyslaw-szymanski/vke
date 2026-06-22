@@ -175,9 +175,9 @@ namespace VKE
             // RenderSystem::BufferPtr m_pInstancingDataBuffers[2]; // cpu staging + gpu
             RenderSystem::BufferRefPtr        m_pInstacingDataBuffer;
             RenderSystem::BufferRefPtr        m_pConstantBuffer;
-            RenderSystem::NativeAPI::CPUFence m_ahFences[ MAX_FRAME_COUNT ] = { RenderSystem::NativeAPI::Null };
+            RenderSystem::NativeTypes::CPUFence m_ahFences[ MAX_FRAME_COUNT ] = { RenderSystem::NativeTypes::Null };
             // RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
-            // RenderSystem::NativeAPI::DescriptorSet          m_hDDISets[2];
+            // RenderSystem::NativeTypes::DescriptorSet          m_hDDISets[2];
             uint32_t                  m_indexCount;
             RenderSystem::SDrawParams m_aDrawParams[ DrawTypes::_MAX_COUNT ];
             uint32_t                  m_frameCount        = 0;

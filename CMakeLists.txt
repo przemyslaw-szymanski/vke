@@ -24,9 +24,116 @@ else()
     endif()
 endif()
 
+
 project(vkEngine C CXX)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+set(APIS VULKAN D3D12)
+
+add_definitions(
+    -DVKE_VULKAN=1
+    -DVKE_D3D12=2
+    -DVKE_METAL=3)
+
+set(VKE_CONFIGURATION_LIST)
+set_property(GLOBAL PROPERTY VKE_CONFIGURATION_LIST ${VKE_CONFIGURATION_LIST})
+
+function(GenOutputName buildType api compileFlags engineFlags out)
+    message(STATUS "GenOutputName: ${buildType}, ${api}, ${compileFlags}, ${engineFlags}")
+    set(world "")
+    set(physics "")
+    set(ai "")
+    set(renderSystem "")
+    set(autdio "")
+
+    if(${api} STREQUAL "VULKAN")
+        set(api "VK")
+    elseif(${api} STREQUAL "D3D12")
+        set(api "D3D12")
+    else()
+        message(ERROR "Unknown API")
+    endif()
+    if(${buildType} MATCHES ".*DEBUG.*")
+        set(buildType "-dbg")
+    elseif(${buildType} MATCHES ".*DEV.*")
+        set(buildType "-dev")
+    elseif(${buildType} MATCHES ".*EDITOR.*")
+        set(buildType "-ed")
+    else()
+        set(buildType "")
+    endif()
+    if(${engineFlags} MATCHES ".*SCENE_DEBUG=1.*")
+        set(scene "-worldDbg")
+    endif()
+    if(${engineFlags} MATCHES ".*AUDIO_DEBUG=1.*")
+        set(audio "-audioDbg")
+    endif()
+    if(${engineFlags} MATCHES ".*RENDER_DEBUG=1.*")
+        set(renderSystem "-rsDbg")
+    elseif(${engineFlags} MATCHES ".*RENDER_SYSTEM_DEBUG=1.*")
+        set(renderSystem "-rsDbg")
+    endif()
+    unset(${out})
+    set(${out} "${api}${buildType}${renderSystem}${world}${physics}${ai}${audio}" PARENT_SCOPE)
+endfunction()
+
+function(SetBuildTypeProperties buildType outName)
+    set_property( GLOBAL PROPERTY ${PROJECT_NAME}_OUT_NAME_${buildType} ${outName} )
+endfunction()
+
+function(AddBuildType ver)
+    set(options OPTIONAL FAST)
+    set(oneValueArgs API COMPILER_FLAG LINKER_FLAG ENGINE_FLAG)
+    set(multiValueArgs COMPILER_FLAGS LINKER_FLAGS ENGINE_FLAGS)
+    cmake_parse_arguments(PARSE_ARGV 1 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
+    message(STATUS "BuildType: ${ver} with compile flags: ${arg_COMPILER_FLAGS} and linker flags: ${arg_LINKER_FLAGS} argv=${ARGV} argc=${ARGC} argn=${ARGN}")
+
+    foreach(API ${APIS})
+        get_property(tmp GLOBAL PROPERTY VKE_CONFIGURATION_LIST)
+        list(APPEND tmp "${ver}_${API}")
+        set(outName "")
+        GenOutputName( ${ver} ${API} ${arg_COMPILER_FLAGS} ${arg_ENGINE_FLAGS} outName )
+        set(CMAKE_CXX_FLAGS_${ver}_${API} "-DVKE_RENDER_SYSTEM=VKE_${API} ${arg_COMPILER_FLAGS}" CACHE STRING "C++ flags for ${ver} configuration" FORCE)
+        set(CMAKE_C_FLAGS_${ver}_${API} "-DVKE_RENDER_SYSTEM=VKE_${API} ${arg_COMPILER_FLAGS}" CACHE STRING "C flags for ${ver} configuration" FORCE)
+        set(CMAKE_EXE_LINKER_FLAGS_${ver}_${API} "${arg_LINKER_FLAGS}" CACHE STRING "Linker flags for ${ver} configuration" FORCE)
+        set(CMAKE_SHARED_LINKER_FLAGS_${ver}_${API} "${arg_LINKER_FLAGS}" CACHE STRING "Shared linker flags for ${ver} configuration" FORCE)
+        #message(STATUS "config list2: ${tmp}")
+        set_property(GLOBAL PROPERTY VKE_CONFIGURATION_LIST ${tmp})
+    endforeach()
+
+endfunction()
+
+set(WORLD_DEBUG_FLAGS)
+set(RENDER_DEBUG_FLAGS)
+set(PHYSICS_DEBUG_FLAGS)
+
+AddBuildType(
+    DEBUG
+    OUT_NAME "dbg"
+    ENGINE_FLAGS "a"
+    COMPILER_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_C_FLAGS_DEBUG} -DDEBUG"
+    LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_DEBUG} ${CMAKE_SHARED_LINKER_FLAGS_DEBUG} ${RELEASE_LINKER_DEBUG}")
+
+AddBuildType(
+    RELEASE
+    OUT_NAME "rel"
+    ENGINE_FLAGS "b"
+    COMPILER_FLAGS "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG -DRELEASE"
+    LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${CMAKE_SHARED_LINKER_FLAGS_RELEASE} ${RELEASE_LINKER_SETTINGS}")
+
+get_property(tmp GLOBAL PROPERTY VKE_CONFIGURATION_LIST)
+message(STATUS "config list: ${tmp}")
+set (CMAKE_CONFIGURATION_TYPES "Debug_Vulkan;Debug_D3D12;Release_Vulkan;Release_D3D12;" CACHE STRING "Configurations" FORCE)
+
+
+if(CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Generator is multi-config: ${CMAKE_GENERATOR}")
+  message(STATUS "Available configs: ${CMAKE_CONFIGURATION_TYPES}")
+else()
+  message(STATUS "Generator is single-config: ${CMAKE_GENERATOR}")
+  message(STATUS "Current buld type: ${CMAKE_BUILD_TYPE}")
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(VKE_WINDOWS 1)
@@ -40,6 +147,8 @@ endif()
 
 include(CompileOptions.cmake NO_POLICY_SCOPE)
 include(CompilerSettings.cmake NO_POLICY_SCOPE)
+
+message(STATUS "source dir: ${CMAKE_SOURCE_DIR}")
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin")
 set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
@@ -74,14 +183,14 @@ endif()
 find_package(directxmath CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXMath)
 
-if(VKE_RENDER_SYSTEM_VULKAN)
+if(VKE_COMPILE_VULKAN_RHI)
     find_package(Vulkan REQUIRED)
     message(STATUS "Found Vulkan: ${Vulkan_LIBRARIES}")
     message(STATUS "Vulkan include dirs: ${Vulkan_INCLUDE_DIRS}")
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Vulkan::Vulkan)
 endif()
 
-if(VKE_RENDER_SYSTEM_D3D12)
+if(VKE_COMPILE_D3D12_RHI)
 
     # Workaround for missing D3D12.LIB in CMake GUI, which is required by Agility SDK in vcpkg.
     if(NOT CMAKE_WINDOWS_KITS_10_DIR)
@@ -160,7 +269,7 @@ foreach(DLL_PATH IN LISTS DLL_DEPENDENCIES)
         $<TARGET_FILE_DIR:vkEngine>)
 endforeach()
 
-if(VKE_RENDER_SYSTEM_D3D12)
+if(VKE_COMPILE_D3D12_RHI)
     foreach(DLL_PATH IN LISTS D3D12_AGILITY_DLLS)
         add_custom_command(TARGET vkEngine POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -175,7 +284,7 @@ target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngin
 include(LinkSettings.cmake NO_POLICY_SCOPE)
 
 # Set Vulkan layer path for Visual Studio debugging
-if(VKE_RENDER_SYSTEM_VULKAN)
+if(VKE_COMPILE_VULKAN_RHI)
     set(VULKAN_LAYER_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
     set_target_properties(vkEngine PROPERTIES
         VS_DEBUGGER_ENVIRONMENT "VK_ADD_LAYER_PATH=${VULKAN_LAYER_PATH}"
@@ -185,3 +294,7 @@ endif()
 if(BUILD_SAMPLES_ENABLED)
     add_subdirectory(samples)
 endif()
+
+target_compile_definitions(vkEngine PRIVATE
+"$<$<CONFIG:DebugVulkan>:VKE_COMPILE_VULKAN_RHI=2>"
+"$<$<CONFIG:ReleaseVulkan>:VKE_COMPILE_VULKAN_RHI=2>")

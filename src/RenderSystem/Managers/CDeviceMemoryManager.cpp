@@ -110,7 +110,7 @@ namespace VKE
                 if( ret != UNDEFINED_U32 )
                 {
                     CMemoryPoolView::SInitInfo Info;
-                    Info.memory              = (uint64_t)( MemData.hDDIMemory );
+                    Info.memory              = (uint64_t)( MemData.hDDIMemory.ToUint64() );
                     Info.offset              = 0;
                     Info.size                = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
@@ -239,7 +239,7 @@ namespace VKE
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )
                     {
                         pBindInfoOut->reserved    = Info.reserved;
-                        pBindInfoOut->hDDIMemory  = (NativeAPI::Memory)( Data.memory );
+                        pBindInfoOut->hDDIMemory  = (NativeTypes::MemoryHeap)( Data.memory );
                         pBindInfoOut->offset      = Data.offset;
                         pBindInfoOut->hMemory     = poolIdx;
 
@@ -353,7 +353,7 @@ namespace VKE
                     BindInfo.offset      = 0;
 
                     SSubAllocateMemoryInfo AllocInfo;
-                    AllocInfo.hMemory = (handle_t)( Data.hDDIMemory );
+                    AllocInfo.hMemory = (handle_t)( Data.hDDIMemory.ToUint64() );
                     AllocInfo.offset  = 0;
                     AllocInfo.size    = AllocDesc.size;
                     UAllocationHandle Handle;
@@ -384,14 +384,14 @@ namespace VKE
             MapInfo.hMemory = BindInfo.hDDIMemory;
             MapInfo.offset  = BindInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
-            void* pDst      = m_pCtx->NativeAPI().MapMemory( MapInfo );
+            void* pDst      = m_pCtx->NativeTypes().MapMemory( MapInfo );
             if( pDst != nullptr )
             {
                 Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                 ret = VKE_OK;
             }
 
-            m_pCtx->NativeAPI().UnmapMemory( MapInfo );
+            m_pCtx->NativeTypes().UnmapMemory( MapInfo );
             return ret;
         }*/
 
@@ -410,30 +410,30 @@ namespace VKE
             /*const auto&    AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             Result         ret       = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = (NativeAPI::Memory)( AllocInfo.hMemory );
+            MapInfo.hMemory = (NativeTypes::Memory)( AllocInfo.hMemory );
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             {
                 
-                void*               pDst = m_pCtx->NativeAPI().MapMemory( MapInfo );
+                void*               pDst = m_pCtx->NativeTypes().MapMemory( MapInfo );
                 if( pDst != nullptr )
                 {
                     Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                     ret = VKE_OK;
                 }
-                m_pCtx->NativeAPI().UnmapMemory( MapInfo );
+                m_pCtx->NativeTypes().UnmapMemory( MapInfo );
             }*/
             return ret;
         }
 
         void* CDeviceMemoryManager::MapMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            VKE_ASSERT( DataInfo.hBuffer != NativeAPI::Null );
+            VKE_ASSERT( DataInfo.hBuffer != NativeTypes::Null );
             VKE_ASSERT( DataInfo.hMemory != INVALID_HANDLE );
             UAllocationHandle Handle    = DataInfo.hMemory;
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             SMapMemoryInfo    MapInfo;
-            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
+            MapInfo.hMemory = (NativeTypes::MemoryHeap)AllocInfo.hMemory;
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             MapInfo.hBuffer = DataInfo.hBuffer;
@@ -449,7 +449,7 @@ namespace VKE
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             SMapMemoryInfo    MapInfo;
             MapInfo.hBuffer = DataInfo.hBuffer;
-            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
+            MapInfo.hMemory = (NativeTypes::MemoryHeap)AllocInfo.hMemory;
             MapInfo.offset  = DataInfo.dstDataOffset;
             m_vSyncObjects[ Handle.hPool ].Unlock();
             m_pCtx->RHI().UnmapMemory( MapInfo );

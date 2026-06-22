@@ -84,10 +84,10 @@ namespace VKE
             using GraphicsContextPool      = Utils::TSFreePool< CGraphicsContext* >;
             using QueueArray               = Utils::TCDynamicArray< CQueue >;
             using TransferContextArray     = Utils::TCDynamicArray< CTransferContext* >;
-            using DDISemaphoreQueue        = Utils::TCFifo< NativeAPI::GPUFence >;
-            using DDISemaphoreArray        = Utils::TCDynamicArray< NativeAPI::GPUFence >;
-            using DDIEventPool             = Utils::TSFreePool< NativeAPI::Event >;
-            using DDISemaphoreBoolMap      = vke_hash_map< NativeAPI::GPUFence, bool >;
+            using DDISemaphoreQueue        = Utils::TCFifo< NativeTypes::GPUFence >;
+            using DDISemaphoreArray        = Utils::TCDynamicArray< NativeTypes::GPUFence >;
+            using DDIEventPool             = Utils::TSFreePool< NativeTypes::Event >;
+            using DDISemaphoreBoolMap      = vke_hash_map< NativeTypes::GPUFence, bool >;
 
             // using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -117,9 +117,9 @@ namespace VKE
                 return m_pRenderSystem;
             }
 
-            NativeAPI::RenderPass CreateRenderPass( const SRenderPassDesc& Desc );
+            NativeTypes::RenderPass CreateRenderPass( const SRenderPassDesc& Desc );
 
-            void DestroyRenderPass( NativeAPI::RenderPass* phPass );
+            void DestroyRenderPass( NativeTypes::RenderPass* phPass );
 
             CRenderTarget* GetRenderTarget( const RenderTargetHandle& hRenderTarget ) const
             {
@@ -152,7 +152,7 @@ namespace VKE
             // VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
             ShaderRefPtr                   GetShader( ShaderHandle hShader );
-            NativeAPI::DescriptorSetLayout GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
+            NativeTypes::DescriptorSetLayout GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
             DescriptorSetLayoutHandle      GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
             DescriptorSetLayoutHandle      GetDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc );
             PipelineRefPtr                 GetPipeline( PipelineHandle hPipeline );
@@ -184,7 +184,7 @@ namespace VKE
 
             EventHandle CreateEvent( const SEventDesc& Desc );
 
-            NativeAPI::Event GetEvent( const EventHandle& hEvent )
+            NativeTypes::Event GetEvent( const EventHandle& hEvent )
             {
                 return m_DDIEventPool[ static_cast< uint16_t >( hEvent.handle ) ];
             }
@@ -194,27 +194,27 @@ namespace VKE
             void ResetEvent( const EventHandle& hEvent );
             void SetEvent( const EventHandle& hEvent );
 
-            bool IsFenceSignaled( NativeAPI::CPUFence hFence ) const
+            bool IsFenceSignaled( NativeTypes::CPUFence hFence ) const
             {
                 return RHI().IsSignaled( hFence );
             }
 
-            bool IsReadyToUse( NativeAPI::CPUFence hFence ) const
+            bool IsReadyToUse( NativeTypes::CPUFence hFence ) const
             {
                 return IsFenceSignaled( hFence );
             }
 
-            bool IsReadyToUse( NativeAPI::Fence hFence, NativeAPI::FenceValue fenceValue ) const
+            bool IsReadyToUse( NativeTypes::Fence hFence, NativeTypes::FenceValue fenceValue ) const
             {
                 return RHI().GetCompletedValue( hFence ) >= fenceValue;
             }
 
-            Result Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue fenceValue )
+            Result Wait( NativeTypes::Fence hFence, NativeTypes::FenceValue fenceValue )
             {
                 return RHI().WaitForFence( hFence, fenceValue );
             }
 
-            bool IsLocked( NativeAPI::CPUFence hFence ) const
+            bool IsLocked( NativeTypes::CPUFence hFence ) const
             {
                 return !IsFenceSignaled( hFence );
             }
@@ -258,7 +258,7 @@ namespace VKE
             Result   UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut );
 
             DescriptorSetHandle             CreateDescriptorSet( const SDescriptorSetDesc& Desc );
-            const NativeAPI::DescriptorSet& GetDescriptorSet( const DescriptorSetHandle& hSet );
+            const NativeTypes::DescriptorSet& GetDescriptorSet( const DescriptorSetHandle& hSet );
 
             void                UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
             void                UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut );
@@ -274,14 +274,14 @@ namespace VKE
 
             void GetFormatFeatures( TEXTURE_FORMAT, STextureFormatFeatures* ) const;
 
-            NativeAPI::GPUFence CreateGPUFence( const SSemaphoreDesc& );
-            void                DestroyGPUFence( NativeAPI::GPUFence* );
-            NativeAPI::CPUFence CreateCPUFence( const SFenceDesc& );
-            void                DestroyCPUFence( NativeAPI::CPUFence* );
-            NativeAPI::Fence    CreateFence( const SFenceDesc& ) const;
-            void                DestroyFence( NativeAPI::Fence* );
-            void                Reset( NativeAPI::CPUFence* );
-            void                Reset( NativeAPI::Fence* phFence )
+            NativeTypes::GPUFence CreateGPUFence( const SSemaphoreDesc& );
+            void                DestroyGPUFence( NativeTypes::GPUFence* );
+            NativeTypes::CPUFence CreateCPUFence( const SFenceDesc& );
+            void                DestroyCPUFence( NativeTypes::CPUFence* );
+            NativeTypes::Fence    CreateFence( const SFenceDesc& ) const;
+            void                DestroyFence( NativeTypes::Fence* );
+            void                Reset( NativeTypes::CPUFence* );
+            void                Reset( NativeTypes::Fence* phFence )
             {
                 RHI().Reset( phFence, 0 );
             }
@@ -325,9 +325,9 @@ namespace VKE
 
             Threads::CThreadPool* _GetThreadPool();
 
-            void _LockGPUFence( NativeAPI::GPUFence* phApi );
-            void _UnlockGPUFence( NativeAPI::GPUFence* phApi );
-            bool _IsGPUFenceLocked( NativeAPI::GPUFence hApi );
+            void _LockGPUFence( NativeTypes::GPUFence* phApi );
+            void _UnlockGPUFence( NativeTypes::GPUFence* phApi );
+            bool _IsGPUFenceLocked( NativeTypes::GPUFence hApi );
             void _LogGPUFenceStatus();
 
         protected:

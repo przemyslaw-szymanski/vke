@@ -149,16 +149,16 @@ namespace VKE
                             Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
                             FenceDesc.SetDebugName( std::format( "VKE_SwapChain_Fence{}", i ).data() );
                             BackBuffer.hDDIPresentImageReadySemaphore =
-                                m_pCtx->GetDeviceContext()->RHI().CreateSemaphore( Desc );
+                                m_pCtx->GetDeviceContext()->RHI().CreateGPUFence( Desc );
                             BackBuffer.hDDIQueueFinishedSemaphore =
-                                m_pCtx->GetDeviceContext()->RHI().CreateSemaphore( Desc );
+                                m_pCtx->GetDeviceContext()->RHI().CreateGPUFence( Desc );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
                             
                             InternalBackBuffer.hFence    = m_pCtx->GetDeviceContext()->CreateFence( FenceDesc );
-                            if( BackBuffer.hDDIPresentImageReadySemaphore == NativeAPI::Null ||
-                                BackBuffer.hDDIQueueFinishedSemaphore == NativeAPI::Null ||
-                                InternalBackBuffer.hFence == NativeAPI::Null )
+                            if( BackBuffer.hDDIPresentImageReadySemaphore == NativeTypes::Null ||
+                                BackBuffer.hDDIQueueFinishedSemaphore == NativeTypes::Null ||
+                                InternalBackBuffer.hFence == NativeTypes::Null )
                             {
                                 ret = VKE_FAIL;
                                 break;
@@ -354,9 +354,9 @@ namespace VKE
             return pRet;
         }
 
-        Result CSwapChain::SwapBuffers( const NativeAPI::GPUFence& hGPUFence, const NativeAPI::CPUFence& hCPUFence )
+        Result CSwapChain::SwapBuffers( const NativeTypes::GPUFence& hGPUFence, const NativeTypes::CPUFence& hCPUFence )
         {
-            VKE_ASSERT( !( hCPUFence != NativeAPI::Null && hGPUFence != NativeAPI::Null ) );
+            VKE_ASSERT( !( hCPUFence != NativeTypes::Null && hGPUFence != NativeTypes::Null ) );
 
             Result ret = VKE_FAIL;
             while( m_qAcquiredBuffers.size() > m_qPresentFrameFences.size() )
@@ -378,7 +378,7 @@ namespace VKE
             SDDIGetBackBufferInfo Info;
             Info.hSignalGPUFence = hGPUFence;
             Info.hSignalCPUFence = hCPUFence;
-            Info.waitTimeout     = ( hCPUFence == NativeAPI::Null && hGPUFence == NativeAPI::Null ) ? UINT64_MAX : 0;
+            Info.waitTimeout     = ( hCPUFence == NativeTypes::Null && hGPUFence == NativeTypes::Null ) ? UINT64_MAX : 0;
             // std::unique_lock<std::mutex> l( m_mutex );
             //  This sync is workaround of validation error when swapchain is
             //  used in more threads.
@@ -412,7 +412,7 @@ namespace VKE
             return ret;
         }
 
-        Result CSwapChain::SwapBuffers( NativeAPI::Fence hFrameFence )
+        Result CSwapChain::SwapBuffers( NativeTypes::Fence hFrameFence )
         {
             Result ret = VKE_FAIL;
             while( m_qAcquiredBuffers.size() > m_qPresentFrameFences.size() )
@@ -428,7 +428,7 @@ namespace VKE
 
             m_backBufferIdx          = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
             auto& Buffer             = m_vInternalBackBufers[ m_backBufferIdx ];
-            Buffer.hFence            = hFrameFence != NativeAPI::Null ? hFrameFence : Buffer.hFence;
+            Buffer.hFence            = hFrameFence != NativeTypes::Null ? hFrameFence : Buffer.hFence;
             // Get new texture present index
             SDDIGetBackBufferInfo Info;
             Info.hSignalFence      = Buffer.hFence;
@@ -473,7 +473,7 @@ namespace VKE
         Result CSwapChain::SwapBuffers()
         {
             //auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
-            return SwapBuffers( NativeAPI::Null );
+            return SwapBuffers( NativeTypes::Null );
         }
 
         TextureRefPtr CSwapChain::GetBackBufferTexture()
@@ -483,7 +483,7 @@ namespace VKE
             return m_aSwapChainBuffers[ bufferIndex ].pTexture;
         }
 
-        const NativeAPI::GPUFence& CSwapChain::GetBackBufferGPUFence() const
+        const NativeTypes::GPUFence& CSwapChain::GetBackBufferGPUFence() const
         {
             return m_vInternalBackBufers[ m_backBufferIdx ].hGPUFence;
         }
@@ -589,7 +589,7 @@ namespace VKE
         //    // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
         //    // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
         //    // m_pCurrAcquireElement->pRenderPass->End( vkCb );
-        //    pCb->Bind( (NativeAPI::RenderPass)NativeAPI::Null );
+        //    pCb->Bind( (NativeTypes::RenderPass)NativeTypes::Null );
         //}
 
     } // namespace RenderSystem

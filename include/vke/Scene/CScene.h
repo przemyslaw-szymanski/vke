@@ -270,7 +270,7 @@ namespace VKE
                         RenderSystem::PipelinePtr pPipeline;
                     } DrawData;
 
-                    RenderSystem::NativeAPI::RenderPass hDDIRenderPass = RenderSystem::NativeAPI::Null;
+                    RenderSystem::NativeTypes::RenderPass hDDIRenderPass = RenderSystem::NativeTypes::Null;
                     BufferArray                         vConstantBuffers;
                     Utils::TCBitset< uint16_t >         UpdateBufferMask;
                 };

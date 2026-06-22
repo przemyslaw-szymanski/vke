@@ -10,7 +10,7 @@ namespace VKE::RenderSystem
     class VKE_API CPipelineLayout
     {
         friend class CPipelineManager;
-        VKE_ADD_DDI_OBJECT( NativeAPI::PipelineLayout );
+        VKE_ADD_DDI_OBJECT( NativeTypes::PipelineLayout );
         VKE_DECL_BASE_OBJECT( PipelineLayoutHandle );
 
     public:
@@ -41,7 +41,7 @@ namespace VKE::RenderSystem
         friend class CComputeContext;
         friend class CCommandBuffer;
 
-        VKE_ADD_DDI_OBJECT( NativeAPI::Pipeline );
+        VKE_ADD_DDI_OBJECT( NativeTypes::Pipeline );
         VKE_DECL_BASE_OBJECT( PipelineHandle );
         VKE_DECL_BASE_RESOURCE();
 

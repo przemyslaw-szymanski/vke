@@ -1484,9 +1484,9 @@ namespace VKE
                         BatchPipelineTemplate.Pipeline.hDDIRenderPass != CurrState.RenderPass.hNativeRenderPass;
                     if( needNewPipeline )
                     {
-                        if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::NativeAPI::Null )
+                        if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::NativeTypes::Null )
                         {
-                            BatchPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::NativeAPI::Null;
+                            BatchPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::NativeTypes::Null;
                             BatchPipelineTemplate.Pipeline.vColorRenderTargetFormats =
                                 CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
                             BatchPipelineTemplate.Pipeline.depthRenderTargetFormat =
@@ -1541,9 +1541,9 @@ namespace VKE
                                                          CurrState.RenderPass.hNativeRenderPass;
                         if( needNewPipeline )
                         {
-                            if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::NativeAPI::Null )
+                            if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::NativeTypes::Null )
                             {
-                                InstancingPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::NativeAPI::Null;
+                                InstancingPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::NativeTypes::Null;
                                 InstancingPipelineTemplate.Pipeline.vColorRenderTargetFormats =
                                     CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
                                 InstancingPipelineTemplate.Pipeline.depthRenderTargetFormat =

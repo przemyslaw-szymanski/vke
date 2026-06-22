@@ -11,7 +11,7 @@ namespace VKE
         {
             CDeviceContext*  pContext           = nullptr;
             void*            pSubmitManagerDesc = nullptr;
-            NativeAPI::Queue hDDIQueue;
+            NativeTypes::Queue hDDIQueue;
             uint32_t         familyIndex;
             QUEUE_TYPE       type;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -26,7 +26,7 @@ namespace VKE
             friend class CComputeContext;
             friend class CTransferContext;
 
-            using SwapChainArray = Utils::TCDynamicArray< NativeAPI::SwapChain, 8 >;
+            using SwapChainArray = Utils::TCDynamicArray< NativeTypes::SwapChain, 8 >;
 
         public:
             friend class RenderSystem::CDeviceContext;
@@ -87,14 +87,14 @@ namespace VKE
                 return ( m_type & type ) != 0;
             }
 
-            const NativeAPI::Queue& GetDDIObject() const
+            const NativeTypes::Queue& GetDDIObject() const
             {
                 return m_PresentData.hQueue;
             }
 
             void   Wait();
-            Result Wait( NativeAPI::CPUFence );
-            Result Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value );
+            Result Wait( NativeTypes::CPUFence );
+            Result Wait( NativeTypes::Fence hFence, NativeTypes::FenceValue value );
 
             Result Execute( const SSubmitInfo& Info );
 
@@ -166,6 +166,6 @@ namespace VKE
 
         using QueuePtr    = Utils::TCWeakPtr< CQueue >;
         using QueueRefPtr = Utils::TCObjectSmartPtr< CQueue >;
-        using QueueArray  = Utils::TCDynamicArray< CQueue, NativeAPI::DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT >;
+        using QueueArray  = Utils::TCDynamicArray< CQueue, 16 >;
     } // namespace RenderSystem
 } // namespace VKE

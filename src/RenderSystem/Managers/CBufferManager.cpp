@@ -531,7 +531,7 @@ namespace VKE
                 }
             }
 
-            if( pBuffer->GetDDIObject() == NativeAPI::Null )
+            if( pBuffer->GetDDIObject() == NativeTypes::Null )
             {
                 SAllocationMemoryRequirementInfo AllocationInfo;
                 if( VKE_SUCCEEDED(
@@ -556,7 +556,7 @@ namespace VKE
 
                     pBuffer->m_hDDIObject = m_pCtx->RHI().CreateBuffer( pBuffer->m_Desc, BindInfo );
 
-                    if( pBuffer->m_hDDIObject == NativeAPI::Null )
+                    if( pBuffer->m_hDDIObject == NativeTypes::Null )
                     {
                         VKE_LOG_ERR( "Unable to create buffer DDI object: " << pBuffer->GetDesc().GetDebugName() );
                         goto ERR;

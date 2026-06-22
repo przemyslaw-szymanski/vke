@@ -106,7 +106,7 @@ namespace VKE
         }
 
         Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-                                                        NativeAPI::GPUFence* phDDISemaphore, CCommandBuffer** ppInOut )
+                                                        NativeTypes::GPUFence* phDDISemaphore, CCommandBuffer** ppInOut )
         {
             auto pCb = *ppInOut;
             // SCommandBufferPoolHandleDecoder Decoder{ (uint32_t)pCb->m_hPool };
@@ -119,7 +119,7 @@ namespace VKE
         }
 
         /*Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-            NativeAPI::GPUFence* phDDISemaphore)
+            NativeTypes::GPUFence* phDDISemaphore)
         {
             auto tid = _GetThreadId();
             auto pCb = m_apCurrentCommandBuffers[ tid ];
@@ -219,7 +219,7 @@ namespace VKE
             Result ret      = VKE_OK;
             if( vFreeCbs.GetCount() < count )
             {
-                Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
+                Utils::TCDynamicArray< NativeTypes::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
 
                 auto& DDI = m_pCtx->_GetDDI();
 

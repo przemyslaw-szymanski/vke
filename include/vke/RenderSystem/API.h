@@ -5,9 +5,9 @@
 
 namespace VKE::RenderSystem
 {
-#if VKE_VULKAN_RENDER_SYSTEM || VKE_RENDER_SYSTEM_VULKAN
+#if VKE_RENDER_SYSTEM == VKE_VULKAN
     using CRHI = Vulkan::CVulkanAPI;
-#elif VKE_D3D12_RENDER_SYSTEM || VKE_RENDER_SYSTEM_D3D12
+#elif VKE_RENDER_SYSTEM == VKE_D3D12
     using CRHI = D3D12::CD3D12API;
 #else
 #error "Unsupported 3D API"

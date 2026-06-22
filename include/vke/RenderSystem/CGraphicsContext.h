@@ -137,7 +137,7 @@ namespace VKE
                 return /*m_BaseCtx.*/ m_backBufferIdx;
             }
 
-            // Result                  ExecuteCommandBuffers( NativeAPI::GPUFence* phDDISignalSemaphore );
+            // Result                  ExecuteCommandBuffers( NativeTypes::GPUFence* phDDISignalSemaphore );
 
             void SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
             // void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) {

@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_RENDER_SYSTEM_VULKAN
+#if VKE_COMPILE_VULKAN_RHI
 #define VKE_USE_VULKAN_KHR 1
 #if VKE_WINDOWS
 #define VKE_USE_VULKAN_WINDOWS 1
@@ -20,38 +20,38 @@ namespace VKE
     {
         struct VulkanTraits
         {
-            static constexpr auto NativeAPI::Null = VK_NULL_HANDLE;
-            using NativeAPI::Buffer               = VkBuffer;
-            using NativeAPI::Pipeline             = VkPipeline;
-            using NativeAPI::Texture              = VkImage;
-            using NativeAPI::Sampler              = VkSampler;
-            using NativeAPI::RenderPass           = VkRenderPass;
-            using NativeAPI::CommandBuffer        = VkCommandBuffer;
-            using NativeAPI::TextureView          = VkImageView;
-            using NativeAPI::BufferView           = VkBufferView;
-            using NativeAPI::CPUFence             = VkFence;
-            using NativeAPI::GPUFence             = VkSemaphore;
+            static constexpr auto NativeTypes::Null = VK_NULL_HANDLE;
+            using NativeTypes::Buffer               = VkBuffer;
+            using NativeTypes::Pipeline             = VkPipeline;
+            using NativeTypes::Texture              = VkImage;
+            using NativeTypes::Sampler              = VkSampler;
+            using NativeTypes::RenderPass           = VkRenderPass;
+            using NativeTypes::CommandBuffer        = VkCommandBuffer;
+            using NativeTypes::TextureView          = VkImageView;
+            using NativeTypes::BufferView           = VkBufferView;
+            using NativeTypes::CPUFence             = VkFence;
+            using NativeTypes::GPUFence             = VkSemaphore;
             using DDIDevice                       = VkDevice;
-            using NativeAPI::DescriptorPool       = VkDescriptorPool;
-            using NativeAPI::DescriptorSet        = VkDescriptorSet;
-            using NativeAPI::DescriptorSetLayout  = VkDescriptorSetLayout;
-            using NativeAPI::CommandBufferPool    = VkCommandPool;
-            using NativeAPI::Framebuffer          = VkFramebuffer;
-            using NativeAPI::ClearValue           = VkClearValue;
-            using NativeAPI::Queue                = VkQueue;
+            using NativeTypes::DescriptorPool       = VkDescriptorPool;
+            using NativeTypes::DescriptorSet        = VkDescriptorSet;
+            using NativeTypes::DescriptorSetLayout  = VkDescriptorSetLayout;
+            using NativeTypes::CommandBufferPool    = VkCommandPool;
+            using NativeTypes::Framebuffer          = VkFramebuffer;
+            using NativeTypes::ClearValue           = VkClearValue;
+            using NativeTypes::Queue                = VkQueue;
             using DDIFormat                       = VkFormat;
             using DDIImageType                    = VkImageType;
             using DDIImageViewType                = VkImageViewType;
             using DDIImageLayout                  = VkImageLayout;
             using DDIImageUsageFlags              = VkImageUsageFlags;
-            using NativeAPI::Memory               = VkDeviceMemory;
-            using NativeAPI::PresentSurface       = VkSurfaceKHR;
+            using NativeTypes::Memory               = VkDeviceMemory;
+            using NativeTypes::PresentSurface       = VkSurfaceKHR;
             using DDISwapChain                    = VkSwapchainKHR;
-            using NativeAPI::Adapter              = VkPhysicalDevice;
-            using NativeAPI::Shader               = VkShaderModule;
-            using NativeAPI::PipelineLayout       = VkPipelineLayout;
+            using NativeTypes::Adapter              = VkPhysicalDevice;
+            using NativeTypes::Shader               = VkShaderModule;
+            using NativeTypes::PipelineLayout       = VkPipelineLayout;
             using DDIDeviceSize                   = VkDeviceSize;
-            using NativeAPI::Event                = VkEvent;
+            using NativeTypes::Event                = VkEvent;
 
             struct
             {
@@ -87,9 +87,9 @@ namespace VKE
                 using PipelineLayout      = VkPipelineLayout;
                 using DeviceSize          = VkDeviceSize;
                 using Event               = VkEvent;
-            } NativeAPI;
+            } NativeTypes;
         };
     } // namespace RenderSystem
 } // namespace VKE
 
-#endif // VKE_RENDER_SYSTEM_VULKAN
+#endif // VKE_COMPILE_VULKAN_RHI

@@ -15,7 +15,7 @@ namespace VKE::RenderSystem::D3D12
     template< class ObjT >
     concept Nullable = std::is_pointer_v< ObjT >;
 
-    struct VKE_API NativeAPI
+    struct NativeAPI
     {
         // DirectX 12 have multiple structures for the same thing but with different feature sets. To prevent huge pain
         // in the butt when refactoring code due to higher struct / pointer number, we'll have one place to refactor
@@ -75,7 +75,7 @@ namespace VKE::RenderSystem::D3D12
 
                 struct SCommandListWithAllocator
                 {
-                    NativeAPI::D3D12CommandAllocator*    pAllocator = nullptr;
+                    NativeAPI::D3D12CommandAllocator*      pAllocator = nullptr;
                     NativeAPI::D3D12GraphicsCommandList* pCmdList   = nullptr;
                 };
 
@@ -366,7 +366,7 @@ namespace VKE::RenderSystem::D3D12
         using ImageType             = D3D12_RESOURCE_DIMENSION;
         using ImageLayout           = D3D12_RESOURCE_FLAGS;
         using ImageUsageFlags       = D3D12_RESOURCE_FLAGS;
-        using Memory                = D3D12Heap*;
+        using MemoryHeap                = D3D12Heap*;
         using PresentSurface        = D3D12Output*;
         using SwapChain             = D3D12SwapChain*;
         using Adapter               = D3D12Adapter*;
@@ -504,8 +504,8 @@ namespace VKE::RenderSystem::D3D12
             Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
         };
 
-    }; // struct NativeAPI
+    }; // struct NativeTypes
 
 } // namespace VKE::RenderSystem
 
-#endif // VKE_RENDER_SYSTEM_D3D12
+#endif // VKE_COMPILE_D3D12_RHI

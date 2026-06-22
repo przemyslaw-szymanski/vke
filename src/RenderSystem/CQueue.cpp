@@ -39,12 +39,12 @@ namespace VKE
             m_pCtx->RHI().WaitForQueue( m_PresentData.hQueue );
         }
 
-        Result CQueue::Wait( NativeAPI::CPUFence hFence )
+        Result CQueue::Wait( NativeTypes::CPUFence hFence )
         {
             return m_pCtx->RHI().WaitForFences( hFence, UINT64_MAX );
         }
 
-        Result CQueue::Wait( NativeAPI::Fence hFence, NativeAPI::FenceValue value )
+        Result CQueue::Wait( NativeTypes::Fence hFence, NativeTypes::FenceValue value )
         {
             return m_pCtx->RHI().WaitForFence( hFence, value );
         }
@@ -88,7 +88,7 @@ namespace VKE
                 m_PresentData.vImageIndices.PushBack( Info.presentImageIndex );
                 m_PresentData.vSwapchains.PushBack( Info.hSwapChain );
                 m_vpSwapChains.PushBack( Info.hSwapChain );
-                if( Info.hWaitForFence != NativeAPI::Null )
+                if( Info.hWaitForFence != NativeTypes::Null )
                 {
                     //m_PresentData.vWaitSemaphores.PushBack( Info.hWaitForFence );
                     m_PresentData.vWaitForFences.PushBack( Info.hWaitForFence );
@@ -135,7 +135,7 @@ namespace VKE
         void CQueue::SetDebugName( cstr_t pName )
         {
             m_Desc.SetDebugName( pName );
-            m_pCtx->RHI().SetQueueDebugName( (uint64_t)GetDDIObject(), pName );
+            m_pCtx->RHI().SetQueueDebugName( (uint64_t)GetDDIObject().ToUint64(), pName );
         }
 
     } // namespace RenderSystem

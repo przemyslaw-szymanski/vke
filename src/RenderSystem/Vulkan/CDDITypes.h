@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#if VKE_RENDER_SYSTEM_VULKAN
-
 #define VKE_USE_VULKAN_KHR 1
 
 #if VKE_WINDOWS
@@ -25,7 +23,7 @@
 
 namespace VKE::RenderSystem::Vulkan
 {
-    struct VKE_API NativeAPI
+    struct NativeAPI
     {
         static const uint32_t             DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
         inline static const decltype( VK_NULL_HANDLE ) Null = nullptr;
@@ -58,7 +56,7 @@ namespace VKE::RenderSystem::Vulkan
         using ImageViewType         = VkImageViewType;
         using ImageLayout           = VkImageLayout;
         using ImageUsageFlags       = VkImageUsageFlags;
-        using Memory                = VkDeviceMemory;
+        using MemoryHeap                = VkDeviceMemory;
         using PresentSurface        = VkSurfaceKHR;
         using SwapChain             = VkSwapchainKHR;
         using Adapter               = VkPhysicalDevice;
@@ -118,6 +116,8 @@ namespace VKE::RenderSystem::Vulkan
             uint32_t     m_instanceVersion = 0;
             DDIExtMap    m_mExtensions;
 
+            VKE::RenderSystem::SDeviceProperties EngineDeviceProperties;
+
             struct SDeviceFeatures
             {
                 VkPhysicalDeviceFeatures2                      Device;
@@ -144,12 +144,12 @@ namespace VKE::RenderSystem::Vulkan
                 VkFormatProperties                              aFormatProperties[ Formats::_MAX_COUNT ];
             } Properties; // struct SDeviceProperties
 
+            VkPhysicalDeviceLimits Limits;
+
             const SDDIExtension& GetExtensionInfo( cstr_t pName ) const;
 
         }; // struct SImplementation
 
-    }; // namespace NativeAPI
+    }; // namespace NativeTypes
 
 } // namespace VKE::RenderSystem
-
-#endif // VKE_RENDER_SYSTEM_VULKAN

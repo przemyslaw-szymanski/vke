@@ -1,5 +1,5 @@
 #pragma once
-#if VKE_RENDER_SYSTEM_D3D12
+#if VKE_COMPILE_D3D12_RHI
 #include "Common.h"
 #include "RenderSystem/Resources/CShader.h"
 #include "RenderSystem/CDescriptorSet.h"
@@ -11,7 +11,7 @@ namespace VKE
         class VKE_API CPipelineLayout
         {
             friend class CPipelineManager;
-            VKE_ADD_DDI_OBJECT( NativeAPI::PipelineLayout );
+            VKE_ADD_DDI_OBJECT( NativeTypes::PipelineLayout );
             VKE_DECL_BASE_OBJECT( PipelineLayoutHandle );
 
         public:
@@ -58,7 +58,7 @@ namespace VKE
                 VkPipelineDynamicStateCreateInfo       DynamicState;
             };
 
-            VKE_ADD_DDI_OBJECT( NativeAPI::Pipeline );
+            VKE_ADD_DDI_OBJECT( NativeTypes::Pipeline );
             VKE_DECL_BASE_OBJECT( PipelineHandle );
             VKE_DECL_BASE_RESOURCE();
 
@@ -101,4 +101,4 @@ namespace VKE
 
     } // namespace RenderSystem
 } // namespace VKE
-#endif // VKE_RENDER_SYSTEM_D3D12
+#endif // VKE_COMPILE_D3D12_RHI

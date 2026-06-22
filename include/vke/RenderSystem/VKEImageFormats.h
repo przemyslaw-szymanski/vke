@@ -194,7 +194,7 @@ namespace VKE
                 ASTC_12x12_UNORM_BLOCK,
                 ASTC_12x12_SRGB_BLOCK,
 
-#if VKE_RENDER_SYSTEM_D3D12
+#if VKE_COMPILE_D3D12_RHI
                 // DX specific formats
                 R32G32B32A32_TYPELESS,
                 R32G32B32_TYPELESS,

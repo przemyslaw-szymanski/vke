@@ -30,18 +30,18 @@ namespace VKE
         {
             struct SAcquireElement
             {
-                NativeAPI::Texture     hDDITexture     = NativeAPI::Null;
-                NativeAPI::TextureView hDDITextureView = NativeAPI::Null;
+                NativeTypes::Texture     hDDITexture     = NativeTypes::Null;
+                NativeTypes::TextureView hDDITextureView = NativeTypes::Null;
                 TEXTURE_STATE          currentState    = TextureStates::UNDEFINED;
                 TEXTURE_STATE          oldState        = TextureStates::UNDEFINED;
-                NativeAPI::Framebuffer hDDIFramebuffer = NativeAPI::Null;
+                NativeTypes::Framebuffer hDDIFramebuffer = NativeTypes::Null;
             };
 
             Threads::SyncObject SyncObj;
             SAcquireElement*    pAcquiredElement               = nullptr;
-            NativeAPI::GPUFence hDDIPresentImageReadySemaphore = NativeAPI::Null;
-            NativeAPI::GPUFence hDDIQueueFinishedSemaphore     = NativeAPI::Null;
-            NativeAPI::CPUFence hDDIPresentImageReadyFence     = NativeAPI::Null;
+            NativeTypes::GPUFence hDDIPresentImageReadySemaphore = NativeTypes::Null;
+            NativeTypes::GPUFence hDDIQueueFinishedSemaphore     = NativeTypes::Null;
+            NativeTypes::CPUFence hDDIPresentImageReadyFence     = NativeTypes::Null;
             RenderTargetHandle  hRenderTarget                  = INVALID_HANDLE;
             uint32_t            ddiBackBufferIdx               = 0;
             bool                presentDone                    = true;
@@ -63,8 +63,8 @@ namespace VKE
 
             using BackBufferVec      = Utils::TCDynamicRingArray< SBackBuffer >;
             using AcquireElementVec  = Utils::TCDynamicArray< SAcquireElement >;
-            using CPUFenceQueue      = std::deque< NativeAPI::Fence >;
-            using GPUFenceQueue      = std::deque< NativeAPI::Fence >;
+            using CPUFenceQueue      = std::deque< NativeTypes::Fence >;
+            using GPUFenceQueue      = std::deque< NativeTypes::Fence >;
             using CBackBufferManager = Managers::CBackBufferManager;
             using UintQueue          = std::queue< uint32_t >;
 
@@ -82,12 +82,12 @@ namespace VKE
                 /// It is not related to index of this back buffer.
                 /// </summary>
                 //uint32_t            swapChainBufferIndex = UNDEFINED_U32;
-                NativeAPI::GPUFence hGPUFence            = NativeAPI::Null;
-                NativeAPI::CPUFence hCPUFence            = NativeAPI::Null;
-                NativeAPI::GPUFence hExternalGPUFence    = NativeAPI::Null;
-                NativeAPI::CPUFence hExternalCpuFence    = NativeAPI::Null;
-                NativeAPI::Fence    hFence                = NativeAPI::Null;
-                NativeAPI::FenceValue fenceValue          = 1;
+                NativeTypes::GPUFence hGPUFence            = NativeTypes::Null;
+                NativeTypes::CPUFence hCPUFence            = NativeTypes::Null;
+                NativeTypes::GPUFence hExternalGPUFence    = NativeTypes::Null;
+                NativeTypes::CPUFence hExternalCpuFence    = NativeTypes::Null;
+                NativeTypes::Fence    hFence                = NativeTypes::Null;
+                NativeTypes::FenceValue fenceValue          = 1;
                 /// <summary>
                 /// Index of this back buffer
                 /// </summary>
@@ -119,14 +119,14 @@ namespace VKE
 
             const RenderSystem::SBackBuffer* SwapBuffers( bool waitForPresent );
             Result                           SwapBuffers();
-            Result                           SwapBuffers( const NativeAPI::GPUFence&, const NativeAPI::CPUFence& );
-            Result                           SwapBuffers( NativeAPI::Fence hFrameFence );
+            Result                           SwapBuffers( const NativeTypes::GPUFence&, const NativeTypes::CPUFence& );
+            Result                           SwapBuffers( NativeTypes::Fence hFrameFence );
             Result Present( const SPresentInfo& Info );
             void   NotifyPresent();
             void   Invalidate();
 
             TextureRefPtr              GetBackBufferTexture();
-            const NativeAPI::GPUFence& GetBackBufferGPUFence() const;
+            const NativeTypes::GPUFence& GetBackBufferGPUFence() const;
 
             const SSwapChainDesc& GetDesc() const
             {
@@ -149,7 +149,7 @@ namespace VKE
             }
 
             // RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
-            const NativeAPI::RenderPass& GetDDIRenderPass() const
+            const NativeTypes::RenderPass& GetDDIRenderPass() const
             {
                 return m_DDISwapChain.hDDIRenderPass;
             }
@@ -171,7 +171,7 @@ namespace VKE
                 return m_pCurrBackBuffer->hRenderTarget;
             }
 
-            const NativeAPI::SwapChain& GetDDIObject() const
+            const NativeTypes::SwapChain& GetDDIObject() const
             {
                 return m_DDISwapChain.hSwapChain;
             }
@@ -225,7 +225,7 @@ namespace VKE
             SViewportDesc              m_CurrViewport;
             SScissorDesc               m_CurrScissor;
             // SPresentSurfaceCaps         m_PresentSurfaceCaps;
-            // NativeAPI::RenderPass               m_hDDIRenderPass;
+            // NativeTypes::RenderPass               m_hDDIRenderPass;
             std::atomic< uint32_t > m_acquireCount = 0;
             // uint32_t                    m_currBackBufferIdx = 0;
             bool m_needPresent  = false;
