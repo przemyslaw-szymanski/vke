@@ -4924,38 +4924,6 @@ namespace VKE
             VkDummyCallbacks.pfnInternalFree       = Helper::DummyInternalFreeCallback;
             VkDummyCallbacks.pfnReallocation       = Helper::DummyReallocCallback;
 
-            VkAllocationCallbacks*       pVkCallbacks = nullptr;
-            Helper::SSwapChainAllocator* pInternalAllocator =
-                reinterpret_cast< Helper::SSwapChainAllocator* >( pOut->pInternalAllocator );
-            if( pOut->pInternalAllocator == nullptr )
-            {
-                // pInternalAllocator = VKE_NEW Helper::SSwapChainAllocator;
-                if( VKE_SUCCEEDED( VKE::Memory::CreateObject( &HeapAllocator, &pInternalAllocator ) ) )
-                {
-                    if( VKE_SUCCEEDED( pInternalAllocator->Create( VKE_MEGABYTES( 1 ), 2 ) ) )
-                    {
-                        pOut->pInternalAllocator = pInternalAllocator;
-                    }
-                    else
-                    {
-                        VKE_LOG_ERR( "Unable to create CSwapChain internal allocator." );
-                        goto ERR;
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for CSwapChain internal allocator." );
-                    goto ERR;
-                }
-            }
-            {
-                pVkCallbacks = &pInternalAllocator->VkCallbacks;
-            }
-            if( pVkCallbacks == nullptr )
-            {
-                return VKE_ENOMEMORY;
-            }
-
             if( pOut->hSurface == RHI::Null )
             {
 #if VKE_USE_VULKAN_WINDOWS
@@ -4967,7 +4935,7 @@ namespace VKE
                 SurfaceCI.hinstance = hInst;
                 SurfaceCI.hwnd      = hWnd;
                 vkRes               = SImplementation::sInstanceICD.vkCreateWin32SurfaceKHR(
-                    SImplementation::sVkInstance, &SurfaceCI, pVkCallbacks, &hSurface );
+                    SImplementation::sVkInstance, &SurfaceCI, nullptr, &hSurface );
 #elif VKE_USE_VULKAN_LINUX
                 VkXcbSurfaceCreateInfoKHR SurfaceCI;
                 Vulkan::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR );
@@ -4994,7 +4962,7 @@ namespace VKE
                     {
                         VKE_LOG_ERR( "Queue index: " << queueIndex << " does not support the surface." );
                         SImplementation::sInstanceICD.vkDestroySurfaceKHR(
-                            SImplementation::sVkInstance, ( hSurface ), pVkCallbacks );
+                            SImplementation::sVkInstance, ( hSurface ), nullptr );
                     }
                 }
             }
@@ -5101,7 +5069,7 @@ namespace VKE
                     ci.presentMode           = aVkModes[ pOut->mode ];
                     ci.preTransform          = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
                     ci.surface               = ToNative( pOut->hSurface );
-                    res = m_pImplementation->m_ICD.vkCreateSwapchainKHR( ( m_pImplementation->m_hDevice ), &ci, pVkCallbacks, &hSwapChain );
+                    res = m_pImplementation->m_ICD.vkCreateSwapchainKHR( ( m_pImplementation->m_hDevice ), &ci, nullptr, &hSwapChain );
                 }
                 VK_ERR( res );
                 if( res == VK_SUCCESS )
@@ -5142,7 +5110,7 @@ namespace VKE
                                     ci.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
                                     NativeAPI::TextureView hView;
                                     res = m_pImplementation->m_ICD.vkCreateImageView(
-                                        ( m_pImplementation->m_hDevice ), &ci, pVkCallbacks, &hView );
+                                        ( m_pImplementation->m_hDevice ), &ci, nullptr, &hView );
                                     VK_ERR( res );
                                     if( res != VK_SUCCESS )
                                     {
@@ -5228,18 +5196,18 @@ namespace VKE
         ERR:
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
-                DestroyTextureViewImpl( &pOut->vImageViews[ i ], pVkCallbacks );
+                DestroyTextureViewImpl( &pOut->vImageViews[ i ], nullptr );
             }
             if( hSwapChain != NativeAPI::Null )
             {
-                m_pImplementation->m_ICD.vkDestroySwapchainKHR( ( m_pImplementation->m_hDevice ), ( hSwapChain ), pVkCallbacks );
+                m_pImplementation->m_ICD.vkDestroySwapchainKHR( ( m_pImplementation->m_hDevice ), ( hSwapChain ), nullptr );
             }
             if( hSurface != NativeAPI::Null )
             {
                 SImplementation::sInstanceICD.vkDestroySurfaceKHR(
-                    SImplementation::sVkInstance, ( hSurface ), pVkCallbacks );
+                    SImplementation::sVkInstance, ( hSurface ), nullptr );
             }
-            pInternalAllocator->Reset();
+
             return ret;
         }
 
