@@ -396,7 +396,7 @@ namespace VKE::RenderSystem::D3D12
 
        
 
-    }; // struct NativeTypes
+    }; // struct RHI
 
     struct SImplementation
     {

@@ -474,7 +474,7 @@ namespace VKE
         {
         }
 
-        // Result CGraphicsContext::ExecuteCommandBuffers( NativeTypes::GPUFence* phDDISignalSemaphore )
+        // Result CGraphicsContext::ExecuteCommandBuffers( RHI::GPUFence* phDDISignalSemaphore )
         //{
         //     CCommandBufferBatch* pBatch;
         //     Threads::ScopedLock l( m_SyncObj );

@@ -65,31 +65,31 @@ namespace VKE
             return reinterpret_cast< const _NativeType* >( pObj ); \
         }
 
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Adapter, NativeAPI::Adapter )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Device, NativeAPI::Device )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::CommandBuffer, NativeAPI::CommandBuffer )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::CommandBufferPool, NativeAPI::CommandBufferPool )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Queue, NativeAPI::Queue )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::SwapChain, NativeAPI::SwapChain )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::RenderPass, NativeAPI::RenderPass )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Pipeline, NativeAPI::Pipeline )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::PipelineLayout, NativeAPI::PipelineLayout )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Shader, NativeAPI::Shader )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Buffer, NativeAPI::Buffer )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::BufferView, NativeAPI::BufferView )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Texture, NativeAPI::Texture )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::TextureView, NativeAPI::TextureView )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Sampler, NativeAPI::Sampler )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::DescriptorSetLayout, NativeAPI::DescriptorSetLayout )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::DescriptorPool, NativeAPI::DescriptorPool )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::DescriptorSet, NativeAPI::DescriptorSet )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Framebuffer, NativeAPI::Framebuffer )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::GPUFence, NativeAPI::GPUFence )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::CPUFence, NativeAPI::CPUFence )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Fence, NativeAPI::Fence )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::Event, NativeAPI::Event )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::MemoryHeap, NativeAPI::MemoryHeap )
-        VKE_DEFINE_FROM_NATIVE_VK( NativeTypes::PresentSurface, NativeAPI::PresentSurface )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Adapter, NativeAPI::Adapter )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Device, NativeAPI::Device )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::CommandBuffer, NativeAPI::CommandBuffer )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::CommandBufferPool, NativeAPI::CommandBufferPool )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Queue, NativeAPI::Queue )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::SwapChain, NativeAPI::SwapChain )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::RenderPass, NativeAPI::RenderPass )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Pipeline, NativeAPI::Pipeline )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::PipelineLayout, NativeAPI::PipelineLayout )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Shader, NativeAPI::Shader )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Buffer, NativeAPI::Buffer )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::BufferView, NativeAPI::BufferView )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Texture, NativeAPI::Texture )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::TextureView, NativeAPI::TextureView )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Sampler, NativeAPI::Sampler )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::DescriptorSetLayout, NativeAPI::DescriptorSetLayout )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::DescriptorPool, NativeAPI::DescriptorPool )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::DescriptorSet, NativeAPI::DescriptorSet )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Framebuffer, NativeAPI::Framebuffer )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::GPUFence, NativeAPI::GPUFence )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::CPUFence, NativeAPI::CPUFence )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Fence, NativeAPI::Fence )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Event, NativeAPI::Event )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::MemoryHeap, NativeAPI::MemoryHeap )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::PresentSurface, NativeAPI::PresentSurface )
 
         template< VkObjectType ObjectType, typename DDIObjectT >
             requires(std::is_pointer_v<DDIObjectT>)
@@ -1281,7 +1281,7 @@ namespace VKE
             /// <param name="pApi"></param>
             /// <param name="value">New value for which fence will wait</param>
             /// <returns></returns>
-            SFences* Signal( CVulkanAPI* pApi, NativeTypes::FenceValue value )
+            SFences* Signal( CVulkanAPI* pApi, RHI::FenceValue value )
             {
                 if( !isBinary && !isNativeMonitored )
                 {
@@ -1315,7 +1315,7 @@ namespace VKE
                         }
                     }
                     // Fence must be signaled if it is recycled
-                    NativeTypes::CPUFence       hFence = FromNative< NativeTypes::CPUFence >( vFences[ idx ].hFence );
+                    RHI::CPUFence       hFence = FromNative< RHI::CPUFence >( vFences[ idx ].hFence );
                     const bool signaled = pApi->IsSignaled( hFence );
                     VKE_ASSERT( signaled );
                     VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
@@ -1326,9 +1326,9 @@ namespace VKE
                 }
                 else if( isBinary )
                 {
-                    NativeTypes::Fence hFence = FromNative< NativeTypes::Fence >( this );
+                    RHI::Fence hFence = FromNative< RHI::Fence >( this );
                     pApi->WaitForFence( hFence, 0 );
-                    NativeTypes::CPUFence hCPUFence = FromNative< NativeTypes::CPUFence >( vFences[ 0 ].hFence );
+                    RHI::CPUFence hCPUFence = FromNative< RHI::CPUFence >( vFences[ 0 ].hFence );
                     pApi->Reset( &hCPUFence );
                 }
                 return &vFences[ 0 ];
@@ -1339,7 +1339,7 @@ namespace VKE
                 GetLastSignaledValue( pApi );
             }
 
-            SFences* GetFences( NativeTypes::FenceValue value )
+            SFences* GetFences( RHI::FenceValue value )
             {
                 if( isNativeMonitored || isBinary )
                 {
@@ -1349,7 +1349,7 @@ namespace VKE
                 return &vFences[ idx ];
             }
 
-            void Reset( CVulkanAPI* pApi, NativeTypes::FenceValue value )
+            void Reset( CVulkanAPI* pApi, RHI::FenceValue value )
             {
                 VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
                 for( uint32_t i = 0; i < vFences.GetCount(); ++i )
@@ -1361,7 +1361,7 @@ namespace VKE
                 lastSignaledValue = 0;
             }
 
-            NativeTypes::FenceValue GetLastSignaledValue( const CVulkanAPI* pApi )
+            RHI::FenceValue GetLastSignaledValue( const CVulkanAPI* pApi )
             {
                 for( uint32_t i = 0; i < vValues.GetCount(); ++i )
                 {
@@ -2475,7 +2475,7 @@ namespace VKE
 
             DDIExtNameArray vDDIExtNames;
             /*VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_pImplementation->m_hAdapter, &m_mExtensions ) );
-            NativeTypes::DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
+            RHI::DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
             VKE_RETURN_IF_FAILED(
                 CheckDeviceExtensions( m_pImplementation->m_hAdapter, &vRequiredExtensions,
                     &m_mExtensions, &vDDIExtNames ) );
@@ -2767,12 +2767,12 @@ namespace VKE
             return ret;
         }
 
-        const NativeTypes::Device CVulkanAPI::GetDeviceImpl() const
+        const RHI::Device CVulkanAPI::GetDeviceImpl() const
         {
             return FromNative( m_pImplementation->m_hDevice );
         }
 
-        const NativeTypes::Adapter CVulkanAPI::GetAdapterImpl() const
+        const RHI::Adapter CVulkanAPI::GetAdapterImpl() const
         {
             return FromNative( m_pImplementation->m_hAdapter );
         }
@@ -2787,9 +2787,9 @@ namespace VKE
             }
         }*/
 
-        NativeTypes::Buffer CVulkanAPI::CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
+        RHI::Buffer CVulkanAPI::CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
-            VKE_ASSERT( MemInfo.hDDIMemory != NativeTypes::Null );
+            VKE_ASSERT( MemInfo.hDDIMemory != RHI::Null );
             VKE_ASSERT( MemInfo.reserved != INVALID_HANDLE );
             NativeAPI::Buffer hNativeBuffer = NativeAPI::Null;
             {
@@ -2810,12 +2810,12 @@ namespace VKE
             return FromNative( hNativeBuffer );
         }
 
-        void CVulkanAPI::DestroyBufferImpl( NativeTypes::Buffer* phBuffer, const void* pAllocator )
+        void CVulkanAPI::DestroyBufferImpl( RHI::Buffer* phBuffer, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Buffer, ToNativeArray( phBuffer ), pAllocator );
         }
 
-        NativeTypes::BufferView CVulkanAPI::CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* pAllocator )
+        RHI::BufferView CVulkanAPI::CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* pAllocator )
         {
             NativeAPI::BufferView  hView = NativeAPI::Null;
             VkBufferViewCreateInfo ci;
@@ -2835,12 +2835,12 @@ namespace VKE
             return FromNative( hView );
         }
 
-        void CVulkanAPI::DestroyBufferViewImpl( NativeTypes::BufferView* phBufferView, const void* pAllocator )
+        void CVulkanAPI::DestroyBufferViewImpl( RHI::BufferView* phBufferView, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( BufferView, ToNativeArray( phBufferView ), pAllocator );
         }
 
-        NativeTypes::Texture CVulkanAPI::CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
+        RHI::Texture CVulkanAPI::CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
             NativeAPI::MemoryHeap vkMemory = ToNative( MemInfo.hDDIMemory );
             VKE_ASSERT( vkMemory != NativeAPI::Null );
@@ -2905,12 +2905,12 @@ namespace VKE
             return ret;
         }
 
-        void CVulkanAPI::DestroyTextureImpl( NativeTypes::Texture* phImage, const void* pAllocator )
+        void CVulkanAPI::DestroyTextureImpl( RHI::Texture* phImage, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Image, ToNativeArray( phImage ), pAllocator );
         }
 
-        NativeTypes::TextureView CVulkanAPI::CreateTextureViewImpl( const STextureViewDesc& Desc, const void* pAllocator )
+        RHI::TextureView CVulkanAPI::CreateTextureViewImpl( const STextureViewDesc& Desc, const void* pAllocator )
         {
             static const VkComponentMapping DefaultMapping = {
                 VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
@@ -2939,15 +2939,15 @@ namespace VKE
             SetObjectDebugName( (uint64_t)hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName() );
 #endif
 
-            return FromNative< NativeTypes::TextureView >( hView );
+            return FromNative< RHI::TextureView >( hView );
         }
 
-        void CVulkanAPI::DestroyTextureViewImpl( NativeTypes::TextureView* phImageView, const void* pAllocator )
+        void CVulkanAPI::DestroyTextureViewImpl( RHI::TextureView* phImageView, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( ImageView, ToNativeArray( phImageView ), pAllocator );
         }
 
-        NativeTypes::Framebuffer CVulkanAPI::CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* pAllocator )
+        RHI::Framebuffer CVulkanAPI::CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* pAllocator )
         {
             // const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
 
@@ -2973,12 +2973,12 @@ namespace VKE
             return FromNative( hFramebuffer );
         }
 
-        void CVulkanAPI::DestroyFramebufferImpl( NativeTypes::Framebuffer* phFramebuffer, const void* pAllocator )
+        void CVulkanAPI::DestroyFramebufferImpl( RHI::Framebuffer* phFramebuffer, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Framebuffer, ToNativeArray( phFramebuffer ), pAllocator );
         }
 
-        NativeTypes::CPUFence CVulkanAPI::CreateFenceImpl( const SFenceDesc& Desc, const void* pAllocator ) const
+        RHI::CPUFence CVulkanAPI::CreateFenceImpl( const SFenceDesc& Desc, const void* pAllocator ) const
         {
             VkFenceCreateInfo ci;
             ci.sType                 = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -2991,7 +2991,7 @@ namespace VKE
             return FromNative( hObj );
         }
 
-        NativeTypes::Fence CVulkanAPI::CreateFence2Impl( const SFenceDesc& Desc ) const
+        RHI::Fence CVulkanAPI::CreateFence2Impl( const SFenceDesc& Desc ) const
         {
             VKE_ASSERT( Desc.IsDebugNameEmpty() == false );
             NativeAPI::SFence* pFence = nullptr;
@@ -3006,12 +3006,12 @@ namespace VKE
             return FromNative( pFence );
         }
 
-        void CVulkanAPI::DestroyFenceImpl( NativeTypes::CPUFence* phFence, const void* pAllocator )
+        void CVulkanAPI::DestroyFenceImpl( RHI::CPUFence* phFence, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Fence, ToNativeArray( phFence ), pAllocator );
         }
 
-        void CVulkanAPI::DestroyFenceImpl( NativeTypes::Fence* phFence )
+        void CVulkanAPI::DestroyFenceImpl( RHI::Fence* phFence )
         {
             NativeAPI::Fence pFence  = ToNative( *phFence );
             auto&            vFences = pFence->vFences;
@@ -3021,10 +3021,10 @@ namespace VKE
                 DestroySemaphoreImpl( FromNativeArray( &vFences[ i ].hSemaphore ), nullptr );
             }
             Memory::DestroyObject( &HeapAllocator, &pFence );
-            *phFence = NativeTypes::Null;
+            *phFence = RHI::Null;
         }
 
-        NativeTypes::GPUFence CVulkanAPI::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
+        RHI::GPUFence CVulkanAPI::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
         {
             NativeAPI::GPUFence hSemaphore = NativeAPI::Null;
             
@@ -3048,12 +3048,12 @@ namespace VKE
             return FromNative( hSemaphore );
         }
 
-        void CVulkanAPI::DestroySemaphoreImpl( NativeTypes::GPUFence* phSemaphore, const void* pAllocator )
+        void CVulkanAPI::DestroySemaphoreImpl( RHI::GPUFence* phSemaphore, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Semaphore, ToNativeArray( phSemaphore ), pAllocator );
         }
 
-        NativeTypes::CommandBufferPool CVulkanAPI::CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc,
+        RHI::CommandBufferPool CVulkanAPI::CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc,
                                                                     const void*                   pAllocator )
         {
             NativeAPI::CommandBufferPool hPool = NativeAPI::Null;
@@ -3068,7 +3068,7 @@ namespace VKE
             return FromNative( hPool );
         }
 
-        void CVulkanAPI::DestroyCommandBufferPoolImpl( NativeTypes::CommandBufferPool* phPool, const void* pAllocator )
+        void CVulkanAPI::DestroyCommandBufferPoolImpl( RHI::CommandBufferPool* phPool, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( CommandPool, ToNativeArray( phPool ), pAllocator );
         }
@@ -3103,12 +3103,12 @@ namespace VKE
             return res;
         }
 
-        NativeTypes::RenderPass CVulkanAPI::CreateRenderPassImpl( const SRenderPassDesc& Desc, const void* )
+        RHI::RenderPass CVulkanAPI::CreateRenderPassImpl( const SRenderPassDesc& Desc, const void* )
         {
             NativeAPI::RenderPass pPass = NativeAPI::Null;
             if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPass ) ) )
             {
-                return NativeTypes::Null;
+                return RHI::Null;
             }
             
             if( m_pImplementation->Features.DynamicRendering.dynamicRendering )
@@ -3124,7 +3124,7 @@ namespace VKE
                 for( uint32_t a = 0; a < Desc.vRenderTargets.GetCount(); ++a )
                 {
                     const SRenderPassAttachmentDesc& AttachmentDesc = Desc.vRenderTargets[ a ];
-                    VKE_ASSERT( AttachmentDesc.hRHIView != NativeTypes::Null );
+                    VKE_ASSERT( AttachmentDesc.hRHIView != RHI::Null );
                     
 
                     VkRenderingAttachmentInfo Info;
@@ -3376,18 +3376,18 @@ namespace VKE
             return FromNative( pPass );
         }
 
-        void CVulkanAPI::DestroyRenderPassImpl( NativeTypes::RenderPass* phRenderPass, const void* pAllocator )
+        void CVulkanAPI::DestroyRenderPassImpl( RHI::RenderPass* phRenderPass, const void* pAllocator )
         {
             NativeAPI::RenderPass pPass = ToNative( *phRenderPass );
             if( pPass != NativeAPI::Null && pPass->hNativeRenderPass != NativeAPI::Null )
             {
                 m_pImplementation->m_ICD.vkDestroyRenderPass( m_pImplementation->m_hDevice, pPass->hNativeRenderPass, nullptr );
                 Memory::DestroyObject( &HeapAllocator, &pPass );
-                *phRenderPass = NativeTypes::Null;
+                *phRenderPass = RHI::Null;
             }
         }
 
-        NativeTypes::DescriptorPool CVulkanAPI::CreateDescriptorPoolImpl( const SDescriptorPoolDesc& Desc,
+        RHI::DescriptorPool CVulkanAPI::CreateDescriptorPoolImpl( const SDescriptorPoolDesc& Desc,
                                                                         const void*                pAllocator )
         {
             NativeAPI::DescriptorPool  hPool = NativeAPI::Null;
@@ -3415,17 +3415,17 @@ namespace VKE
             return FromNative( hPool );
         }
 
-        void CVulkanAPI::DestroyDescriptorPoolImpl( NativeTypes::DescriptorPool* phPool, const void* pAllocator )
+        void CVulkanAPI::DestroyDescriptorPoolImpl( RHI::DescriptorPool* phPool, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( DescriptorPool, ToNativeArray( phPool ), pAllocator );
         }
 
-        NativeTypes::Pipeline CVulkanAPI::CreatePipelineImpl( const SPipelineDesc& Desc, const void* pAllocator )
+        RHI::Pipeline CVulkanAPI::CreatePipelineImpl( const SPipelineDesc& Desc, const void* pAllocator )
         {
             NativeAPI::Pipeline          hPipeline    = NativeAPI::Null;
             VkResult                     vkRes        = VK_ERROR_OUT_OF_HOST_MEMORY;
             const VkAllocationCallbacks* pVkCallbacks = reinterpret_cast< const VkAllocationCallbacks* >( pAllocator );
-            VKE_ASSERT2( Desc.hDDIRenderPass != NativeTypes::Null, "RenderPass must be set" );
+            VKE_ASSERT2( Desc.hDDIRenderPass != RHI::Null, "RenderPass must be set" );
 
             // Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState,
             // Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
@@ -3760,7 +3760,7 @@ namespace VKE
                 }
 
                 bool create = true;
-                if( Desc.hDDILayout != NativeTypes::Null )
+                if( Desc.hDDILayout != RHI::Null )
                 {
                     VkGraphicsInfo.layout = ToNative( Desc.hDDILayout );
                 }
@@ -3776,7 +3776,7 @@ namespace VKE
                         VKE_LOG_WARN( "No valid pipeline layout handle provided. Pipeline will not be created." );
                     }
                 }
-                if( Desc.hDDIRenderPass != NativeTypes::Null )
+                if( Desc.hDDIRenderPass != RHI::Null )
                 {
                     VkGraphicsInfo.renderPass = ToNative( Desc.hDDIRenderPass )->hNativeRenderPass;
                 }
@@ -3795,7 +3795,7 @@ namespace VKE
                         VkGraphicsInfo.pNext         = &VkDynamicRenderingInfo;
                         VkDynamicRenderingInfo.viewMask = 0;
 
-                        if( Desc.hDDIRenderPass != NativeTypes::Null )
+                        if( Desc.hDDIRenderPass != RHI::Null )
                         {
                             const auto                                    pPass = ToNative( Desc.hDDIRenderPass );
                             
@@ -3854,17 +3854,17 @@ namespace VKE
             return FromNative( hPipeline );
         }
 
-        void CVulkanAPI::DestroyPipelineImpl( NativeTypes::Pipeline* phPipeline, const void* pAllocator )
+        void CVulkanAPI::DestroyPipelineImpl( RHI::Pipeline* phPipeline, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Pipeline, ToNativeArray( phPipeline ), pAllocator );
         }
 
-        NativeTypes::DescriptorSetLayout CVulkanAPI::CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
+        RHI::DescriptorSetLayout CVulkanAPI::CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
                                                                         const void*                     pAllocator )
         {
             if( !Desc.IsValid() )
             {
-                return NativeTypes::Null;
+                return RHI::Null;
             }
             NativeAPI::DescriptorSetLayout hLayout = NativeAPI::Null;
 
@@ -3941,7 +3941,7 @@ namespace VKE
             m_pImplementation->m_ICD.vkUpdateDescriptorSets( m_pImplementation->m_hDevice, 1, &VkWrite, 0, nullptr );
         }
 
-        void CVulkanAPI::UpdateImpl( const NativeTypes::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
+        void CVulkanAPI::UpdateImpl( const RHI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
         {
             Utils::TCDynamicArray< VkWriteDescriptorSet > vVkWrites;
             VkWriteDescriptorSet                          VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -3993,7 +3993,7 @@ namespace VKE
                     VkDescriptorImageInfo VkInfo;
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     VkInfo.imageView = m_pCtx->GetTextureView( Curr.ahHandles[j] )->GetDDIObject();
-                    VkInfo.sampler = NativeTypes::Null;
+                    VkInfo.sampler = RHI::Null;
                     vVkImgInfos[1].PushBack( VkInfo );
                 }
 
@@ -4102,7 +4102,7 @@ namespace VKE
                 m_pImplementation->m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr );
         }
 
-        void CVulkanAPI::UpdateImpl( const NativeTypes::DescriptorSet& hDDISrcSet, NativeTypes::DescriptorSet* phDDIDstOut )
+        void CVulkanAPI::UpdateImpl( const RHI::DescriptorSet& hDDISrcSet, RHI::DescriptorSet* phDDIDstOut )
         {
             VkCopyDescriptorSet vkCopy;
             vkCopy.sType           = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
@@ -4117,13 +4117,13 @@ namespace VKE
             m_pImplementation->m_ICD.vkUpdateDescriptorSets( m_pImplementation->m_hDevice, 0, 0, 1, &vkCopy );
         }
 
-        void CVulkanAPI::DestroyDescriptorSetLayoutImpl( NativeTypes::DescriptorSetLayout* phLayout,
+        void CVulkanAPI::DestroyDescriptorSetLayoutImpl( RHI::DescriptorSetLayout* phLayout,
                                                          const void*                     pAllocator )
         {
             DDI_DESTROY_OBJECT( DescriptorSetLayout, ToNativeArray( phLayout ), pAllocator );
         }
 
-        NativeTypes::PipelineLayout CVulkanAPI::CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc,
+        RHI::PipelineLayout CVulkanAPI::CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc,
                                                                         const void*                pAllocator )
         {
             VKE_ASSERT( !Desc.IsDebugNameEmpty() );
@@ -4140,9 +4140,9 @@ namespace VKE
             Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
             for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
             {
-                // NativeTypes::DescriptorSetLayout hDDIObj = m_pCtx->GetDescriptorSetLayout(
+                // RHI::DescriptorSetLayout hDDIObj = m_pCtx->GetDescriptorSetLayout(
                 // Desc.vDescriptorSetLayouts[i] )->GetDDIObject();
-                NativeTypes::DescriptorSetLayout hDDIObj =
+                RHI::DescriptorSetLayout hDDIObj =
                     m_pCtx->GetDescriptorSetLayout( Desc.vDescriptorSetLayouts[ i ] );
                 vVkDescLayouts.PushBack( ToNative( hDDIObj ) );
             }
@@ -4155,12 +4155,12 @@ namespace VKE
             return FromNative( hLayout );
         }
 
-        void CVulkanAPI::DestroyPipelineLayoutImpl( NativeTypes::PipelineLayout* phLayout, const void* pAllocator )
+        void CVulkanAPI::DestroyPipelineLayoutImpl( RHI::PipelineLayout* phLayout, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( PipelineLayout, ToNativeArray( phLayout ), pAllocator );
         }
 
-        NativeTypes::Shader CVulkanAPI::CreateShaderImpl( const SShaderData& Data, const void* pAllocator )
+        RHI::Shader CVulkanAPI::CreateShaderImpl( const SShaderData& Data, const void* pAllocator )
         {
             VKE_ASSERT2( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY && Data.codeSize > 0 &&
                              Data.codeSize % 4 == 0 && Data.pCode != nullptr,
@@ -4177,12 +4177,12 @@ namespace VKE
             return FromNative( hShader );
         }
 
-        void CVulkanAPI::DestroyShaderImpl( NativeTypes::Shader* phShader, const void* pAllocator )
+        void CVulkanAPI::DestroyShaderImpl( RHI::Shader* phShader, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( ShaderModule, ToNativeArray( phShader ), pAllocator );
         }
 
-        NativeTypes::Sampler CVulkanAPI::CreateSamplerImpl( const SSamplerDesc& Desc, const void* pAllocator )
+        RHI::Sampler CVulkanAPI::CreateSamplerImpl( const SSamplerDesc& Desc, const void* pAllocator )
         {
             NativeAPI::Sampler  hSampler = NativeAPI::Null;
             VkSamplerCreateInfo ci;
@@ -4208,12 +4208,12 @@ namespace VKE
             return FromNative( hSampler );
         }
 
-        void CVulkanAPI::DestroySamplerImpl( NativeTypes::Sampler* phSampler, const void* pAllocator )
+        void CVulkanAPI::DestroySamplerImpl( RHI::Sampler* phSampler, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Sampler, ToNativeArray( phSampler ), pAllocator );
         }
 
-        NativeTypes::Event CVulkanAPI::CreateEventImpl( const SEventDesc&, const void* pAllocator )
+        RHI::Event CVulkanAPI::CreateEventImpl( const SEventDesc&, const void* pAllocator )
         {
             static const VkEventCreateInfo ci = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
             NativeAPI::Event               hRet;
@@ -4221,13 +4221,13 @@ namespace VKE
             return FromNative( hRet );
         }
 
-        void CVulkanAPI::DestroyEventImpl( NativeTypes::Event* phEvent, const void* pAllocator )
+        void CVulkanAPI::DestroyEventImpl( RHI::Event* phEvent, const void* pAllocator )
         {
             DDI_DESTROY_OBJECT( Event, ToNativeArray( phEvent ), pAllocator );
         }
 
         Result CVulkanAPI::CreateDescriptorSetsImpl( const AllocateDescs::SDescSet& Info,
-                                                     NativeTypes::DescriptorSet*      pSets )
+                                                     RHI::DescriptorSet*      pSets )
         {
             Result                      ret = VKE_FAIL;
             VkDescriptorSetAllocateInfo ai;
@@ -4269,7 +4269,7 @@ namespace VKE
         }
 
         Result CVulkanAPI::CreateCommandBuffersImpl( const SAllocateCommandBufferInfo& Info,
-                                                     NativeTypes::CommandBuffer*         pBuffers )
+                                                     RHI::CommandBuffer*         pBuffers )
         {
             Result                      ret = VKE_FAIL;
             VkCommandBufferAllocateInfo ai;
@@ -4473,31 +4473,31 @@ namespace VKE
             return ret;
         }
 
-        void CVulkanAPI::FreeImpl( NativeTypes::MemoryHeap* phMemory, const void* pAllocator )
+        void CVulkanAPI::FreeImpl( RHI::MemoryHeap* phMemory, const void* pAllocator )
         {
-            if( *phMemory != NativeTypes::Null )
+            if( *phMemory != RHI::Null )
             {
                 m_pImplementation->m_ICD.vkFreeMemory(
                     m_pImplementation->m_hDevice, ToNative( *phMemory ), reinterpret_cast< const VkAllocationCallbacks* >( pAllocator ) );
             }
-            *phMemory = NativeTypes::Null;
+            *phMemory = RHI::Null;
         }
 
-        bool CVulkanAPI::IsSignaledImpl( const NativeTypes::CPUFence& hFence ) const
+        bool CVulkanAPI::IsSignaledImpl( const RHI::CPUFence& hFence ) const
         {
             // return WaitForFences( hFence, 0 ) == VKE_OK;
             VkResult res = m_pImplementation->m_ICD.vkGetFenceStatus( m_pImplementation->m_hDevice, ToNative( hFence ) );
             return res == VK_SUCCESS;
         }
 
-        bool CVulkanAPI::IsSignaledImpl( const NativeTypes::Fence& hFence ) const
+        bool CVulkanAPI::IsSignaledImpl( const RHI::Fence& hFence ) const
         {
             auto        pVkFence = ToNative( hFence );
             const auto& Fences = pVkFence->vFences;
             return IsSignaledImpl( FromNative( Fences[ pVkFence->counter.load() ].hFence ) );
         }
 
-        NativeTypes::FenceValue CVulkanAPI::GetCompletedValueImpl( const NativeTypes::Fence& hFence ) const
+        RHI::FenceValue CVulkanAPI::GetCompletedValueImpl( const RHI::Fence& hFence ) const
         {
             auto pVkFence = ToNative( hFence );
             /// TODO: handle TDR
@@ -4510,20 +4510,20 @@ namespace VKE
             return pVkFence->GetLastSignaledValue( this );
         }
 
-        void CVulkanAPI::ResetImpl( NativeTypes::CPUFence* phFence )
+        void CVulkanAPI::ResetImpl( RHI::CPUFence* phFence )
         {
             VK_ERR( m_pImplementation->m_ICD.vkResetFences( m_pImplementation->m_hDevice, 1, ToNativeArray( phFence ) ) );
         }
 
-        void CVulkanAPI::ResetImpl( NativeTypes::Fence* phFence, NativeTypes::FenceValue value )
+        void CVulkanAPI::ResetImpl( RHI::Fence* phFence, RHI::FenceValue value )
         {
             auto& Fence = *phFence;
             ToNative( Fence )->Reset( this, value );
         }
 
-        Result CVulkanAPI::WaitForFencesImpl( const NativeTypes::CPUFence& hFence, uint64_t timeout ) const
+        Result CVulkanAPI::WaitForFencesImpl( const RHI::CPUFence& hFence, uint64_t timeout ) const
         {
-            VKE_ASSERT( hFence != NativeTypes::Null );
+            VKE_ASSERT( hFence != RHI::Null );
             VkResult res = m_pImplementation->m_ICD.vkWaitForFences( m_pImplementation->m_hDevice, 1, ToNativeArray( &hFence ), VK_TRUE, timeout );
 
             Result ret = VKE_FAIL;
@@ -4543,7 +4543,7 @@ namespace VKE
             return ret;
         }
 
-        Result CVulkanAPI::WaitForFenceImpl( NativeTypes::Fence hFence, NativeTypes::FenceValue value ) const
+        Result CVulkanAPI::WaitForFenceImpl( RHI::Fence hFence, RHI::FenceValue value ) const
         {
             auto hVkFence = ToNative( hFence );
             if( hVkFence->isNativeMonitored && hVkFence->isBinary == false )
@@ -4571,7 +4571,7 @@ namespace VKE
             return WaitForFencesImpl( FromNative( hVkFence->GetFences( value )->hFence ), UINT64_MAX );
         }
 
-        Result CVulkanAPI::WaitForQueueImpl( const NativeTypes::Queue& hQueue )
+        Result CVulkanAPI::WaitForQueueImpl( const RHI::Queue& hQueue )
         {
             VkResult res = m_pImplementation->m_ICD.vkQueueWaitIdle( ToNative( hQueue ) );
             VK_ERR( res );
@@ -4603,13 +4603,13 @@ namespace VKE
             m_pImplementation->m_ICD.vkUnmapMemory( m_pImplementation->m_hDevice, ToNative( Info.hMemory ) );
         }
 
-        void CVulkanAPI::DrawImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+        void CVulkanAPI::DrawImpl( const RHI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                          const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance )
         {
             m_pImplementation->m_ICD.vkCmdDraw( ToNative( hCommandBuffer ), vertexCount, instanceCount, firstVertex, firstInstance );
         }
 
-        void CVulkanAPI::DrawIndexedImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
+        void CVulkanAPI::DrawIndexedImpl( const RHI::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
         {
             m_pImplementation->m_ICD.vkCmdDrawIndexed( ToNative( hCommandBuffer ),
                                                      Params.Indexed.indexCount,
@@ -4619,13 +4619,13 @@ namespace VKE
                                                      Params.Indexed.startInstance );
         }
 
-        void CVulkanAPI::DrawMeshImpl( const NativeTypes::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+        void CVulkanAPI::DrawMeshImpl( const RHI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
                              uint32_t depth )
         {
             m_pImplementation->m_ICD.vkCmdDrawMeshTasksEXT( ToNative( hCommandBuffer ), width, height, depth );
         }
 
-        void CVulkanAPI::CopyImpl( const NativeTypes::CommandBuffer& hCmdBuffer, const SCopyBufferToTextureInfo& Info )
+        void CVulkanAPI::CopyImpl( const RHI::CommandBuffer& hCmdBuffer, const SCopyBufferToTextureInfo& Info )
         {
             Utils::TCDynamicArray< VkBufferImageCopy > vRegions( Info.vRegions.GetCount() );
             for( uint32_t i = 0; i < vRegions.GetCount(); ++i )
@@ -4649,7 +4649,7 @@ namespace VKE
                 ToNative( hCmdBuffer ), ToNative( Info.hDDISrcBuffer ), ToNative( Info.hDDIDstTexture ), vkLayout, vRegions.GetCount(), &vRegions[ 0 ] );
         }
 
-        void CVulkanAPI::CopyImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyBufferInfo& Info )
+        void CVulkanAPI::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyBufferInfo& Info )
         {
             VkBufferCopy VkCopy;
             VkCopy.srcOffset = Info.Region.srcBufferOffset;
@@ -4669,7 +4669,7 @@ namespace VKE
             pOut->mipLevel       = Subres.beginMipmapLevel;
         }
 
-        void CVulkanAPI::CopyImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
+        void CVulkanAPI::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
         {
             VkImageLayout vkSrcLayout = Map::ImageLayout( Info.srcTextureState );
             VkImageLayout vkDstLayout = Map::ImageLayout( Info.dstTextureState );
@@ -4694,7 +4694,7 @@ namespace VKE
                                                    &VkCopy );
         }
 
-        void CVulkanAPI::BlitImpl( const NativeTypes::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
+        void CVulkanAPI::BlitImpl( const RHI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
         {
             Utils::TCDynamicArray< VkImageBlit2KHR > vNativeRegions( Info.vRegions.GetCount() );
             for( uint32_t i = 0; i < Info.vRegions.GetCount(); ++i )
@@ -4730,29 +4730,29 @@ namespace VKE
             m_pImplementation->m_ICD.vkCmdBlitImage2KHR( ToNative( hAPICmdBuffer ), &NativeInfo );
         }
 
-        void CVulkanAPI::SetEventImpl( const NativeTypes::Event& hDDIEvent )
+        void CVulkanAPI::SetEventImpl( const RHI::Event& hDDIEvent )
         {
             m_pImplementation->m_ICD.vkSetEvent( m_pImplementation->m_hDevice, ToNative( hDDIEvent ) );
         }
 
-        void CVulkanAPI::SetEventImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Event& hDDIEvent,
+        void CVulkanAPI::SetEventImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
                              const PIPELINE_STAGES& stages )
         {
             m_pImplementation->m_ICD.vkCmdSetEvent( ToNative( hDDICmdBuffer ), ToNative( hDDIEvent ), Convert::PipelineStages( stages ) );
         }
 
-        void CVulkanAPI::ResetImpl( const NativeTypes::Event& hDDIInOut )
+        void CVulkanAPI::ResetImpl( const RHI::Event& hDDIInOut )
         {
             m_pImplementation->m_ICD.vkResetEvent( m_pImplementation->m_hDevice, ToNative( hDDIInOut ) );
         }
 
-        void CVulkanAPI::ResetImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Event& hDDIEvent,
+        void CVulkanAPI::ResetImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
                           const PIPELINE_STAGES& stages )
         {
             m_pImplementation->m_ICD.vkCmdResetEvent( ToNative( hDDICmdBuffer ), ToNative( hDDIEvent ), Convert::PipelineStages( stages ) );
         }
 
-        bool CVulkanAPI::IsSetImpl( const NativeTypes::Event& hDDIEvent )
+        bool CVulkanAPI::IsSetImpl( const RHI::Event& hDDIEvent )
         {
             VkResult res = m_pImplementation->m_ICD.vkGetEventStatus( m_pImplementation->m_hDevice, ToNative( hDDIEvent ) );
             return res == VK_EVENT_SET;
@@ -4764,21 +4764,21 @@ namespace VKE
 
             static VkPipelineStageFlags                   vkWaitMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             Utils::TCDynamicArray< VkPipelineStageFlags > vWaitMask( Info.waitSemaphoreCount, vkWaitMask );
-            NativeTypes::CPUFence                           hSignalFence = Info.hDDIFence;
-            const NativeTypes::GPUFence*                          phWaitForSemaphores = Info.waitSemaphoreCount? Info.pDDIWaitSemaphores : NativeAPI::Null;
-            const NativeTypes::GPUFence* phSignalSemaphores =
+            RHI::CPUFence                           hSignalFence = Info.hDDIFence;
+            const RHI::GPUFence*                          phWaitForSemaphores = Info.waitSemaphoreCount? Info.pDDIWaitSemaphores : NativeAPI::Null;
+            const RHI::GPUFence* phSignalSemaphores =
                 Info.signalSemaphoreCount ? Info.pDDISignalSemaphores : NativeAPI::Null;
             uint32_t waitForFenceCount = Info.waitSemaphoreCount;
             uint32_t signalSemaphoreCount = Info.signalSemaphoreCount;
             
-            VKE_ASSERT( ( Info.hDDIFence != NativeTypes::Null && Info.hSignalFence == NativeTypes::Null ) ||
-                        ( Info.hDDIFence == NativeTypes::Null && Info.hSignalFence != NativeTypes::Null ) );
-            VKE_ASSERT( ( Info.waitSemaphoreCount != 0 && Info.hWaitForFence == NativeTypes::Null ) ||
-                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence != NativeTypes::Null ) ||
-                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence == NativeTypes::Null ) );
-            VKE_ASSERT( ( Info.signalSemaphoreCount != 0 && Info.hSignalFence == NativeTypes::Null ) ||
-                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence != NativeTypes::Null ) || 
-                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence == NativeTypes::Null ) );
+            VKE_ASSERT( ( Info.hDDIFence != RHI::Null && Info.hSignalFence == RHI::Null ) ||
+                        ( Info.hDDIFence == RHI::Null && Info.hSignalFence != RHI::Null ) );
+            VKE_ASSERT( ( Info.waitSemaphoreCount != 0 && Info.hWaitForFence == RHI::Null ) ||
+                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence != RHI::Null ) ||
+                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence == RHI::Null ) );
+            VKE_ASSERT( ( Info.signalSemaphoreCount != 0 && Info.hSignalFence == RHI::Null ) ||
+                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence != RHI::Null ) || 
+                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence == RHI::Null ) );
             //VKE_ASSERT( ( Info.signalSemaphoreCount <= 1 && Info.waitSemaphoreCount <= 1 ) );
 
             VkSubmitInfo si;
@@ -4786,13 +4786,13 @@ namespace VKE
             si.pNext = nullptr;
             SVulkanNext Next( si );
 
-            if( Info.hWaitForFence != NativeTypes::Null )
+            if( Info.hWaitForFence != RHI::Null )
             {
                 auto pFences        = ToNative( Info.hWaitForFence )->GetFences( Info.waitForFenceValue );
                 phWaitForSemaphores = FromNativeArray( &pFences->hSemaphore );
                 waitForFenceCount   = phWaitForSemaphores != NativeAPI::Null ? 1 : 0;
             }
-            if(Info.hSignalFence != NativeTypes::Null)
+            if(Info.hSignalFence != RHI::Null)
             {
                 const auto pFences = ToNative( Info.hSignalFence )->Signal( this, Info.signalFenceValue );
                 VKE_ASSERT( pFences != nullptr );
@@ -4830,7 +4830,7 @@ namespace VKE
 
         Result CVulkanAPI::PresentImpl( const SPresentData& Info )
         {
-            //using SemaphoreArray = Utils::TCDynamicArray< NativeTypes::GPUFence, 8 > ;
+            //using SemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 > ;
             
             SemaphoreArray   vWaitSemaphores, vSignalSemaphores;
             for( uint32_t i = 0; i < Info.vWaitForFenceValues.GetCount(); ++i )
@@ -4956,7 +4956,7 @@ namespace VKE
                 return VKE_ENOMEMORY;
             }
 
-            if( pOut->hSurface == NativeTypes::Null )
+            if( pOut->hSurface == RHI::Null )
             {
 #if VKE_USE_VULKAN_WINDOWS
                 HINSTANCE                   hInst = reinterpret_cast< HINSTANCE >( Desc.pWindow->GetDesc().hProcess );
@@ -5256,33 +5256,33 @@ namespace VKE
                 DestroyTextureViewImpl( &pOut->vImageViews[ i ], pVkAllocator );
                 DestroyFramebufferImpl( &pOut->vFramebuffers[ i ], pVkAllocator );
             }
-            if( pOut->hSwapChain != NativeTypes::Null )
+            if( pOut->hSwapChain != RHI::Null )
             {
                 m_pImplementation->m_ICD.vkDestroySwapchainKHR( ( m_pImplementation->m_hDevice ), ToNative( pOut->hSwapChain ), pVkAllocator );
-                pOut->hSwapChain = NativeTypes::Null;
+                pOut->hSwapChain = RHI::Null;
             }
-            if( pOut->hSurface != NativeTypes::Null )
+            if( pOut->hSurface != RHI::Null )
             {
                 SImplementation::sInstanceICD.vkDestroySurfaceKHR(
                     SImplementation::sVkInstance, ToNative( pOut->hSurface ), pVkAllocator );
-                pOut->hSurface = NativeTypes::Null;
+                pOut->hSurface = RHI::Null;
             }
-            if( pOut->hDDIRenderPass != NativeTypes::Null )
+            if( pOut->hDDIRenderPass != RHI::Null )
             {
                 m_pImplementation->m_ICD.vkDestroyRenderPass( ( m_pImplementation->m_hDevice ), ToNative( pOut->hDDIRenderPass )->hNativeRenderPass, pVkAllocator );
-                pOut->hDDIRenderPass = NativeTypes::Null;
+                pOut->hDDIRenderPass = RHI::Null;
             }
             pOut->vFramebuffers.Clear();
             pOut->vImages.Clear();
             pOut->vImageViews.Clear();
-            pOut->hSwapChain = NativeTypes::Null;
+            pOut->hSwapChain = RHI::Null;
             pInternalAllocator->FreeCurrentChunk();
             // DestroySwapChain( pOut, nullptr );
             ret = CreateSwapChainImpl( Desc, nullptr, pOut );
             return ret;
         }
 
-        Result CVulkanAPI::QueryPresentSurfaceCapsImpl( const NativeTypes::PresentSurface& hSurface,
+        Result CVulkanAPI::QueryPresentSurfaceCapsImpl( const RHI::PresentSurface& hSurface,
                                                         SPresentSurfaceCaps*             pOut )
         {
             Result   ret = VKE_FAIL;
@@ -5389,16 +5389,16 @@ namespace VKE
             {
                 DestroyTextureViewImpl( &pInOut->vImageViews[ i ], pVkAllocator );
             }
-            if( pInOut->hSwapChain != NativeTypes::Null )
+            if( pInOut->hSwapChain != RHI::Null )
             {
                 m_pImplementation->m_ICD.vkDestroySwapchainKHR( m_pImplementation->m_hDevice, ToNative( pInOut->hSwapChain ), pVkAllocator );
-                pInOut->hSwapChain = NativeTypes::Null;
+                pInOut->hSwapChain = RHI::Null;
             }
-            if( pInOut->hSurface != NativeTypes::Null )
+            if( pInOut->hSurface != RHI::Null )
             {
                 SImplementation::sInstanceICD.vkDestroySurfaceKHR(
                     SImplementation::sVkInstance, ToNative( pInOut->hSurface ), pVkAllocator );
-                pInOut->hSurface = NativeTypes::Null;
+                pInOut->hSurface = RHI::Null;
             }
             if( pInternalAllocator != nullptr )
             {
@@ -5416,7 +5416,7 @@ namespace VKE
             VkFence  hFence = ToNative( Info.hSignalCPUFence );
             VkSemaphore hSemaphore = ToNative( Info.hSignalGPUFence );
 
-            if( Info.hSignalFence != NativeTypes::Null )
+            if( Info.hSignalFence != RHI::Null )
             {
                 const auto pFences = ToNative( Info.hSignalFence )->Signal( this, Info.signalFenceValue );
                 //hFence              = pFences->hFence;
@@ -5465,15 +5465,15 @@ namespace VKE
             return ret;
         }
 
-        void CVulkanAPI::ResetImpl( const NativeTypes::CommandBuffer&     hCommandBuffer,
-                          const NativeTypes::CommandBufferPool& hCommandBufferPool )
+        void CVulkanAPI::ResetImpl( const RHI::CommandBuffer&     hCommandBuffer,
+                          const RHI::CommandBufferPool& hCommandBufferPool )
         {
             const auto flags = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
             VK_ERR( m_pImplementation->m_ICD.vkResetCommandBuffer( ToNative( hCommandBuffer ), flags ) );
         }
 
-        void CVulkanAPI::BeginCommandBufferImpl( const NativeTypes::CommandBuffer&     hCommandBuffer,
-                                                 const NativeTypes::CommandBufferPool& hCommandBufferPool )
+        void CVulkanAPI::BeginCommandBufferImpl( const RHI::CommandBuffer&     hCommandBuffer,
+                                                 const RHI::CommandBufferPool& hCommandBufferPool )
         {
             VkCommandBufferBeginInfo bi;
             bi.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -5483,28 +5483,28 @@ namespace VKE
             VK_ERR( m_pImplementation->m_ICD.vkBeginCommandBuffer( ToNative( hCommandBuffer ), &bi ) );
         }
 
-        void CVulkanAPI::EndCommandBufferImpl( const NativeTypes::CommandBuffer& hCommandBuffer )
+        void CVulkanAPI::EndCommandBufferImpl( const RHI::CommandBuffer& hCommandBuffer )
         {
             VK_ERR( m_pImplementation->m_ICD.vkEndCommandBuffer( ToNative( hCommandBuffer ) ) );
         }
 
         void CVulkanAPI::BindImpl( const SBindPipelineInfo& Info )
         {
-            VKE_ASSERT2( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != NativeTypes::Null &&
-                             Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != NativeTypes::Null,
+            VKE_ASSERT2( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != RHI::Null &&
+                             Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != RHI::Null,
                          "Invalid parameter" );
             m_pImplementation->m_ICD.vkCmdBindPipeline( ToNative( Info.pCmdBuffer->GetDDIObject() ),
                                                       Convert::PipelineTypeToBindPoint( Info.pPipeline->GetType() ),
                                                       ToNative( Info.pPipeline->GetDDIObject() ) );
         }
 
-        void CVulkanAPI::UnbindPipelineImpl( const NativeTypes::CommandBuffer&, const NativeTypes::Pipeline& )
+        void CVulkanAPI::UnbindPipelineImpl( const RHI::CommandBuffer&, const RHI::Pipeline& )
         {
         }
 
      
 
-        void CVulkanAPI::BeginRenderPassImpl( NativeTypes::CommandBuffer    hCommandBuffer,
+        void CVulkanAPI::BeginRenderPassImpl( RHI::CommandBuffer    hCommandBuffer,
                                               const SBeginRenderPassInfo& Info )
         {
             if( ToNative( Info.hDDIRenderPass )->hNativeRenderPass != NativeAPI::Null )
@@ -5524,7 +5524,7 @@ namespace VKE
             }
         }
 
-        void CVulkanAPI::BeginRenderPassImpl( NativeTypes::CommandBuffer     hCommandBuffer,
+        void CVulkanAPI::BeginRenderPassImpl( RHI::CommandBuffer     hCommandBuffer,
                                               const SBeginRenderPassInfo2& Info )
         {
             Utils::TCDynamicArray< VkRenderingAttachmentInfoKHR, 8 > vVkAttachments;
@@ -5562,7 +5562,7 @@ namespace VKE
             vkInfo.pDepthAttachment   = nullptr;
             vkInfo.pStencilAttachment = nullptr;
 
-            if( Info.DepthRenderTargetInfo.hDDIView != NativeTypes::Null )
+            if( Info.DepthRenderTargetInfo.hDDIView != RHI::Null )
             {
                 const auto& RT           = Info.DepthRenderTargetInfo;
                 auto&       vkAttachment = vkDepthAttachment;
@@ -5578,7 +5578,7 @@ namespace VKE
                 vkInfo.pDepthAttachment = &vkAttachment;
             }
 
-            if( Info.StencilRenderTargetInfo.hDDIView != NativeTypes::Null )
+            if( Info.StencilRenderTargetInfo.hDDIView != RHI::Null )
             {
                 const auto& RT           = Info.StencilRenderTargetInfo;
                 auto&       vkAttachment = vkStencilAttachment;
@@ -5599,12 +5599,12 @@ namespace VKE
             m_pImplementation->m_ICD.vkCmdBeginRenderingKHR( ToNative( hCommandBuffer ), &vkInfo );
         }
 
-        /*void CVulkanAPI::EndRenderPass( NativeTypes::CommandBuffer hDDICommandBuffer )
+        /*void CVulkanAPI::EndRenderPass( RHI::CommandBuffer hDDICommandBuffer )
         {
             m_pImplementation->m_ICD.vkCmdEndRenderingKHR( hDDICommandBuffer );
         }*/
 
-        void CVulkanAPI::EndRenderPassImpl( NativeTypes::CommandBuffer hDDICommandBuffer, NativeTypes::RenderPass hPass )
+        void CVulkanAPI::EndRenderPassImpl( RHI::CommandBuffer hDDICommandBuffer, RHI::RenderPass hPass )
         {
             if( ToNative(hPass)->hNativeRenderPass != NativeAPI::Null )
             {
@@ -5629,20 +5629,20 @@ namespace VKE
                                                             Info.aDynamicOffsets );
         }
 
-        void CVulkanAPI::BindImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
+        void CVulkanAPI::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
                          const uint32_t offset )
         {
             VkDeviceSize ddiOffset = offset;
             m_pImplementation->m_ICD.vkCmdBindVertexBuffers( ToNative( hDDICmdBuffer ), 0, 1, ToNativeArray( &hDDIBuffer ), &ddiOffset );
         }
 
-        void CVulkanAPI::BindImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
+        void CVulkanAPI::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
                          const uint32_t offset, const INDEX_TYPE& type )
         {
             m_pImplementation->m_ICD.vkCmdBindIndexBuffer( ToNative( hDDICmdBuffer ), ToNative( hDDIBuffer ), offset, Map::IndexType( type ) );
         }
 
-        void CVulkanAPI::SetStateImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
+        void CVulkanAPI::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
         {
             VkViewport Viewport;
             Viewport.width = Desc.Size.width;
@@ -5659,7 +5659,7 @@ namespace VKE
             m_pImplementation->m_ICD.vkCmdSetViewport( ToNative( hCommandBuffer ), 0, 1, &Viewport );
         }
 
-        void CVulkanAPI::SetStateImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
+        void CVulkanAPI::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
         {
             VkRect2D Scissor;
             Scissor.extent.width  = Desc.Size.width;
@@ -5669,7 +5669,7 @@ namespace VKE
             m_pImplementation->m_ICD.vkCmdSetScissor( ToNative( hCommandBuffer ), 0, 1, &Scissor );
         }
 
-        void CVulkanAPI::BarrierImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
+        void CVulkanAPI::BarrierImpl( const RHI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
         {
             VkMemoryBarrier*       pVkMemBarriers = nullptr;
             VkImageMemoryBarrier*  pVkImgBarriers = nullptr;
@@ -5746,12 +5746,12 @@ namespace VKE
                                                          pVkImgBarriers );
         }
 
-        /*void CVulkanAPI::ConvertImpl( const SClearValue& In, NativeTypes::ClearValue* pOut )
+        /*void CVulkanAPI::ConvertImpl( const SClearValue& In, RHI::ClearValue* pOut )
         {
-            VKE::Memory::Copy( pOut, sizeof( NativeTypes::ClearValue ), &In, sizeof( SClearValue ) );
+            VKE::Memory::Copy( pOut, sizeof( RHI::ClearValue ), &In, sizeof( SClearValue ) );
         }*/
 
-        void CVulkanAPI::BeginDebugInfoImpl( const NativeTypes::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
+        void CVulkanAPI::BeginDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
         {
             if( SImplementation::sInstanceICD.vkCmdBeginDebugUtilsLabelEXT && pInfo )
             {
@@ -5767,7 +5767,7 @@ namespace VKE
             }
         }
 
-        void CVulkanAPI::EndDebugInfoImpl( const NativeTypes::CommandBuffer& hDDICmdBuff )
+        void CVulkanAPI::EndDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff )
         {
             if( SImplementation::sInstanceICD.vkCmdEndDebugUtilsLabelEXT )
             {

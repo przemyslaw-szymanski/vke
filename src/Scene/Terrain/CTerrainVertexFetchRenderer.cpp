@@ -9,7 +9,7 @@
 
 #include "Core/Utils/CProfiler.h"
 
-#include "RenderSystem/Api.h"
+#include "RenderSystem/RHI.h"
 
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
 #define RENDER_WIREFRAME 0
@@ -1257,7 +1257,7 @@ namespace VKE
             _SortDrawcalls();
             auto  pDevice      = pScene->GetDeviceContext();
             auto& hCurrFence   = m_ahFences[ m_backBufferIndex ];
-            bool  isFenceReady = hCurrFence == RenderSystem::NativeTypes::Null || pDevice->IsReadyToUse( hCurrFence );
+            bool  isFenceReady = hCurrFence == RenderSystem::RHI::Null || pDevice->IsReadyToUse( hCurrFence );
             if( isFenceReady )
             {
                 RenderSystem::SCopyBufferInfo CopyInfo;

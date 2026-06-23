@@ -5,7 +5,7 @@
 #include "RenderSystem/Resources/CImage.h"
 #include "Core/Utils/TCDynamicArray.h"
 
-#include "RenderSystem/API.h"
+#include "RenderSystem/RHI.h"
 #include "RenderSystem/Common.h"
 
 namespace VKE::RenderSystem
@@ -31,7 +31,7 @@ namespace VKE::RenderSystem
         friend class CTextureManager;
         friend class CDeviceContext;
         friend class CContextBase;
-        VKE_ADD_DDI_OBJECT( NativeTypes::Sampler );
+        VKE_ADD_DDI_OBJECT( RHI::Sampler );
         VKE_DECL_BASE_OBJECT( SamplerHandle );
 
     public:
@@ -53,7 +53,7 @@ namespace VKE::RenderSystem
         friend class CTextureManager;
         friend class CResourceManager;
         friend class CDeviceContext;
-        VKE_ADD_DDI_OBJECT( NativeTypes::TextureView );
+        VKE_ADD_DDI_OBJECT( RHI::TextureView );
         VKE_DECL_BASE_OBJECT( TextureViewHandle );
 
     public:
@@ -112,7 +112,7 @@ namespace VKE::RenderSystem
 
         TextureViewRefPtr  GetView() const;
         SamplerRefPtr      GetSampler();
-        NativeTypes::Sampler GetDDISampler();
+        RHI::Sampler GetDDISampler();
 
         bool IsColor() const
         {
@@ -176,7 +176,7 @@ namespace VKE::RenderSystem
         // ViewArray&              _GetViews() { return m_vViews; }
     protected:
         STextureDesc m_Desc;
-        VKE_ADD_DDI_OBJECT( NativeTypes::Texture );
+        VKE_ADD_DDI_OBJECT( RHI::Texture );
         VKE_DECL_BASE_OBJECT( TextureHandle );
         VKE_DECL_BASE_RESOURCE();
 
@@ -187,7 +187,7 @@ namespace VKE::RenderSystem
         CTextureManager*  m_pMgr;
         ImageRefPtr       m_pImage;
         handle_t          m_hMemory = INVALID_HANDLE;
-        // NativeTypes::CPUFence                m_hFence = NativeTypes::Null;
+        // RHI::CPUFence                m_hFence = RHI::Null;
         TEXTURE_STATE  m_state  = TextureStates::UNDEFINED;
         TEXTURE_ASPECT m_aspect = TextureAspects::UNKNOWN;
         bool           m_isColor : 1;

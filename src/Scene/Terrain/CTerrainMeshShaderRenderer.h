@@ -51,7 +51,7 @@ namespace VKE
             RenderSystem::DescriptorSetHandle m_hTileDescSet  = INVALID_HANDLE;
             RenderSystem::DescriptorSetHandle m_hSceneDescSet = INVALID_HANDLE;
 
-            RenderSystem::NativeTypes::RenderPass   m_hNativeRenderPass = RenderSystem::NativeTypes::Null;
+            RenderSystem::RHI::RenderPass   m_hNativeRenderPass = RenderSystem::RHI::Null;
             RenderSystem::PipelinePtr m_pColorPipeline;
             RenderSystem::PipelinePtr m_pDepthOnlyPipeline;
             RenderSystem::PipelinePtr m_pWireframePipeline;

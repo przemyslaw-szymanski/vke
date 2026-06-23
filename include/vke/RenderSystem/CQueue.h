@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/API.h"
+#include "RenderSystem/RHI.h"
 
 namespace VKE
 {
@@ -11,7 +11,7 @@ namespace VKE
         {
             CDeviceContext*  pContext           = nullptr;
             void*            pSubmitManagerDesc = nullptr;
-            NativeTypes::Queue hDDIQueue;
+            RHI::Queue hDDIQueue;
             uint32_t         familyIndex;
             QUEUE_TYPE       type;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -26,7 +26,7 @@ namespace VKE
             friend class CComputeContext;
             friend class CTransferContext;
 
-            using SwapChainArray = Utils::TCDynamicArray< NativeTypes::SwapChain, 8 >;
+            using SwapChainArray = Utils::TCDynamicArray< RHI::SwapChain, 8 >;
 
         public:
             friend class RenderSystem::CDeviceContext;
@@ -87,14 +87,14 @@ namespace VKE
                 return ( m_type & type ) != 0;
             }
 
-            const NativeTypes::Queue& GetDDIObject() const
+            const RHI::Queue& GetDDIObject() const
             {
                 return m_PresentData.hQueue;
             }
 
             void   Wait();
-            Result Wait( NativeTypes::CPUFence );
-            Result Wait( NativeTypes::Fence hFence, NativeTypes::FenceValue value );
+            Result Wait( RHI::CPUFence );
+            Result Wait( RHI::Fence hFence, RHI::FenceValue value );
 
             Result Execute( const SSubmitInfo& Info );
 

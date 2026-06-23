@@ -1011,8 +1011,8 @@ namespace VKE
                 Data.codeSize             = static_cast< uint32_t >( size );
                 Data.stage                = ShaderCompilationStages::COMPILED_IR_BINARY;
                 Data.type                 = pShader->GetDesc().type;
-                NativeTypes::Shader hShader = m_pCtx->RHI().CreateShader( Data );
-                if( hShader != NativeTypes::Null )
+                RHI::Shader hShader = m_pCtx->RHI().CreateShader( Data );
+                if( hShader != RHI::Null )
                 {
                     pShader->m_hDDIObject = hShader;
                     ret                   = VKE_OK;

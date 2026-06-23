@@ -266,7 +266,7 @@ namespace VKE::RenderSystem
         return Wait( hFence, value, timeout );
     }
 
-    Result CFrameGraphNode::Wait( const NativeTypes::CPUFence& hFence, uint64_t timeout )
+    Result CFrameGraphNode::Wait( const RHI::CPUFence& hFence, uint64_t timeout )
     {
         Result ret = VKE_OK;
         bool   res = m_pFrameGraph->m_Desc.pDevice->IsReadyToUse( hFence );

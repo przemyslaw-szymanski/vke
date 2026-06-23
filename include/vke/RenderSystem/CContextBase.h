@@ -40,20 +40,20 @@ namespace VKE
             struct SPreparationData
             {
                 CCommandBuffer*     pCmdBuffer = nullptr;
-                NativeTypes::CPUFence hDDIFence  = NativeTypes::Null;
+                RHI::CPUFence hDDIFence  = RHI::Null;
             };
 
             using DescPoolArray = Utils::TCDynamicArray< handle_t >;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using CommandBufferArray    = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
-            using DDICommandBufferArray = Utils::TCDynamicArray< NativeTypes::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
+            using DDICommandBufferArray = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
             using UintArray             = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
 
             struct SCommandBufferBatch
             {
                 CommandBufferArray  vCmdBuffers;
-                NativeTypes::CPUFence vkFence        = NativeTypes::Null;
+                RHI::CPUFence vkFence        = RHI::Null;
                 bool                readyToExecute = false;
 
                 void Reset()
@@ -65,11 +65,11 @@ namespace VKE
 
             using SubmitArray    = Utils::TCDynamicArray< SCommandBufferBatch >;
             using SubmitList     = std::list< SCommandBufferBatch >;
-            using SemaphoreArray = Utils::TCDynamicArray< NativeTypes::GPUFence, 8 >;
+            using SemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
 
             struct SExecuteData
             {
-                // NativeTypes::GPUFence            hDDISemaphoreBackBufferReady;
+                // RHI::GPUFence            hDDISemaphoreBackBufferReady;
                 SemaphoreArray       vWaitSemaphores;
                 CCommandBufferBatch* pBatch;
                 uint32_t             ddiImageIndex;
@@ -100,7 +100,7 @@ namespace VKE
                 return m_pDeviceCtx;
             }
 
-            NativeTypes::Queue GetNativeQueue() const
+            RHI::Queue GetNativeQueue() const
             {
                 return m_pQueue->GetDDIObject();
             }
@@ -127,7 +127,7 @@ namespace VKE
             }
 
             /*DescriptorSetHandle         CreateDescriptorSet( const SDescriptorSetDesc& Desc );
-            const NativeTypes::DescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
+            const RHI::DescriptorSet&     GetDescriptorSet( const DescriptorSetHandle& hSet );
             DescriptorSetLayoutHandle   GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
             void                        UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
             void                        UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut
@@ -173,12 +173,12 @@ namespace VKE
                 return static_cast< T* >( this );
             }
 
-            Result Wait( NativeTypes::CPUFence hFence )
+            Result Wait( RHI::CPUFence hFence )
             {
                 return m_pQueue->Wait( hFence );
             }
 
-            Result Wait( NativeTypes::Fence hFence, NativeTypes::FenceValue value )
+            Result Wait( RHI::Fence hFence, RHI::FenceValue value )
             {
                 return m_pQueue->Wait( hFence, value );
             }

@@ -39,12 +39,12 @@ namespace VKE
             m_pCtx->RHI().WaitForQueue( m_PresentData.hQueue );
         }
 
-        Result CQueue::Wait( NativeTypes::CPUFence hFence )
+        Result CQueue::Wait( RHI::CPUFence hFence )
         {
             return m_pCtx->RHI().WaitForFences( hFence, UINT64_MAX );
         }
 
-        Result CQueue::Wait( NativeTypes::Fence hFence, NativeTypes::FenceValue value )
+        Result CQueue::Wait( RHI::Fence hFence, RHI::FenceValue value )
         {
             return m_pCtx->RHI().WaitForFence( hFence, value );
         }
@@ -88,7 +88,7 @@ namespace VKE
                 m_PresentData.vImageIndices.PushBack( Info.presentImageIndex );
                 m_PresentData.vSwapchains.PushBack( Info.hSwapChain );
                 m_vpSwapChains.PushBack( Info.hSwapChain );
-                if( Info.hWaitForFence != NativeTypes::Null )
+                if( Info.hWaitForFence != RHI::Null )
                 {
                     //m_PresentData.vWaitSemaphores.PushBack( Info.hWaitForFence );
                     m_PresentData.vWaitForFences.PushBack( Info.hWaitForFence );

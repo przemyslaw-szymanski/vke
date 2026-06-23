@@ -5,7 +5,7 @@
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CommonEnumStrings.h"
-#include "RenderSystem/API.h"
+#include "RenderSystem/RHI.h"
 #include "RenderSystem/Vulkan/Vulkan.h"
 
 namespace VKE

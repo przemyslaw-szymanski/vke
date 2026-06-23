@@ -163,8 +163,8 @@ namespace VKE
                                 m_pCtx->GetDeviceContext()->RHI().CreateSemaphore( Desc, nullptr );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
-                            if( BackBuffer.hDDIPresentImageReadySemaphore == NativeTypes::Null ||
-                                BackBuffer.hDDIQueueFinishedSemaphore == NativeTypes::Null )
+                            if( BackBuffer.hDDIPresentImageReadySemaphore == RHI::Null ||
+                                BackBuffer.hDDIQueueFinishedSemaphore == RHI::Null )
                             {
                                 ret = VKE_FAIL;
                                 break;
@@ -257,7 +257,7 @@ namespace VKE
                 m_Desc.Size.width  = static_cast< uint16_t >( width );
                 m_Desc.Size.height = static_cast< uint16_t >( height );
 
-                ret = m_pCtx->GetDeviceContext()->NativeTypes().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
+                ret = m_pCtx->GetDeviceContext()->RHI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     m_CurrViewport.Size = m_Desc.Size;
@@ -360,9 +360,9 @@ namespace VKE
             return pRet;
         }
 
-        Result CSwapChain::SwapBuffers( const NativeTypes::GPUFence& hGPUFence, const NativeTypes::CPUFence& hCPUFence )
+        Result CSwapChain::SwapBuffers( const RHI::GPUFence& hGPUFence, const RHI::CPUFence& hCPUFence )
         {
-            VKE_ASSERT( !( hCPUFence != NativeTypes::Null && hGPUFence != NativeTypes::Null ) );
+            VKE_ASSERT( !( hCPUFence != RHI::Null && hGPUFence != RHI::Null ) );
 
             Result ret = VKE_FAIL;
             while( m_qAcquiredBuffers.size() > m_qPresentFrameFences.size() )
@@ -384,7 +384,7 @@ namespace VKE
             SDDIGetBackBufferInfo Info;
             Info.hSignalGPUFence = hGPUFence;
             Info.hSignalCPUFence = hCPUFence;
-            Info.waitTimeout     = ( hCPUFence == NativeTypes::Null && hGPUFence == NativeTypes::Null ) ? UINT64_MAX : 0;
+            Info.waitTimeout     = ( hCPUFence == RHI::Null && hGPUFence == RHI::Null ) ? UINT64_MAX : 0;
             // std::unique_lock<std::mutex> l( m_mutex );
             //  This sync is workaround of validation error when swapchain is
             //  used in more threads.
@@ -423,7 +423,7 @@ namespace VKE
         Result CSwapChain::SwapBuffers()
         {
             auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
-            return SwapBuffers( Buffer.hGPUFence, NativeTypes::Null );
+            return SwapBuffers( Buffer.hGPUFence, RHI::Null );
         }
 
         TextureRefPtr CSwapChain::GetBackBufferTexture()
@@ -433,12 +433,12 @@ namespace VKE
             return m_aSwapChainBuffers[ bufferIndex ].pTexture;
         }
 
-        const NativeTypes::GPUFence& CSwapChain::GetBackBufferGPUFence() const
+        const RHI::GPUFence& CSwapChain::GetBackBufferGPUFence() const
         {
             return m_vInternalBackBufers[ m_backBufferIdx ].hGPUFence;
         }
 
-        Result CSwapChain::Present( NativeTypes::GPUFence hWaitOnGPUFence, NativeTypes::CPUFence hFrameFence )
+        Result CSwapChain::Present( RHI::GPUFence hWaitOnGPUFence, RHI::CPUFence hFrameFence )
         {
             Result ret = VKE_ENOTREADY;
             if( m_qAcquiredBuffers.size() > 0 )

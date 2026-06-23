@@ -240,9 +240,9 @@ namespace VKE
             return pRet;
         }
 
-        NativeTypes::Pipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
+        RHI::Pipeline CPipelineManager::_GetDefaultPipeline( const SPipelineDesc& Desc )
         {
-            NativeTypes::Pipeline hRet = NativeTypes::Null;
+            RHI::Pipeline hRet = RHI::Null;
             if( Desc.pDefault!= nullptr && Desc.pDefault->IsResourceReady() )
             {
                 hRet = Desc.pDefault->GetDDIObject();
@@ -281,7 +281,7 @@ namespace VKE
                         goto ERR;
                     }
                 }
-                if( Desc.hDDILayout == NativeTypes::Null )
+                if( Desc.hDDILayout == RHI::Null )
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
@@ -306,8 +306,8 @@ namespace VKE
                     }
                 }
 
-                NativeTypes::Pipeline hPipeline = m_pCtx->RHI().CreatePipeline( pPipeline->m_Desc );
-                if( hPipeline != NativeTypes::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                RHI::Pipeline hPipeline = m_pCtx->RHI().CreatePipeline( pPipeline->m_Desc );
+                if( hPipeline != RHI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject      = hPipeline;
                     pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
@@ -319,7 +319,7 @@ namespace VKE
                 }
             }
 
-            VKE_ASSERT2( pPipeline->GetDDIObject() != NativeTypes::Null, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != RHI::Null, "Pipeline API object not created." );
             return ret;
         ERR:
             pPipeline->m_resourceStates |= Core::ResourceStates::INVALID;
@@ -335,7 +335,7 @@ namespace VKE
             if( !pPipeline->IsResourceReady() )
             {
                 pPipeline->m_Desc = Desc;
-                if( Desc.hDDILayout == NativeTypes::Null )
+                if( Desc.hDDILayout == RHI::Null )
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
@@ -344,8 +344,8 @@ namespace VKE
                     }
                 }
 
-                NativeTypes::Pipeline hPipeline = m_pCtx->RHI().CreatePipeline( pPipeline->m_Desc );
-                if( hPipeline != NativeTypes::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
+                RHI::Pipeline hPipeline = m_pCtx->RHI().CreatePipeline( pPipeline->m_Desc );
+                if( hPipeline != RHI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject      = hPipeline;
                     pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
@@ -357,7 +357,7 @@ namespace VKE
                 }
             }
 
-            VKE_ASSERT2( pPipeline->GetDDIObject() != NativeTypes::Null, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetDDIObject() != RHI::Null, "Pipeline API object not created." );
 
             return ret;
         }
@@ -556,10 +556,10 @@ namespace VKE
             if( pRet!= nullptr )
             {
                 CPipelineLayout* pLayout = pRet.Get();
-                if( pLayout->GetDDIObject() == NativeTypes::Null )
+                if( pLayout->GetDDIObject() == RHI::Null )
                 {
-                    NativeTypes::PipelineLayout hLayout = m_pCtx->RHI().CreatePipelineLayout( Desc );
-                    if( hLayout != NativeTypes::Null )
+                    RHI::PipelineLayout hLayout = m_pCtx->RHI().CreatePipelineLayout( Desc );
+                    if( hLayout != RHI::Null )
                     {
                         pLayout->Init( Desc );
                         pLayout->m_hDDIObject     = hLayout;
@@ -630,7 +630,7 @@ namespace VKE
         }
 
 
-        void CPipelineBuilder::Bind( const NativeTypes::RenderPass& hDDIPass )
+        void CPipelineBuilder::Bind( const RHI::RenderPass& hDDIPass )
         {
             m_Desc.hDDIRenderPass = hDDIPass;
         }

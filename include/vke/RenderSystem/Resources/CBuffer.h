@@ -2,7 +2,7 @@
 
 #include "Core/CObject.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/API.h"
+#include "RenderSystem/RHI.h"
 #include "RenderSystem/Resources/CResource.h"
 
 namespace VKE
@@ -136,7 +136,7 @@ namespace VKE
             friend class CCommandBuffer;
 
             VKE_ADD_OBJECT_MEMBERS;
-            VKE_ADD_DDI_OBJECT( NativeTypes::Buffer );
+            VKE_ADD_DDI_OBJECT( RHI::Buffer );
             VKE_DECL_BASE_OBJECT( BufferHandle );
             VKE_DECL_BASE_RESOURCE();
 
@@ -282,7 +282,7 @@ namespace VKE
                 Result Init( const SIndexBufferDesc& Desc );
                 void Destroy();
 
-                const NativeTypes::Buffer& GetDDIObject() const { return m_Buffer.GetDDIObject(); }
+                const RHI::Buffer& GetDDIObject() const { return m_Buffer.GetDDIObject(); }
 
                 static hash_t CalcHash( const SIndexBufferDesc& Desc );
 

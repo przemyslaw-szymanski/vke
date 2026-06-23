@@ -438,7 +438,7 @@ namespace VKE
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t   currentQueueCount = m_vQueues.GetCount();
                     const uint32_t   idx               = ( currentQueueCount ) % Family.vQueues.GetCount();
-                    NativeTypes::Queue hDDIQueue         = Family.vQueues[ idx ];
+                    RHI::Queue hDDIQueue         = Family.vQueues[ idx ];
                     CQueue*          pQueue            = nullptr;
 
                     // Find if this queue is already being used
@@ -510,12 +510,12 @@ namespace VKE
             return m_pPipelineMgr->CreatePipeline( Desc );
         }
 
-        NativeTypes::RenderPass CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
+        RHI::RenderPass CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
         {
             return RHI().CreateRenderPass( Desc );
         }
 
-        void CDeviceContext::DestroyRenderPass( NativeTypes::RenderPass* phInOut )
+        void CDeviceContext::DestroyRenderPass( RHI::RenderPass* phInOut )
         {
             RHI().DestroyRenderPass( phInOut );
         }
@@ -570,7 +570,7 @@ namespace VKE
             return m_pShaderMgr->GetShader( hShader );
         }
 
-        NativeTypes::DescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
+        RHI::DescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
         {
             return m_pDescSetMgr->GetLayout( hSet );
         }
@@ -740,7 +740,7 @@ namespace VKE
             return m_pDescSetMgr->CreateSet( INVALID_HANDLE, Desc );
         }
 
-        const NativeTypes::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
+        const RHI::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
         {
             return m_pDescSetMgr->GetSet( hSet );
         }
@@ -752,7 +752,7 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&                        hSet    = *phInOut;
-            const NativeTypes::DescriptorSet&             hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet&             hDDISet = m_pDescSetMgr->GetSet( hSet );
             SUpdateBufferDescriptorSetInfo              Info;
             SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
             const auto&                                 BindInfo = pBuffer->GetBindingInfo();
@@ -769,7 +769,7 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
         {
             // DescriptorSetHandle& hSet = *phInOut;
-            // const NativeTypes::DescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            // const RHI::DescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             // TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
         }
 
@@ -777,7 +777,7 @@ namespace VKE
                                                   DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&            hSet    = *phInOut;
-            const NativeTypes::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             RenderTargetPtr                 pRT     = GetRenderTarget( hRT );
             SSamplerTextureBinding          Binding;
             Binding.hSampler     = hSampler;
@@ -798,7 +798,7 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&            hSet    = *phInOut;
-            const NativeTypes::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             RHI().Update( hDDISet, Info );
         }
 
@@ -856,7 +856,7 @@ namespace VKE
         ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr ); return ret;
         }*/
 
-        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const NativeTypes::GPUFence& hDDISemaphore )
+        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const RHI::GPUFence& hDDISemaphore )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
             m_vDDISignaledSemaphores[queueType].PushBack( hDDISemaphore );
@@ -917,17 +917,17 @@ namespace VKE
             RHI().GetFormatFeatures( fmt, pOut );
         }
 
-        void CDeviceContext::_LockGPUFence( NativeTypes::GPUFence* phApi )
+        void CDeviceContext::_LockGPUFence( RHI::GPUFence* phApi )
         {
             m_mLockedGPUFences[ *phApi ] = true;
         }
 
-        void CDeviceContext::_UnlockGPUFence( NativeTypes::GPUFence* phApi )
+        void CDeviceContext::_UnlockGPUFence( RHI::GPUFence* phApi )
         {
             m_mLockedGPUFences[ *phApi ] = false;
         }
 
-        bool CDeviceContext::_IsGPUFenceLocked( NativeTypes::GPUFence hApi )
+        bool CDeviceContext::_IsGPUFenceLocked( RHI::GPUFence hApi )
         {
             return m_mLockedGPUFences[ hApi ];
         }
@@ -944,37 +944,37 @@ namespace VKE
 #endif
         }
 
-        NativeTypes::GPUFence CDeviceContext::CreateGPUFence( const SSemaphoreDesc& Desc )
+        RHI::GPUFence CDeviceContext::CreateGPUFence( const SSemaphoreDesc& Desc )
         {
             return RHI().CreateGPUFence( Desc );
         }
 
-        void CDeviceContext::DestroyGPUFence( NativeTypes::GPUFence* phInOut )
+        void CDeviceContext::DestroyGPUFence( RHI::GPUFence* phInOut )
         {
             RHI().DestroyGPUFence( phInOut );
         }
 
-        NativeTypes::CPUFence CDeviceContext::CreateCPUFence( const SFenceDesc& Desc )
+        RHI::CPUFence CDeviceContext::CreateCPUFence( const SFenceDesc& Desc )
         {
             return RHI().CreateFence( Desc );
         }
 
-        void CDeviceContext::DestroyCPUFence( NativeTypes::CPUFence* phInOut )
+        void CDeviceContext::DestroyCPUFence( RHI::CPUFence* phInOut )
         {
             RHI().DestroyFence( phInOut );
         }
 
-        NativeTypes::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc ) const
+        RHI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc ) const
         {
             return RHI().CreateFence2( Desc );
         }
 
-        void CDeviceContext::DestroyFence( NativeTypes::Fence* phInOut )
+        void CDeviceContext::DestroyFence( RHI::Fence* phInOut )
         {
             RHI().DestroyFence( phInOut );
         }
 
-        void CDeviceContext::Reset( NativeTypes::CPUFence* phInOut )
+        void CDeviceContext::Reset( RHI::CPUFence* phInOut )
         {
             RHI().Reset( phInOut );
         }

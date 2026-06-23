@@ -7,7 +7,7 @@
 #include "Core/Memory/CFreeList.h"
 
 #include "RenderSystem/CCommandBuffer.h"
-#include "RenderSystem/API.h"
+#include "RenderSystem/RHI.h"
 
 #define VKE_DUMP_CB 1
 
@@ -25,7 +25,7 @@ namespace VKE
 
         struct SCommandBuffer
         {
-            NativeTypes::CommandBuffer handle   = NativeTypes::Null;
+            RHI::CommandBuffer handle   = RHI::Null;
             uint32_t                 refCount = 0;
         };
 
@@ -48,7 +48,7 @@ namespace VKE
             static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
             static const uint32_t MAX_THREAD_COUNT             = 32;
 
-            using DDICommandBufferVec = Utils::TCDynamicArray< NativeTypes::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using DDICommandBufferVec = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferVec    = Utils::TCDynamicArray< CCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferPtrVec = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
             using UintVec             = Utils::TCDynamicArray< uint32_t, DEFAULT_COMMAND_BUFFER_COUNT >;
@@ -59,7 +59,7 @@ namespace VKE
                 CommandBufferPtrVec          vpFreeCommandBuffers;
                 DDICommandBufferVec          vDDICommandBuffers;
                 Threads::SyncObject          SyncObj;
-                NativeTypes::CommandBufferPool hDDIPool = NativeTypes::Null;
+                RHI::CommandBufferPool hDDIPool = RHI::Null;
                 uint32_t                     handle   = INVALID_HANDLE;
             };
 
@@ -93,8 +93,8 @@ namespace VKE
 
             bool GetCommandBuffer( CCommandBuffer** );
 
-            // Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, NativeTypes::GPUFence* );
-            Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, NativeTypes::GPUFence*, CCommandBuffer** );
+            // Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, RHI::GPUFence* );
+            Result EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS, RHI::GPUFence*, CCommandBuffer** );
 
         protected:
             vke_force_inline SCommandPool* _GetPool( const handle_t hPool )

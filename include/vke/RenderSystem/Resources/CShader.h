@@ -5,7 +5,7 @@
 #include "Core/Utils/TCSmartPtr.h"
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/API.h"
+#include "RenderSystem/RHI.h"
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
 
 #include "glslang/Public/ShaderLang.h"
@@ -37,7 +37,7 @@ namespace VKE
                 };
             };
 
-            VKE_ADD_DDI_OBJECT( NativeTypes::Shader );
+            VKE_ADD_DDI_OBJECT( RHI::Shader );
             VKE_DECL_BASE_OBJECT( ShaderHandle );
             VKE_DECL_BASE_RESOURCE();
 

@@ -20,38 +20,38 @@ namespace VKE
     {
         struct VulkanTraits
         {
-            static constexpr auto NativeTypes::Null = VK_NULL_HANDLE;
-            using NativeTypes::Buffer               = VkBuffer;
-            using NativeTypes::Pipeline             = VkPipeline;
-            using NativeTypes::Texture              = VkImage;
-            using NativeTypes::Sampler              = VkSampler;
-            using NativeTypes::RenderPass           = VkRenderPass;
-            using NativeTypes::CommandBuffer        = VkCommandBuffer;
-            using NativeTypes::TextureView          = VkImageView;
-            using NativeTypes::BufferView           = VkBufferView;
-            using NativeTypes::CPUFence             = VkFence;
-            using NativeTypes::GPUFence             = VkSemaphore;
+            static constexpr auto RHI::Null = VK_NULL_HANDLE;
+            using RHI::Buffer               = VkBuffer;
+            using RHI::Pipeline             = VkPipeline;
+            using RHI::Texture              = VkImage;
+            using RHI::Sampler              = VkSampler;
+            using RHI::RenderPass           = VkRenderPass;
+            using RHI::CommandBuffer        = VkCommandBuffer;
+            using RHI::TextureView          = VkImageView;
+            using RHI::BufferView           = VkBufferView;
+            using RHI::CPUFence             = VkFence;
+            using RHI::GPUFence             = VkSemaphore;
             using DDIDevice                       = VkDevice;
-            using NativeTypes::DescriptorPool       = VkDescriptorPool;
-            using NativeTypes::DescriptorSet        = VkDescriptorSet;
-            using NativeTypes::DescriptorSetLayout  = VkDescriptorSetLayout;
-            using NativeTypes::CommandBufferPool    = VkCommandPool;
-            using NativeTypes::Framebuffer          = VkFramebuffer;
-            using NativeTypes::ClearValue           = VkClearValue;
-            using NativeTypes::Queue                = VkQueue;
+            using RHI::DescriptorPool       = VkDescriptorPool;
+            using RHI::DescriptorSet        = VkDescriptorSet;
+            using RHI::DescriptorSetLayout  = VkDescriptorSetLayout;
+            using RHI::CommandBufferPool    = VkCommandPool;
+            using RHI::Framebuffer          = VkFramebuffer;
+            using RHI::ClearValue           = VkClearValue;
+            using RHI::Queue                = VkQueue;
             using DDIFormat                       = VkFormat;
             using DDIImageType                    = VkImageType;
             using DDIImageViewType                = VkImageViewType;
             using DDIImageLayout                  = VkImageLayout;
             using DDIImageUsageFlags              = VkImageUsageFlags;
-            using NativeTypes::Memory               = VkDeviceMemory;
-            using NativeTypes::PresentSurface       = VkSurfaceKHR;
+            using RHI::Memory               = VkDeviceMemory;
+            using RHI::PresentSurface       = VkSurfaceKHR;
             using DDISwapChain                    = VkSwapchainKHR;
-            using NativeTypes::Adapter              = VkPhysicalDevice;
-            using NativeTypes::Shader               = VkShaderModule;
-            using NativeTypes::PipelineLayout       = VkPipelineLayout;
+            using RHI::Adapter              = VkPhysicalDevice;
+            using RHI::Shader               = VkShaderModule;
+            using RHI::PipelineLayout       = VkPipelineLayout;
             using DDIDeviceSize                   = VkDeviceSize;
-            using NativeTypes::Event                = VkEvent;
+            using RHI::Event                = VkEvent;
 
             struct
             {
@@ -87,7 +87,7 @@ namespace VKE
                 using PipelineLayout      = VkPipelineLayout;
                 using DeviceSize          = VkDeviceSize;
                 using Event               = VkEvent;
-            } NativeTypes;
+            } RHI;
         };
     } // namespace RenderSystem
 } // namespace VKE

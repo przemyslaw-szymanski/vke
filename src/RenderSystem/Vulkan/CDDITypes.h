@@ -94,7 +94,7 @@ namespace VKE::RenderSystem::Vulkan
 
        
 
-    }; // namespace NativeTypes
+    }; // namespace RHI
 
     struct SImplementation
     {

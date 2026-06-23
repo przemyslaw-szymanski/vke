@@ -102,7 +102,7 @@ namespace VKE
         {
             VKE_ASSERT2( m_pMgr, "Shader manager is not set." );
             Result res = VKE_OK;
-            if( this->m_hDDIObject == NativeTypes::Null )
+            if( this->m_hDDIObject == RHI::Null )
             {
                 CShader* pThis = this;
                 res            = m_pMgr->_PrepareShaderTask( &pThis );

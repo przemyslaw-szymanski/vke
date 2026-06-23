@@ -1,4 +1,4 @@
-#include "RenderSystem/API.h"
+#include "RenderSystem/RHI.h"
 
 #if VKE_WINDOWS
 
@@ -637,7 +637,7 @@ namespace VKE::RenderSystem::D3D12
 
 #if 0
         // This is for enhanced barriers. Need to check capabilities and add another path for barriers.
-        vke_force_inline D3D12_BARRIER_SUBRESOURCE_RANGE GetSubresourceIndex( NativeTypes::Texture              hTexture,
+        vke_force_inline D3D12_BARRIER_SUBRESOURCE_RANGE GetSubresourceIndex( RHI::Texture              hTexture,
                                                                               const STextureSubresourceRange& Range )
         {
             D3D12_BARRIER_SUBRESOURCE_RANGE ddiRange;
@@ -1074,7 +1074,7 @@ namespace VKE::RenderSystem::D3D12
             }
 
             // Used when Texture was a custom struct.
-            // const NativeTypes::D3D12ResourceDesc& desc = Info.hDDITexture->Desc;
+            // const RHI::D3D12ResourceDesc& desc = Info.hDDITexture->Desc;
             NativeAPI::D3D12ResourceDesc desc = ToNative( Info.hDDITexture )->GetDesc();
 
             UINT textureMipLevels = ( desc.MipLevels > 0 ) ? desc.MipLevels : 1;
@@ -1417,7 +1417,7 @@ namespace VKE::RenderSystem::D3D12
 
             if( FAILED( pAdapter1->QueryInterface( IID_PPV_ARGS( &pAdapter ) ) ) )
             {
-                VKE_LOG_ERR( "CD3D12API::QueryAdapters: Query NativeTypes::Adapter failed" );
+                VKE_LOG_ERR( "CD3D12API::QueryAdapters: Query RHI::Adapter failed" );
             }
 
             DXGI_ADAPTER_DESC3 AdapterDesc;
@@ -1656,7 +1656,7 @@ namespace VKE::RenderSystem::D3D12
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::Queue CreateCommandQueue( ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type,
+    RHI::Queue CreateCommandQueue( ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type,
                                          bool Required = false )
     {
         D3D12_COMMAND_QUEUE_DESC Desc = {};
@@ -1671,7 +1671,7 @@ namespace VKE::RenderSystem::D3D12
             VKE_LOG_ERR( "CD3D12API::CreateCommandQueue: Failed to create command queue" );
         }
 
-        return NativeTypes::Queue{ reinterpret_cast<handle_t>(pQueue) };
+        return RHI::Queue{ reinterpret_cast<handle_t>(pQueue) };
     }
 
     void CD3D12API::QueryDeviceInfoImpl( SDeviceInfo* pOut )
@@ -1731,7 +1731,7 @@ namespace VKE::RenderSystem::D3D12
         // TODO(any): Think about queue priorities and multiple queues per family.
         for( int i = 0; i < QUEUE_TYPE::_MAX_COUNT; i++ )
         {
-            NativeTypes::Queue pQueue = NativeTypes::Null;
+            RHI::Queue pQueue = RHI::Null;
 
             SQueueFamilyInfo QueueInfo = {};
 
@@ -1745,7 +1745,7 @@ namespace VKE::RenderSystem::D3D12
                 pQueue = CreateCommandQueue( m_pImplementation->m_hDevice, Type, Type == D3D12_COMMAND_LIST_TYPE_DIRECT );
             }
 
-            if( pQueue != NativeTypes::Null )
+            if( pQueue != RHI::Null )
             {
                 QueueInfo.vQueues.PushBack( pQueue );
                 QueueInfo.vPriorities.PushBack( 1.0f );
@@ -1792,7 +1792,7 @@ namespace VKE::RenderSystem::D3D12
         return pResource;
     }
 
-    NativeTypes::Buffer CD3D12API::CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
+    RHI::Buffer CD3D12API::CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateBuffer: m_pImplementation->m_hDevice can't be null" );
 
@@ -1804,22 +1804,22 @@ namespace VKE::RenderSystem::D3D12
             SetObjectDebugName( (const uint64_t)pBuffer, ApiObjectTypes::BUFFER, "Unnamed buffer" );
         }
 
-        //return NativeTypes::Buffer{ reinterpret_cast<handle_t>( pBuffer ) };
-        return FromNative< NativeTypes::Buffer >( pBuffer );
+        //return RHI::Buffer{ reinterpret_cast<handle_t>( pBuffer ) };
+        return FromNative< RHI::Buffer >( pBuffer );
     }
 
-    void CD3D12API::DestroyBufferImpl( NativeTypes::Buffer* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyBufferImpl( RHI::Buffer* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::BufferView CD3D12API::CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* pAllocator )
+    RHI::BufferView CD3D12API::CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
-        return NativeTypes::Null;
+        return RHI::Null;
     }
 
-    void CD3D12API::DestroyBufferViewImpl( NativeTypes::BufferView* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyBufferViewImpl( RHI::BufferView* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -1830,7 +1830,7 @@ namespace VKE::RenderSystem::D3D12
         return Result::OK;
     }
 
-    NativeTypes::Texture CD3D12API::CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
+    RHI::Texture CD3D12API::CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateTexture: m_pImplementation->m_hDevice can't be null" );
 
@@ -1843,10 +1843,10 @@ namespace VKE::RenderSystem::D3D12
             SetObjectDebugName( (const uint64_t)pTexture, ApiObjectTypes::TEXTURE, Desc.Name.GetData() );
         }
 
-        return FromNative<NativeTypes::Texture>(pTexture);
+        return FromNative<RHI::Texture>(pTexture);
     }
 
-    void CD3D12API::DestroyTextureImpl( NativeTypes::Texture* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyTextureImpl( RHI::Texture* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -1963,7 +1963,7 @@ namespace VKE::RenderSystem::D3D12
         }
     } // namespace Map
 
-    NativeTypes::TextureView CD3D12API::CreateTextureViewImpl( const STextureViewDesc& TextureViewDesc,
+    RHI::TextureView CD3D12API::CreateTextureViewImpl( const STextureViewDesc& TextureViewDesc,
                                                                const void*             pAllocator )
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
@@ -1972,7 +1972,7 @@ namespace VKE::RenderSystem::D3D12
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTextureView ) ) )
         {
             VKE_LOG_ERR( "Out of memory" );
-            return FromNative<NativeTypes::TextureView>(pTextureView);
+            return FromNative<RHI::TextureView>(pTextureView);
         }
 
         pTextureView->pResource                   = ToNative(m_pCtx->GetTexture( TextureViewDesc.hTexture )->GetDDIObject());
@@ -2002,26 +2002,26 @@ namespace VKE::RenderSystem::D3D12
             pTextureView->Enable( NativeAPI::ResourceViewTypes::DSV );
         }
 
-        return FromNative<NativeTypes::TextureView>(pTextureView);
+        return FromNative<RHI::TextureView>(pTextureView);
     }
 
-    void CD3D12API::DestroyTextureViewImpl( NativeTypes::TextureView* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyTextureViewImpl( RHI::TextureView* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::Framebuffer CD3D12API::CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* pAllocator )
+    RHI::Framebuffer CD3D12API::CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
-        return NativeTypes::Null;
+        return RHI::Null;
     }
 
-    void CD3D12API::DestroyFramebufferImpl( NativeTypes::Framebuffer* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyFramebufferImpl( RHI::Framebuffer* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::CPUFence CD3D12API::CreateFenceImpl( const SFenceDesc& Desc, const void* pAllocator ) const
+    RHI::CPUFence CD3D12API::CreateFenceImpl( const SFenceDesc& Desc, const void* pAllocator ) const
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
@@ -2037,10 +2037,10 @@ namespace VKE::RenderSystem::D3D12
 
         pFence->Value = Desc.startValue;
 
-        return FromNative<NativeTypes::CPUFence>(pFence);
+        return FromNative<RHI::CPUFence>(pFence);
     }
 
-    NativeTypes::Fence CD3D12API::CreateFence2Impl( const SFenceDesc& Desc ) const
+    RHI::Fence CD3D12API::CreateFence2Impl( const SFenceDesc& Desc ) const
     {
         NativeAPI::Fence pFence = NativeAPI::Null;
         Memory::CreateObject( &HeapAllocator, &pFence );
@@ -2054,20 +2054,20 @@ namespace VKE::RenderSystem::D3D12
 
         pFence->Value = Desc.startValue;
 
-        return FromNative<NativeTypes::Fence>(pFence);
+        return FromNative<RHI::Fence>(pFence);
     }
 
-    void CD3D12API::DestroyFenceImpl( NativeTypes::CPUFence* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyFenceImpl( RHI::CPUFence* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::DestroyFenceImpl( NativeTypes::Fence* pInOut )
+    void CD3D12API::DestroyFenceImpl( RHI::Fence* pInOut )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::GPUFence CD3D12API::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
+    RHI::GPUFence CD3D12API::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
@@ -2082,15 +2082,15 @@ namespace VKE::RenderSystem::D3D12
         }
 
         pFence->Value = Desc.startValue;
-        return FromNative<NativeTypes::GPUFence>(pFence);
+        return FromNative<RHI::GPUFence>(pFence);
     }
 
-    void CD3D12API::DestroySemaphoreImpl( NativeTypes::GPUFence* pInOut, const void* pAllocator )
+    void CD3D12API::DestroySemaphoreImpl( RHI::GPUFence* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::RenderPass CD3D12API::CreateRenderPassImpl( const SRenderPassDesc& EngineRenderPassDesc,
+    RHI::RenderPass CD3D12API::CreateRenderPassImpl( const SRenderPassDesc& EngineRenderPassDesc,
                                                              const void*            pAllocator )
     {
         NativeAPI::RenderPass pNativeRenderPass = NativeAPI::Null;
@@ -2098,7 +2098,7 @@ namespace VKE::RenderSystem::D3D12
         {
             VKE_LOG_ERR(
                 "CD3D12API::CreateRenderPass: Unable to allocate memory for RenderPass: " << EngineRenderPassDesc.Name );
-            return NativeTypes::Null;
+            return RHI::Null;
         }
 
         bool createDefaultSubpass = EngineRenderPassDesc.vSubpasses.IsEmpty();
@@ -2107,13 +2107,13 @@ namespace VKE::RenderSystem::D3D12
         if( createDefaultSubpass && VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pDefaultSubpass ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateRenderPass: Unable to allocate memory for subpass" );
-            return NativeTypes::Null;
+            return RHI::Null;
         }
 
         // TODO(szymansk): Currently we're having global descriptor heaps in SImplementation class. Right now they are
         // not under control of the engine. The ideal situation would be to:
         // 1. Have a collection of render targets in engine
-        // 2. Engine calls something like: NativeTypes::RenderTarget CD3D12API::CreateRenderTarget( RenderTargetPool ),
+        // 2. Engine calls something like: RHI::RenderTarget CD3D12API::CreateRenderTarget( RenderTargetPool ),
         // CD3D12API
         // returns it's own handle:
         // - DX12: D3D12_CPU_DESCRIPTOR_HANDLE
@@ -2194,7 +2194,7 @@ namespace VKE::RenderSystem::D3D12
 
                 default:
                     VKE_LOG_ERR( "CD3D12API::CreateRenderPass: Unhandled usage" );
-                    return NativeTypes::Null;
+                    return RHI::Null;
             }
 
             if( isRenderTargetView )
@@ -2203,7 +2203,7 @@ namespace VKE::RenderSystem::D3D12
                 {
                     VKE_LOG_ERR( "CD3D12API::CreateRenderPass: COLOR render targets must have resource valid for "
                                  "RENDER_TARGET_VIEW" );
-                    return NativeTypes::Null;
+                    return RHI::Null;
                 }
 
                 m_pImplementation->m_hDevice->CreateRenderTargetView(
@@ -2262,7 +2262,7 @@ namespace VKE::RenderSystem::D3D12
                 {
                     VKE_LOG_ERR( "CD3D12API::CreateRenderPass: DEPTH_STENCIL render targets must have resource valid "
                                  "for DEPTH_STENCIL_VIEW" );
-                    return NativeTypes::Null;
+                    return RHI::Null;
                 }
 
                 pNativeRenderPass->DepthStencilView.hCPUDescriptor = pDescriptorHeapDSV->Allocate( 1 );
@@ -2309,7 +2309,7 @@ namespace VKE::RenderSystem::D3D12
             else
             {
                 VKE_LOG_ERR( "CD3D12API::CreateRenderPass: Render target must have RTV or DSV set." );
-                return NativeTypes::Null;
+                return RHI::Null;
             }
 
             // Append baked barriers on EndRenderPass(). This may be valid for RenderPasses with default subpass.
@@ -2327,15 +2327,15 @@ namespace VKE::RenderSystem::D3D12
         }
 
         pNativeRenderPass->pName = EngineRenderPassDesc.GetDebugName();
-        return FromNative<NativeTypes::RenderPass>(pNativeRenderPass);
+        return FromNative<RHI::RenderPass>(pNativeRenderPass);
     }
 
-    void CD3D12API::DestroyRenderPassImpl( NativeTypes::RenderPass* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyRenderPassImpl( RHI::RenderPass* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::CommandBufferPool CD3D12API::CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc,
+    RHI::CommandBufferPool CD3D12API::CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc,
                                                                 const void*                   pAllocator )
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateCommandBufferPool: m_pImplementation->m_hDevice can't be null" );
@@ -2347,7 +2347,7 @@ namespace VKE::RenderSystem::D3D12
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
         {
             VKE_LOG_ERR( "CD3D12API::CreateCommandBufferPool: Unsupported command list type" );
-            return NativeTypes::Null;
+            return RHI::Null;
         }
 
         // if( FAILED( m_pImplementation->m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &pCommandAllocator->pAllocator ) ) ) )
@@ -2358,15 +2358,15 @@ namespace VKE::RenderSystem::D3D12
         pCommandBufferPool->EngineType = Desc.pContext->m_pQueue->GetType();
         pCommandBufferPool->NativeType = type;
 
-        return FromNative<NativeTypes::CommandBufferPool>(pCommandBufferPool);
+        return FromNative<RHI::CommandBufferPool>(pCommandBufferPool);
     }
 
-    void CD3D12API::DestroyCommandBufferPoolImpl( NativeTypes::CommandBufferPool* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyCommandBufferPoolImpl( RHI::CommandBufferPool* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::DescriptorPool CD3D12API::CreateDescriptorPoolImpl( const SDescriptorPoolDesc& EngineDesc,
+    RHI::DescriptorPool CD3D12API::CreateDescriptorPoolImpl( const SDescriptorPoolDesc& EngineDesc,
                                                           const void*                pAllocator )
     {
         if( EngineDesc.IsValid() == false )
@@ -2375,7 +2375,7 @@ namespace VKE::RenderSystem::D3D12
                 "Invalid DescriptorPool desc. Descriptor pool must have only one type (DESCRIPTOR_POOL_TYPE). Make "
                 "sure that textures/buffers, sampler, render targets, depth stencils are not mixed together." );
 
-            return NativeTypes::Null;
+            return RHI::Null;
         }
 
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorPool: m_pImplementation->m_hDevice can't be null" );
@@ -2384,7 +2384,7 @@ namespace VKE::RenderSystem::D3D12
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPool ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateDescriptorPool: Unable to allocate memory" );
-            return NativeTypes::Null;
+            return RHI::Null;
         }
 
         auto     poolType                 = BindingTypeToPoolType( EngineDesc.vPoolSizes[ 0 ].type );
@@ -2404,7 +2404,7 @@ namespace VKE::RenderSystem::D3D12
             Memory::DestroyObject( &HeapAllocator, &pPool );
             VKE_LOG_ERR( "Critical: Not enouth memory to create descriptor pool. Required number of descriptor slots: "
                          << totalDescriptorSlotCount );
-            return FromNative<NativeTypes::DescriptorPool>(pPool);
+            return FromNative<RHI::DescriptorPool>(pPool);
         }
 
         {
@@ -2425,10 +2425,10 @@ namespace VKE::RenderSystem::D3D12
 
                 if( VKE_FAILED( pPool->SlotMgr.Create( heapDesc.NumDescriptors ) ) )
                 {
-                    auto hPool = FromNative< NativeTypes::DescriptorPool >( pPool );
+                    auto hPool = FromNative< RHI::DescriptorPool >( pPool );
                     DestroyDescriptorPoolImpl( &hPool, pAllocator );
                     VKE_LOG_ERR( "Unable to create descriptor heap slot pool. Out of memory." );
-                    return FromNative<NativeTypes::DescriptorPool>(pPool);
+                    return FromNative<RHI::DescriptorPool>(pPool);
                 }
 
                 if( FAILED( m_pImplementation->m_hDevice->CreateDescriptorHeap( &heapDesc, IID_PPV_ARGS( &pPool->pHeap ) ) ) )
@@ -2440,28 +2440,28 @@ namespace VKE::RenderSystem::D3D12
             }
         }
 
-        return FromNative<NativeTypes::DescriptorPool>(pPool);
+        return FromNative<RHI::DescriptorPool>(pPool);
     }
 
-    void CD3D12API::DestroyDescriptorPoolImpl( NativeTypes::DescriptorPool* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyDescriptorPoolImpl( RHI::DescriptorPool* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::DescriptorSetLayout CD3D12API::CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
+    RHI::DescriptorSetLayout CD3D12API::CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
                                                                     const void*                     pAllocator )
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorSetLayout: m_pImplementation->m_hDevice can't be null" );
 
         if( !Desc.IsValid() )
         {
-            return NativeTypes::Null;
+            return RHI::Null;
         }
         if( Desc.vBindings.IsEmpty() )
         {
             VKE_LOG_ERRF( "Unable to create DescriptorSetLayout: '{}' because number of resource bindings is 0.",
                           Desc.GetDebugName() );
-            return NativeTypes::Null;
+            return RHI::Null;
         }
 
         NativeAPI::DescriptorSetLayout pNativeDescriptorSetLayout = NativeAPI::Null;
@@ -2503,16 +2503,16 @@ namespace VKE::RenderSystem::D3D12
         rootParameter.DescriptorTable.NumDescriptorRanges = pNativeDescriptorSetLayout->vDescriptorRanges.GetCount();
         rootParameter.DescriptorTable.pDescriptorRanges   = pNativeDescriptorSetLayout->vDescriptorRanges.GetData();
 
-        return FromNative<NativeTypes::DescriptorSetLayout>(pNativeDescriptorSetLayout);
+        return FromNative<RHI::DescriptorSetLayout>(pNativeDescriptorSetLayout);
     }
 
-    void CD3D12API::DestroyDescriptorSetLayoutImpl( NativeTypes::DescriptorSetLayout* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyDescriptorSetLayoutImpl( RHI::DescriptorSetLayout* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
     VKE::Result CD3D12API::CreateDescriptorSetsImpl( const AllocateDescs::SDescSet& EngineDescriptorSetInfo,
-                                            NativeTypes::DescriptorSet*      pOutNativeDescriptorSets )
+                                            RHI::DescriptorSet*      pOutNativeDescriptorSets )
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateDescriptorSets: m_pImplementation->m_hDevice can't be null" );
 
@@ -2522,7 +2522,7 @@ namespace VKE::RenderSystem::D3D12
 
         for( uint32_t layoutIndex = 0; layoutIndex < EngineDescriptorSetInfo.count; layoutIndex++ )
         {
-            pOutNativeDescriptorSets[ layoutIndex ] = NativeTypes::Null;
+            pOutNativeDescriptorSets[ layoutIndex ] = RHI::Null;
             NativeAPI::DescriptorSet pCurrentSet   = ToNative( pOutNativeDescriptorSets[ layoutIndex ] );
 
             if( VKE_FAILED( Memory::CreateObject( &pNativePool->DescriptorSetMemMgr, &pCurrentSet ) ) )
@@ -2581,7 +2581,7 @@ namespace VKE::RenderSystem::D3D12
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::UpdateImpl( const NativeTypes::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
+    void CD3D12API::UpdateImpl( const RHI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
     {
         VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() == 0,
                      "CD3D12API::Update: Sampler and texture heaps are not supported in DX12" );
@@ -2597,7 +2597,7 @@ namespace VKE::RenderSystem::D3D12
         for( auto& Binding: Info.vRTs )
         {
             (void)Binding;
-            /*NativeTypes::D3D12DescriptorHeap* DescriptorHeap = hDDISet->Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
+            /*RHI::D3D12DescriptorHeap* DescriptorHeap = hDDISet->Pool->Heaps[ D3D12_DESCRIPTOR_HEAP_TYPE_RTV ];
             VKE_ASSERT( DescriptorHeap != NativeAPI::Null );
             Binding.ahHandles;
             Binding.binding;
@@ -2718,23 +2718,23 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void CD3D12API::UpdateImpl( const NativeTypes::DescriptorSet& hDDISrcSet, NativeTypes::DescriptorSet* phDDIDstOut )
+    void CD3D12API::UpdateImpl( const RHI::DescriptorSet& hDDISrcSet, RHI::DescriptorSet* phDDIDstOut )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::Pipeline CD3D12API::CreatePipelineImpl( const SPipelineDesc& Desc, const void* pAllocator )
+    RHI::Pipeline CD3D12API::CreatePipelineImpl( const SPipelineDesc& Desc, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
-        return NativeTypes::Null;
+        return RHI::Null;
     }
 
-    void CD3D12API::DestroyPipelineImpl( NativeTypes::Pipeline* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyPipelineImpl( RHI::Pipeline* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::PipelineLayout CD3D12API::CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc,
+    RHI::PipelineLayout CD3D12API::CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc,
                                                                      const void*                pAllocator )
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreatePipelineLayout: m_pImplementation->m_hDevice can't be null" );
@@ -2753,7 +2753,7 @@ namespace VKE::RenderSystem::D3D12
         Utils::TCDynamicArray< D3D12_ROOT_PARAMETER1, 32 > vRootParameters;
         for( auto& layout: Desc.vDescriptorSetLayouts )
         {
-            const NativeTypes::DescriptorSetLayout& hDescriptorSetLayout = m_pCtx->GetDescriptorSetLayout( layout );
+            const RHI::DescriptorSetLayout& hDescriptorSetLayout = m_pCtx->GetDescriptorSetLayout( layout );
             vRootParameters.PushBack( ToNative( hDescriptorSetLayout )->RootParameter );
         }
 
@@ -2792,15 +2792,15 @@ namespace VKE::RenderSystem::D3D12
             VKE_LOG_ERR( "CD3D12API::CreatePipelineLayout: Unable to create root signature." );
         }
 
-        return FromNative< NativeTypes::PipelineLayout >( pRootSignature );
+        return FromNative< RHI::PipelineLayout >( pRootSignature );
     }
 
-    void CD3D12API::DestroyPipelineLayoutImpl( NativeTypes::PipelineLayout* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyPipelineLayoutImpl( RHI::PipelineLayout* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::Shader CD3D12API::CreateShaderImpl( const SShaderData& Desc, const void* pAllocator )
+    RHI::Shader CD3D12API::CreateShaderImpl( const SShaderData& Desc, const void* pAllocator )
     {
         NativeAPI::Shader shader;
         Memory::CreateObject( &HeapAllocator, &shader );
@@ -2808,38 +2808,38 @@ namespace VKE::RenderSystem::D3D12
         shader->pShaderBytecode = (BYTE*)Desc.pCode;
         shader->BytecodeLength  = Desc.codeSize;
 
-        return FromNative< NativeTypes::Shader >( shader );
+        return FromNative< RHI::Shader >( shader );
     }
 
-    void CD3D12API::DestroyShaderImpl( NativeTypes::Shader* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyShaderImpl( RHI::Shader* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::Sampler CD3D12API::CreateSamplerImpl( const SSamplerDesc& Desc, const void* pAllocator )
+    RHI::Sampler CD3D12API::CreateSamplerImpl( const SSamplerDesc& Desc, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
-        return NativeTypes::Null;
+        return RHI::Null;
     }
 
-    void CD3D12API::DestroySamplerImpl( NativeTypes::Sampler* pInOut, const void* pAllocator )
+    void CD3D12API::DestroySamplerImpl( RHI::Sampler* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::Event CD3D12API::CreateEventImpl( const SEventDesc& Desc, const void* pAllocator )
+    RHI::Event CD3D12API::CreateEventImpl( const SEventDesc& Desc, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
-        return NativeTypes::Null;
+        return RHI::Null;
     }
 
-    void CD3D12API::DestroyEventImpl( NativeTypes::Event* pInOut, const void* pAllocator )
+    void CD3D12API::DestroyEventImpl( RHI::Event* pInOut, const void* pAllocator )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
     Result CD3D12API::CreateCommandBuffersImpl( const SAllocateCommandBufferInfo& Info,
-                                                NativeTypes::CommandBuffer*       pBuffers )
+                                                RHI::CommandBuffer*       pBuffers )
     {
         Result result = VKE_OK;
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::AllocateObjects: m_pImplementation->m_hDevice can't be null" );
@@ -2875,7 +2875,7 @@ namespace VKE::RenderSystem::D3D12
             // CreateCommandList always create command list in open state. In order to allocate more objects
             // every command list needs to be in closed state.
             Pair.pCmdList->Close();
-            pBuffers[ i ] = FromNative< NativeTypes::CommandBuffer >( Pair.pCmdList );
+            pBuffers[ i ] = FromNative< RHI::CommandBuffer >( Pair.pCmdList );
 
             ToNative( Info.hDDIPool )->vCommandListsWithAllocators.PushBack( Pair );
         }
@@ -2949,29 +2949,29 @@ namespace VKE::RenderSystem::D3D12
         UNIMPLEMENTED_D3D12_METHOD();
     }*/
 
-    void CD3D12API::BindImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
+    void CD3D12API::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
                      const uint32_t offset )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::BindImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Buffer& hDDIBuffer,
+    void CD3D12API::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
                      const uint32_t offset, const INDEX_TYPE& type )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::UnbindPipelineImpl( const NativeTypes::CommandBuffer&, const NativeTypes::Pipeline& )
+    void CD3D12API::UnbindPipelineImpl( const RHI::CommandBuffer&, const RHI::Pipeline& )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::UnbindRenderPassImpl( const NativeTypes::CommandBuffer&, const NativeTypes::RenderPass& )
+    void CD3D12API::UnbindRenderPassImpl( const RHI::CommandBuffer&, const RHI::RenderPass& )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::FreeImpl( NativeTypes::MemoryHeap* phMemory, const void* )
+    void CD3D12API::FreeImpl( RHI::MemoryHeap* phMemory, const void* )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -3084,14 +3084,14 @@ namespace VKE::RenderSystem::D3D12
         ToNative( Info.hBuffer )->Unmap( 0, nullptr );
     }
 
-    void CD3D12API::ResetImpl( const NativeTypes::CommandBuffer&     hCommandBuffer,
-                      const NativeTypes::CommandBufferPool& hCommandBufferPool )
+    void CD3D12API::ResetImpl( const RHI::CommandBuffer&     hCommandBuffer,
+                      const RHI::CommandBufferPool& hCommandBufferPool )
     {
         // No-op
     }
 
-    void CD3D12API::BeginCommandBufferImpl( const NativeTypes::CommandBuffer&     hCommandBuffer,
-                                   const NativeTypes::CommandBufferPool& hCommandBufferPool )
+    void CD3D12API::BeginCommandBufferImpl( const RHI::CommandBuffer&     hCommandBuffer,
+                                   const RHI::CommandBufferPool& hCommandBufferPool )
     {
         NativeAPI::D3D12CommandAllocator* pCommandAllocator = ToNative( hCommandBufferPool )->getAllocator( ToNative( hCommandBuffer ) );
         VKE_ASSERT( pCommandAllocator != nullptr );
@@ -3107,7 +3107,7 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void CD3D12API::EndCommandBufferImpl( const NativeTypes::CommandBuffer& hCommandBuffer )
+    void CD3D12API::EndCommandBufferImpl( const RHI::CommandBuffer& hCommandBuffer )
     {
         if( FAILED( ToNative( hCommandBuffer )->Close() ) )
         {
@@ -3115,7 +3115,7 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void CD3D12API::BarrierImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
+    void CD3D12API::BarrierImpl( const RHI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
     {
         DDIBarrierArray vBarriers( 0 );
 
@@ -3145,43 +3145,43 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void CD3D12API::SetStateImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
+    void CD3D12API::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::SetStateImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
+    void CD3D12API::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::DrawImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+    void CD3D12API::DrawImpl( const RHI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                      const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::DrawIndexedImpl( const NativeTypes::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
+    void CD3D12API::DrawIndexedImpl( const RHI::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::DrawMeshImpl( const NativeTypes::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+    void CD3D12API::DrawMeshImpl( const RHI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
                          uint32_t depth )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::BeginRenderPassImpl( NativeTypes::CommandBuffer   pNativeCommandBuffer,
+    void CD3D12API::BeginRenderPassImpl( RHI::CommandBuffer   pNativeCommandBuffer,
                                 const SBeginRenderPassInfo2& EngineRenderPassInfo )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::BeginRenderPassImpl( NativeTypes::CommandBuffer  hCommandBuffer,
+    void CD3D12API::BeginRenderPassImpl( RHI::CommandBuffer  hCommandBuffer,
                                 const SBeginRenderPassInfo& EngineRenderPassInfo )
     {
-        if( EngineRenderPassInfo.hDDIRenderPass == NativeTypes::Null )
+        if( EngineRenderPassInfo.hDDIRenderPass == RHI::Null )
         {
             VKE_LOG_ERR( "CD3D12API::BeginRenderPass: Render pass is NULL" );
             return;
@@ -3245,7 +3245,7 @@ namespace VKE::RenderSystem::D3D12
         pNativeCommandBuffer->RSSetScissorRects( 1, &scizzorRect );
     }
 
-    void CD3D12API::EndRenderPassImpl( NativeTypes::CommandBuffer hCommandBuffer, NativeTypes::RenderPass hRenderPass )
+    void CD3D12API::EndRenderPassImpl( RHI::CommandBuffer hCommandBuffer, RHI::RenderPass hRenderPass )
     {
         NativeAPI::CommandBuffer pNativeCommandBuffer = ToNative( hCommandBuffer );
         NativeAPI::RenderPass pNativeRenderPass = ToNative( hRenderPass );
@@ -3269,12 +3269,12 @@ namespace VKE::RenderSystem::D3D12
         PIXEndEvent( pNativeCommandBuffer );
     }
 
-    void CD3D12API::CopyImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
+    void CD3D12API::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::CopyImpl( const NativeTypes::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info )
+    void CD3D12API::CopyImpl( const RHI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info )
     {
         NativeAPI::CommandBuffer pNativeCommandBuffer = ToNative( hCmdBuffer );
         pNativeCommandBuffer->CopyBufferRegion( ToNative( Info.pDstBuffer->GetDDIObject() ),
@@ -3284,39 +3284,39 @@ namespace VKE::RenderSystem::D3D12
                                       Info.Region.size );
     }
 
-    void CD3D12API::CopyImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
+    void CD3D12API::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::BlitImpl( const NativeTypes::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
+    void CD3D12API::BlitImpl( const RHI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::SetEventImpl( const NativeTypes::Event& hDDIEvent )
+    void CD3D12API::SetEventImpl( const RHI::Event& hDDIEvent )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::SetEventImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Event& hDDIEvent,
+    void CD3D12API::SetEventImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
                          const PIPELINE_STAGES& stages )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::ResetImpl( const NativeTypes::Event& hDDIInOut )
+    void CD3D12API::ResetImpl( const RHI::Event& hDDIInOut )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CD3D12API::ResetImpl( const NativeTypes::CommandBuffer& hDDICmdBuffer, const NativeTypes::Event& hDDIEvent,
+    void CD3D12API::ResetImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
                       const PIPELINE_STAGES& stages )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    bool CD3D12API::IsSetImpl( const NativeTypes::Event& hDDIEvent )
+    bool CD3D12API::IsSetImpl( const RHI::Event& hDDIEvent )
     {
         UNIMPLEMENTED_D3D12_METHOD();
         return false;
@@ -3340,7 +3340,7 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateSwapChain: m_pImplementation->m_hDevice can't be null" );
 
-        QueryPresentSurfaceCaps( NativeTypes::Null, &pOut->Caps );
+        QueryPresentSurfaceCaps( RHI::Null, &pOut->Caps );
 
         UINT backBufferCount = Desc.backBufferCount;
         if( Constants::_SOptimal::IsOptimal( Desc.backBufferCount ) )
@@ -3426,13 +3426,13 @@ namespace VKE::RenderSystem::D3D12
 
         NativeAPI::SwapChain pSwapChain = reinterpret_cast< NativeAPI::SwapChain >( pSwapChain1 );
         // Update out handle to higher SwapChain ptr. Similar to .As() on ComPtr
-        pOut->hSwapChain = FromNative< NativeTypes::SwapChain >( pSwapChain );
+        pOut->hSwapChain = FromNative< RHI::SwapChain >( pSwapChain );
 
         // DXGI has already bound the swapchain to the window.
         IDXGIOutput* pPresentOutput;
         pSwapChain->GetContainingOutput( &pPresentOutput );
         NativeAPI::PresentSurface pPresentSurface = reinterpret_cast< NativeAPI::PresentSurface >( pPresentOutput );
-        pOut->hSurface = FromNative< NativeTypes::PresentSurface >( pPresentSurface );
+        pOut->hSurface = FromNative< RHI::PresentSurface >( pPresentSurface );
 
         DXGI_COLOR_SPACE_TYPE dxgiColorSpace        = Map::GetDXGIColorSpace( Desc.colorSpace );
         UINT                  dxgiColorSpaceSupport = 0;
@@ -3450,7 +3450,7 @@ namespace VKE::RenderSystem::D3D12
         for( UINT i = 0; i < backBufferCount; i++ )
         {
             NativeAPI::Texture bbTexture = NativeAPI::Null;
-            // This is required when NativeTypes::Texture is a custom object.
+            // This is required when RHI::Texture is a custom object.
             // if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &bbTexture ) ) )
             //{
             //    VKE_LOG_ERR( "CD3D12API::CreateSwapChain: Failed to create back buffer texture object." );
@@ -3460,8 +3460,8 @@ namespace VKE::RenderSystem::D3D12
 
             // Create swapchain already creates required resources but doesn't have views.
             // To cheat engine, we can store the texture in vImages and create null views.
-            pOut->vImages.PushBack( FromNative<NativeTypes::Texture>( bbTexture ) );
-            pOut->vImageViews.PushBack( NativeTypes::Null );
+            pOut->vImages.PushBack( FromNative<RHI::Texture>( bbTexture ) );
+            pOut->vImageViews.PushBack( RHI::Null );
         }
 
         // Update size from SwapChain after creation
@@ -3486,7 +3486,7 @@ namespace VKE::RenderSystem::D3D12
         return Result::OK;
     }
 
-    Result CD3D12API::QueryPresentSurfaceCapsImpl( const NativeTypes::PresentSurface& hSurface,
+    Result CD3D12API::QueryPresentSurfaceCapsImpl( const RHI::PresentSurface& hSurface,
                                                    SPresentSurfaceCaps*               pOut )
     {
         // No enum or list for DXGI, need to loop and query supported formats.
@@ -3552,14 +3552,14 @@ namespace VKE::RenderSystem::D3D12
         return Result::OK;
     }
 
-    /*void CD3D12API::Convert( const SClearValue& In, NativeTypes::ClearValue* pOut )
+    /*void CD3D12API::Convert( const SClearValue& In, RHI::ClearValue* pOut )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }*/
 
     // Debug
 
-    void CD3D12API::BeginDebugInfoImpl( const NativeTypes::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
+    void CD3D12API::BeginDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
     {
         if( pInfo != nullptr )
         {
@@ -3567,7 +3567,7 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void CD3D12API::EndDebugInfoImpl( const NativeTypes::CommandBuffer& hDDICmdBuff )
+    void CD3D12API::EndDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff )
     {
         PIXEndEvent( ToNative( hDDICmdBuff ) );
     }
@@ -3603,10 +3603,10 @@ namespace VKE::RenderSystem::D3D12
                 ( (NativeAPI::Texture)handle )->SetName( buffer );
                 break;
             /*case ApiObjectTypes::BUFFER_VIEW:
-                ( (NativeTypes::BufferView)handle )->SetName( buffer );
+                ( (RHI::BufferView)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::TEXTURE_VIEW:
-                ( (NativeTypes::BufferView)handle )->SetName( buffer );
+                ( (RHI::BufferView)handle )->SetName( buffer );
                 break;*/
             case ApiObjectTypes::PIPELINE_LAYOUT:
                 ( (NativeAPI::PipelineLayout)handle )->SetName( buffer );
@@ -3615,7 +3615,7 @@ namespace VKE::RenderSystem::D3D12
                 ( (NativeAPI::Pipeline)handle )->SetName( buffer );
                 break;
                 /* case ApiObjectTypes::DESCRIPTOR_SET:
-                     ( (NativeTypes::DescriptorSet)handle )->SetName( buffer );
+                     ( (RHI::DescriptorSet)handle )->SetName( buffer );
                      break;*/
             case ApiObjectTypes::FRAMEBUFFER:
                 ( (NativeAPI::Framebuffer)handle )->SetName( buffer );
@@ -3650,13 +3650,13 @@ namespace VKE::RenderSystem::D3D12
         pQueue->SetName( (LPCWSTR)pName );
     }
 
-    bool CD3D12API::IsSignaledImpl( const NativeTypes::CPUFence& hFence ) const
+    bool CD3D12API::IsSignaledImpl( const RHI::CPUFence& hFence ) const
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::IsSignaled: m_pImplementation->m_hDevice is null" );
         return ToNative( hFence )->pObject->GetCompletedValue() >= ToNative( hFence )->Value;
     }
 
-    void CD3D12API::ResetImpl( NativeTypes::CPUFence* phFence )
+    void CD3D12API::ResetImpl( RHI::CPUFence* phFence )
     {
         NativeAPI::CPUFence pFence = ToNative( *phFence );
         pFence->Value              = 0;
@@ -3667,32 +3667,32 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void CD3D12API::ResetImpl( NativeTypes::Fence* phFence, NativeTypes::FenceValue value )
+    void CD3D12API::ResetImpl( RHI::Fence* phFence, RHI::FenceValue value )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    NativeTypes::FenceValue CD3D12API::GetCompletedValueImpl( const NativeTypes::Fence& hFence ) const
+    RHI::FenceValue CD3D12API::GetCompletedValueImpl( const RHI::Fence& hFence ) const
     {
         UNIMPLEMENTED_D3D12_METHOD();
 
         return 0;
     }
 
-    Result CD3D12API::WaitForFencesImpl( const NativeTypes::CPUFence& hFence, uint64_t timeout ) const
+    Result CD3D12API::WaitForFencesImpl( const RHI::CPUFence& hFence, uint64_t timeout ) const
     {
         UNIMPLEMENTED_D3D12_METHOD();
         // TODO(blturkot): Wait for fence implementation.
         return Result::OK;
     }
 
-    Result CD3D12API::WaitForFenceImpl( NativeTypes::Fence Fence, NativeTypes::FenceValue value ) const
+    Result CD3D12API::WaitForFenceImpl( RHI::Fence Fence, RHI::FenceValue value ) const
     {
         UNIMPLEMENTED_D3D12_METHOD();
         return Result::OK;
     }
 
-    Result CD3D12API::WaitForQueueImpl( const NativeTypes::Queue& hQueue )
+    Result CD3D12API::WaitForQueueImpl( const RHI::Queue& hQueue )
     {
         UNIMPLEMENTED_D3D12_METHOD();
         // TODO(blturkot): Each queue needs to have its own fence for synchronization.

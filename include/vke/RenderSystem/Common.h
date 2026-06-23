@@ -12,7 +12,7 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Utils/TCString.h"
 #include "Core/VKEForwardDeclarations.h"
-#include "RenderSystem/APITypes.h"
+#include "RenderSystem/RHITypes.h"
 
 //#ifdef OPTIONAL
 #pragma push_macro( "OPTIONAL" )
@@ -1280,10 +1280,10 @@ namespace VKE
 
         struct SFramebufferDesc
         {
-            using AttachmentArray = Utils::TCDynamicArray< NativeTypes::TextureView, 8 >;
+            using AttachmentArray = Utils::TCDynamicArray< RHI::TextureView, 8 >;
             TextureSize      Size;
             AttachmentArray  vDDIAttachments;
-            NativeTypes::RenderPass hRenderPass;
+            RHI::RenderPass hRenderPass;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1650,8 +1650,8 @@ namespace VKE
             MEMORY_USAGE           memoryUsage       = MemoryUsages::DEFAULT;
             uint16_t               arrayElementCount = 1;               // number of textures in array
             uint16_t               sliceCount        = 1;               // number of slices in 3d
-            NativeTypes::Texture     hNative           = NativeTypes::Null; // create from native
-            NativeTypes::TextureView hNativeView       = NativeTypes::Null; // create from native
+            RHI::Texture     hNative           = RHI::Null; // create from native
+            RHI::TextureView hNativeView       = RHI::Null; // create from native
             CREATE_TEXTURE_FLAGS   flags             = SCreateTextureFlags::NONE;
             ResourceName           Name;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -1688,7 +1688,7 @@ namespace VKE
             TEXTURE_VIEW_TYPE        type     = TextureViewTypes::VIEW_2D;
             TEXTURE_FORMAT           format   = Formats::R8G8B8A8_UNORM;
             STextureSubresourceRange SubresourceRange;
-            NativeTypes::TextureView   hNative = NativeTypes::Null;
+            RHI::TextureView   hNative = RHI::Null;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -1826,7 +1826,7 @@ namespace VKE
             struct VKE_API SRenderTargetDesc
             {
                 TextureViewHandle            hTextureView = INVALID_HANDLE;
-                NativeTypes::TextureView     hRHIView     = NativeTypes::Null;
+                RHI::TextureView     hRHIView     = RHI::Null;
                 TEXTURE_STATE                beginState   = TextureStates::UNDEFINED;
                 TEXTURE_STATE                endState     = TextureStates::UNDEFINED;
                 RENDER_TARGET_RENDER_PASS_OP usage        = RenderTargetRenderPassOperations::UNDEFINED;
@@ -1900,7 +1900,7 @@ namespace VKE
 
         struct SRenderTargetInfo
         {
-            NativeTypes::TextureView       hDDIView = NativeTypes::Null;
+            RHI::TextureView       hDDIView = RHI::Null;
             FORMAT                       format   = Formats::UNDEFINED;
             SClearValue                  ClearColor;
             TEXTURE_STATE                state;
@@ -1936,7 +1936,7 @@ namespace VKE
 
         struct SBeginRenderPassInfo
         {
-            NativeTypes::RenderPass  hDDIRenderPass;
+            RHI::RenderPass  hDDIRenderPass;
             Rect2DI32              RenderArea;
         };
 
@@ -1988,7 +1988,7 @@ namespace VKE
 
         struct SBindRenderPassInfo
         {
-            NativeTypes::CommandBuffer    hDDICommandBuffer;
+            RHI::CommandBuffer    hDDICommandBuffer;
             const SBeginRenderPassInfo* pBeginInfo;
         };
 
@@ -2700,10 +2700,10 @@ namespace VKE
             FORMAT                    depthRenderTargetFormat   = Formats::UNDEFINED;
             FORMAT                    stencilRenderTargetFormat = Formats::UNDEFINED;
             PipelineLayoutHandle      hLayout                   = INVALID_HANDLE;
-            NativeTypes::PipelineLayout hDDILayout                = NativeTypes::Null;
+            RHI::PipelineLayout hDDILayout                = RHI::Null;
             //RenderPassHandle          hRenderPass               = INVALID_HANDLE;
-            NativeTypes::RenderPass     hDDIRenderPass            = NativeTypes::Null;
-            NativeTypes::Pipeline       hDDIParent                = NativeTypes::Null;
+            RHI::RenderPass     hDDIRenderPass            = RHI::Null;
+            RHI::Pipeline       hDDIParent                = RHI::Null;
             PipelinePtr               pDefault;
             SCreateBindingDesc        ResourceBindings;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -2857,12 +2857,12 @@ namespace VKE
         struct SSemaphoreDesc
         {
             VKE_RENDER_SYSTEM_DEBUG_NAME;
-            NativeTypes::FenceValue startValue = UNDEFINED_U64;
+            RHI::FenceValue startValue = UNDEFINED_U64;
         };
 
         struct SFenceDesc
         {
-            NativeTypes::FenceValue startValue = UNDEFINED_U64;
+            RHI::FenceValue startValue = UNDEFINED_U64;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2949,17 +2949,17 @@ namespace VKE
 
         struct SDDISwapChain
         {
-            using ImageArray       = Utils::TCDynamicArray< NativeTypes::Texture, 3 >;
-            using ImageViewArray   = Utils::TCDynamicArray< NativeTypes::TextureView, 3 >;
-            using FramebufferArray = Utils::TCDynamicArray< NativeTypes::Framebuffer, 3 >;
+            using ImageArray       = Utils::TCDynamicArray< RHI::Texture, 3 >;
+            using ImageViewArray   = Utils::TCDynamicArray< RHI::TextureView, 3 >;
+            using FramebufferArray = Utils::TCDynamicArray< RHI::Framebuffer, 3 >;
 
             void*                     pInternalAllocator = nullptr;
             ImageArray                vImages;
             ImageViewArray            vImageViews;
             FramebufferArray          vFramebuffers;
-            NativeTypes::RenderPass     hDDIRenderPass = NativeTypes::Null;
-            NativeTypes::PresentSurface hSurface       = NativeTypes::Null;
-            NativeTypes::SwapChain      hSwapChain     = NativeTypes::Null;
+            RHI::RenderPass     hDDIRenderPass = RHI::Null;
+            RHI::PresentSurface hSurface       = RHI::Null;
+            RHI::SwapChain      hSwapChain     = RHI::Null;
             TextureSize               Size;
             SPresentSurfaceFormat     Format;
             PRESENT_MODE              mode;
@@ -2969,10 +2969,10 @@ namespace VKE
         struct SDDIGetBackBufferInfo
         {
             uint64_t            waitTimeout = UINT64_MAX;
-            NativeTypes::FenceValue signalFenceValue = 0;
-            NativeTypes::Fence    hSignalFence    = NativeTypes::Null;
-            NativeTypes::GPUFence hSignalGPUFence = NativeTypes::Null;
-            NativeTypes::CPUFence hSignalCPUFence = NativeTypes::Null;
+            RHI::FenceValue signalFenceValue = 0;
+            RHI::Fence    hSignalFence    = RHI::Null;
+            RHI::GPUFence hSignalGPUFence = RHI::Null;
+            RHI::CPUFence hSignalCPUFence = RHI::Null;
         };
 
         struct SDDILoadInfo
@@ -2990,15 +2990,15 @@ namespace VKE
 
         struct SSubmitInfo
         {
-            const NativeTypes::GPUFence* pDDISignalSemaphores = nullptr;
-            const NativeTypes::GPUFence* pDDIWaitSemaphores   = nullptr;
-            NativeTypes::Fence    hSignalFence         = NativeTypes::Null;
-            NativeTypes::Fence          hWaitForFence         = NativeTypes::Null;
-            NativeTypes::CommandBuffer const* pDDICommandBuffers   = nullptr;
-            NativeTypes::CPUFence       hDDIFence            = NativeTypes::Null;
-            NativeTypes::Queue          hDDIQueue            = NativeTypes::Null;
-            NativeTypes::FenceValue     signalFenceValue     = 0;
-            NativeTypes::FenceValue     waitForFenceValue     = 0;
+            const RHI::GPUFence* pDDISignalSemaphores = nullptr;
+            const RHI::GPUFence* pDDIWaitSemaphores   = nullptr;
+            RHI::Fence    hSignalFence         = RHI::Null;
+            RHI::Fence          hWaitForFence         = RHI::Null;
+            RHI::CommandBuffer const* pDDICommandBuffers   = nullptr;
+            RHI::CPUFence       hDDIFence            = RHI::Null;
+            RHI::Queue          hDDIQueue            = RHI::Null;
+            RHI::FenceValue     signalFenceValue     = 0;
+            RHI::FenceValue     waitForFenceValue     = 0;
             uint16_t                  signalSemaphoreCount = 0;
             uint16_t                  waitSemaphoreCount   = 0;
             uint16_t                  commandBufferCount   = 0;
@@ -3006,28 +3006,28 @@ namespace VKE
 
         struct SPresentInfo
         {
-            NativeTypes::SwapChain  hSwapChain        = NativeTypes::Null;
-            NativeTypes::Fence hSignalFence = NativeTypes::Null;
-            NativeTypes::FenceValue signalFenceValue = 0;
-            NativeTypes::Fence      hWaitForFence    = NativeTypes::Null;
-            NativeTypes::FenceValue waitForFenceValue = 0;
+            RHI::SwapChain  hSwapChain        = RHI::Null;
+            RHI::Fence hSignalFence = RHI::Null;
+            RHI::FenceValue signalFenceValue = 0;
+            RHI::Fence      hWaitForFence    = RHI::Null;
+            RHI::FenceValue waitForFenceValue = 0;
             uint32_t              presentImageIndex = UNDEFINED_U32;
         };
 
         struct SPresentData
         {
             using UintArray      = Utils::TCDynamicArray< uint32_t, 8 >;
-            using FenceValueArray = Utils::TCDynamicArray< NativeTypes::FenceValue, 8 >;
-            using SemaphoreArray = Utils::TCDynamicArray< NativeTypes::GPUFence, 8 >;
-            using FenceArray = Utils::TCDynamicArray<NativeTypes::Fence, 8>;
-            using SwapChainArray = Utils::TCDynamicArray< NativeTypes::SwapChain, 8 >;
+            using FenceValueArray = Utils::TCDynamicArray< RHI::FenceValue, 8 >;
+            using SemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
+            using FenceArray = Utils::TCDynamicArray<RHI::Fence, 8>;
+            using SwapChainArray = Utils::TCDynamicArray< RHI::SwapChain, 8 >;
             
             SwapChainArray   vSwapchains;
             //SemaphoreArray   vWaitSemaphores;
             FenceArray       vWaitForFences;
             FenceValueArray  vWaitForFenceValues;
             UintArray        vImageIndices;
-            NativeTypes::Queue hQueue = NativeTypes::Null;
+            RHI::Queue hQueue = RHI::Null;
         };
 
         struct MemoryHeapTypes
@@ -3068,8 +3068,8 @@ namespace VKE
         {
             union
             {
-                NativeTypes::Buffer hBuffer = NativeTypes::Null;
-                NativeTypes::Texture hTexture;
+                RHI::Buffer hBuffer = RHI::Null;
+                RHI::Texture hTexture;
             };
             const void*        pData;
             uint32_t           dataSize;
@@ -3112,8 +3112,8 @@ namespace VKE
 
         struct SBindVertexBufferInfo2
         {
-            NativeTypes::CommandBuffer hDDICommandBuffer;
-            NativeTypes::Buffer        hDDIBuffer;
+            RHI::CommandBuffer hDDICommandBuffer;
+            RHI::Buffer        hDDIBuffer;
             uint32_t                 offset;
         };
 
@@ -3126,10 +3126,10 @@ namespace VKE
 
         struct SBindDDIDescriptorSetsInfo
         {
-            NativeTypes::CommandBuffer        hDDICommandBuffer;
-            const NativeTypes::DescriptorSet* aDDISetHandles;
+            RHI::CommandBuffer        hDDICommandBuffer;
+            const RHI::DescriptorSet* aDDISetHandles;
             const uint32_t*                 aDynamicOffsets = nullptr;
-            NativeTypes::PipelineLayout       hDDIPipelineLayout;
+            RHI::PipelineLayout       hDDIPipelineLayout;
             uint16_t                        firstSet;
             uint16_t                        setCount;
             uint16_t                        dynamicOffsetCount = 0;
@@ -3148,15 +3148,15 @@ namespace VKE
 
         struct SAllocateCommandBufferInfo
         {
-            NativeTypes::CommandBufferPool hDDIPool;
+            RHI::CommandBufferPool hDDIPool;
             uint32_t                     count;
             COMMAND_BUFFER_LEVEL         level;
         };
 
         struct SFreeCommandBufferInfo
         {
-            NativeTypes::CommandBufferPool hDDIPool;
-            NativeTypes::CommandBuffer*    pDDICommandBuffers;
+            RHI::CommandBufferPool hDDIPool;
+            RHI::CommandBuffer*    pDDICommandBuffers;
             uint32_t                     count;
         };
 
@@ -3268,7 +3268,7 @@ namespace VKE
 
                 struct
                 {
-                    NativeTypes::Buffer hArgumentBuffer{};
+                    RHI::Buffer hArgumentBuffer{};
                     uint32_t          offset;
                     uint32_t          drawCount;
                     uint32_t          stride;
@@ -3276,8 +3276,8 @@ namespace VKE
 
                 struct
                 {
-                    NativeTypes::Buffer hArgumentBuffer{};
-                    NativeTypes::Buffer hCountBuffer{};
+                    RHI::Buffer hArgumentBuffer{};
+                    RHI::Buffer hCountBuffer{};
                     uint32_t          offset;
                     uint32_t          countOffset;
                     uint32_t          maxCount;
@@ -3286,7 +3286,7 @@ namespace VKE
 
                 struct
                 {
-                    NativeTypes::Buffer hArgumentBuffer{};
+                    RHI::Buffer hArgumentBuffer{};
                     uint32_t          offset;
                     uint32_t          count;
                     uint32_t          stride;
@@ -3300,7 +3300,7 @@ namespace VKE
 
                 struct
                 {
-                    NativeTypes::Buffer hArgumentBuffer{};
+                    RHI::Buffer hArgumentBuffer{};
                     uint32_t          offset;
                     uint32_t          count;
                     uint32_t          stride;
@@ -3308,8 +3308,8 @@ namespace VKE
 
                 struct
                 {
-                    NativeTypes::Buffer hArgumentBuffer{};
-                    NativeTypes::Buffer hCountBuffer{};
+                    RHI::Buffer hArgumentBuffer{};
+                    RHI::Buffer hCountBuffer{};
                     uint32_t          offset;
                     uint32_t          countOffset;
                     uint32_t          maxCount;
@@ -3355,7 +3355,7 @@ namespace VKE
         struct SStagingBufferInfo
         {
             handle_t          hMemory;
-            NativeTypes::Buffer hDDIBuffer;
+            RHI::Buffer hDDIBuffer;
             uint32_t          sizeLeft;
             uint32_t          alignedSize;
             uint32_t          offset;
@@ -3466,8 +3466,8 @@ namespace VKE
         struct SBlitTextureInfo
         {
             using RegionArray = Utils::TCDynamicArray< SBlitTextureRegion >;
-            NativeTypes::Texture hAPISrcTexture;
-            NativeTypes::Texture hAPIDstTexture;
+            RHI::Texture hAPISrcTexture;
+            RHI::Texture hAPIDstTexture;
             TEXTURE_STATE      srcTextureState;
             TEXTURE_STATE      dstTextureState;
             TEXTURE_FILTER     filter = TextureFilters::LINEAR;
@@ -3534,7 +3534,7 @@ namespace VKE
             TEXTURE_FORMAT     format         = Formats::UNDEFINED;
             RENDER_PASS_OP     operation      = FrameGraphPassOperations::UNKNOWN;
             RENDER_PASS_SIZE   size           = RenderPassSizes::DEFAULT;
-            NativeTypes::Texture hNativeTexture = NativeTypes::Null;
+            RHI::Texture hNativeTexture = RHI::Null;
             cstr_t             pOldName       = nullptr;
         };
 
@@ -3577,12 +3577,12 @@ namespace VKE
         {
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using ExecuteBatchArray                        = Utils::TCDynamicArray< SExecuteBatch*, 4 >;
-            using SemaphoreArray                           = Utils::TCDynamicArray< NativeTypes::GPUFence, 8 >;
+            using SemaphoreArray                           = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
 
             CContextBase*                                                      pContext        = nullptr;
-            NativeTypes::GPUFence                                                hSignalGPUFence = NativeTypes::Null;
-            NativeTypes::CPUFence                                                hSignalCPUFence = NativeTypes::Null;
+            RHI::GPUFence                                                hSignalGPUFence = RHI::Null;
+            RHI::CPUFence                                                hSignalCPUFence = RHI::Null;
             SemaphoreArray                                                     vDDIWaitGPUFences;
             Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_CMD_BUFFER_COUNT > vpCommandBuffers;
             uint32_t                                                           swapchainElementIndex = INVALID_POSITION;
@@ -3605,14 +3605,14 @@ namespace VKE
 
         struct SAllocateMemoryData
         {
-            NativeTypes::MemoryHeap hDDIMemory;
+            RHI::MemoryHeap hDDIMemory;
             uint32_t          sizeLeft;
             MEMORY_HEAP_TYPE  heapType;
         };
 
         struct SBindMemoryInfo
         {
-            NativeTypes::MemoryHeap hDDIMemory = NativeTypes::Null;
+            RHI::MemoryHeap hDDIMemory = RHI::Null;
             handle_t          hMemory    = INVALID_HANDLE;
             handle_t          reserved   = INVALID_HANDLE;
             uint32_t          offset     = 0;
@@ -3622,10 +3622,10 @@ namespace VKE
         {
             union
             {
-                NativeTypes::Buffer hBuffer = NativeTypes::Null;
-                NativeTypes::Texture hTexture;
+                RHI::Buffer hBuffer = RHI::Null;
+                RHI::Texture hTexture;
             };
-            NativeTypes::MemoryHeap hMemory;
+            RHI::MemoryHeap hMemory;
             uint32_t          offset;
             uint32_t          size;
         };
@@ -3634,10 +3634,10 @@ namespace VKE
         {
             union
             {
-                NativeTypes::Buffer hBuffer = NativeTypes::Null;
-                NativeTypes::Texture hTexture;
+                RHI::Buffer hBuffer = RHI::Null;
+                RHI::Texture hTexture;
             };
-            NativeTypes::MemoryHeap hMemory;
+            RHI::MemoryHeap hMemory;
         };
 
         struct SAllocateMemoryDesc
@@ -3679,7 +3679,7 @@ namespace VKE
 
         struct STextureBarrierInfo : SMemoryBarrierInfo
         {
-            NativeTypes::Texture       hDDITexture;
+            RHI::Texture       hDDITexture;
             TEXTURE_STATE            currentState;
             TEXTURE_STATE            newState;
             STextureSubresourceRange SubresourceRange;
@@ -3687,7 +3687,7 @@ namespace VKE
 
         struct SBufferBarrierInfo : SMemoryBarrierInfo
         {
-            NativeTypes::Buffer hDDIBuffer;
+            RHI::Buffer hDDIBuffer;
             uint32_t          size;
             uint32_t          offset;
         };
@@ -3716,16 +3716,16 @@ namespace VKE
 
             using RegionArray = Utils::TCDynamicArray< SRegion >;
 
-            NativeTypes::Buffer hDDISrcBuffer;
-            // NativeTypes::Buffer           hDDIDstBuffer;
+            RHI::Buffer hDDISrcBuffer;
+            // RHI::Buffer           hDDIDstBuffer;
             BufferPtr pDstBuffer;
             SRegion   Region;
         };
 
         struct SCopyTextureInfo
         {
-            NativeTypes::Texture hDDISrcTexture;
-            NativeTypes::Texture hDDIDstTexture;
+            RHI::Texture hDDISrcTexture;
+            RHI::Texture hDDIDstTexture;
             TextureSize        Size;
             uint16_t           depth;
             TextureSize        SrcOffset;
@@ -3761,8 +3761,8 @@ namespace VKE
         {
             using RegionArray = Utils::TCDynamicArray< SBufferTextureRegion >;
 
-            NativeTypes::Buffer  hDDISrcBuffer;
-            NativeTypes::Texture hDDIDstTexture;
+            RHI::Buffer  hDDISrcBuffer;
+            RHI::Texture hDDIDstTexture;
             TEXTURE_STATE      textureState;
             RegionArray        vRegions;
         };
@@ -3854,25 +3854,25 @@ namespace VKE
 
         using QueuePriorityArray = Utils::TCDynamicArray< float, 16 >;
         using QueueFamilyPropertyArray =
-            Utils::TCDynamicArray< NativeTypes::QueueFamilyProperties, 16 >;
+            Utils::TCDynamicArray< RHI::QueueFamilyProperties, 16 >;
         using UintArray      = Utils::TCDynamicArray< uint32_t, 16 >;
         using QueueTypeArray = UintArray[ QueueTypes::_MAX_COUNT ];
-        using DDIQueueArray  = Utils::TCDynamicArray< NativeTypes::Queue >;
+        using DDIQueueArray  = Utils::TCDynamicArray< RHI::Queue >;
 
         struct SUpdateBufferDescriptorSetInfo
         {
             struct SBufferInfo
             {
-                NativeTypes::Buffer     hDDIBuffer;
-                NativeTypes::DeviceSize offset;
-                NativeTypes::DeviceSize range;
+                RHI::Buffer     hDDIBuffer;
+                RHI::DeviceSize offset;
+                RHI::DeviceSize range;
             };
 
             using BufferInfoArray = Utils::TCDynamicArray< SBufferInfo, 4 >;
 
             uint32_t                 binding;
             uint32_t                 count;
-            NativeTypes::DescriptorSet hDDISet;
+            RHI::DescriptorSet hDDISet;
             BufferInfoArray          vBufferInfos;
         };
 
@@ -3880,15 +3880,15 @@ namespace VKE
         {
             struct STextureInfo
             {
-                NativeTypes::Sampler     hDDISampler;
-                NativeTypes::TextureView hDDITextureView;
+                RHI::Sampler     hDDISampler;
+                RHI::TextureView hDDITextureView;
                 TEXTURE_STATE          textureState;
             };
 
             using TextureInfoArray = Utils::TCDynamicArray< STextureInfo, 8 >;
 
             TextureInfoArray         vTextureInfos;
-            NativeTypes::DescriptorSet hDDISet;
+            RHI::DescriptorSet hDDISet;
             uint8_t                  binding;
             uint16_t                 count;
         };
@@ -3897,22 +3897,22 @@ namespace VKE
         {
             struct SSamplerTextureInfo
             {
-                NativeTypes::Sampler     hDDISampler     = NativeTypes::Null;
-                NativeTypes::TextureView hDDITextureView = NativeTypes::Null;
+                RHI::Sampler     hDDISampler     = RHI::Null;
+                RHI::TextureView hDDITextureView = RHI::Null;
                 TEXTURE_STATE          textureState;
             };
 
             struct SBufferInfo
             {
-                NativeTypes::Buffer     hDDIBuffer;
-                NativeTypes::DeviceSize offset;
-                NativeTypes::DeviceSize range;
+                RHI::Buffer     hDDIBuffer;
+                RHI::DeviceSize offset;
+                RHI::DeviceSize range;
             };
 
             using BufferInfoArray  = Utils::TCDynamicArray< SBufferInfo, 8 >;
             using TextureInfoArray = Utils::TCDynamicArray< SSamplerTextureInfo, 8 >;
 
-            NativeTypes::DescriptorSet hDDISet;
+            RHI::DescriptorSet hDDISet;
             DESCRIPTOR_SET_TYPE      type;
             uint8_t                  binding;
             BufferInfoArray          vBuffers;
@@ -3948,7 +3948,7 @@ namespace VKE
 
         struct VKE_API SDDIDrawInfo
         {
-            NativeTypes::CommandBuffer hCommandBuffer;
+            RHI::CommandBuffer hCommandBuffer;
 
             uint32_t vertexCount;
             uint32_t instanceCount;
@@ -3960,16 +3960,16 @@ namespace VKE
         {
             struct SDescSet
             {
-                NativeTypes::DescriptorPool       hPool;
-                NativeTypes::DescriptorSetLayout* phLayouts;
+                RHI::DescriptorPool       hPool;
+                RHI::DescriptorSetLayout* phLayouts;
                 uint32_t                        count;
                 VKE_RENDER_SYSTEM_DEBUG_NAME;
             };
 
             struct SMemory
             {
-                NativeTypes::Texture hDDITexture = NativeTypes::Null;
-                NativeTypes::Buffer  hDDIBuffer  = NativeTypes::Null;
+                RHI::Texture hDDITexture = RHI::Null;
+                RHI::Buffer  hDDIBuffer  = RHI::Null;
                 uint32_t           size;
                 MEMORY_USAGE       memoryUsages;
             };
@@ -3979,22 +3979,22 @@ namespace VKE
         {
             struct SDescSet
             {
-                NativeTypes::DescriptorPool hPool;
-                NativeTypes::DescriptorSet* phSets;
+                RHI::DescriptorPool hPool;
+                RHI::DescriptorSet* phSets;
                 uint32_t                  count;
             };
 
             struct SCommandBuffers
             {
-                NativeTypes::CommandBufferPool hPool;
-                NativeTypes::CommandBuffer*    pBuffers;
+                RHI::CommandBufferPool hPool;
+                RHI::CommandBuffer*    pBuffers;
                 uint32_t                     count;
             };
         };
 
 #define VKE_ADD_DDI_OBJECT( _type )                                                                                    \
 protected:                                                                                                             \
-    _type m_hDDIObject = NativeTypes::Null;                                                                              \
+    _type m_hDDIObject = RHI::Null;                                                                              \
                                                                                                                        \
 public:                                                                                                                \
     vke_force_inline const _type& GetDDIObject() const                                                                 \
