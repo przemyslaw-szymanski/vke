@@ -624,7 +624,7 @@ namespace VKE::RenderSystem
             auto& Data = m_aFrameData[ i ];
             SFenceDesc Desc;
             Desc.startValue = 0;
-            if( Data.hFrameFence == NativeAPI::Null )
+            if( Data.hFrameFence == RHI::Null )
             {
                 Desc.SetDebugName( "FrameData%d", i );
                 Data.hFrameFence = m_Desc.pDevice->CreateFence( Desc );

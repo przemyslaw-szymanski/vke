@@ -72,7 +72,7 @@
 //
 //        void CSubmitManager::Destroy( CDeviceContext* pCtx )
 //        {
-//            auto& DDI = pCtx->_NativeAPI();
+//            auto& DDI = pCtx->RHI();
 //            for( uint32_t i = 0; i < m_CommandBufferBatches.vSubmits.GetCount(); ++i )
 //            {
 //                DDI.DestroyFence( &m_CommandBufferBatches.vSubmits[ i ].m_hDDIFence, nullptr );
@@ -94,10 +94,10 @@
 //            {
 //                CCommandBufferBatch Tmp;
 //                Tmp.m_pMgr      = this;
-//                Tmp.m_hDDIFence = pCtx->GetDeviceContext()->NativeAPI().CreateFence( FenceDesc, nullptr );
+//                Tmp.m_hDDIFence = pCtx->GetDeviceContext()->RHI().CreateFence( FenceDesc, nullptr );
 //                // pCtx->DDI().Reset( &Tmp.m_hDDIFence );
 //                Tmp.m_hDDISignalSemaphore =
-//                    pCtx->GetDeviceContext()->NativeAPI().CreateSemaphore( SemaphoreDesc, nullptr );
+//                    pCtx->GetDeviceContext()->RHI().CreateSemaphore( SemaphoreDesc, nullptr );
 //                m_CommandBufferBatches.vSubmits.PushBack( Tmp );
 //            }
 //        }
@@ -111,7 +111,7 @@
 //        CCommandBufferBatch* CSubmitManager::_GetSubmit( CContextBase* pCtx, const handle_t& hCmdPool, uint32_t idx )
 //        {
 //            CCommandBufferBatch* pBatch = &m_CommandBufferBatches.vSubmits[ idx ];
-//            auto&                DDI    = pCtx->GetDeviceContext()->NativeAPI();
+//            auto&                DDI    = pCtx->GetDeviceContext()->RHI();
 //            if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
 //            {
 //                DDI.Reset( &pBatch->m_hDDIFence );
@@ -126,7 +126,7 @@
 //        {
 //            // Get first submit
 //            CCommandBufferBatch* pBatch = nullptr;
-//            auto&                DDI    = pCtx->GetDeviceContext()->NativeAPI();
+//            auto&                DDI    = pCtx->GetDeviceContext()->RHI();
 //            // If there are any submitts
 //            if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
 //            {
@@ -180,7 +180,7 @@
 //            if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
 //            {
 //                pBatch    = m_CommandBufferBatches.qpSubmitted.Front();
-//                auto& DDI = pCtx->GetDeviceContext()->NativeAPI();
+//                auto& DDI = pCtx->GetDeviceContext()->RHI();
 //                // Check if oldest submit is ready
 //                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
 //                {
@@ -246,10 +246,10 @@
 //
 //        Result CSubmitManager::_Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pBatch )
 //        {
-//            NativeAPI::GPUFence  hDDISignal          = NativeAPI::Null;
+//            RHI::GPUFence  hDDISignal          = RHI::Null;
 //            uint32_t             signalCount         = 0;
 //            uint32_t             waitCount           = 0;
-//            NativeAPI::GPUFence* phDDIWaitSemaphores = nullptr;
+//            RHI::GPUFence* phDDIWaitSemaphores = nullptr;
 //
 //            if( m_signalSemaphore )
 //            {
@@ -301,10 +301,10 @@
 //
 //        Result CSubmitManager::WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch )
 //        {
-//            return pCtx->GetDeviceContext()->NativeAPI().WaitForFences( pBatch->m_hDDIFence, timeout );
+//            return pCtx->GetDeviceContext()->RHI().WaitForFences( pBatch->m_hDDIFence, timeout );
 //        }
 //
-//        void CSubmitManager::SignalSemaphore( NativeAPI::GPUFence* phDDISemaphoreOut )
+//        void CSubmitManager::SignalSemaphore( RHI::GPUFence* phDDISemaphoreOut )
 //        {
 //            if( phDDISemaphoreOut != nullptr )
 //            {
@@ -350,7 +350,7 @@
 //            return pTmp;
 //        }
 //
-//        void CSubmitManager::SetWaitOnSemaphore( const NativeAPI::GPUFence& hSemaphore )
+//        void CSubmitManager::SetWaitOnSemaphore( const RHI::GPUFence& hSemaphore )
 //        {
 //            m_hDDIWaitSemaphore = hSemaphore;
 //        }

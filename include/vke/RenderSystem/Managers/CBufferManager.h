@@ -60,7 +60,7 @@ namespace VKE
                 uint32_t          size;
                 uint32_t          offset;
                 handle_t          hMemory;
-                NativeAPI::Buffer hDDIBuffer;
+                RHI::Buffer hDDIBuffer;
             };
 
             using BufferBuffer = Utils::TSFreePool< CBuffer*, uint32_t, 1 >;

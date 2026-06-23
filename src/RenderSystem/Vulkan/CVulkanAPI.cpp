@@ -1,6 +1,4 @@
-#include "RenderSystem/CDDI.h"
-
-#if VKE_RENDER_SYSTEM_VULKAN
+#include "RenderSystem/Vulkan/CVulkanAPI.h"
 
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"
@@ -14,48 +12,111 @@
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ShaderLang.h>
 
+#include "RenderSystem/Vulkan/CDDITypes.h"
+
 namespace VKE
 {
 
 #define DDI_CREATE_OBJECT( _name, _CreateInfo, _pAllocator, _phObj )                                                   \
-    m_Implementation.m_ICD.vkCreate##_name(                                                                            \
-        m_hDevice, &( _CreateInfo ), static_cast< const VkAllocationCallbacks* >( _pAllocator ), ( _phObj ) );
+    m_pImplementation->m_ICD.vkCreate##_name(                                                                            \
+        m_pImplementation->m_hDevice, &( _CreateInfo ), static_cast< const VkAllocationCallbacks* >( _pAllocator ), ( _phObj ) );
 
 #define DDI_DESTROY_OBJECT( _name, _phObj, _pAllocator )                                                               \
     if( ( _phObj ) && ( *_phObj ) != NativeAPI::Null )                                                                 \
     {                                                                                                                  \
-        m_Implementation.m_ICD.vkDestroy##_name(                                                                       \
-            m_hDevice, ( *_phObj ), static_cast< const VkAllocationCallbacks* >( _pAllocator ) );                      \
+        m_pImplementation->m_ICD.vkDestroy##_name(                                                                       \
+            m_pImplementation->m_hDevice, ( *_phObj ), static_cast< const VkAllocationCallbacks* >( _pAllocator ) );                      \
         ( *_phObj ) = NativeAPI::Null;                                                                                 \
     }
 
-    namespace RenderSystem
+    namespace RenderSystem::Vulkan
     {
+        template< typename T >
+        vke_force_inline auto ToNative( T v ) -> decltype( VKE::RenderSystem::ToNative< Vulkan::NativeAPI >( v ) )
+        {
+            return VKE::RenderSystem::ToNative< Vulkan::NativeAPI >( v );
+        }
+
+        template< typename EngineT, typename NativeT >
+        vke_force_inline EngineT FromNative( NativeT v )
+        {
+            return EngineT{ reinterpret_cast< handle_t >( v ) };
+        }
+
+#define VKE_DEFINE_FROM_NATIVE_VK( _EngineType, _NativeType ) \
+        vke_force_inline _EngineType FromNative( _NativeType v )                                                    \
+    {                                                                                                                  \
+        return _EngineType{ reinterpret_cast< handle_t >( v ) };                                                       \
+    } \
+    vke_force_inline _EngineType* FromNativeArray( _NativeType* v )                                                           \
+    {                                                                                                                  \
+        return reinterpret_cast< _EngineType* >( v );                                                       \
+    } \
+    vke_force_inline _NativeType* ToNativeArray(_EngineType* pObj) \
+    {                                                                                                                  \
+        return reinterpret_cast<_NativeType*>( pObj );                                                               \
+    } \
+    vke_force_inline const _EngineType* FromNativeArray( const _NativeType* v ) \
+        { \
+            return reinterpret_cast< const _EngineType* >( v ); \
+        } \
+        vke_force_inline const _NativeType* ToNativeArray( const _EngineType* pObj ) \
+        { \
+            return reinterpret_cast< const _NativeType* >( pObj ); \
+        }
+
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Adapter, NativeAPI::Adapter )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Device, NativeAPI::Device )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::CommandBuffer, NativeAPI::CommandBuffer )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::CommandBufferPool, NativeAPI::CommandBufferPool )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Queue, NativeAPI::Queue )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::SwapChain, NativeAPI::SwapChain )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::RenderPass, NativeAPI::RenderPass )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Pipeline, NativeAPI::Pipeline )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::PipelineLayout, NativeAPI::PipelineLayout )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Shader, NativeAPI::Shader )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Buffer, NativeAPI::Buffer )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::BufferView, NativeAPI::BufferView )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Texture, NativeAPI::Texture )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::TextureView, NativeAPI::TextureView )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Sampler, NativeAPI::Sampler )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::DescriptorSetLayout, NativeAPI::DescriptorSetLayout )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::DescriptorPool, NativeAPI::DescriptorPool )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::DescriptorSet, NativeAPI::DescriptorSet )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Framebuffer, NativeAPI::Framebuffer )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::GPUFence, NativeAPI::GPUFence )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::CPUFence, NativeAPI::CPUFence )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Fence, NativeAPI::Fence )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::Event, NativeAPI::Event )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::MemoryHeap, NativeAPI::MemoryHeap )
+        VKE_DEFINE_FROM_NATIVE_VK( RHI::PresentSurface, NativeAPI::PresentSurface )
+
         template< VkObjectType ObjectType, typename DDIObjectT >
-        VkResult _CreateDebugInfo( CDDI* rhi, const DDIObjectT& hDDIObject, cstr_t pName )
+            requires(std::is_pointer_v<DDIObjectT>)
+        VkResult _CreateDebugInfo( CVulkanAPI* rhi, const DDIObjectT hDDIObject, cstr_t pName )
         {
             VkResult ret = VK_SUCCESS;
 #if VKE_RENDER_SYSTEM_DEBUG
-            if( NativeAPI::SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT )
+            if( SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT )
             {
                 VkDebugUtilsObjectNameInfoEXT ni = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
                 ni.objectHandle                  = (uint64_t)( hDDIObject );
                 ni.objectType                    = ObjectType;
                 ni.pObjectName                   = pName;
-                ret = NativeAPI::SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT( rhi->GetDevice(), &ni );
+                ret = SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT( ToNative( rhi->GetDevice() ), &ni );
             }
 #endif // VKE_RENDER_SYSTEM_DEBUG
             VK_ERR( ret );
             return ret;
         }
 
-        VkICD::Global            NativeAPI::SImplementation::sGlobalICD;
-        VkICD::Instance          NativeAPI::SImplementation::sInstanceICD;
-        handle_t                 NativeAPI::SImplementation::shICD                     = 0;
-        VkInstance               NativeAPI::SImplementation::sVkInstance               = VK_NULL_HANDLE;
-        VkDebugReportCallbackEXT NativeAPI::SImplementation::sVkDebugReportCallback    = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT NativeAPI::SImplementation::sVkDebugMessengerCallback = VK_NULL_HANDLE;
-        CDDI::AdapterArray       CDDI::svAdapters;
+        VkICD::Global                  SImplementation::sGlobalICD;
+        VkICD::Instance                SImplementation::sInstanceICD;
+        handle_t                       SImplementation::shICD                       = 0;
+        VkInstance                     SImplementation::sVkInstance                 = VK_NULL_HANDLE;
+        VkDebugReportCallbackEXT       SImplementation::sVkDebugReportCallback      = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT       SImplementation::sVkDebugMessengerCallback   = VK_NULL_HANDLE;
+        //CVulkanAPI::AdapterArray       CVulkanAPI::svAdapters;
 
         VKAPI_ATTR VkBool32 VKAPI_CALL VkDebugCallback( VkDebugReportFlagsEXT      msgFlags,
                                                         VkDebugReportObjectTypeEXT objType, uint64_t srcObject,
@@ -992,7 +1053,7 @@ namespace VKE
             {
                 pOut->srcAccessMask = Convert::AccessMask( Info.srcMemoryAccess );
                 pOut->dstAccessMask = Convert::AccessMask( Info.dstMemoryAccess );
-                pOut->image         = Info.hDDITexture;
+                pOut->image         = ToNative( Info.hDDITexture );
                 pOut->oldLayout     = Map::ImageLayout( Info.currentState );
                 pOut->newLayout     = Map::ImageLayout( Info.newState );
                 Convert::TextureSubresourceRange( &pOut->subresourceRange, Info.SubresourceRange );
@@ -1002,7 +1063,7 @@ namespace VKE
             {
                 pOut->srcAccessMask = Convert::AccessMask( Info.srcMemoryAccess );
                 pOut->dstAccessMask = Convert::AccessMask( Info.dstMemoryAccess );
-                pOut->buffer        = Info.hDDIBuffer;
+                pOut->buffer        = ToNative( Info.hDDIBuffer );
                 pOut->offset        = Info.offset;
                 pOut->size          = Info.size;
             }
@@ -1166,158 +1227,159 @@ namespace VKE
 
         } // namespace Convert
 
-        namespace NativeAPI
+        struct NativeAPI::SFence
         {
-            struct SFence
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+            std::atomic<NativeAPI::FenceValue> counter;
+            NativeAPI::FenceValue                lastSignaledValue = 0;
+            bool                      isNativeMonitored = false;
+            bool                      isBinary          = false;
+            struct SFences
             {
-                VKE_RENDER_SYSTEM_DEBUG_NAME;
-                std::atomic<FenceValue> counter;
-                FenceValue                lastSignaledValue = 0;
-                bool                      isNativeMonitored = false;
-                bool                      isBinary          = false;
-                struct SFences
-                {
-                    CPUFence hFence = Null;
-                    GPUFence hSemaphore = Null;
-                };
+                NativeAPI::CPUFence hFence     = NativeAPI::Null;
+                NativeAPI::GPUFence hSemaphore = NativeAPI::Null;
+            };
 
-                Utils::TCDynamicArray< FenceValue > vValues;
-                Utils::TCDynamicArray< SFences >  vFences;
+            Utils::TCDynamicArray< NativeAPI::FenceValue > vValues;
+            Utils::TCDynamicArray< SFences >  vFences;
 
-                VKE::Result Create( const CDDI* pApi, const SFenceDesc& Desc, bool nativeMonitored )
-                {
-                    isBinary = Desc.startValue == UNDEFINED_U64;
-                    isNativeMonitored = nativeMonitored;
-                    this->counter     = Desc.startValue; // increase current counter
-                    if( isNativeMonitored || isBinary )
-                    {  
-                        if( vFences.IsEmpty() )
+            VKE::Result Create( const CVulkanAPI* pApi, const SFenceDesc& Desc, bool nativeMonitored )
+            {
+                isBinary = Desc.startValue == UNDEFINED_U64;
+                isNativeMonitored = nativeMonitored;
+                this->counter     = Desc.startValue; // increase current counter
+                if( isNativeMonitored || isBinary )
+                {  
+                    if( vFences.IsEmpty() )
+                    {
+                        SFences        Fences;
+                        SSemaphoreDesc SemDesc;
+                        SemDesc.SetDebugName( Desc.GetDebugName() );
+                        SemDesc.startValue = Desc.startValue;
+                        Fences.hSemaphore  = ToNative( pApi->CreateGPUFence( SemDesc ) );
+                        if( isBinary )
                         {
-                            SFences        Fences;
+                            SFenceDesc FenceDesc;
+                            FenceDesc.SetDebugName( Desc.GetDebugName() );
+                            Fences.hFence = ToNative( pApi->CreateFence( FenceDesc ) );
+                        }
+                        vFences.PushBack( Fences );
+                        vValues.PushBack( Desc.startValue );
+                    }
+                }
+                else
+                {
+                    this->SetDebugName( Desc.GetDebugName() );
+                }
+
+                return VKE_OK;
+            }
+
+            /// <summary>
+            /// Increases counter value and returns Fence associated to requested one.
+            /// </summary>
+            /// <param name="pApi"></param>
+            /// <param name="value">New value for which fence will wait</param>
+            /// <returns></returns>
+            SFences* Signal( CVulkanAPI* pApi, RHI::FenceValue value )
+            {
+                if( !isBinary && !isNativeMonitored )
+                {
+                    VKE_ASSERT( this->counter.load() < value );
+                    this->counter = value; // increase current counter
+                    // Check if there is any fence completed
+                    // mark it as 0 and reuse it
+                    Recycle( pApi );
+                    // Find first free index
+                    // Index is free when its value is set to 0
+                    // Index is freed when fence is signaled
+                    auto idx = vValues.Find( 0 );
+
+                    if( idx == INVALID_POSITION )
+                    {
+                        idx = vValues.PushBack( value );
+                        if( vFences.GetCount() <= idx )
+                        {
+                            auto idx2 = vFences.PushBack( {} );
+                            VKE_ASSERT( idx == idx2 );
+                            VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                            SFences&   Fences = vFences.Back();
+                            SFenceDesc FenDesc;
+                            FenDesc.startValue = 0;
+                            FenDesc.SetDebugName( "%s_%d", GetDebugName(), idx2 );
+                            Fences.hFence = ToNative( pApi->CreateFence( FenDesc ) );
                             SSemaphoreDesc SemDesc;
-                            SemDesc.SetDebugName( Desc.GetDebugName() );
-                            SemDesc.startValue = Desc.startValue;
-                            Fences.hSemaphore  = pApi->CreateSemaphore( SemDesc, nullptr );
-                            if( isBinary )
-                            {
-                                SFenceDesc FenceDesc;
-                                FenceDesc.SetDebugName( Desc.GetDebugName() );
-                                Fences.hFence = pApi->CreateFence( FenceDesc, nullptr );
-                            }
-                            vFences.PushBack( Fences );
-                            vValues.PushBack( Desc.startValue );
+                            SemDesc.SetDebugName( FenDesc.GetDebugName() );
+                            Fences.hSemaphore = ToNative( pApi->CreateGPUFence( SemDesc ) );
+                            return &Fences;
                         }
                     }
-                    else
-                    {
-                        this->SetDebugName( Desc.GetDebugName() );
-                    }
-
-                    return VKE_OK;
-                }
-
-                /// <summary>
-                /// Increases counter value and returns Fence associated to requested one.
-                /// </summary>
-                /// <param name="pApi"></param>
-                /// <param name="value">New value for which fence will wait</param>
-                /// <returns></returns>
-                SFences* Signal( CDDI* pApi, FenceValue value )
-                {
-                    if( !isBinary && !isNativeMonitored )
-                    {
-                        VKE_ASSERT( this->counter.load() < value );
-                        this->counter = value; // increase current counter
-                        // Check if there is any fence completed
-                        // mark it as 0 and reuse it
-                        Recycle( pApi );
-                        // Find first free index
-                        // Index is free when its value is set to 0
-                        // Index is freed when fence is signaled
-                        auto idx = vValues.Find( 0 );
-
-                        if( idx == INVALID_POSITION )
-                        {
-                            idx = vValues.PushBack( value );
-                            if( vFences.GetCount() <= idx )
-                            {
-                                auto idx2 = vFences.PushBack( {} );
-                                VKE_ASSERT( idx == idx2 );
-                                VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                                SFences&   Fences = vFences.Back();
-                                SFenceDesc FenDesc;
-                                FenDesc.startValue = 0;
-                                FenDesc.SetDebugName( "%s_%d", GetDebugName(), idx2 );
-                                Fences.hFence = pApi->CreateFence( FenDesc, nullptr );
-                                SSemaphoreDesc SemDesc;
-                                SemDesc.SetDebugName( FenDesc.GetDebugName() );
-                                Fences.hSemaphore = pApi->CreateSemaphore( SemDesc, nullptr );
-                                return &Fences;
-                            }
-                        }
-                        // Fence must be signaled if it is recycled
-                        const bool signaled = pApi->IsSignaled( vFences[ idx ].hFence );
-                        VKE_ASSERT( signaled );
-                        VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                        pApi->Reset( &vFences[ idx ].hFence );
-                        vValues[ idx ] = value;
-                        return &vFences[ idx ];
-                    }
-                    else if( isBinary )
-                    {
-                        pApi->WaitForFence( this, 0 );
-                        pApi->Reset( &vFences[ 0 ].hFence );
-                    }
-                    return &vFences[ 0 ];
-                }
-
-                void Recycle( CDDI* pApi )
-                {
-                    GetLastSignaledValue( pApi );
-                }
-
-                SFences* GetFences( FenceValue value )
-                {
-                    if( isNativeMonitored || isBinary )
-                    {
-                        return &vFences[0];
-                    }
-                    auto idx = vValues.Find( value );
+                    // Fence must be signaled if it is recycled
+                    RHI::CPUFence       hFence = FromNative< RHI::CPUFence >( vFences[ idx ].hFence );
+                    const bool signaled = pApi->IsSignaled( hFence );
+                    VKE_ASSERT( signaled );
+                    VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                    
+                    pApi->Reset( &hFence );
+                    vValues[ idx ] = value;
                     return &vFences[ idx ];
                 }
-
-                void Reset(CDDI* pApi, FenceValue value)
+                else if( isBinary )
                 {
-                    VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
-                    for( uint32_t i = 0; i < vFences.GetCount(); ++i )
-                    {
-                        //pApi->Reset( &vFences[ i ].hFence );
-                        vValues[ i ] = 0;
-                    }
-                    counter = value;
-                    lastSignaledValue = 0;
+                    RHI::Fence hFence = FromNative< RHI::Fence >( this );
+                    pApi->WaitForFence( hFence, 0 );
+                    RHI::CPUFence hCPUFence = FromNative< RHI::CPUFence >( vFences[ 0 ].hFence );
+                    pApi->Reset( &hCPUFence );
                 }
+                return &vFences[ 0 ];
+            }
 
-                FenceValue GetLastSignaledValue( const CDDI* pApi )
+            void Recycle( CVulkanAPI* pApi )
+            {
+                GetLastSignaledValue( pApi );
+            }
+
+            SFences* GetFences( RHI::FenceValue value )
+            {
+                if( isNativeMonitored || isBinary )
                 {
-                    for( uint32_t i = 0; i < vValues.GetCount(); ++i )
+                    return &vFences[0];
+                }
+                auto idx = vValues.Find( value );
+                return &vFences[ idx ];
+            }
+
+            void Reset( CVulkanAPI* pApi, RHI::FenceValue value )
+            {
+                VKE_ASSERT( vValues.GetCount() == vFences.GetCount() );
+                for( uint32_t i = 0; i < vFences.GetCount(); ++i )
+                {
+                    //pApi->Reset( &vFences[ i ].hFence );
+                    vValues[ i ] = 0;
+                }
+                counter = value;
+                lastSignaledValue = 0;
+            }
+
+            RHI::FenceValue GetLastSignaledValue( const CVulkanAPI* pApi )
+            {
+                for( uint32_t i = 0; i < vValues.GetCount(); ++i )
+                {
+                    auto value = vValues[ i ];
+                    if( value > 0 )
                     {
-                        auto value = vValues[ i ];
-                        if( value > 0 )
+                        if( pApi->IsSignaled( FromNative( vFences[ i ].hFence ) ) )
                         {
-                            if( pApi->IsSignaled( vFences[ i ].hFence ) )
-                            {
-                                vValues[ i ] = 0; // reset this fence as it is no longer valid
-                                lastSignaledValue          = Math::Max( lastSignaledValue, value );
-                            }
+                            vValues[ i ] = 0; // reset this fence as it is no longer valid
+                            lastSignaledValue          = Math::Max( lastSignaledValue, value );
                         }
                     }
-                    // if lastSignaledValue == 0 that means fence was not signaled yet
-                    //VKE_ASSERT( lastSignaledValue == 0 || lastSignaledValue >= counter.load() );
-                    return lastSignaledValue;
                 }
-            };
-        } // namespace NativeAPI
+                // if lastSignaledValue == 0 that means fence was not signaled yet
+                //VKE_ASSERT( lastSignaledValue == 0 || lastSignaledValue >= counter.load() );
+                return lastSignaledValue;
+            }
+        };
 
         namespace Helper
         {
@@ -1446,7 +1508,7 @@ namespace VKE
                     uint8_t* pChunkMem = pMemory + ( currentElement * chunkSize );
                     uint8_t* pPtr      = pChunkMem + currentChunkOffset;
 
-                    const auto alignedSize  = Memory::CalcAlignedSize( size, alignment );
+                    const auto alignedSize  = VKE::Memory::CalcAlignedSize( size, alignment );
                     currentChunkOffset     += alignedSize;
 
                     return pPtr;
@@ -1499,7 +1561,7 @@ namespace VKE
             };
 
             template< typename HandleT, class DescT >
-            vke_force_inline void SetObjectDebugName( const CDDI* pDDI, HandleT hObj, VkObjectType objType,
+            vke_force_inline void SetObjectDebugName( const CVulkanAPI* pDDI, HandleT hObj, VkObjectType objType,
                                                       const DescT& Desc )
             {
 #if VKE_RENDER_SYSTEM_DEBUG
@@ -1509,33 +1571,30 @@ namespace VKE
 
         } // namespace Helper
 
-        namespace NativeAPI
+        struct NativeAPI::SRenderPass
         {
-            struct SRenderPass
-            {
-                using ColorRenderTargetArray = Utils::TCDynamicArray<VkRenderingAttachmentInfo, 8 >;
-                using ClearColorArray = Utils::TCDynamicArray<VkClearValue, 8>;
-                using FormatArray = Utils::TCDynamicArray<VkFormat, 8>;
-                VKE_RENDER_SYSTEM_DEBUG_NAME;
-                /// <summary>
-                /// Legacy render pass
-                /// </summary>
-                VkRenderPass hNativeRenderPass = NativeAPI::Null;
-                VkFramebuffer             hNativeFramebuffer = NativeAPI::Null;
-                VkRenderPassBeginInfo     NativeBeginInfo;
-                ClearColorArray           vNativeClearColors;
-                ColorRenderTargetArray vColorRenderTargets;
-                VkRenderingAttachmentInfo VkDepthRenderTarget;
-                VkRenderingAttachmentInfo VkStencilRenderTarget;
-                /// <summary>
-                /// Renderpass less
-                /// </summary>
-                VkRenderingInfo VkInfo;
-                FormatArray     vColorRenderTargetFormats;
-                VkFormat        VkDepthRenderTargetFormat;
-                VkFormat        VkStencilRenderTargetFormat;
-            };
-        } // namespace NativeAPI
+            using ColorRenderTargetArray = Utils::TCDynamicArray< VkRenderingAttachmentInfo, 8 >;
+            using ClearColorArray        = Utils::TCDynamicArray< VkClearValue, 8 >;
+            using FormatArray            = Utils::TCDynamicArray< VkFormat, 8 >;
+            VKE_RENDER_SYSTEM_DEBUG_NAME;
+            /// <summary>
+            /// Legacy render pass
+            /// </summary>
+            VkRenderPass              hNativeRenderPass  = NativeAPI::Null;
+            VkFramebuffer             hNativeFramebuffer = NativeAPI::Null;
+            VkRenderPassBeginInfo     NativeBeginInfo;
+            ClearColorArray           vNativeClearColors;
+            ColorRenderTargetArray    vColorRenderTargets;
+            VkRenderingAttachmentInfo VkDepthRenderTarget;
+            VkRenderingAttachmentInfo VkStencilRenderTarget;
+            /// <summary>
+            /// Renderpass less
+            /// </summary>
+            VkRenderingInfo VkInfo;
+            FormatArray     vColorRenderTargetFormats;
+            VkFormat        VkDepthRenderTargetFormat;
+            VkFormat        VkStencilRenderTargetFormat;
+        };
 
         vke_force_inline int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
                                                       uint32_t                                requiredMemBits,
@@ -1723,13 +1782,9 @@ namespace VKE
             }
         };
 
-        Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter, const NativeAPI::DDIExtMap& mExts,
-                                       SDeviceProperties* pOut )
+        Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter,
+                                       SImplementation* pOut )
         {
-            Memory::Zero( &pOut->Features );
-            Memory::Zero( &pOut->Limits );
-            Memory::Zero( &pOut->Properties );
-
             pOut->Properties.Memory = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 };
 
             pOut->Properties.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
@@ -1750,7 +1805,7 @@ namespace VKE
                 .Add( &pOut->Properties.DescriptorIndexing,
                       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES );
 
-            if( mExts.find( VK_EXT_MESH_SHADER_EXTENSION_NAME ) != mExts.end() )
+            if( pOut->m_mExtensions.find( VK_EXT_MESH_SHADER_EXTENSION_NAME ) != pOut->m_mExtensions.end() )
             {
                 NextFeatures.Add( &Features.MeshShaderNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV );
                 NextProperties.Add( &Properties.MeshShaderNV,
@@ -1761,7 +1816,7 @@ namespace VKE
                                     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT );
             }
 
-            if( mExts.find( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME ) != mExts.end() )
+            if( pOut->m_mExtensions.find( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME ) != pOut->m_mExtensions.end() )
             {
                 NextFeatures
                     .Add( &Features.Raytracing10, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR )
@@ -1773,44 +1828,14 @@ namespace VKE
                                     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR );
             }
 
-            NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
-            NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter,
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter,
                                                                                            &pOut->Properties.Memory );
-            NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter,
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter,
                                                                                      &pOut->Properties.Device );
 
-#if 0
-            if( NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceFeatures2 )
-            {
-                NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
-            }
-            else
-            {
-                NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceFeatures( hAdapter, &pOut->Features.Device.features );
-            }
-            if( NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceMemoryProperties2 )
-            {
-                NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->Properties.Memory );
-            }
-            else
-            {
-                NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceMemoryProperties( hAdapter, &pOut->Properties.Memory.memoryProperties );
-            }
-            if( NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties2 )
-            {
-                NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->Properties.Device );
-            }
-            else
-            {
-                NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties( hAdapter, &pOut->Properties.Device.properties );
-            }
-#endif // VKE_VULKAN_1_1
-            {
-                // ICD.Instance.vkGetPhysicalDeviceFormatProperties( vkPhysicalDevice, &m_DeviceInfo.FormatProperties );
-            }
-
             uint32_t propCount = 0;
-            NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(
                 hAdapter, &propCount, nullptr );
             if( propCount == 0 )
             {
@@ -1818,34 +1843,36 @@ namespace VKE
                 return VKE_FAIL;
             }
 
-            pOut->vQueueFamilyProperties.Resize( propCount );
-            auto& aProperties    = pOut->vQueueFamilyProperties;
-            auto& vQueueFamilies = pOut->vQueueFamilies;
+            vke_vector< VkQueueFamilyProperties > vProps( propCount );
 
-            NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(
-                hAdapter, &propCount, &aProperties[ 0 ] );
+            //pOut->EngineDeviceProperties.vQueueFamilyProperties.Resize( propCount );
+            //auto& aProperties    = pOut->EngineDeviceProperties.vQueueFamilyProperties;
+            auto& vQueueFamilies = pOut->EngineDeviceProperties.vQueueFamilies;
+
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(
+                hAdapter, &propCount, &vProps[ 0 ] );
             // Choose a family index
             for( uint32_t i = 0; i < propCount; ++i )
             {
-                auto&    VkProp     = aProperties[ i ];
+                auto&    VkProp     = vProps[ i ];
                 uint32_t isCompute  = VkProp.queueFlags & VK_QUEUE_COMPUTE_BIT;
                 uint32_t isTransfer = VkProp.queueFlags & VK_QUEUE_TRANSFER_BIT;
                 uint32_t isSparse   = VkProp.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
                 uint32_t isGraphics = VkProp.queueFlags & VK_QUEUE_GRAPHICS_BIT;
                 VkBool32 isPresent  = VK_FALSE;
 #if VKE_USE_VULKAN_WINDOWS
-                isPresent = NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR(
+                isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR(
                     hAdapter, i );
 #elif VKE_USE_VULKAN_LINUX
-                isPresent = NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
+                isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
                     hAdapter, i, xcb_connection, visual_id );
 #elif VKE_USE_VULKAN_ANDROID
 #error "implement"
 #endif
 
                 SQueueFamilyInfo Family;
-                Family.vQueues.Resize( aProperties[ i ].queueCount );
-                Family.vPriorities.Resize( aProperties[ i ].queueCount, 1.0f );
+                Family.vQueues.Resize( vProps[ i ].queueCount );
+                Family.vPriorities.Resize( vProps[ i ].queueCount, 1.0f );
                 Family.index = i;
                 Family.type  = QueueTypes::GENERAL;
 
@@ -1876,17 +1903,17 @@ namespace VKE
             for( uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i )
             {
                 const auto& fmt = RenderSystem::g_aFormats[ i ];
-                NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceFormatProperties(
+                SImplementation::sInstanceICD.vkGetPhysicalDeviceFormatProperties(
                     hAdapter, fmt, &pOut->Properties.aFormatProperties[ i ] );
             }
 
             return VKE_OK;
         }
 
-        void CDDI::GetFormatFeatures( FORMAT fmt, STextureFormatFeatures* pOut ) const
+        void CVulkanAPI::GetFormatFeaturesImpl( FORMAT fmt, STextureFormatFeatures* pOut ) const
         {
-            Memory::Zero( pOut );
-            const auto&                             Props = m_DeviceProperties.Properties.aFormatProperties[ fmt ];
+            VKE::Memory::Zero( pOut );
+            const auto&                             Props = m_pImplementation->Properties.aFormatProperties[ fmt ];
             Utils::TCBitset< VkFormatFeatureFlags > Bits( Props.optimalTilingFeatures );
 
             pOut->sampled                  = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
@@ -1904,11 +1931,16 @@ namespace VKE
             pOut->transferDst              = Bits == VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
         }
 
+        const QueueFamilyInfoArray& CVulkanAPI::GetDeviceQueueInfosImpl() const
+        {
+            return m_pImplementation->EngineDeviceProperties.vQueueFamilies;
+        }
+
         using DDIExtNameArray = Utils::TCDynamicArray< cstr_t >;
 
         Result GetDeviceExtensions( VkPhysicalDevice vkPhysicalDevice, NativeAPI::DDIExtMap* pmAllExtensionsOut )
         {
-            auto& sInstanceICD = NativeAPI::SImplementation::sInstanceICD;
+            auto& sInstanceICD = SImplementation::sInstanceICD;
 
             uint32_t count = 0;
             VK_ERR( sInstanceICD.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
@@ -1916,7 +1948,7 @@ namespace VKE
             Utils::TCDynamicArray< VkExtensionProperties > vProperties( count );
             pmAllExtensionsOut->reserve( count );
 
-            VK_ERR( NativeAPI::SImplementation::sInstanceICD.vkEnumerateDeviceExtensionProperties(
+            VK_ERR( SImplementation::sInstanceICD.vkEnumerateDeviceExtensionProperties(
                 vkPhysicalDevice, nullptr, &count, &vProperties[ 0 ] ) );
 
             std::string ext;
@@ -1959,7 +1991,8 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result EnableDeviceExtensions( const NativeAPI::DDIExtMap& mAllExtensions, NativeAPI::SImplementation::SDeviceFeatures* pFeatures,
+        Result EnableDeviceExtensions( const NativeAPI::DDIExtMap&                    mAllExtensions,
+                                       SImplementation::SDeviceFeatures* pFeatures,
                                        DDIExtNameArray*                             pExtToEnable )
         {
             if( !pFeatures->Device12.timelineSemaphore )
@@ -2024,13 +2057,23 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::Load( const SDDILoadInfo& Info, SDriverInfo* pOut )
+        CVulkanAPI::CVulkanAPI()
+        {
+            VKE::Memory::CreateObject( &HeapAllocator, &m_pImplementation );
+        }
+
+        CVulkanAPI::~CVulkanAPI()
+        {
+            VKE::Memory::DestroyObject( &HeapAllocator, &m_pImplementation );
+        }
+
+        Result CVulkanAPI::LoadImpl( const SDDILoadInfo& Info, SDriverInfo* pOut )
         {
             Result ret = VKE_OK;
             VKE_LOG_PROG( "VKEngine loading vulkan-1.dll" );
 
-            auto& sGlobalICD = NativeAPI::SImplementation::sGlobalICD;
-            auto& shICD      = NativeAPI::SImplementation::shICD;
+            auto& sGlobalICD = SImplementation::sGlobalICD;
+            auto& shICD      = SImplementation::shICD;
 
             shICD = Platform::DynamicLibrary::Load( "vulkan-1.dll" );
             if( shICD != 0 )
@@ -2144,37 +2187,37 @@ namespace VKE
                         InstInfo.ppEnabledLayerNames     = vLayerNames.GetData();
 
                         VkResult vkRes =
-                            sGlobalICD.vkCreateInstance( &InstInfo, nullptr, &NativeAPI::SImplementation::sVkInstance );
+                            sGlobalICD.vkCreateInstance( &InstInfo, nullptr, &SImplementation::sVkInstance );
                         VK_ERR( vkRes );
                         if( vkRes == VK_SUCCESS )
                         {
                             VKE_LOG_PROG( "Vulkan instance created with API ver: "
                                           << VK_API_VERSION_MAJOR( apiVersion ) << "."
                                           << VK_API_VERSION_MINOR( apiVersion ) );
-                            ret = Vulkan::LoadInstanceFunctions( NativeAPI::SImplementation::sVkInstance,
+                            ret = Vulkan::LoadInstanceFunctions( SImplementation::sVkInstance,
                                                                  sGlobalICD,
-                                                                 &NativeAPI::SImplementation::sInstanceICD );
+                                                                 &SImplementation::sInstanceICD );
                             if( ret == VKE_OK )
                             {
                                 VKE_LOG_PROG( "Vk instance functions loaded" );
                                 if( Info.enableDebugMode )
                                 {
-                                    if( NativeAPI::SImplementation::sInstanceICD.vkCreateDebugReportCallbackEXT )
+                                    if( SImplementation::sInstanceICD.vkCreateDebugReportCallbackEXT )
                                     {
-                                        vkRes = NativeAPI::SImplementation::sInstanceICD.vkCreateDebugReportCallbackEXT(
-                                            NativeAPI::SImplementation::sVkInstance,
+                                        vkRes = SImplementation::sInstanceICD.vkCreateDebugReportCallbackEXT(
+                                            SImplementation::sVkInstance,
                                             &DbgReport,
                                             nullptr,
-                                            &NativeAPI::SImplementation::sVkDebugReportCallback );
+                                            &SImplementation::sVkDebugReportCallback );
                                         VK_ERR( vkRes );
                                     }
-                                    else if( NativeAPI::SImplementation::sInstanceICD.vkCreateDebugUtilsMessengerEXT )
+                                    else if( SImplementation::sInstanceICD.vkCreateDebugUtilsMessengerEXT )
                                     {
-                                        vkRes = NativeAPI::SImplementation::sInstanceICD.vkCreateDebugUtilsMessengerEXT(
-                                            NativeAPI::SImplementation::sVkInstance,
+                                        vkRes = SImplementation::sInstanceICD.vkCreateDebugUtilsMessengerEXT(
+                                            SImplementation::sVkInstance,
                                             &DbgUtils,
                                             nullptr,
-                                            &NativeAPI::SImplementation::sVkDebugMessengerCallback );
+                                            &SImplementation::sVkDebugMessengerCallback );
                                         VK_ERR( vkRes );
                                     }
                                 }
@@ -2205,14 +2248,14 @@ namespace VKE
 
         void CloseICD()
         {
-            // sGlobalICD.vkDestroyInstance( NativeAPI::SImplementation::sVkInstance, nullptr );
-            NativeAPI::SImplementation::sInstanceICD.vkDestroyInstance( NativeAPI::SImplementation::sVkInstance,
+            // sGlobalICD.vkDestroyInstance( SImplementation::sVkInstance, nullptr );
+            SImplementation::sInstanceICD.vkDestroyInstance( SImplementation::sVkInstance,
                                                                         nullptr );
-            NativeAPI::SImplementation::sVkInstance = VK_NULL_HANDLE;
-            Platform::DynamicLibrary::Close( NativeAPI::SImplementation::shICD );
+            SImplementation::sVkInstance = VK_NULL_HANDLE;
+            Platform::DynamicLibrary::Close( SImplementation::shICD );
         }
 
-        const NativeAPI::SDDIExtension& NativeAPI::SImplementation::GetExtensionInfo( cstr_t pName ) const
+        const NativeAPI::SDDIExtension& SImplementation::GetExtensionInfo( cstr_t pName ) const
         {
             static const NativeAPI::SDDIExtension sDummy;
 
@@ -2226,13 +2269,13 @@ namespace VKE
 
         Result LoadDeviceExtensions( VkPhysicalDevice vkPhysicalDevice, NativeAPI::DDIExtMap* pmAllExtensionsOut )
         {
-            auto& sInstanceICD = NativeAPI::SImplementation::sInstanceICD;
+            auto& sInstanceICD = SImplementation::sInstanceICD;
 
             uint32_t count = 0;
             VK_ERR( sInstanceICD.vkEnumerateDeviceExtensionProperties( vkPhysicalDevice, nullptr, &count, nullptr ) );
             Utils::TCDynamicArray< VkExtensionProperties > vProperties( count );
             pmAllExtensionsOut->reserve( count );
-            VK_ERR( NativeAPI::SImplementation::sInstanceICD.vkEnumerateDeviceExtensionProperties(
+            VK_ERR( SImplementation::sInstanceICD.vkEnumerateDeviceExtensionProperties(
                 vkPhysicalDevice, nullptr, &count, &vProperties[ 0 ] ) );
             std::string ext;
             vke_string  tmpName;
@@ -2248,11 +2291,11 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result EnableDeviceFeatures( VkPhysicalDevice vkPhysicalDevice, SDeviceProperties* pProps,
-                                     NativeAPI::DDIExtMap* pmExts, SSettings* pSettingsOut,
-                                     NativeAPI::SImplementation::SDeviceFeatures* pEnableOut,
+        Result EnableDeviceFeatures( VkPhysicalDevice vkPhysicalDevice,
+                                     SImplementation* pImpl, SSettings* pSettingsOut,
                                      VkDeviceCreateInfo* pOut,
-                                     DDIExtNameArray* pExtOut )
+                                     DDIExtNameArray* pExtOut,
+                                     SImplementation::SDeviceFeatures* pEnableOut )
         {
             // Required extensions
             *pExtOut = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -2263,26 +2306,26 @@ namespace VKE
                          VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
                          VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME };
 
-            Memory::Zero( pEnableOut );
+            VKE::Memory::Zero( &pImpl->Features );
+            VKE::Memory::Zero( &pImpl->Properties );
 
-            Result ret = GetDeviceExtensions( vkPhysicalDevice, pmExts );
+            Result ret = GetDeviceExtensions( vkPhysicalDevice, &pImpl->m_mExtensions );
             if( VKE_FAILED( ret ) )
             {
                 return ret;
             }
 
-            ret = QueryAdapterProperties( vkPhysicalDevice, *pmExts, pProps );
+            ret = QueryAdapterProperties( vkPhysicalDevice, pImpl );
             if( VKE_FAILED( ret ) )
             {
                 return ret;
             }
 
-            auto& Props          = *pProps;
-            auto& Device         = Props.Properties.Device;
-            auto& Features       = Props.Features;
-            auto& Device11       = Props.Features.Device11;
-            auto& Device12       = Props.Features.Device12;
-            auto& DeviceFeatures = Props.Features.Device.features;
+            auto& Device         = pImpl->Properties.Device;
+            auto& Features       = pImpl->Features;
+            auto& Device11       = pImpl->Features.Device11;
+            auto& Device12       = pImpl->Features.Device12;
+            auto& DeviceFeatures = pImpl->Features.Device.features;
             auto& Settings       = *pSettingsOut;
 
             Features.DynamicRendering.dynamicRendering = GetCommandLineParam< int >(
@@ -2322,6 +2365,8 @@ namespace VKE
                     VKE_LOG_ERR( "Required device feature: 'Shader Draw Parameters' is not supported." );
                     ret = VKE_FAIL;
                 }
+
+                pEnableOut->Device11                      = {};
                 pEnableOut->Device11.sType                = Device11.sType;
                 pEnableOut->Device11.shaderDrawParameters = Device11.shaderDrawParameters;
                 NextFeatures.Add( &pEnableOut->Device11 );
@@ -2344,6 +2389,7 @@ namespace VKE
                     }
                 }
 
+                pEnableOut->Device12                        = {};
                 pEnableOut->Device12.sType                  = Device12.sType;
                 pEnableOut->Device12.descriptorIndexing     = Device12.descriptorIndexing;
                 pEnableOut->Device12.runtimeDescriptorArray = Device12.runtimeDescriptorArray;
@@ -2408,60 +2454,61 @@ namespace VKE
             {
             }
 
-            ret = CheckDeviceExtensions( *pmExts, *pExtOut );
+            ret = CheckDeviceExtensions( pImpl->m_mExtensions, *pExtOut );
             if( VKE_SUCCEEDED( ret ) )
             {
-                ret = EnableDeviceExtensions( *pmExts, pEnableOut, pExtOut );
+                ret = EnableDeviceExtensions( pImpl->m_mExtensions, pEnableOut, pExtOut );
             }
             return ret;
         }
 
-        Result CDDI::CreateDevice( const SCreateDeviceDesc& Desc, CDeviceContext* pCtx )
+        Result CVulkanAPI::CreateDeviceImpl( const SCreateDeviceDesc& Desc, CDeviceContext* pCtx )
         {
+            /// TODO: remove m_pCtx. Low level api should not use it.
             m_pCtx             = pCtx;
             m_pCtx->m_Features = Desc.Settings;
 
             auto hAdapter = m_pCtx->m_Desc.pAdapterInfo->hDDIAdapter;
             VKE_ASSERT2( hAdapter != INVALID_HANDLE, "" );
-            m_hAdapter = reinterpret_cast< VkPhysicalDevice >( hAdapter );
+            m_pImplementation->m_hAdapter = reinterpret_cast< VkPhysicalDevice >( hAdapter );
             // VkInstance vkInstance = reinterpret_cast<VkInstance>(Desc.hAPIInstance);
 
             DDIExtNameArray vDDIExtNames;
-            /*VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_hAdapter, &m_mExtensions ) );
-            NativeAPI::DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
+            /*VKE_RETURN_IF_FAILED( LoadDeviceExtensions( m_pImplementation->m_hAdapter, &m_mExtensions ) );
+            RHI::DDIExtArray vRequiredExtensions = GetRequiredDeviceExtensions( false );
             VKE_RETURN_IF_FAILED(
-                CheckDeviceExtensions( m_hAdapter, &vRequiredExtensions,
+                CheckDeviceExtensions( m_pImplementation->m_hAdapter, &vRequiredExtensions,
                     &m_mExtensions, &vDDIExtNames ) );
             VKE_RETURN_IF_FAILED( EnableDeviceExtensions(
                 Desc.Settings.Features, m_mExtensions, &m_DeviceInfo.Features,
                 &vRequiredExtensions ) );
-            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_hAdapter,
+            VKE_RETURN_IF_FAILED( QueryAdapterProperties( m_pImplementation->m_hAdapter,
                 m_mExtensions, &m_DeviceProperties ) );*/
 
             // auto featureLevel = CheckRequestedFeatureLevel(m_DeviceInfo, Desc.Settings.featureLevel );
 
             VkDeviceCreateInfo di;
             Vulkan::InitInfo( &di, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO );
+            SImplementation::SDeviceFeatures FeaturesToEnable;
 
-            if( VKE_FAILED( EnableDeviceFeatures( m_hAdapter,
-                                                  &m_DeviceProperties,
-                                                  &m_Implementation.m_mExtensions,
+            if( VKE_FAILED( EnableDeviceFeatures( m_pImplementation->m_hAdapter,
+                                                  m_pImplementation,
                                                   &m_pCtx->m_Features,
-                                                  &m_Implementation.Features,
                                                   &di,
-                                                  &vDDIExtNames ) ) )
+                                                  &vDDIExtNames,
+                                                  &FeaturesToEnable ) ) )
             {
                 return VKE_FAIL;
             }
 
-            for( uint32_t i = 0; i < m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeapCount; ++i )
+            for( uint32_t i = 0; i < m_pImplementation->Properties.Memory.memoryProperties.memoryHeapCount; ++i )
             {
-                m_Implementation.m_aHeapSizes[ i ] =
-                    m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
+                m_pImplementation->m_aHeapSizes[ i ] =
+                    m_pImplementation->Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
             }
 
             Utils::TCDynamicArray< VkDeviceQueueCreateInfo > vQis;
-            for( auto& Family: m_DeviceProperties.vQueueFamilies )
+            for( auto& Family: m_pImplementation->EngineDeviceProperties.vQueueFamilies )
             {
                 if( !Family.vQueues.IsEmpty() )
                 {
@@ -2474,70 +2521,70 @@ namespace VKE
                     vQis.PushBack( qi );
                 }
             }
-            m_DeviceProperties.Features.Device.features.fillModeNonSolid = true;
+            m_pImplementation->Features.Device.features.fillModeNonSolid = true;
 
             di.enabledExtensionCount   = vDDIExtNames.GetCount();
             di.enabledLayerCount       = 0;
-            di.pEnabledFeatures        = &m_Implementation.Features.Device.features;
+            di.pEnabledFeatures        = &m_pImplementation->Features.Device.features;
             di.ppEnabledExtensionNames = vDDIExtNames.GetData();
             di.ppEnabledLayerNames     = nullptr;
             di.pQueueCreateInfos       = &vQis[ 0 ];
             di.queueCreateInfoCount    = static_cast< uint32_t >( vQis.GetCount() );
             di.flags                   = 0;
 
-            VK_ERR( NativeAPI::SImplementation::sInstanceICD.vkCreateDevice( m_hAdapter, &di, nullptr, &m_hDevice ) );
+            VK_ERR( SImplementation::sInstanceICD.vkCreateDevice( m_pImplementation->m_hAdapter, &di, nullptr, &m_pImplementation->m_hDevice ) );
 
             VKE_RETURN_IF_FAILED( Vulkan::LoadDeviceFunctions(
-                m_hDevice, NativeAPI::SImplementation::sInstanceICD, &m_Implementation.m_ICD ) );
+                m_pImplementation->m_hDevice, SImplementation::sInstanceICD, &m_pImplementation->m_ICD ) );
 
-            for( SQueueFamilyInfo& Family: m_DeviceProperties.vQueueFamilies )
+            for( SQueueFamilyInfo& Family: m_pImplementation->EngineDeviceProperties.vQueueFamilies )
             {
                 for( uint32_t q = 0; q < Family.vQueues.GetCount(); ++q )
                 {
                     VkQueue vkQueue;
-                    m_Implementation.m_ICD.vkGetDeviceQueue( m_hDevice, Family.index, q, &vkQueue );
-                    Family.vQueues[ q ] = vkQueue;
+                    m_pImplementation->m_ICD.vkGetDeviceQueue( m_pImplementation->m_hDevice, Family.index, q, &vkQueue );
+                    Family.vQueues[ q ] = FromNative( vkQueue );
                 }
             }
 
             return VKE_OK;
         }
 
-        void CDDI::DestroyDevice()
+        void CVulkanAPI::DestroyDeviceImpl()
         {
-            if( m_hDevice != NativeAPI::Null )
+            if( m_pImplementation->m_hDevice != NativeAPI::Null )
             {
-                NativeAPI::SImplementation::sInstanceICD.vkDestroyDevice( m_hDevice, nullptr );
+                SImplementation::sInstanceICD.vkDestroyDevice( m_pImplementation->m_hDevice, nullptr );
             }
-            m_hDevice = NativeAPI::Null;
+            m_pImplementation->m_hDevice = NativeAPI::Null;
             m_pCtx    = nullptr;
         }
 
-        Result CDDI::QueryAdapters( AdapterInfoArray* pOut )
+        Result CVulkanAPI::QueryAdaptersImpl( AdapterInfoArray* pOut )
         {
             Result   ret   = VKE_FAIL;
             uint32_t count = 0;
-            VkResult vkRes = NativeAPI::SImplementation::sInstanceICD.vkEnumeratePhysicalDevices(
-                NativeAPI::SImplementation::sVkInstance, &count, nullptr );
+            VkResult vkRes = SImplementation::sInstanceICD.vkEnumeratePhysicalDevices(
+                SImplementation::sVkInstance, &count, nullptr );
             VK_ERR( vkRes );
             if( vkRes == VK_SUCCESS )
             {
                 if( count > 0 )
                 {
-                    svAdapters.Resize( count );
-                    vkRes = NativeAPI::SImplementation::sInstanceICD.vkEnumeratePhysicalDevices(
-                        NativeAPI::SImplementation::sVkInstance, &count, &svAdapters[ 0 ] );
+                    Utils::TCDynamicArray< VkPhysicalDevice > vAdapters( count );
+                    vkRes = SImplementation::sInstanceICD.vkEnumeratePhysicalDevices(
+                        SImplementation::sVkInstance, &count, &vAdapters[ 0 ] );
                     VK_ERR( vkRes );
                     if( vkRes == VK_SUCCESS )
                     {
                         const uint32_t nameLen = Min( VK_MAX_PHYSICAL_DEVICE_NAME_SIZE, Constants::MAX_NAME_LENGTH );
 
-                        for( size_t i = 0; i < svAdapters.GetCount(); ++i )
+                        for( size_t i = 0; i < vAdapters.GetCount(); ++i )
                         {
-                            const auto& vkPhysicalDevice = svAdapters[ i ];
+                            const auto& vkPhysicalDevice = vAdapters[ i ];
 
                             VkPhysicalDeviceProperties Props;
-                            NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties( vkPhysicalDevice,
+                            SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties( vkPhysicalDevice,
                                                                                                     &Props );
                             RenderSystem::SAdapterInfo Info = {};
                             Info.apiVersion                 = Props.apiVersion;
@@ -2546,7 +2593,7 @@ namespace VKE
                             Info.type        = static_cast< RenderSystem::ADAPTER_TYPE >( Props.deviceType );
                             Info.vendorID    = Props.vendorID;
                             Info.hDDIAdapter = reinterpret_cast< handle_t >( vkPhysicalDevice );
-                            Memory::Copy( Info.name, sizeof( Info.name ), Props.deviceName, nameLen );
+                            VKE::Memory::Copy( Info.name, sizeof( Info.name ), Props.deviceName, nameLen );
 
                             pOut->PushBack( Info );
                         }
@@ -2570,39 +2617,36 @@ namespace VKE
             return ret;
         }
 
-        void CDDI::QueryDeviceInfo( SDeviceInfo* pOut )
+        void CVulkanAPI::QueryDeviceInfoImpl( SDeviceInfo* pOut )
         {
             auto& Limits = pOut->Limits;
-
+            VkPhysicalDeviceLimits& VkLimits  = m_pImplementation->Properties.Device.properties.limits;
             auto& Alignment = Limits.Alignment;
             Alignment.constantBufferOffset =
-                static_cast< uint32_t >( m_DeviceProperties.Limits.minUniformBufferOffsetAlignment );
+                static_cast< uint32_t >( VkLimits.minUniformBufferOffsetAlignment );
             Alignment.bufferCopyOffset =
-                static_cast< uint32_t >( m_DeviceProperties.Limits.optimalBufferCopyOffsetAlignment );
-            Alignment.bufferCopyRowPitch  = (uint32_t)m_DeviceProperties.Limits.optimalBufferCopyRowPitchAlignment;
-            Alignment.memoryMap           = (uint32_t)m_DeviceProperties.Limits.minMemoryMapAlignment;
-            Alignment.texelBufferOffset   = (uint32_t)m_DeviceProperties.Limits.minTexelBufferOffsetAlignment;
-            Alignment.storageBufferOffset = (uint32_t)m_DeviceProperties.Limits.minStorageBufferOffsetAlignment;
-
+                static_cast< uint32_t >( VkLimits.optimalBufferCopyOffsetAlignment );
+            Alignment.bufferCopyRowPitch  = (uint32_t)VkLimits.optimalBufferCopyRowPitchAlignment;
+            Alignment.memoryMap           = (uint32_t)VkLimits.minMemoryMapAlignment;
+            Alignment.texelBufferOffset   = (uint32_t)VkLimits.minTexelBufferOffsetAlignment;
+            Alignment.storageBufferOffset = (uint32_t)VkLimits.minStorageBufferOffsetAlignment;
             auto& Binding                        = Limits.Binding;
-            Binding.maxConstantBufferRange       = m_DeviceProperties.Limits.maxUniformBufferRange;
-            Binding.maxPushConstantsSize         = m_DeviceProperties.Limits.maxPushConstantsSize;
-            Binding.Stage.maxConstantBufferCount = m_DeviceProperties.Limits.maxPerStageDescriptorUniformBuffers;
-            Binding.Stage.maxSamplerCount        = m_DeviceProperties.Limits.maxPerStageDescriptorSamplers;
-            Binding.Stage.maxStorageBufferCount  = m_DeviceProperties.Limits.maxPerStageDescriptorStorageBuffers;
-            Binding.Stage.maxStorageTextureCount = m_DeviceProperties.Limits.maxPerStageDescriptorStorageImages;
-            Binding.Stage.maxResourceCount       = m_DeviceProperties.Limits.maxPerStageResources;
-            Binding.Stage.maxTextureCount        = m_DeviceProperties.Limits.maxPerStageDescriptorSampledImages;
-
+            Binding.maxConstantBufferRange       = VkLimits.maxUniformBufferRange;
+            Binding.maxPushConstantsSize         = VkLimits.maxPushConstantsSize;
+            Binding.Stage.maxConstantBufferCount = VkLimits.maxPerStageDescriptorUniformBuffers;
+            Binding.Stage.maxSamplerCount        = VkLimits.maxPerStageDescriptorSamplers;
+            Binding.Stage.maxStorageBufferCount  = VkLimits.maxPerStageDescriptorStorageBuffers;
+            Binding.Stage.maxStorageTextureCount = VkLimits.maxPerStageDescriptorStorageImages;
+            Binding.Stage.maxResourceCount       = VkLimits.maxPerStageResources;
+            Binding.Stage.maxTextureCount        = VkLimits.maxPerStageDescriptorSampledImages;
             auto& Memory                         = Limits.Memory;
-            Memory.maxAllocationCount            = m_DeviceProperties.Limits.maxMemoryAllocationCount;
-            Memory.minMapAlignment               = (uint32_t)m_DeviceProperties.Limits.minMemoryMapAlignment;
-            Memory.minTexelBufferOffsetAlignment = (uint32_t)m_DeviceProperties.Limits.minTexelBufferOffsetAlignment;
+            Memory.maxAllocationCount            = VkLimits.maxMemoryAllocationCount;
+            Memory.minMapAlignment               = (uint32_t)VkLimits.minMemoryMapAlignment;
+            Memory.minTexelBufferOffsetAlignment = (uint32_t)VkLimits.minTexelBufferOffsetAlignment;
             Memory.minConstantBufferOffsetAlignment =
-                (uint32_t)m_DeviceProperties.Limits.minUniformBufferOffsetAlignment;
+                (uint32_t)VkLimits.minUniformBufferOffsetAlignment;
             Memory.minStorageBufferOffsetAlignment =
-                (uint32_t)m_DeviceProperties.Limits.minStorageBufferOffsetAlignment;
-
+                (uint32_t)VkLimits.minStorageBufferOffsetAlignment;
             // Get heaps for GPU, CPU and Upload
 
             for( uint32_t i = 0; i < VK_MAX_MEMORY_HEAPS; ++i )
@@ -2618,7 +2662,7 @@ namespace VKE
                 VkMemoryPropertyFlags vkPropertyFlags =
                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU_COHERENT ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::CPU_COHERENT ] = INVALID_POSITION;
@@ -2633,7 +2677,7 @@ namespace VKE
                 VkMemoryPropertyFlags vkPropertyFlags =
                     VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU_CACHED ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::CPU_CACHED ] = INVALID_POSITION;
@@ -2648,7 +2692,7 @@ namespace VKE
                 VkMemoryPropertyFlags vkPropertyFlags =
                     VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::OTHER ] = 0;
                 // HeapMap.TypeToIndex[ MemoryHeapTypes::OTHER ] = idx;
@@ -2663,7 +2707,7 @@ namespace VKE
             {
                 VkMemoryPropertyFlags vkPropertyFlags =
                     Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS );
-                const auto&   VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::GPU ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::GPU ] = INVALID_POSITION;
@@ -2677,7 +2721,7 @@ namespace VKE
             {
                 VkMemoryPropertyFlags vkPropertyFlags =
                     Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::CPU ] = INVALID_POSITION;
@@ -2693,7 +2737,7 @@ namespace VKE
                                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 HeapMap.TypeToIndex[ MemoryHeapTypes::UPLOAD ] = INVALID_POSITION;
                 if( idx >= 0 )
@@ -2705,10 +2749,10 @@ namespace VKE
             }
 
             auto& RenderPass                     = Limits.RenderPass;
-            RenderPass.maxColorRenderTargetCount = m_DeviceProperties.Limits.maxColorAttachments;
+            RenderPass.maxColorRenderTargetCount = VkLimits.maxColorAttachments;
 
             auto& Query           = Limits.Query;
-            Query.timestampPeriod = m_DeviceProperties.Limits.timestampPeriod;
+            Query.timestampPeriod = VkLimits.timestampPeriod;
         }
 
         uint32_t CalcAlignedSize( uint32_t size, uint32_t alignment )
@@ -2723,7 +2767,17 @@ namespace VKE
             return ret;
         }
 
-        /*void CDDI::UpdateDesc( SBufferDesc* pInOut )
+        const RHI::Device CVulkanAPI::GetDeviceImpl() const
+        {
+            return FromNative( m_pImplementation->m_hDevice );
+        }
+
+        const RHI::Adapter CVulkanAPI::GetAdapterImpl() const
+        {
+            return FromNative( m_pImplementation->m_hAdapter );
+        }
+
+        /*void CVulkanAPI::UpdateDesc( SBufferDesc* pInOut )
         {
             if( pInOut->usage & BufferUsages::READ_ONLY_BUFFER ||
                 pInOut->usage & BufferUsages::UNIFORM_TEXEL_BUFFER )
@@ -2733,15 +2787,15 @@ namespace VKE
             }
         }*/
 
-        NativeAPI::Buffer CDDI::CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
+        RHI::Buffer CVulkanAPI::CreateBufferImpl( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
-            VKE_ASSERT( MemInfo.hDDIMemory != NativeAPI::Null );
+            VKE_ASSERT( MemInfo.hDDIMemory != RHI::Null );
             VKE_ASSERT( MemInfo.reserved != INVALID_HANDLE );
             NativeAPI::Buffer hNativeBuffer = NativeAPI::Null;
             {
-                hNativeBuffer = reinterpret_cast< NativeAPI::Buffer >( MemInfo.reserved );
-                auto vkRes    = m_Implementation.m_ICD.vkBindBufferMemory(
-                    m_hDevice, hNativeBuffer, MemInfo.hDDIMemory, MemInfo.offset );
+                hNativeBuffer = reinterpret_cast<NativeAPI::Buffer>( MemInfo.reserved );
+                auto vkRes    = m_pImplementation->m_ICD.vkBindBufferMemory(
+                    (m_pImplementation->m_hDevice), hNativeBuffer, ToNative(MemInfo.hDDIMemory), MemInfo.offset );
                 if( vkRes == VK_SUCCESS )
                 {
                     VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
@@ -2749,19 +2803,19 @@ namespace VKE
                 }
                 else
                 {
-                    m_Implementation.m_ICD.vkDestroyBuffer( m_hDevice, hNativeBuffer, nullptr );
+                    m_pImplementation->m_ICD.vkDestroyBuffer( m_pImplementation->m_hDevice, hNativeBuffer, nullptr );
                     hNativeBuffer = NativeAPI::Null;
                 }
             }
-            return hNativeBuffer;
+            return FromNative( hNativeBuffer );
         }
 
-        void CDDI::DestroyBuffer( NativeAPI::Buffer* phBuffer, const void* pAllocator )
+        void CVulkanAPI::DestroyBufferImpl( RHI::Buffer* phBuffer, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Buffer, phBuffer, pAllocator );
+            DDI_DESTROY_OBJECT( Buffer, ToNativeArray( phBuffer ), pAllocator );
         }
 
-        NativeAPI::BufferView CDDI::CreateBufferView( const SBufferViewDesc& Desc, const void* pAllocator )
+        RHI::BufferView CVulkanAPI::CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* pAllocator )
         {
             NativeAPI::BufferView  hView = NativeAPI::Null;
             VkBufferViewCreateInfo ci;
@@ -2770,7 +2824,7 @@ namespace VKE
                 ci.pNext  = nullptr;
                 ci.flags  = 0;
                 ci.format = Map::Format( Desc.format );
-                ci.buffer = m_pCtx->GetBuffer( Desc.hBuffer )->GetDDIObject();
+                ci.buffer = ToNative( m_pCtx->GetBuffer( Desc.hBuffer )->GetDDIObject() );
                 ci.offset = Desc.offset;
             }
             VkResult vkRes = DDI_CREATE_OBJECT( BufferView, ci, pAllocator, &hView );
@@ -2778,24 +2832,25 @@ namespace VKE
             VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( (uint64_t)hView, VK_OBJECT_TYPE_BUFFER_VIEW, Desc.GetDebugName() );
 
-            return hView;
+            return FromNative( hView );
         }
 
-        void CDDI::DestroyBufferView( NativeAPI::BufferView* phBufferView, const void* pAllocator )
+        void CVulkanAPI::DestroyBufferViewImpl( RHI::BufferView* phBufferView, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( BufferView, phBufferView, pAllocator );
+            DDI_DESTROY_OBJECT( BufferView, ToNativeArray( phBufferView ), pAllocator );
         }
 
-        NativeAPI::Texture CDDI::CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
+        RHI::Texture CVulkanAPI::CreateTextureImpl( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
         {
-            VKE_ASSERT( MemInfo.hDDIMemory != NativeAPI::Null );
+            NativeAPI::MemoryHeap vkMemory = ToNative( MemInfo.hDDIMemory );
+            VKE_ASSERT( vkMemory != NativeAPI::Null );
             VKE_ASSERT( MemInfo.reserved != INVALID_HANDLE );
             NativeAPI::Texture hNativeTexture = NativeAPI::Null;
-            if( MemInfo.hDDIMemory != NativeAPI::Null && MemInfo.reserved != INVALID_HANDLE )
+            if( vkMemory != NativeAPI::Null && MemInfo.reserved != INVALID_HANDLE )
             {
-                hNativeTexture = reinterpret_cast<NativeAPI::Texture>(MemInfo.reserved);
-                auto               res            = m_Implementation.m_ICD.vkBindImageMemory(
-                    m_hDevice, hNativeTexture, MemInfo.hDDIMemory, MemInfo.offset );
+                hNativeTexture = reinterpret_cast< NativeAPI::Texture >( MemInfo.reserved );
+                auto               res            = m_pImplementation->m_ICD.vkBindImageMemory(
+                    m_pImplementation->m_hDevice, hNativeTexture, vkMemory, MemInfo.offset );
                 VK_ERR( res );
                 if( res == VK_SUCCESS )
                 {
@@ -2817,13 +2872,13 @@ namespace VKE
                 }
                 else
                 {
-                    m_Implementation.m_ICD.vkDestroyImage( m_hDevice, hNativeTexture, nullptr );
+                    m_pImplementation->m_ICD.vkDestroyImage( m_pImplementation->m_hDevice, ( hNativeTexture ), nullptr );
                 }
             }
-            return hNativeTexture;
+            return FromNative( hNativeTexture );
         }
 
-        Result CDDI::GetTextureFormatProperties( const STextureDesc& Desc, STextureFormatProperties* pOut )
+        Result CVulkanAPI::GetTextureFormatPropertiesImpl( const STextureDesc& Desc, STextureFormatProperties* pOut )
         {
             Result                           ret              = VKE_OK;
             VkPhysicalDeviceImageFormatInfo2 NativeFormatInfo = {
@@ -2838,8 +2893,8 @@ namespace VKE
 
             VkImageFormatProperties2 NativeProperties = { .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
                                                           .pNext = nullptr };
-            auto nativeResult = NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceImageFormatProperties2(
-                m_hAdapter, &NativeFormatInfo, &NativeProperties );
+            auto nativeResult = SImplementation::sInstanceICD.vkGetPhysicalDeviceImageFormatProperties2(
+                m_pImplementation->m_hAdapter, &NativeFormatInfo, &NativeProperties );
             VK_ERR( nativeResult );
             pOut->MaxSize            = { NativeProperties.imageFormatProperties.maxExtent.width };
             pOut->maxDepth           = NativeProperties.imageFormatProperties.maxExtent.depth;
@@ -2850,12 +2905,12 @@ namespace VKE
             return ret;
         }
 
-        void CDDI::DestroyTexture( NativeAPI::Texture* phImage, const void* pAllocator )
+        void CVulkanAPI::DestroyTextureImpl( RHI::Texture* phImage, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Image, phImage, pAllocator );
+            DDI_DESTROY_OBJECT( Image, ToNativeArray( phImage ), pAllocator );
         }
 
-        NativeAPI::TextureView CDDI::CreateTextureView( const STextureViewDesc& Desc, const void* pAllocator )
+        RHI::TextureView CVulkanAPI::CreateTextureViewImpl( const STextureViewDesc& Desc, const void* pAllocator )
         {
             static const VkComponentMapping DefaultMapping = {
                 VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A
@@ -2870,7 +2925,7 @@ namespace VKE
                 ci.components = DefaultMapping;
                 ci.flags      = 0;
                 ci.format     = Map::Format( Desc.format );
-                ci.image      = pTex->GetDDIObject();
+                ci.image      = ToNative( pTex->GetDDIObject() );
                 ci.pNext      = nullptr;
                 ci.sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
                 ci.viewType   = Map::ImageViewType( Desc.type );
@@ -2884,15 +2939,15 @@ namespace VKE
             SetObjectDebugName( (uint64_t)hView, VK_OBJECT_TYPE_IMAGE_VIEW, Desc.GetDebugName() );
 #endif
 
-            return hView;
+            return FromNative< RHI::TextureView >( hView );
         }
 
-        void CDDI::DestroyTextureView( NativeAPI::TextureView* phImageView, const void* pAllocator )
+        void CVulkanAPI::DestroyTextureViewImpl( RHI::TextureView* phImageView, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( ImageView, phImageView, pAllocator );
+            DDI_DESTROY_OBJECT( ImageView, ToNativeArray( phImageView ), pAllocator );
         }
 
-        NativeAPI::Framebuffer CDDI::CreateFramebuffer( const SFramebufferDesc& Desc, const void* pAllocator )
+        RHI::Framebuffer CVulkanAPI::CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* pAllocator )
         {
             // const uint32_t attachmentCount = Desc.vDDIAttachments.GetCount();
 
@@ -2904,8 +2959,8 @@ namespace VKE
             ci.height          = Desc.Size.height;
             ci.layers          = 1;
             ci.attachmentCount = Desc.vDDIAttachments.GetCount();
-            ci.pAttachments    = Desc.vDDIAttachments.GetData();
-            ci.renderPass      = (VkRenderPass)Desc.hRenderPass->hNativeRenderPass;
+            ci.pAttachments    = ToNativeArray( Desc.vDDIAttachments.GetData() );
+            ci.renderPass      = (VkRenderPass)ToNative( Desc.hRenderPass )->hNativeRenderPass;
             // ci.renderPass = m_pCtx->GetRenderPass( Desc.hRenderPass )->GetDDIObject();
 
             NativeAPI::Framebuffer hFramebuffer = NativeAPI::Null;
@@ -2915,15 +2970,15 @@ namespace VKE
             VKE_ASSERT2( strlen( Desc.GetDebugName() ) > 0, "Debug name must be set in Debug mode" );
             SetObjectDebugName( (uint64_t)hFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, Desc.GetDebugName() );
 
-            return hFramebuffer;
+            return FromNative( hFramebuffer );
         }
 
-        void CDDI::DestroyFramebuffer( NativeAPI::Framebuffer* phFramebuffer, const void* pAllocator )
+        void CVulkanAPI::DestroyFramebufferImpl( RHI::Framebuffer* phFramebuffer, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Framebuffer, phFramebuffer, pAllocator );
+            DDI_DESTROY_OBJECT( Framebuffer, ToNativeArray( phFramebuffer ), pAllocator );
         }
 
-        NativeAPI::CPUFence CDDI::CreateFence( const SFenceDesc& Desc, const void* pAllocator ) const
+        RHI::CPUFence CVulkanAPI::CreateFenceImpl( const SFenceDesc& Desc, const void* pAllocator ) const
         {
             VkFenceCreateInfo ci;
             ci.sType                 = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -2933,44 +2988,45 @@ namespace VKE
             VkResult            res  = DDI_CREATE_OBJECT( Fence, ci, pAllocator, &hObj );
             VK_ERR( res );
             Helper::SetObjectDebugName( this, hObj, VK_OBJECT_TYPE_FENCE, Desc );
-            return hObj;
+            return FromNative( hObj );
         }
 
-        NativeAPI::Fence CDDI::CreateFence2( const SFenceDesc& Desc ) const
+        RHI::Fence CVulkanAPI::CreateFence2Impl( const SFenceDesc& Desc ) const
         {
             VKE_ASSERT( Desc.IsDebugNameEmpty() == false );
             NativeAPI::SFence* pFence = nullptr;
             
-            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
+            if( VKE_SUCCEEDED( VKE::Memory::CreateObject( &HeapAllocator, &pFence ) ) )
             {
-                if( VKE_FAILED( pFence->Create( this, Desc, m_Implementation.Features.Device12.timelineSemaphore ) ) )
+                if( VKE_FAILED( pFence->Create( this, Desc, m_pImplementation->Features.Device12.timelineSemaphore ) ) )
                 {
-                    Memory::DestroyObject( &HeapAllocator, &pFence );
+                    VKE::Memory::DestroyObject( &HeapAllocator, &pFence );
                 }
             }
-            return pFence;
+            return FromNative( pFence );
         }
 
-        void CDDI::DestroyFence( NativeAPI::CPUFence* phFence, const void* pAllocator )
+        void CVulkanAPI::DestroyFenceImpl( RHI::CPUFence* phFence, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Fence, phFence, pAllocator );
+            DDI_DESTROY_OBJECT( Fence, ToNativeArray( phFence ), pAllocator );
         }
 
-        void CDDI::DestroyFence( NativeAPI::Fence* phFence )
+        void CVulkanAPI::DestroyFenceImpl( RHI::Fence* phFence )
         {
-            NativeAPI::Fence pFence = *phFence;
+            NativeAPI::Fence pFence  = ToNative( *phFence );
             auto&            vFences = pFence->vFences;
             for( uint32_t i = 0; i < vFences.GetCount(); ++i )
             {
-                DestroyFence( &vFences[ i ].hFence, nullptr );
-                DestroySemaphore( &vFences[ i ].hSemaphore, nullptr );
+                DestroyFenceImpl( FromNativeArray( &vFences[ i ].hFence ), nullptr );
+                DestroySemaphoreImpl( FromNativeArray( &vFences[ i ].hSemaphore ), nullptr );
             }
-            Memory::DestroyObject( &HeapAllocator, phFence );
+            Memory::DestroyObject( &HeapAllocator, &pFence );
+            *phFence = RHI::Null;
         }
 
-        NativeAPI::GPUFence CDDI::CreateSemaphore( const SSemaphoreDesc& Desc, const void* pAllocator ) const
+        RHI::GPUFence CVulkanAPI::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
         {
-            NativeAPI::GPUFence   hSemaphore = NativeAPI::Null;
+            NativeAPI::GPUFence hSemaphore = NativeAPI::Null;
             
             VkSemaphoreCreateInfo ci;
             ci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -2989,15 +3045,15 @@ namespace VKE
             }
             VK_ERR( DDI_CREATE_OBJECT( Semaphore, ci, pAllocator, &hSemaphore ) );
             Helper::SetObjectDebugName( this, hSemaphore, VK_OBJECT_TYPE_SEMAPHORE, Desc );
-            return hSemaphore;
+            return FromNative( hSemaphore );
         }
 
-        void CDDI::DestroySemaphore( NativeAPI::GPUFence* phSemaphore, const void* pAllocator )
+        void CVulkanAPI::DestroySemaphoreImpl( RHI::GPUFence* phSemaphore, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Semaphore, phSemaphore, pAllocator );
+            DDI_DESTROY_OBJECT( Semaphore, ToNativeArray( phSemaphore ), pAllocator );
         }
 
-        NativeAPI::CommandBufferPool CDDI::CreateCommandBufferPool( const SCommandBufferPoolDesc& Desc,
+        RHI::CommandBufferPool CVulkanAPI::CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc,
                                                                     const void*                   pAllocator )
         {
             NativeAPI::CommandBufferPool hPool = NativeAPI::Null;
@@ -3005,15 +3061,16 @@ namespace VKE
             ci.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             ci.pNext            = nullptr;
             ci.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            /// TODO: do not use pContext
             ci.queueFamilyIndex = Desc.pContext->m_pQueue->GetFamilyIndex();
             VkResult res        = DDI_CREATE_OBJECT( CommandPool, ci, pAllocator, &hPool );
             VK_ERR( res );
-            return hPool;
+            return FromNative( hPool );
         }
 
-        void CDDI::DestroyCommandBufferPool( NativeAPI::CommandBufferPool* phPool, const void* pAllocator )
+        void CVulkanAPI::DestroyCommandBufferPoolImpl( RHI::CommandBufferPool* phPool, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( CommandPool, phPool, pAllocator );
+            DDI_DESTROY_OBJECT( CommandPool, ToNativeArray( phPool ), pAllocator );
         }
 
         static int32_t FindTextureHandle( const SRenderPassDesc::AttachmentDescArray& vAttachments,
@@ -3046,15 +3103,15 @@ namespace VKE
             return res;
         }
 
-        NativeAPI::RenderPass CDDI::CreateRenderPass( const SRenderPassDesc& Desc, const void* )
+        RHI::RenderPass CVulkanAPI::CreateRenderPassImpl( const SRenderPassDesc& Desc, const void* )
         {
             NativeAPI::RenderPass pPass = NativeAPI::Null;
             if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPass ) ) )
             {
-                return NativeAPI::Null;
+                return RHI::Null;
             }
             
-            if( m_Implementation.Features.DynamicRendering.dynamicRendering )
+            if( m_pImplementation->Features.DynamicRendering.dynamicRendering )
             {
                 auto& BeginInfo = pPass->VkInfo;
                 BeginInfo       = {};
@@ -3067,7 +3124,7 @@ namespace VKE
                 for( uint32_t a = 0; a < Desc.vRenderTargets.GetCount(); ++a )
                 {
                     const SRenderPassAttachmentDesc& AttachmentDesc = Desc.vRenderTargets[ a ];
-                    VKE_ASSERT( AttachmentDesc.hNativeView != NativeAPI::Null );
+                    VKE_ASSERT( AttachmentDesc.hRHIView != RHI::Null );
                     
 
                     VkRenderingAttachmentInfo Info;
@@ -3075,7 +3132,7 @@ namespace VKE
                     Info.pNext = nullptr;
                     Convert::ClearValues( &AttachmentDesc.ClearValue, 1, &Info.clearValue );
                     Info.imageLayout = Map::ImageLayout( AttachmentDesc.beginState );
-                    Info.imageView   = AttachmentDesc.hNativeView;
+                    Info.imageView   = ToNative( AttachmentDesc.hRHIView );
                     Info.loadOp      = Convert::UsageToLoadOp( AttachmentDesc.usage );
                     Info.storeOp     = Convert::UsageToStoreOp( AttachmentDesc.usage );
                     Info.resolveMode = VK_RESOLVE_MODE_NONE;
@@ -3269,7 +3326,7 @@ namespace VKE
                     ci.subpassCount    = vVkSubpassDescs.GetCount();
                     ci.pSubpasses      = &vVkSubpassDescs[ 0 ];
                     ci.flags           = 0;
-                    VkResult res       = m_Implementation.m_ICD.vkCreateRenderPass( m_hDevice, &ci, nullptr, &pPass->hNativeRenderPass );
+                    VkResult res       = m_pImplementation->m_ICD.vkCreateRenderPass( m_pImplementation->m_hDevice, &ci, nullptr, &pPass->hNativeRenderPass );
                     VK_ERR( res );
                     SetObjectDebugName( (uint64_t)pPass->hNativeRenderPass, VK_OBJECT_TYPE_RENDER_PASS, Desc.GetDebugName() );
                 }
@@ -3283,7 +3340,7 @@ namespace VKE
                     Utils::TCDynamicArray< VkImageView, 8 > vNativeViews;
                     for( uint32_t i = 0; i < Desc.vRenderTargets.GetCount(); ++i )
                     {
-                        vNativeViews.PushBack( Desc.vRenderTargets[ i ].hNativeView );
+                        vNativeViews.PushBack( ToNative( Desc.vRenderTargets[ i ].hRHIView ) );
                     }
                     VkFramebufferCreateInfo FbCi;
                     FbCi.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -3295,8 +3352,8 @@ namespace VKE
                     FbCi.width                   = Desc.Size.width;
                     FbCi.height                  = Desc.Size.height;
                     FbCi.renderPass              = pPass->hNativeRenderPass;
-                    VkResult res                 = m_Implementation.m_ICD.vkCreateFramebuffer(
-                        m_hDevice, &FbCi, nullptr, &pPass->hNativeFramebuffer );
+                    VkResult res                 = m_pImplementation->m_ICD.vkCreateFramebuffer(
+                        m_pImplementation->m_hDevice, &FbCi, nullptr, &pPass->hNativeFramebuffer );
                     if( res == VK_SUCCESS )
                     {
                         auto& bi             = pPass->NativeBeginInfo;
@@ -3311,26 +3368,27 @@ namespace VKE
                     }
                     else
                     {
-                        DestroyRenderPass( &pPass, nullptr );
+                        DestroyRenderPassImpl( FromNativeArray( &pPass ), nullptr );
                         pPass = nullptr;
                     }
                 }
             }
-            return pPass;
+            return FromNative( pPass );
         }
 
-        void CDDI::DestroyRenderPass( NativeAPI::RenderPass* phRenderPass, const void* pAllocator )
+        void CVulkanAPI::DestroyRenderPassImpl( RHI::RenderPass* phRenderPass, const void* pAllocator )
         {
-            auto pPass = ( *phRenderPass );
+            NativeAPI::RenderPass pPass = ToNative( *phRenderPass );
             if( pPass != NativeAPI::Null && pPass->hNativeRenderPass != NativeAPI::Null )
             {
-                m_Implementation.m_ICD.vkDestroyRenderPass( m_hDevice, pPass->hNativeRenderPass, nullptr );
+                m_pImplementation->m_ICD.vkDestroyRenderPass( m_pImplementation->m_hDevice, pPass->hNativeRenderPass, nullptr );
                 Memory::DestroyObject( &HeapAllocator, &pPass );
-                *phRenderPass = NativeAPI::Null;
+                *phRenderPass = RHI::Null;
             }
         }
 
-        NativeAPI::DescriptorPool CDDI::CreateDescriptorPool( const SDescriptorPoolDesc& Desc, const void* pAllocator )
+        RHI::DescriptorPool CVulkanAPI::CreateDescriptorPoolImpl( const SDescriptorPoolDesc& Desc,
+                                                                        const void*                pAllocator )
         {
             NativeAPI::DescriptorPool  hPool = NativeAPI::Null;
             VkDescriptorPoolCreateInfo ci;
@@ -3349,25 +3407,25 @@ namespace VKE
             }
             ci.pPoolSizes = &vVkSizes[ 0 ];
 
-            // VkResult res = m_Implementation.m_ICD.vkCreateDescriptorPool( m_hDevice, &ci, pVkAllocator,
+            // VkResult res = m_pImplementation->m_ICD.vkCreateDescriptorPool( m_pImplementation->m_hDevice, &ci, pVkAllocator,
             // &hPool );
             VkResult res = DDI_CREATE_OBJECT( DescriptorPool, ci, pAllocator, &hPool );
             VK_ERR( res );
             SetObjectDebugName( (uint64_t)hPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, Desc.GetDebugName() );
-            return hPool;
+            return FromNative( hPool );
         }
 
-        void CDDI::DestroyDescriptorPool( NativeAPI::DescriptorPool* phPool, const void* pAllocator )
+        void CVulkanAPI::DestroyDescriptorPoolImpl( RHI::DescriptorPool* phPool, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( DescriptorPool, phPool, pAllocator );
+            DDI_DESTROY_OBJECT( DescriptorPool, ToNativeArray( phPool ), pAllocator );
         }
 
-        NativeAPI::Pipeline CDDI::CreatePipeline( const SPipelineDesc& Desc, const void* pAllocator )
+        RHI::Pipeline CVulkanAPI::CreatePipelineImpl( const SPipelineDesc& Desc, const void* pAllocator )
         {
             NativeAPI::Pipeline          hPipeline    = NativeAPI::Null;
             VkResult                     vkRes        = VK_ERROR_OUT_OF_HOST_MEMORY;
             const VkAllocationCallbacks* pVkCallbacks = reinterpret_cast< const VkAllocationCallbacks* >( pAllocator );
-            VKE_ASSERT2( Desc.hDDIRenderPass != NativeAPI::Null, "RenderPass must be set" );
+            VKE_ASSERT2( Desc.hDDIRenderPass != RHI::Null, "RenderPass must be set" );
 
             // Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState,
             // Config::RenderSystem::Pipeline::MAX_BLEND_STATE_COUNT > vVkBlendStates;
@@ -3547,7 +3605,7 @@ namespace VKE
                                 if( VKE_FAILED( pShader->Compile() ) )
                                 {
                                 }
-                                State.module               = pShader->GetDDIObject();
+                                State.module               = ToNative( pShader->GetDDIObject() );
                                 State.pName                = pShader->GetDesc().EntryPoint.GetData();
                                 State.stage                = Map::ShaderStage( static_cast< SHADER_TYPE >( i ) );
                                 State.pSpecializationInfo  = nullptr;
@@ -3702,25 +3760,25 @@ namespace VKE
                 }
 
                 bool create = true;
-                if( Desc.hDDILayout )
+                if( Desc.hDDILayout != RHI::Null )
                 {
-                    VkGraphicsInfo.layout = Desc.hDDILayout;
+                    VkGraphicsInfo.layout = ToNative( Desc.hDDILayout );
                 }
                 else
                 {
                     create = Desc.hLayout != INVALID_HANDLE;
                     if( create )
                     {
-                        VkGraphicsInfo.layout = m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject();
+                        VkGraphicsInfo.layout = ToNative( m_pCtx->GetPipelineLayout( Desc.hLayout )->GetDDIObject() );
                     }
                     else
                     {
                         VKE_LOG_WARN( "No valid pipeline layout handle provided. Pipeline will not be created." );
                     }
                 }
-                if( Desc.hDDIRenderPass != NativeAPI::Null )
+                if( Desc.hDDIRenderPass != RHI::Null )
                 {
-                    VkGraphicsInfo.renderPass = Desc.hDDIRenderPass->hNativeRenderPass;
+                    VkGraphicsInfo.renderPass = ToNative( Desc.hDDIRenderPass )->hNativeRenderPass;
                 }
                 /*else if( Desc.hRenderPass != INVALID_HANDLE )
                 {
@@ -3737,9 +3795,9 @@ namespace VKE
                         VkGraphicsInfo.pNext         = &VkDynamicRenderingInfo;
                         VkDynamicRenderingInfo.viewMask = 0;
 
-                        if( Desc.hDDIRenderPass != NativeAPI::Null )
+                        if( Desc.hDDIRenderPass != RHI::Null )
                         {
-                            const auto                                    pPass = Desc.hDDIRenderPass;
+                            const auto                                    pPass = ToNative( Desc.hDDIRenderPass );
                             
                             VkDynamicRenderingInfo.colorAttachmentCount = pPass->vColorRenderTargetFormats.GetCount();
                             VkDynamicRenderingInfo.pColorAttachmentFormats = pPass->vColorRenderTargetFormats.GetData();
@@ -3751,14 +3809,14 @@ namespace VKE
                             vFormats = Map::Formats( Desc.vColorRenderTargetFormats.GetData(),
                                                                 Desc.vColorRenderTargetFormats.GetCount() );
                             VkDynamicRenderingInfo.colorAttachmentCount    = vFormats.GetCount();
-                            VkDynamicRenderingInfo.pColorAttachmentFormats = vFormats.GetDataOrNull();
+                            VkDynamicRenderingInfo.pColorAttachmentFormats = reinterpret_cast<const VkFormat*>(vFormats.GetDataOrNull());
                             VkDynamicRenderingInfo.depthAttachmentFormat = Map::Format( Desc.depthRenderTargetFormat );
                             VkDynamicRenderingInfo.stencilAttachmentFormat =
                                 Map::Format( Desc.stencilRenderTargetFormat );
                         }
                     }
-                    vkRes = m_Implementation.m_ICD.vkCreateGraphicsPipelines(
-                        m_hDevice, VK_NULL_HANDLE, 1, &VkGraphicsInfo, nullptr, &hPipeline );
+                    vkRes = m_pImplementation->m_ICD.vkCreateGraphicsPipelines(
+                        m_pImplementation->m_hDevice, VK_NULL_HANDLE, 1, &VkGraphicsInfo, nullptr, &hPipeline );
                 }
             }
             else
@@ -3780,33 +3838,33 @@ namespace VKE
                     if( VKE_FAILED( pShader->Compile() ) )
                     {
                     }
-                    ci.stage.module = pShader->GetDDIObject();
+                    ci.stage.module = ToNative( pShader->GetDDIObject() );
                     ci.stage.pName  = pShader->GetDesc().EntryPoint.GetData();
                     ci.stage.stage  = Map::ShaderStage( static_cast< SHADER_TYPE >( ShaderTypes::COMPUTE ) );
                     ci.stage.pSpecializationInfo = nullptr;
                 }
 
                 VkComputeInfo.layout = (VkPipelineLayout)( Desc.hLayout.handle );
-                vkRes                = m_Implementation.m_ICD.vkCreateComputePipelines(
-                    m_hDevice, VK_NULL_HANDLE, 1, &VkComputeInfo, pVkCallbacks, &hPipeline );
+                vkRes                = m_pImplementation->m_ICD.vkCreateComputePipelines(
+                    m_pImplementation->m_hDevice, VK_NULL_HANDLE, 1, &VkComputeInfo, pVkCallbacks, &hPipeline );
             }
 
             VK_ERR( vkRes );
             SetObjectDebugName( (uint64_t)hPipeline, VK_OBJECT_TYPE_PIPELINE, Desc.GetDebugName() );
-            return hPipeline;
+            return FromNative( hPipeline );
         }
 
-        void CDDI::DestroyPipeline( NativeAPI::Pipeline* phPipeline, const void* pAllocator )
+        void CVulkanAPI::DestroyPipelineImpl( RHI::Pipeline* phPipeline, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Pipeline, phPipeline, pAllocator );
+            DDI_DESTROY_OBJECT( Pipeline, ToNativeArray( phPipeline ), pAllocator );
         }
 
-        NativeAPI::DescriptorSetLayout CDDI::CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc,
+        RHI::DescriptorSetLayout CVulkanAPI::CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
                                                                         const void*                     pAllocator )
         {
             if( !Desc.IsValid() )
             {
-                return NativeAPI::Null;
+                return RHI::Null;
             }
             NativeAPI::DescriptorSetLayout hLayout = NativeAPI::Null;
 
@@ -3841,25 +3899,25 @@ namespace VKE
                 SetObjectDebugName( (uint64_t)hLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, Desc.GetDebugName() );
             }
 
-            return hLayout;
+            return FromNative( hLayout );
         }
 
-        void CDDI::Update( const SUpdateBufferDescriptorSetInfo& Info )
+        void CVulkanAPI::UpdateImpl( const SUpdateBufferDescriptorSetInfo& Info )
         {
             VkWriteDescriptorSet VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 
             VkWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             VkWrite.dstBinding      = Info.binding;
             VkWrite.descriptorCount = Info.count;
-            VkWrite.dstSet          = Info.hDDISet;
+            VkWrite.dstSet          = ToNative( Info.hDDISet );
             VkWrite.dstArrayElement = 0;
             const auto pVkBufferInfos =
                 reinterpret_cast< const VkDescriptorBufferInfo* >( Info.vBufferInfos.GetData() );
             VkWrite.pBufferInfo = pVkBufferInfos;
-            m_Implementation.m_ICD.vkUpdateDescriptorSets( m_hDevice, 1, &VkWrite, 0, nullptr );
+            m_pImplementation->m_ICD.vkUpdateDescriptorSets( m_pImplementation->m_hDevice, 1, &VkWrite, 0, nullptr );
         }
 
-        void CDDI::Update( const SUpdateTextureDescriptorSetInfo& Info )
+        void CVulkanAPI::UpdateImpl( const SUpdateTextureDescriptorSetInfo& Info )
         {
             Utils::TCDynamicArray< VkDescriptorImageInfo, 8 > vVkInfos;
             for( uint32_t i = 0; i < Info.vTextureInfos.GetCount(); ++i )
@@ -3867,8 +3925,8 @@ namespace VKE
                 const auto&           Curr = Info.vTextureInfos[ i ];
                 VkDescriptorImageInfo VkInfo;
                 VkInfo.imageLayout = Map::ImageLayout( Curr.textureState );
-                VkInfo.imageView   = Curr.hDDITextureView;
-                VkInfo.sampler     = Curr.hDDISampler;
+                VkInfo.imageView   = ToNative( Curr.hDDITextureView );
+                VkInfo.sampler     = ToNative( Curr.hDDISampler );
                 vVkInfos.PushBack( VkInfo );
             }
 
@@ -3877,13 +3935,13 @@ namespace VKE
             VkWrite.descriptorType       = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             VkWrite.dstArrayElement      = 0;
             VkWrite.dstBinding           = Info.binding;
-            VkWrite.dstSet               = Info.hDDISet;
+            VkWrite.dstSet               = ToNative( Info.hDDISet );
             VkWrite.pImageInfo           = vVkInfos.GetData();
 
-            m_Implementation.m_ICD.vkUpdateDescriptorSets( m_hDevice, 1, &VkWrite, 0, nullptr );
+            m_pImplementation->m_ICD.vkUpdateDescriptorSets( m_pImplementation->m_hDevice, 1, &VkWrite, 0, nullptr );
         }
 
-        void CDDI::Update( const NativeAPI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
+        void CVulkanAPI::UpdateImpl( const RHI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
         {
             Utils::TCDynamicArray< VkWriteDescriptorSet > vVkWrites;
             VkWriteDescriptorSet                          VkWrite = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -3912,7 +3970,7 @@ namespace VKE
                 {
                     VkDescriptorImageInfo VkInfo;
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    VkInfo.imageView   = m_pCtx->GetTextureView( Curr.ahHandles[ j ] )->GetDDIObject();
+                    VkInfo.imageView   = ToNative( m_pCtx->GetTextureView( Curr.ahHandles[ j ] )->GetDDIObject() );
                     VkInfo.sampler     = NativeAPI::Null;
                     vvVkRenderTargetInfos[ i ].PushBack( VkInfo );
                 }
@@ -3922,7 +3980,7 @@ namespace VKE
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding      = Curr.binding;
                 VkWrite.pImageInfo      = vvVkRenderTargetInfos[ i ].GetData();
-                VkWrite.dstSet          = hDDISet;
+                VkWrite.dstSet          = ToNative( hDDISet );
                 vVkWrites.PushBack( VkWrite );
             }
 
@@ -3935,7 +3993,7 @@ namespace VKE
                     VkDescriptorImageInfo VkInfo;
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     VkInfo.imageView = m_pCtx->GetTextureView( Curr.ahHandles[j] )->GetDDIObject();
-                    VkInfo.sampler = NativeAPI::Null;
+                    VkInfo.sampler = RHI::Null;
                     vVkImgInfos[1].PushBack( VkInfo );
                 }
 
@@ -3955,7 +4013,7 @@ namespace VKE
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    VkInfo.imageView   = m_pCtx->GetTextureView( Curr.ahHandles[ j ] )->GetDDIObject();
+                    VkInfo.imageView   = ToNative( m_pCtx->GetTextureView( Curr.ahHandles[ j ] )->GetDDIObject() );
                     VkInfo.sampler     = NativeAPI::Null;
                     vvVkImageViewsInfos[ i ].PushBack( VkInfo );
                     /*VKE_LOG("Update desc set: " << hDDISet << ", " << (uint32_t)Curr.binding << ", " <<
@@ -3967,7 +4025,7 @@ namespace VKE
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding      = Curr.binding;
                 VkWrite.pImageInfo      = vvVkImageViewsInfos[ i ].GetData();
-                VkWrite.dstSet          = hDDISet;
+                VkWrite.dstSet          = ToNative( hDDISet );
                 vVkWrites.PushBack( VkWrite );
             }
 
@@ -3979,7 +4037,7 @@ namespace VKE
                     VkDescriptorImageInfo VkInfo;
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     VkInfo.imageView   = NativeAPI::Null;
-                    VkInfo.sampler     = m_pCtx->GetSampler( Curr.ahHandles[ j ] )->GetDDIObject();
+                    VkInfo.sampler     = ToNative( m_pCtx->GetSampler( Curr.ahHandles[ j ] )->GetDDIObject() );
                     vvVkSamplerInfos[ i ].PushBack( VkInfo );
                 }
 
@@ -3988,7 +4046,7 @@ namespace VKE
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding      = Curr.binding;
                 VkWrite.pImageInfo      = vvVkSamplerInfos[ i ].GetData();
-                VkWrite.dstSet          = hDDISet;
+                VkWrite.dstSet          = ToNative( hDDISet );
                 vVkWrites.PushBack( VkWrite );
             }
 
@@ -3999,8 +4057,8 @@ namespace VKE
                 {
                     VkDescriptorImageInfo VkInfo;
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    VkInfo.imageView   = m_pCtx->GetTextureView( Curr.ahTexViews[ j ] )->GetDDIObject();
-                    VkInfo.sampler     = m_pCtx->GetSampler( Curr.ahSamplers[ j ] )->GetDDIObject();
+                    VkInfo.imageView   = ToNative( m_pCtx->GetTextureView( Curr.ahTexViews[ j ] )->GetDDIObject() );
+                    VkInfo.sampler     = ToNative( m_pCtx->GetSampler( Curr.ahSamplers[ j ] )->GetDDIObject() );
                     vvVkImageSamplerInfosArrays[ i ].PushBack( VkInfo );
                 }
 
@@ -4009,7 +4067,7 @@ namespace VKE
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding      = Curr.binding;
                 VkWrite.pImageInfo      = vvVkImageSamplerInfosArrays[ i ].GetData();
-                VkWrite.dstSet          = hDDISet;
+                VkWrite.dstSet          = ToNative( hDDISet );
                 vVkWrites.PushBack( VkWrite );
             }
 
@@ -4025,7 +4083,7 @@ namespace VKE
                 for( uint32_t j = 0; j < Curr.count; ++j )
                 {
                     VkDescriptorBufferInfo VkInfo;
-                    VkInfo.buffer = m_pCtx->GetBuffer( Curr.ahHandles[ j ] )->GetDDIObject();
+                    VkInfo.buffer = ToNative( m_pCtx->GetBuffer( Curr.ahHandles[ j ] )->GetDDIObject() );
                     VkInfo.offset = Curr.offset;
                     VkInfo.range  = Curr.elementSize * Curr.elementCount;
                     vVkBuffInfos.PushBack( VkInfo );
@@ -4036,15 +4094,15 @@ namespace VKE
                 VkWrite.dstArrayElement = 0;
                 VkWrite.dstBinding      = Curr.binding;
                 VkWrite.pBufferInfo     = vVkBuffInfos.GetData();
-                VkWrite.dstSet          = hDDISet;
+                VkWrite.dstSet          = ToNative( hDDISet );
                 vVkWrites.PushBack( VkWrite );
             }
 
-            m_Implementation.m_ICD.vkUpdateDescriptorSets(
-                m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr );
+            m_pImplementation->m_ICD.vkUpdateDescriptorSets(
+                m_pImplementation->m_hDevice, vVkWrites.GetCount(), vVkWrites.GetData(), 0, nullptr );
         }
 
-        void CDDI::Update( const NativeAPI::DescriptorSet& hDDISrcSet, NativeAPI::DescriptorSet* phDDIDstOut )
+        void CVulkanAPI::UpdateImpl( const RHI::DescriptorSet& hDDISrcSet, RHI::DescriptorSet* phDDIDstOut )
         {
             VkCopyDescriptorSet vkCopy;
             vkCopy.sType           = VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET;
@@ -4054,17 +4112,19 @@ namespace VKE
             vkCopy.dstBinding      = 0;
             vkCopy.srcArrayElement = 0;
             vkCopy.srcBinding      = 1;
-            vkCopy.srcSet          = hDDISrcSet;
-            vkCopy.dstSet          = *phDDIDstOut;
-            m_Implementation.m_ICD.vkUpdateDescriptorSets( m_hDevice, 0, 0, 1, &vkCopy );
+            vkCopy.srcSet          = ToNative( hDDISrcSet );
+            vkCopy.dstSet          = ToNative( *phDDIDstOut );
+            m_pImplementation->m_ICD.vkUpdateDescriptorSets( m_pImplementation->m_hDevice, 0, 0, 1, &vkCopy );
         }
 
-        void CDDI::DestroyDescriptorSetLayout( NativeAPI::DescriptorSetLayout* phLayout, const void* pAllocator )
+        void CVulkanAPI::DestroyDescriptorSetLayoutImpl( RHI::DescriptorSetLayout* phLayout,
+                                                         const void*                     pAllocator )
         {
-            DDI_DESTROY_OBJECT( DescriptorSetLayout, phLayout, pAllocator );
+            DDI_DESTROY_OBJECT( DescriptorSetLayout, ToNativeArray( phLayout ), pAllocator );
         }
 
-        NativeAPI::PipelineLayout CDDI::CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* pAllocator )
+        RHI::PipelineLayout CVulkanAPI::CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc,
+                                                                        const void*                pAllocator )
         {
             VKE_ASSERT( !Desc.IsDebugNameEmpty() );
             NativeAPI::PipelineLayout  hLayout = NativeAPI::Null;
@@ -4080,27 +4140,27 @@ namespace VKE
             Utils::TCDynamicArray< VkDescriptorSetLayout, MAX_COUNT > vVkDescLayouts;
             for( uint32_t i = 0; i < ci.setLayoutCount; ++i )
             {
-                // NativeAPI::DescriptorSetLayout hDDIObj = m_pCtx->GetDescriptorSetLayout(
+                // RHI::DescriptorSetLayout hDDIObj = m_pCtx->GetDescriptorSetLayout(
                 // Desc.vDescriptorSetLayouts[i] )->GetDDIObject();
-                NativeAPI::DescriptorSetLayout hDDIObj =
+                RHI::DescriptorSetLayout hDDIObj =
                     m_pCtx->GetDescriptorSetLayout( Desc.vDescriptorSetLayouts[ i ] );
-                vVkDescLayouts.PushBack( hDDIObj );
+                vVkDescLayouts.PushBack( ToNative( hDDIObj ) );
             }
             ci.pSetLayouts            = vVkDescLayouts.GetData();
             ci.pPushConstantRanges    = nullptr;
             ci.pushConstantRangeCount = 0;
 
             VK_ERR( DDI_CREATE_OBJECT( PipelineLayout, ci, pAllocator, &hLayout ) );
-            SetObjectDebugName( (uint64_t)hLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, Desc.GetDebugName() );
-            return hLayout;
+            SetObjectDebugName( (uint64_t)( hLayout ), VK_OBJECT_TYPE_PIPELINE_LAYOUT, Desc.GetDebugName() );
+            return FromNative( hLayout );
         }
 
-        void CDDI::DestroyPipelineLayout( NativeAPI::PipelineLayout* phLayout, const void* pAllocator )
+        void CVulkanAPI::DestroyPipelineLayoutImpl( RHI::PipelineLayout* phLayout, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( PipelineLayout, phLayout, pAllocator );
+            DDI_DESTROY_OBJECT( PipelineLayout, ToNativeArray( phLayout ), pAllocator );
         }
 
-        NativeAPI::Shader CDDI::CreateShader( const SShaderData& Data, const void* pAllocator )
+        RHI::Shader CVulkanAPI::CreateShaderImpl( const SShaderData& Data, const void* pAllocator )
         {
             VKE_ASSERT2( Data.stage == ShaderCompilationStages::COMPILED_IR_BINARY && Data.codeSize > 0 &&
                              Data.codeSize % 4 == 0 && Data.pCode != nullptr,
@@ -4114,15 +4174,15 @@ namespace VKE
             ci.pCode    = reinterpret_cast< const uint32_t* >( Data.pCode );
             ci.codeSize = Data.codeSize;
             VK_ERR( DDI_CREATE_OBJECT( ShaderModule, ci, pAllocator, &hShader ) );
-            return hShader;
+            return FromNative( hShader );
         }
 
-        void CDDI::DestroyShader( NativeAPI::Shader* phShader, const void* pAllocator )
+        void CVulkanAPI::DestroyShaderImpl( RHI::Shader* phShader, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( ShaderModule, phShader, pAllocator );
+            DDI_DESTROY_OBJECT( ShaderModule, ToNativeArray( phShader ), pAllocator );
         }
 
-        NativeAPI::Sampler CDDI::CreateSampler( const SSamplerDesc& Desc, const void* pAllocator )
+        RHI::Sampler CVulkanAPI::CreateSamplerImpl( const SSamplerDesc& Desc, const void* pAllocator )
         {
             NativeAPI::Sampler  hSampler = NativeAPI::Null;
             VkSamplerCreateInfo ci;
@@ -4145,37 +4205,38 @@ namespace VKE
             ci.mipmapMode              = Map::MipmapMode( Desc.mipmapMode );
             ci.unnormalizedCoordinates = Desc.unnormalizedCoordinates;
             VK_ERR( DDI_CREATE_OBJECT( Sampler, ci, pAllocator, &hSampler ) );
-            return hSampler;
+            return FromNative( hSampler );
         }
 
-        void CDDI::DestroySampler( NativeAPI::Sampler* phSampler, const void* pAllocator )
+        void CVulkanAPI::DestroySamplerImpl( RHI::Sampler* phSampler, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Sampler, phSampler, pAllocator );
+            DDI_DESTROY_OBJECT( Sampler, ToNativeArray( phSampler ), pAllocator );
         }
 
-        NativeAPI::Event CDDI::CreateEvent( const SEventDesc&, const void* pAllocator )
+        RHI::Event CVulkanAPI::CreateEventImpl( const SEventDesc&, const void* pAllocator )
         {
             static const VkEventCreateInfo ci = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
             NativeAPI::Event               hRet;
             VK_ERR( DDI_CREATE_OBJECT( Event, ci, pAllocator, &hRet ) );
-            return hRet;
+            return FromNative( hRet );
         }
 
-        void CDDI::DestroyEvent( NativeAPI::Event* phEvent, const void* pAllocator )
+        void CVulkanAPI::DestroyEventImpl( RHI::Event* phEvent, const void* pAllocator )
         {
-            DDI_DESTROY_OBJECT( Event, phEvent, pAllocator );
+            DDI_DESTROY_OBJECT( Event, ToNativeArray( phEvent ), pAllocator );
         }
 
-        Result CDDI::CreateDescriptorSets( const AllocateDescs::SDescSet& Info, NativeAPI::DescriptorSet* pSets )
+        Result CVulkanAPI::CreateDescriptorSetsImpl( const AllocateDescs::SDescSet& Info,
+                                                     RHI::DescriptorSet*      pSets )
         {
             Result                      ret = VKE_FAIL;
             VkDescriptorSetAllocateInfo ai;
             ai.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             ai.pNext              = nullptr;
-            ai.descriptorPool     = Info.hPool;
+            ai.descriptorPool     = ToNative( Info.hPool );
             ai.descriptorSetCount = Info.count;
-            ai.pSetLayouts        = Info.phLayouts;
-            VkResult res          = m_Implementation.m_ICD.vkAllocateDescriptorSets( m_hDevice, &ai, pSets );
+            ai.pSetLayouts        = ToNativeArray( Info.phLayouts );
+            VkResult res          = m_pImplementation->m_ICD.vkAllocateDescriptorSets( m_pImplementation->m_hDevice, &ai, ToNativeArray( pSets ) );
 
             switch( res )
             {
@@ -4195,19 +4256,20 @@ namespace VKE
             {
                 for( uint32_t i = 0; i < ai.descriptorSetCount; ++i )
                 {
-                    SetObjectDebugName( (uint64_t)pSets[ i ], VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName() );
+                    SetObjectDebugName( (uint64_t)ToNative( pSets[ i ] ), VK_OBJECT_TYPE_DESCRIPTOR_SET, Info.GetDebugName() );
                 }
             }
 #endif
             return ret;
         }
 
-        void CDDI::FreeObjects( const FreeDescs::SDescSet& Desc )
+        void CVulkanAPI::FreeObjectsImpl( const FreeDescs::SDescSet& Desc )
         {
-            m_Implementation.m_ICD.vkFreeDescriptorSets( m_hDevice, Desc.hPool, Desc.count, Desc.phSets );
+            m_pImplementation->m_ICD.vkFreeDescriptorSets( m_pImplementation->m_hDevice, ToNative( Desc.hPool ), Desc.count, ToNativeArray( Desc.phSets ) );
         }
 
-        Result CDDI::CreateCommandBuffers( const SAllocateCommandBufferInfo& Info, NativeAPI::CommandBuffer* pBuffers )
+        Result CVulkanAPI::CreateCommandBuffersImpl( const SAllocateCommandBufferInfo& Info,
+                                                     RHI::CommandBuffer*         pBuffers )
         {
             Result                      ret = VKE_FAIL;
             VkCommandBufferAllocateInfo ai;
@@ -4215,29 +4277,29 @@ namespace VKE
             ai.pNext              = nullptr;
             ai.level              = Map::CommandBufferLevel( Info.level );
             ai.commandBufferCount = Info.count;
-            ai.commandPool        = Info.hDDIPool;
-            VkResult res          = m_Implementation.m_ICD.vkAllocateCommandBuffers( m_hDevice, &ai, pBuffers );
+            ai.commandPool        = ToNative( Info.hDDIPool );
+            VkResult res          = m_pImplementation->m_ICD.vkAllocateCommandBuffers( m_pImplementation->m_hDevice, &ai, ToNativeArray( pBuffers ) );
             VK_ERR( res );
             ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
             return ret;
         }
 
-        void CDDI::FreeObjects( const SFreeCommandBufferInfo& Info )
+        void CVulkanAPI::FreeObjectsImpl( const SFreeCommandBufferInfo& Info )
         {
-            m_Implementation.m_ICD.vkFreeCommandBuffers(
-                m_hDevice, Info.hDDIPool, Info.count, Info.pDDICommandBuffers );
+            m_pImplementation->m_ICD.vkFreeCommandBuffers(
+                m_pImplementation->m_hDevice, ToNative( Info.hDDIPool ), Info.count, ToNativeArray( Info.pDDICommandBuffers ) );
         }
 
-        size_t CDDI::GetMemoryHeapTotalSize( MEMORY_HEAP_TYPE type ) const
+        size_t CVulkanAPI::GetMemoryHeapTotalSizeImpl( MEMORY_HEAP_TYPE type ) const
         {
             const auto idx = HeapMap.TypeToIndex[ type ];
-            return m_DeviceProperties.Properties.Memory.memoryProperties.memoryHeaps[ idx ].size;
+            return m_pImplementation->Properties.Memory.memoryProperties.memoryHeaps[ idx ].size;
         }
 
-        size_t CDDI::GetMemoryHeapCurrentSize( MEMORY_HEAP_TYPE type ) const
+        size_t CVulkanAPI::GetMemoryHeapCurrentSizeImpl( MEMORY_HEAP_TYPE type ) const
         {
             const auto idx = HeapMap.TypeToIndex[ type ];
-            return m_Implementation.m_aHeapSizes[ idx ];
+            return m_pImplementation->m_aHeapSizes[ idx ];
         }
 
         vke_force_inline int32_t FindMemoryTypeIndex( const VkPhysicalDeviceMemoryProperties* pMemProps,
@@ -4259,11 +4321,11 @@ namespace VKE
             return -1;
         }
 
-        MEMORY_HEAP_TYPE CDDI::GetMemoryHeapType( MEMORY_USAGE usage ) const
+        MEMORY_HEAP_TYPE CVulkanAPI::GetMemoryHeapTypeImpl( MEMORY_USAGE usage ) const
         {
             MEMORY_HEAP_TYPE      ret             = MemoryHeapTypes::OTHER;
             VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( usage );
-            const auto&           VkMemProps      = m_DeviceProperties.Properties.Memory.memoryProperties;
+            const auto&           VkMemProps      = m_pImplementation->Properties.Memory.memoryProperties;
             const int32_t         idx             = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
             if( idx >= 0 )
             {
@@ -4285,25 +4347,25 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
+        Result CVulkanAPI::AllocateImpl( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
         {
             Result                ret             = VKE_FAIL;
             VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.usage );
 
-            const auto& VkMemProps = m_DeviceProperties.Properties.Memory.memoryProperties;
+            const auto& VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
             int32_t     idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
             // const uint32_t idx = HeapMap.TypeToIndex[  ];
-            NativeAPI::Memory hMemory;
+            NativeAPI::MemoryHeap hMemory;
             if( idx >= 0 )
             {
                 auto heapIdx  = VkMemProps.memoryTypes[ idx ].heapIndex;
                 auto memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
                 // If there is no space left in upload heap try to allocate on CPU
                 if( ( Desc.usage & MemoryUsages::UPLOAD ) == MemoryUsages::UPLOAD &&
-                    m_Implementation.m_aHeapSizes[ heapIdx ] < Desc.size )
+                    m_pImplementation->m_aHeapSizes[ heapIdx ] < Desc.size )
                 {
                     VKE_LOG_WARN( "No free space left on UPLOAD heap: "
-                                  << VKE_LOG_MEM_SIZE( m_Implementation.m_aHeapSizes[ heapIdx ] )
+                                  << VKE_LOG_MEM_SIZE( m_pImplementation->m_aHeapSizes[ heapIdx ] )
                                   << ", requested allocation size: " << VKE_LOG_MEM_SIZE( Desc.size )
                                   << ". Trying to allocate on a CPU heap instead." );
                     MEMORY_USAGE newUsages = MemoryUsages::STAGING_BUFFER;
@@ -4313,18 +4375,18 @@ namespace VKE
                     heapIdx  = VkMemProps.memoryTypes[ idx ].heapIndex;
                     memFlags = VkMemProps.memoryTypes[ idx ].propertyFlags;
                 }
-                VKE_ASSERT2( m_Implementation.m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
+                VKE_ASSERT2( m_pImplementation->m_aHeapSizes[ heapIdx ] >= Desc.size, "" );
                 VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
                 ai.allocationSize       = Desc.size;
                 ai.memoryTypeIndex      = idx;
-                VkResult res            = m_Implementation.m_ICD.vkAllocateMemory( m_hDevice, &ai, nullptr, &hMemory );
+                VkResult res            = m_pImplementation->m_ICD.vkAllocateMemory( m_pImplementation->m_hDevice, &ai, nullptr, &hMemory );
                 VK_ERR( res );
                 if( res == VK_SUCCESS )
                 {
-                    m_Implementation.m_aHeapSizes[ heapIdx ] -= ai.allocationSize;
+                    m_pImplementation->m_aHeapSizes[ heapIdx ] -= ai.allocationSize;
 
-                    pOut->hDDIMemory = hMemory;
-                    pOut->sizeLeft   = static_cast< uint32_t >( m_Implementation.m_aHeapSizes[ heapIdx ] );
+                    pOut->hDDIMemory = FromNative( hMemory );
+                    pOut->sizeLeft   = static_cast< uint32_t >( m_pImplementation->m_aHeapSizes[ heapIdx ] );
                     pOut->heapType   = Map::VkMemPropertyFlagsToHeapType( memFlags );
                 }
                 ret = res == VK_SUCCESS ? VKE_OK : VKE_ENOMEMORY;
@@ -4336,7 +4398,7 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::GetTextureMemoryRequirements( const STextureDesc& Desc,
+        Result CVulkanAPI::GetTextureMemoryRequirementsImpl( const STextureDesc&               Desc,
                                                    SAllocationMemoryRequirementInfo* pOut )
         {
             NativeAPI::Texture hImage = NativeAPI::Null;
@@ -4361,18 +4423,18 @@ namespace VKE
                 ci.usage                 = Map::ImageUsage( Desc.usage );
             }
             
-            VkResult vkRes = m_Implementation.m_ICD.vkCreateImage( m_hDevice, &ci, nullptr, &hImage );
+            VkResult vkRes = m_pImplementation->m_ICD.vkCreateImage( m_pImplementation->m_hDevice, &ci, nullptr, &hImage );
             VK_ERR( vkRes );
 
             VkMemoryRequirements VkReq;
-            m_Implementation.m_ICD.vkGetImageMemoryRequirements( m_hDevice, hImage, &VkReq );
+            m_pImplementation->m_ICD.vkGetImageMemoryRequirements( m_pImplementation->m_hDevice, hImage, &VkReq );
             pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
             pOut->size      = static_cast< uint32_t >( VkReq.size );
             pOut->reserved  = reinterpret_cast<handle_t>(hImage); // Return the image handle so we can destroy it later
             return VKE_OK;
         }
 
-        Result CDDI::GetBufferMemoryRequirements( const SBufferDesc& Desc,
+        Result CVulkanAPI::GetBufferMemoryRequirementsImpl( const SBufferDesc&                Desc,
                                                   SAllocationMemoryRequirementInfo* pOut )
         {
             Result             ret = VKE_FAIL;
@@ -4395,7 +4457,7 @@ namespace VKE
             if( vkRes == VK_SUCCESS )
             {
                 VkMemoryRequirements VkReq;
-                m_Implementation.m_ICD.vkGetBufferMemoryRequirements( m_hDevice, hBuffer, &VkReq );
+                m_pImplementation->m_ICD.vkGetBufferMemoryRequirements( m_pImplementation->m_hDevice, hBuffer, &VkReq );
                 {
                     ret             = VKE_OK;
                     pOut->alignment = static_cast< uint32_t >( VkReq.alignment );
@@ -4411,56 +4473,58 @@ namespace VKE
             return ret;
         }
 
-        void CDDI::Free( NativeAPI::Memory* phMemory, const void* pAllocator )
+        void CVulkanAPI::FreeImpl( RHI::MemoryHeap* phMemory, const void* pAllocator )
         {
-            if( *phMemory != NativeAPI::Null )
+            if( *phMemory != RHI::Null )
             {
-                m_Implementation.m_ICD.vkFreeMemory(
-                    m_hDevice, *phMemory, reinterpret_cast< const VkAllocationCallbacks* >( pAllocator ) );
+                m_pImplementation->m_ICD.vkFreeMemory(
+                    m_pImplementation->m_hDevice, ToNative( *phMemory ), reinterpret_cast< const VkAllocationCallbacks* >( pAllocator ) );
             }
-            *phMemory = NativeAPI::Null;
+            *phMemory = RHI::Null;
         }
 
-        bool CDDI::IsSignaled( const NativeAPI::CPUFence& hFence ) const
+        bool CVulkanAPI::IsSignaledImpl( const RHI::CPUFence& hFence ) const
         {
             // return WaitForFences( hFence, 0 ) == VKE_OK;
-            VkResult res = m_Implementation.m_ICD.vkGetFenceStatus( m_hDevice, hFence );
+            VkResult res = m_pImplementation->m_ICD.vkGetFenceStatus( m_pImplementation->m_hDevice, ToNative( hFence ) );
             return res == VK_SUCCESS;
         }
 
-        bool CDDI::IsSignaled( const NativeAPI::Fence& hFence ) const
+        bool CVulkanAPI::IsSignaledImpl( const RHI::Fence& hFence ) const
         {
-            const auto& Fences = hFence->vFences;
-            return IsSignaled( Fences[ hFence->counter.load() ].hFence );
+            auto        pVkFence = ToNative( hFence );
+            const auto& Fences = pVkFence->vFences;
+            return IsSignaledImpl( FromNative( Fences[ pVkFence->counter.load() ].hFence ) );
         }
 
-        NativeAPI::FenceValue CDDI::GetCompletedValue( const NativeAPI::Fence& hFence ) const
+        RHI::FenceValue CVulkanAPI::GetCompletedValueImpl( const RHI::Fence& hFence ) const
         {
+            auto pVkFence = ToNative( hFence );
             /// TODO: handle TDR
-            if( hFence->isNativeMonitored )
+            if( pVkFence->isNativeMonitored )
             {
                 uint64_t v;
-                m_Implementation.m_ICD.vkGetSemaphoreCounterValue( m_hDevice, hFence->GetFences( 0 )->hSemaphore, &v );
+                m_pImplementation->m_ICD.vkGetSemaphoreCounterValue( m_pImplementation->m_hDevice, pVkFence->GetFences( 0 )->hSemaphore, &v );
                 return v;
             }
-            return hFence->GetLastSignaledValue( this );
+            return pVkFence->GetLastSignaledValue( this );
         }
 
-        void CDDI::Reset( NativeAPI::CPUFence* phFence )
+        void CVulkanAPI::ResetImpl( RHI::CPUFence* phFence )
         {
-            VK_ERR( m_Implementation.m_ICD.vkResetFences( m_hDevice, 1, phFence ) );
+            VK_ERR( m_pImplementation->m_ICD.vkResetFences( m_pImplementation->m_hDevice, 1, ToNativeArray( phFence ) ) );
         }
 
-        void CDDI::Reset( NativeAPI::Fence* phFence, NativeAPI::FenceValue value )
+        void CVulkanAPI::ResetImpl( RHI::Fence* phFence, RHI::FenceValue value )
         {
             auto& Fence = *phFence;
-            Fence->Reset( this, value );
+            ToNative( Fence )->Reset( this, value );
         }
 
-        Result CDDI::WaitForFences( const NativeAPI::CPUFence& hFence, uint64_t timeout ) const
+        Result CVulkanAPI::WaitForFencesImpl( const RHI::CPUFence& hFence, uint64_t timeout ) const
         {
-            VKE_ASSERT( hFence != NativeAPI::Null );
-            VkResult res = m_Implementation.m_ICD.vkWaitForFences( m_hDevice, 1, &hFence, VK_TRUE, timeout );
+            VKE_ASSERT( hFence != RHI::Null );
+            VkResult res = m_pImplementation->m_ICD.vkWaitForFences( m_pImplementation->m_hDevice, 1, ToNativeArray( &hFence ), VK_TRUE, timeout );
 
             Result ret = VKE_FAIL;
             switch( res )
@@ -4479,18 +4543,19 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::WaitForFence( NativeAPI::Fence hFence, NativeAPI::FenceValue value ) const
+        Result CVulkanAPI::WaitForFenceImpl( RHI::Fence hFence, RHI::FenceValue value ) const
         {
-            if( hFence->isNativeMonitored && hFence->isBinary == false )
+            auto hVkFence = ToNative( hFence );
+            if( hVkFence->isNativeMonitored && hVkFence->isBinary == false )
             {
                 VkSemaphoreWaitInfo VkWaitInfo;
                 VkWaitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
                 VkWaitInfo.pNext = nullptr;
                 VkWaitInfo.flags = 0;
                 VkWaitInfo.semaphoreCount = 1;
-                VkWaitInfo.pSemaphores    = &hFence->GetFences( value )->hSemaphore;
+                VkWaitInfo.pSemaphores    = &hVkFence->GetFences( value )->hSemaphore;
                 VkWaitInfo.pValues        = &value;
-                VkResult res = m_Implementation.m_ICD.vkWaitSemaphores( m_hDevice, &VkWaitInfo, UINT64_MAX );
+                VkResult res = m_pImplementation->m_ICD.vkWaitSemaphores( m_pImplementation->m_hDevice, &VkWaitInfo, UINT64_MAX );
                 switch( res )
                 {
                     case VK_SUCCESS:
@@ -4503,28 +4568,28 @@ namespace VKE
                         return VKE_FAIL;
                 };
             }
-            return WaitForFences( hFence->GetFences( value )->hFence, UINT64_MAX );
+            return WaitForFencesImpl( FromNative( hVkFence->GetFences( value )->hFence ), UINT64_MAX );
         }
 
-        Result CDDI::WaitForQueue( const NativeAPI::Queue& hQueue )
+        Result CVulkanAPI::WaitForQueueImpl( const RHI::Queue& hQueue )
         {
-            VkResult res = m_Implementation.m_ICD.vkQueueWaitIdle( hQueue );
+            VkResult res = m_pImplementation->m_ICD.vkQueueWaitIdle( ToNative( hQueue ) );
             VK_ERR( res );
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
         }
 
-        Result CDDI::WaitForDevice()
+        Result CVulkanAPI::WaitForDeviceImpl()
         {
-            VkResult res = m_Implementation.m_ICD.vkDeviceWaitIdle( m_hDevice );
+            VkResult res = m_pImplementation->m_ICD.vkDeviceWaitIdle( m_pImplementation->m_hDevice );
             VK_ERR( res );
             return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
         }
 
-        void* CDDI::MapMemory( const SMapMemoryInfo& Info )
+        void* CVulkanAPI::MapMemoryImpl( const SMapMemoryInfo& Info )
         {
             void*    pData;
             VkResult res =
-                m_Implementation.m_ICD.vkMapMemory( m_hDevice, Info.hMemory, Info.offset, Info.size, 0, &pData );
+                m_pImplementation->m_ICD.vkMapMemory( m_pImplementation->m_hDevice, ToNative( Info.hMemory ), Info.offset, Info.size, 0, &pData );
             if( res != VK_SUCCESS )
             {
                 pData = nullptr;
@@ -4533,20 +4598,20 @@ namespace VKE
             return pData;
         }
 
-        void CDDI::UnmapMemory( const SMapMemoryInfo& Info )
+        void CVulkanAPI::UnmapMemoryImpl( const SMapMemoryInfo& Info )
         {
-            m_Implementation.m_ICD.vkUnmapMemory( m_hDevice, Info.hMemory );
+            m_pImplementation->m_ICD.vkUnmapMemory( m_pImplementation->m_hDevice, ToNative( Info.hMemory ) );
         }
 
-        void CDDI::Draw( const NativeAPI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
+        void CVulkanAPI::DrawImpl( const RHI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
                          const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance )
         {
-            m_Implementation.m_ICD.vkCmdDraw( hCommandBuffer, vertexCount, instanceCount, firstVertex, firstInstance );
+            m_pImplementation->m_ICD.vkCmdDraw( ToNative( hCommandBuffer ), vertexCount, instanceCount, firstVertex, firstInstance );
         }
 
-        void CDDI::DrawIndexed( const NativeAPI::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
+        void CVulkanAPI::DrawIndexedImpl( const RHI::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
         {
-            m_Implementation.m_ICD.vkCmdDrawIndexed( hCommandBuffer,
+            m_pImplementation->m_ICD.vkCmdDrawIndexed( ToNative( hCommandBuffer ),
                                                      Params.Indexed.indexCount,
                                                      Params.Indexed.instanceCount,
                                                      Params.Indexed.startIndex,
@@ -4554,13 +4619,13 @@ namespace VKE
                                                      Params.Indexed.startInstance );
         }
 
-        void CDDI::DrawMesh( const NativeAPI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
+        void CVulkanAPI::DrawMeshImpl( const RHI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
                              uint32_t depth )
         {
-            m_Implementation.m_ICD.vkCmdDrawMeshTasksEXT( hCommandBuffer, width, height, depth );
+            m_pImplementation->m_ICD.vkCmdDrawMeshTasksEXT( ToNative( hCommandBuffer ), width, height, depth );
         }
 
-        void CDDI::Copy( const NativeAPI::CommandBuffer& hCmdBuffer, const SCopyBufferToTextureInfo& Info )
+        void CVulkanAPI::CopyImpl( const RHI::CommandBuffer& hCmdBuffer, const SCopyBufferToTextureInfo& Info )
         {
             Utils::TCDynamicArray< VkBufferImageCopy > vRegions( Info.vRegions.GetCount() );
             for( uint32_t i = 0; i < vRegions.GetCount(); ++i )
@@ -4580,19 +4645,19 @@ namespace VKE
                 VkRegion.imageSubresource.mipLevel       = Region.TextureSubresource.beginMipmapLevel;
             }
             VkImageLayout vkLayout = Map::ImageLayout( Info.textureState );
-            m_Implementation.m_ICD.vkCmdCopyBufferToImage(
-                hCmdBuffer, Info.hDDISrcBuffer, Info.hDDIDstTexture, vkLayout, vRegions.GetCount(), &vRegions[ 0 ] );
+            m_pImplementation->m_ICD.vkCmdCopyBufferToImage(
+                ToNative( hCmdBuffer ), ToNative( Info.hDDISrcBuffer ), ToNative( Info.hDDIDstTexture ), vkLayout, vRegions.GetCount(), &vRegions[ 0 ] );
         }
 
-        void CDDI::Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyBufferInfo& Info )
+        void CVulkanAPI::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyBufferInfo& Info )
         {
             VkBufferCopy VkCopy;
             VkCopy.srcOffset = Info.Region.srcBufferOffset;
             VkCopy.dstOffset = Info.Region.dstBufferOffset;
             VkCopy.size      = Info.Region.size;
 
-            m_Implementation.m_ICD.vkCmdCopyBuffer(
-                hDDICmdBuffer, Info.hDDISrcBuffer, Info.pDstBuffer->GetDDIObject(), 1, &VkCopy );
+            m_pImplementation->m_ICD.vkCmdCopyBuffer(
+                ToNative( hDDICmdBuffer ), ToNative( Info.hDDISrcBuffer ), ToNative( Info.pDstBuffer->GetDDIObject() ), 1, &VkCopy );
         }
 
         void TextureSubresourceToNativeSubresource( const STextureSubresourceRange& Subres,
@@ -4604,7 +4669,7 @@ namespace VKE
             pOut->mipLevel       = Subres.beginMipmapLevel;
         }
 
-        void CDDI::Copy( const NativeAPI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
+        void CVulkanAPI::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
         {
             VkImageLayout vkSrcLayout = Map::ImageLayout( Info.srcTextureState );
             VkImageLayout vkDstLayout = Map::ImageLayout( Info.dstTextureState );
@@ -4620,16 +4685,16 @@ namespace VKE
             TextureSubresourceToNativeSubresource( Info.DstSubresource, &VkCopy.dstSubresource );
             TextureSubresourceToNativeSubresource( Info.SrcSubresource, &VkCopy.srcSubresource );
 
-            m_Implementation.m_ICD.vkCmdCopyImage( hDDICmdBuffer,
-                                                   Info.pBaseInfo->hDDISrcTexture,
+            m_pImplementation->m_ICD.vkCmdCopyImage( ToNative( hDDICmdBuffer ),
+                                                   ToNative( Info.pBaseInfo->hDDISrcTexture ),
                                                    vkSrcLayout,
-                                                   Info.pBaseInfo->hDDIDstTexture,
+                                                   ToNative( Info.pBaseInfo->hDDIDstTexture ),
                                                    vkDstLayout,
                                                    1,
                                                    &VkCopy );
         }
 
-        void CDDI::Blit( const NativeAPI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
+        void CVulkanAPI::BlitImpl( const RHI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
         {
             Utils::TCDynamicArray< VkImageBlit2KHR > vNativeRegions( Info.vRegions.GetCount() );
             for( uint32_t i = 0; i < Info.vRegions.GetCount(); ++i )
@@ -4654,66 +4719,66 @@ namespace VKE
 
             VkBlitImageInfo2KHR NativeInfo = { .sType          = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR,
                                                .pNext          = nullptr,
-                                               .srcImage       = Info.hAPISrcTexture,
+                                               .srcImage       = ToNative( Info.hAPISrcTexture ),
                                                .srcImageLayout = Map::ImageLayout( Info.srcTextureState ),
-                                               .dstImage       = Info.hAPIDstTexture,
+                                               .dstImage       = ToNative( Info.hAPIDstTexture ),
                                                .dstImageLayout = Map::ImageLayout( Info.dstTextureState ),
                                                .regionCount    = Info.vRegions.GetCount(),
                                                .pRegions       = vNativeRegions.GetData(),
                                                .filter         = Map::Filter( Info.filter ) };
 
-            m_Implementation.m_ICD.vkCmdBlitImage2KHR( hAPICmdBuffer, &NativeInfo );
+            m_pImplementation->m_ICD.vkCmdBlitImage2KHR( ToNative( hAPICmdBuffer ), &NativeInfo );
         }
 
-        void CDDI::SetEvent( const NativeAPI::Event& hDDIEvent )
+        void CVulkanAPI::SetEventImpl( const RHI::Event& hDDIEvent )
         {
-            m_Implementation.m_ICD.vkSetEvent( m_hDevice, hDDIEvent );
+            m_pImplementation->m_ICD.vkSetEvent( m_pImplementation->m_hDevice, ToNative( hDDIEvent ) );
         }
 
-        void CDDI::SetEvent( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent,
+        void CVulkanAPI::SetEventImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
                              const PIPELINE_STAGES& stages )
         {
-            m_Implementation.m_ICD.vkCmdSetEvent( hDDICmdBuffer, hDDIEvent, Convert::PipelineStages( stages ) );
+            m_pImplementation->m_ICD.vkCmdSetEvent( ToNative( hDDICmdBuffer ), ToNative( hDDIEvent ), Convert::PipelineStages( stages ) );
         }
 
-        void CDDI::Reset( const NativeAPI::Event& hDDIInOut )
+        void CVulkanAPI::ResetImpl( const RHI::Event& hDDIInOut )
         {
-            m_Implementation.m_ICD.vkResetEvent( m_hDevice, hDDIInOut );
+            m_pImplementation->m_ICD.vkResetEvent( m_pImplementation->m_hDevice, ToNative( hDDIInOut ) );
         }
 
-        void CDDI::Reset( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Event& hDDIEvent,
+        void CVulkanAPI::ResetImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
                           const PIPELINE_STAGES& stages )
         {
-            m_Implementation.m_ICD.vkCmdResetEvent( hDDICmdBuffer, hDDIEvent, Convert::PipelineStages( stages ) );
+            m_pImplementation->m_ICD.vkCmdResetEvent( ToNative( hDDICmdBuffer ), ToNative( hDDIEvent ), Convert::PipelineStages( stages ) );
         }
 
-        bool CDDI::IsSet( const NativeAPI::Event& hDDIEvent )
+        bool CVulkanAPI::IsSetImpl( const RHI::Event& hDDIEvent )
         {
-            VkResult res = m_Implementation.m_ICD.vkGetEventStatus( m_hDevice, hDDIEvent );
+            VkResult res = m_pImplementation->m_ICD.vkGetEventStatus( m_pImplementation->m_hDevice, ToNative( hDDIEvent ) );
             return res == VK_EVENT_SET;
         }
 
-        Result CDDI::Submit( const SSubmitInfo& Info )
+        Result CVulkanAPI::SubmitImpl( const SSubmitInfo& Info )
         {
             Result ret = VKE_FAIL;
 
             static VkPipelineStageFlags                   vkWaitMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             Utils::TCDynamicArray< VkPipelineStageFlags > vWaitMask( Info.waitSemaphoreCount, vkWaitMask );
-            NativeAPI::CPUFence                           hSignalFence = Info.hDDIFence;
-            const NativeAPI::GPUFence*                          phWaitForSemaphores = Info.waitSemaphoreCount? Info.pDDIWaitSemaphores : NativeAPI::Null;
-            const NativeAPI::GPUFence* phSignalSemaphores =
+            RHI::CPUFence                           hSignalFence = Info.hDDIFence;
+            const RHI::GPUFence*                          phWaitForSemaphores = Info.waitSemaphoreCount? Info.pDDIWaitSemaphores : NativeAPI::Null;
+            const RHI::GPUFence* phSignalSemaphores =
                 Info.signalSemaphoreCount ? Info.pDDISignalSemaphores : NativeAPI::Null;
             uint32_t waitForFenceCount = Info.waitSemaphoreCount;
             uint32_t signalSemaphoreCount = Info.signalSemaphoreCount;
             
-            VKE_ASSERT( ( Info.hDDIFence != NativeAPI::Null && Info.hSignalFence == NativeAPI::Null ) ||
-                        ( Info.hDDIFence == NativeAPI::Null && Info.hSignalFence != NativeAPI::Null ) );
-            VKE_ASSERT( ( Info.waitSemaphoreCount != 0 && Info.hWaitForFence == NativeAPI::Null ) ||
-                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence != NativeAPI::Null ) ||
-                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence == NativeAPI::Null ) );
-            VKE_ASSERT( ( Info.signalSemaphoreCount != 0 && Info.hSignalFence == NativeAPI::Null ) ||
-                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence != NativeAPI::Null ) || 
-                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence == NativeAPI::Null ) );
+            VKE_ASSERT( ( Info.hDDIFence != RHI::Null && Info.hSignalFence == RHI::Null ) ||
+                        ( Info.hDDIFence == RHI::Null && Info.hSignalFence != RHI::Null ) );
+            VKE_ASSERT( ( Info.waitSemaphoreCount != 0 && Info.hWaitForFence == RHI::Null ) ||
+                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence != RHI::Null ) ||
+                        ( Info.waitSemaphoreCount == 0 && Info.hWaitForFence == RHI::Null ) );
+            VKE_ASSERT( ( Info.signalSemaphoreCount != 0 && Info.hSignalFence == RHI::Null ) ||
+                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence != RHI::Null ) || 
+                        ( Info.signalSemaphoreCount == 0 && Info.hSignalFence == RHI::Null ) );
             //VKE_ASSERT( ( Info.signalSemaphoreCount <= 1 && Info.waitSemaphoreCount <= 1 ) );
 
             VkSubmitInfo si;
@@ -4721,20 +4786,20 @@ namespace VKE
             si.pNext = nullptr;
             SVulkanNext Next( si );
 
-            if( Info.hWaitForFence != NativeAPI::Null )
+            if( Info.hWaitForFence != RHI::Null )
             {
-                auto pFences        = Info.hWaitForFence->GetFences( Info.waitForFenceValue );
-                phWaitForSemaphores = &pFences->hSemaphore;
+                auto pFences        = ToNative( Info.hWaitForFence )->GetFences( Info.waitForFenceValue );
+                phWaitForSemaphores = FromNativeArray( &pFences->hSemaphore );
                 waitForFenceCount   = phWaitForSemaphores != NativeAPI::Null ? 1 : 0;
             }
-            if(Info.hSignalFence != NativeAPI::Null)
+            if(Info.hSignalFence != RHI::Null)
             {
-                const auto pFences = Info.hSignalFence->Signal( this, Info.signalFenceValue );
+                const auto pFences = ToNative( Info.hSignalFence )->Signal( this, Info.signalFenceValue );
                 VKE_ASSERT( pFences != nullptr );
-                hSignalFence = pFences->hFence;
-                phSignalSemaphores = &pFences->hSemaphore;
+                hSignalFence = FromNative( pFences->hFence );
+                phSignalSemaphores   = FromNativeArray( &pFences->hSemaphore );
                 signalSemaphoreCount = phSignalSemaphores != NativeAPI::Null ? 1 : 0;
-                if( Info.hSignalFence->isNativeMonitored && Info.hSignalFence->isBinary == false )
+                if( ToNative( Info.hSignalFence )->isNativeMonitored && ToNative( Info.hSignalFence )->isBinary == false )
                 {
                     VkTimelineSemaphoreSubmitInfo TimelineInfo;
                     TimelineInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
@@ -4749,29 +4814,29 @@ namespace VKE
             
 
             
-            si.pSignalSemaphores    = phSignalSemaphores;
+            si.pSignalSemaphores    = ToNativeArray( phSignalSemaphores );
             si.signalSemaphoreCount = signalSemaphoreCount;
-            si.pWaitSemaphores      = phWaitForSemaphores;
+            si.pWaitSemaphores      = ToNativeArray(  phWaitForSemaphores );
             si.waitSemaphoreCount   = waitForFenceCount;
             si.pWaitDstStageMask    = vWaitMask.GetData();
             si.commandBufferCount   = Info.commandBufferCount;
-            si.pCommandBuffers      = &Info.pDDICommandBuffers[ 0 ];
+            si.pCommandBuffers      = ToNativeArray( &Info.pDDICommandBuffers[ 0 ] );
             // VK_ERR( m_pQueue->Submit( ICD, si, pSubmit->m_hDDIFence ) );
-            VkResult res = m_Implementation.m_ICD.vkQueueSubmit( Info.hDDIQueue, 1, &si, hSignalFence );
+            VkResult res = m_pImplementation->m_ICD.vkQueueSubmit( ToNative( Info.hDDIQueue ), 1, &si, ToNative( hSignalFence ) );
             VK_ERR( res );
             ret = res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
             return ret;
         }
 
-        Result CDDI::Present( const SPresentData& Info )
+        Result CVulkanAPI::PresentImpl( const SPresentData& Info )
         {
-            using SemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 > ;
+            //using SemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 > ;
             
             SemaphoreArray   vWaitSemaphores, vSignalSemaphores;
             for( uint32_t i = 0; i < Info.vWaitForFenceValues.GetCount(); ++i )
             {
                 auto value = Info.vWaitForFenceValues[ i ];
-                const auto& pFences = Info.vWaitForFences[ i ]->GetFences( value );
+                const auto& pFences = ToNative( Info.vWaitForFences[ i ] )->GetFences( value );
                 if( pFences->hSemaphore != NativeAPI::Null )
                 {
                     //vWaitSemaphores.PushBack( hSemaphore );
@@ -4786,13 +4851,13 @@ namespace VKE
             pi.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             pi.pNext              = nullptr;
             pi.pImageIndices      = &Info.vImageIndices[ 0 ];
-            pi.pSwapchains        = &Info.vSwapchains[ 0 ];
+            pi.pSwapchains        = ToNativeArray( &Info.vSwapchains[ 0 ] );
             pi.pWaitSemaphores    = vWaitSemaphores.GetData();
             pi.pResults           = nullptr;
             pi.swapchainCount     = Info.vSwapchains.GetCount();
             pi.waitSemaphoreCount = vWaitSemaphores.GetCount();
 
-            VkResult res = m_Implementation.m_ICD.vkQueuePresentKHR( Info.hQueue, &pi );
+            VkResult res = m_pImplementation->m_ICD.vkQueuePresentKHR( ToNative( Info.hQueue ), &pi );
             Result   ret = VKE_OK;
             // VK_ERR( res );
             // return res == VK_SUCCESS ? VKE_OK : VKE_FAIL;
@@ -4836,11 +4901,11 @@ namespace VKE
             return ret;
         }
 
-        Result CDDI::CreateSwapChain( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pOut )
+        Result CVulkanAPI::CreateSwapChainImpl( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pOut )
         {
             Result                    ret = VKE_FAIL;
             VkResult                  vkRes;
-            NativeAPI::PresentSurface hSurface     = pOut->hSurface;
+            NativeAPI::PresentSurface hSurface     = ToNative( pOut->hSurface );
             uint16_t                  elementCount = Desc.backBufferCount;
             VkSwapchainKHR            hSwapChain   = NativeAPI::Null;
 
@@ -4859,39 +4924,7 @@ namespace VKE
             VkDummyCallbacks.pfnInternalFree       = Helper::DummyInternalFreeCallback;
             VkDummyCallbacks.pfnReallocation       = Helper::DummyReallocCallback;
 
-            VkAllocationCallbacks*       pVkCallbacks = nullptr;
-            Helper::SSwapChainAllocator* pInternalAllocator =
-                reinterpret_cast< Helper::SSwapChainAllocator* >( pOut->pInternalAllocator );
-            if( pOut->pInternalAllocator == nullptr )
-            {
-                // pInternalAllocator = VKE_NEW Helper::SSwapChainAllocator;
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pInternalAllocator ) ) )
-                {
-                    if( VKE_SUCCEEDED( pInternalAllocator->Create( VKE_MEGABYTES( 1 ), 2 ) ) )
-                    {
-                        pOut->pInternalAllocator = pInternalAllocator;
-                    }
-                    else
-                    {
-                        VKE_LOG_ERR( "Unable to create CSwapChain internal allocator." );
-                        goto ERR;
-                    }
-                }
-                else
-                {
-                    VKE_LOG_ERR( "Unable to create memory for CSwapChain internal allocator." );
-                    goto ERR;
-                }
-            }
-            {
-                pVkCallbacks = &pInternalAllocator->VkCallbacks;
-            }
-            if( pVkCallbacks == nullptr )
-            {
-                return VKE_ENOMEMORY;
-            }
-
-            if( pOut->hSurface == NativeAPI::Null )
+            if( pOut->hSurface == RHI::Null )
             {
 #if VKE_USE_VULKAN_WINDOWS
                 HINSTANCE                   hInst = reinterpret_cast< HINSTANCE >( Desc.pWindow->GetDesc().hProcess );
@@ -4901,8 +4934,8 @@ namespace VKE
                 SurfaceCI.flags     = 0;
                 SurfaceCI.hinstance = hInst;
                 SurfaceCI.hwnd      = hWnd;
-                vkRes               = NativeAPI::SImplementation::sInstanceICD.vkCreateWin32SurfaceKHR(
-                    NativeAPI::SImplementation::sVkInstance, &SurfaceCI, pVkCallbacks, &hSurface );
+                vkRes               = SImplementation::sInstanceICD.vkCreateWin32SurfaceKHR(
+                    SImplementation::sVkInstance, &SurfaceCI, nullptr, &hSurface );
 #elif VKE_USE_VULKAN_LINUX
                 VkXcbSurfaceCreateInfoKHR SurfaceCI;
                 Vulkan::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR );
@@ -4923,19 +4956,19 @@ namespace VKE
                 {
                     VkBool32   isSurfaceSupported = VK_FALSE;
                     const auto queueIndex         = Desc.queueFamilyIndex;
-                    VK_ERR( NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceSupportKHR(
-                        m_hAdapter, queueIndex, hSurface, &isSurfaceSupported ) );
+                    VK_ERR( SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceSupportKHR(
+                        m_pImplementation->m_hAdapter, queueIndex, hSurface, &isSurfaceSupported ) );
                     if( !isSurfaceSupported )
                     {
                         VKE_LOG_ERR( "Queue index: " << queueIndex << " does not support the surface." );
-                        NativeAPI::SImplementation::sInstanceICD.vkDestroySurfaceKHR(
-                            NativeAPI::SImplementation::sVkInstance, hSurface, pVkCallbacks );
+                        SImplementation::sInstanceICD.vkDestroySurfaceKHR(
+                            SImplementation::sVkInstance, ( hSurface ), nullptr );
                     }
                 }
             }
             {
                 SPresentSurfaceCaps& Caps = pOut->Caps;
-                ret                       = QueryPresentSurfaceCaps( hSurface, &Caps );
+                ret                       = QueryPresentSurfaceCaps( FromNative( hSurface ), &Caps );
                 Size                      = Caps.CurrentSize;
                 if( !Caps.canBeUsedAsRenderTarget )
                 {
@@ -4985,7 +5018,7 @@ namespace VKE
                     found = true;
                 }
                 pOut->Size     = Caps.CurrentSize;
-                pOut->hSurface = hSurface;
+                pOut->hSurface = FromNative( hSurface );
                 if( Constants::_SOptimal::IsOptimal( elementCount ) )
                 {
                     elementCount = std::min< uint16_t >( static_cast< uint16_t >( Caps.minImageCount ), 2u );
@@ -5030,19 +5063,19 @@ namespace VKE
                     ci.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
                     ci.imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
                     ci.minImageCount         = elementCount;
-                    ci.oldSwapchain          = pOut->hSwapChain;
+                    ci.oldSwapchain          = ToNative( pOut->hSwapChain );
                     ci.pQueueFamilyIndices   = &familyIndex;
                     ci.queueFamilyIndexCount = 1;
                     ci.presentMode           = aVkModes[ pOut->mode ];
                     ci.preTransform          = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-                    ci.surface               = pOut->hSurface;
-                    res = m_Implementation.m_ICD.vkCreateSwapchainKHR( m_hDevice, &ci, pVkCallbacks, &hSwapChain );
+                    ci.surface               = ToNative( pOut->hSurface );
+                    res = m_pImplementation->m_ICD.vkCreateSwapchainKHR( ( m_pImplementation->m_hDevice ), &ci, nullptr, &hSwapChain );
                 }
                 VK_ERR( res );
                 if( res == VK_SUCCESS )
                 {
                     uint32_t imgCount = 0;
-                    res = m_Implementation.m_ICD.vkGetSwapchainImagesKHR( m_hDevice, hSwapChain, &imgCount, nullptr );
+                    res = m_pImplementation->m_ICD.vkGetSwapchainImagesKHR( ( m_pImplementation->m_hDevice ), ( hSwapChain ), &imgCount, nullptr );
                     VK_ERR( res );
                     if( res == VK_SUCCESS )
                     {
@@ -5051,8 +5084,10 @@ namespace VKE
                             pOut->vImages.Resize( imgCount );
                             pOut->vImageViews.Resize( imgCount );
                             pOut->vFramebuffers.Resize( imgCount );
-                            res = m_Implementation.m_ICD.vkGetSwapchainImagesKHR(
-                                m_hDevice, hSwapChain, &imgCount, &pOut->vImages[ 0 ] );
+                            NativeAPI::Texture* pVkImages = ToNativeArray( pOut->vImages.GetData() );
+
+                            res = m_pImplementation->m_ICD.vkGetSwapchainImagesKHR(
+                                ( m_pImplementation->m_hDevice ), ( hSwapChain ), &imgCount, pVkImages );
                             VK_ERR( res );
                             if( res == VK_SUCCESS )
                             {
@@ -5065,7 +5100,7 @@ namespace VKE
                                     ci.pNext                           = nullptr;
                                     ci.flags                           = 0;
                                     ci.format                          = SwapChainCI.imageFormat;
-                                    ci.image                           = pOut->vImages[ i ];
+                                    ci.image                           = ToNative( pOut->vImages[ i ] );
                                     ci.components                      = vkDefaultMapping;
                                     ci.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
                                     ci.subresourceRange.baseArrayLayer = 0;
@@ -5074,21 +5109,21 @@ namespace VKE
                                     ci.subresourceRange.levelCount     = 1;
                                     ci.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
                                     NativeAPI::TextureView hView;
-                                    res = m_Implementation.m_ICD.vkCreateImageView(
-                                        m_hDevice, &ci, pVkCallbacks, &hView );
+                                    res = m_pImplementation->m_ICD.vkCreateImageView(
+                                        ( m_pImplementation->m_hDevice ), &ci, nullptr, &hView );
                                     VK_ERR( res );
                                     if( res != VK_SUCCESS )
                                     {
                                         VKE_LOG_ERR( "Unable to create ImageView for SwapChain image." );
                                         goto ERR;
                                     }
-                                    pOut->vImageViews[ i ] = hView;
+                                    pOut->vImageViews[ i ] = FromNative( hView );
                                     // Do a barrier for image
                                     {
                                         VkImageMemoryBarrier vkBarrier;
                                         vkBarrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
                                         vkBarrier.pNext                       = nullptr;
-                                        vkBarrier.image                       = pOut->vImages[ i ];
+                                        vkBarrier.image                       = ToNative( pOut->vImages[ i ] );
                                         vkBarrier.oldLayout                   = VK_IMAGE_LAYOUT_UNDEFINED;
                                         vkBarrier.newLayout                   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
                                         vkBarrier.dstAccessMask               = VK_ACCESS_MEMORY_READ_BIT;
@@ -5105,9 +5140,9 @@ namespace VKE
                                     // Create framebuffers for render pass
                                     {
                                         _CreateDebugInfo< VK_OBJECT_TYPE_IMAGE >(
-                                            this, pOut->vImages[ i ], "Swapchain Image" );
+                                            this, ToNative( pOut->vImages[ i ] ), "Swapchain Image" );
                                         _CreateDebugInfo< VK_OBJECT_TYPE_IMAGE_VIEW >(
-                                            this, pOut->vImageViews[ i ], "Swapchain ImageView" );
+                                            this, ToNative( pOut->vImageViews[ i ] ), "Swapchain ImageView" );
                                     }
                                     {
                                         /*STextureBarrierInfo Info;
@@ -5153,7 +5188,7 @@ namespace VKE
                     goto ERR;
                 }
             }
-            pOut->hSwapChain = hSwapChain;
+            pOut->hSwapChain = FromNative( hSwapChain );
 
             ret = VKE_OK;
             return ret;
@@ -5161,22 +5196,22 @@ namespace VKE
         ERR:
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
-                DestroyTextureView( &pOut->vImageViews[ i ], pVkCallbacks );
+                DestroyTextureViewImpl( &pOut->vImageViews[ i ], nullptr );
             }
             if( hSwapChain != NativeAPI::Null )
             {
-                m_Implementation.m_ICD.vkDestroySwapchainKHR( m_hDevice, hSwapChain, pVkCallbacks );
+                m_pImplementation->m_ICD.vkDestroySwapchainKHR( ( m_pImplementation->m_hDevice ), ( hSwapChain ), nullptr );
             }
             if( hSurface != NativeAPI::Null )
             {
-                NativeAPI::SImplementation::sInstanceICD.vkDestroySurfaceKHR(
-                    NativeAPI::SImplementation::sVkInstance, hSurface, pVkCallbacks );
+                SImplementation::sInstanceICD.vkDestroySurfaceKHR(
+                    SImplementation::sVkInstance, ( hSurface ), nullptr );
             }
-            pInternalAllocator->Reset();
+
             return ret;
         }
 
-        Result CDDI::ReCreateSwapChain( const SSwapChainDesc& Desc, SDDISwapChain* pOut )
+        Result CVulkanAPI::ReCreateSwapChainImpl( const SSwapChainDesc& Desc, SDDISwapChain* pOut )
         {
             Result ret                = VKE_FAIL;
             auto   pInternalAllocator = reinterpret_cast< Helper::SSwapChainAllocator* >( pOut->pInternalAllocator );
@@ -5186,50 +5221,51 @@ namespace VKE
 
             for( uint32_t i = 0; i < pOut->vImageViews.GetCount(); ++i )
             {
-                DestroyTextureView( &pOut->vImageViews[ i ], pVkAllocator );
-                DestroyFramebuffer( &pOut->vFramebuffers[ i ], pVkAllocator );
+                DestroyTextureViewImpl( &pOut->vImageViews[ i ], pVkAllocator );
+                DestroyFramebufferImpl( &pOut->vFramebuffers[ i ], pVkAllocator );
             }
-            if( pOut->hSwapChain != NativeAPI::Null )
+            if( pOut->hSwapChain != RHI::Null )
             {
-                m_Implementation.m_ICD.vkDestroySwapchainKHR( m_hDevice, pOut->hSwapChain, pVkAllocator );
-                pOut->hSwapChain = NativeAPI::Null;
+                m_pImplementation->m_ICD.vkDestroySwapchainKHR( ( m_pImplementation->m_hDevice ), ToNative( pOut->hSwapChain ), pVkAllocator );
+                pOut->hSwapChain = RHI::Null;
             }
-            if( pOut->hSurface != NativeAPI::Null )
+            if( pOut->hSurface != RHI::Null )
             {
-                NativeAPI::SImplementation::sInstanceICD.vkDestroySurfaceKHR(
-                    NativeAPI::SImplementation::sVkInstance, pOut->hSurface, pVkAllocator );
-                pOut->hSurface = NativeAPI::Null;
+                SImplementation::sInstanceICD.vkDestroySurfaceKHR(
+                    SImplementation::sVkInstance, ToNative( pOut->hSurface ), pVkAllocator );
+                pOut->hSurface = RHI::Null;
             }
-            if( pOut->hDDIRenderPass != NativeAPI::Null )
+            if( pOut->hDDIRenderPass != RHI::Null )
             {
-                m_Implementation.m_ICD.vkDestroyRenderPass( m_hDevice, pOut->hDDIRenderPass->hNativeRenderPass, pVkAllocator );
-                pOut->hDDIRenderPass = NativeAPI::Null;
+                m_pImplementation->m_ICD.vkDestroyRenderPass( ( m_pImplementation->m_hDevice ), ToNative( pOut->hDDIRenderPass )->hNativeRenderPass, pVkAllocator );
+                pOut->hDDIRenderPass = RHI::Null;
             }
             pOut->vFramebuffers.Clear();
             pOut->vImages.Clear();
             pOut->vImageViews.Clear();
-            pOut->hSwapChain = NativeAPI::Null;
+            pOut->hSwapChain = RHI::Null;
             pInternalAllocator->FreeCurrentChunk();
             // DestroySwapChain( pOut, nullptr );
-            ret = CreateSwapChain( Desc, nullptr, pOut );
+            ret = CreateSwapChainImpl( Desc, nullptr, pOut );
             return ret;
         }
 
-        Result CDDI::QueryPresentSurfaceCaps( const NativeAPI::PresentSurface& hSurface, SPresentSurfaceCaps* pOut )
+        Result CVulkanAPI::QueryPresentSurfaceCapsImpl( const RHI::PresentSurface& hSurface,
+                                                        SPresentSurfaceCaps*             pOut )
         {
             Result   ret = VKE_FAIL;
             VkResult res;
-
+            NativeAPI::PresentSurface hVkSurface = ToNative( hSurface );
             VkSurfaceCapabilitiesKHR vkSurfaceCaps;
-            NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-                m_hAdapter, hSurface, &vkSurfaceCaps );
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+                m_pImplementation->m_hAdapter, hVkSurface, &vkSurfaceCaps );
             auto hasColorAttachment = vkSurfaceCaps.supportedUsageFlags | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
             // Select surface format
             Utils::TCDynamicArray< VkSurfaceFormatKHR > vSurfaceFormats;
             uint32_t                                    formatCount = 0;
-            res = NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceFormatsKHR(
-                m_hAdapter, hSurface, &formatCount, nullptr );
+            res = SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceFormatsKHR(
+                m_pImplementation->m_hAdapter, hVkSurface, &formatCount, nullptr );
             VK_ERR( res );
 
             if( res == VK_SUCCESS )
@@ -5237,8 +5273,8 @@ namespace VKE
                 if( formatCount > 0 )
                 {
                     vSurfaceFormats.Resize( formatCount );
-                    res = NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceFormatsKHR(
-                        m_hAdapter, hSurface, &formatCount, &vSurfaceFormats[ 0 ] );
+                    res = SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceFormatsKHR(
+                        m_pImplementation->m_hAdapter, hVkSurface, &formatCount, &vSurfaceFormats[ 0 ] );
                     VK_ERR( res );
                     if( res == VK_SUCCESS )
                     {
@@ -5256,16 +5292,16 @@ namespace VKE
                 // Select present mode
                 uint32_t                                     presentCount = 0;
                 Utils::TCDynamicArray< VkPresentModeKHR, 8 > vPresents;
-                res = NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfacePresentModesKHR(
-                    m_hAdapter, hSurface, &presentCount, nullptr );
+                res = SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfacePresentModesKHR(
+                    m_pImplementation->m_hAdapter, hVkSurface, &presentCount, nullptr );
                 VK_ERR( res );
                 if( res == VK_SUCCESS )
                 {
                     if( presentCount > 0 )
                     {
                         vPresents.Resize( presentCount );
-                        res = NativeAPI::SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfacePresentModesKHR(
-                            m_hAdapter, hSurface, &presentCount, &vPresents[ 0 ] );
+                        res = SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfacePresentModesKHR(
+                            m_pImplementation->m_hAdapter, hVkSurface, &presentCount, &vPresents[ 0 ] );
                         VK_ERR( res );
                         if( res == VK_SUCCESS )
                         {
@@ -5312,51 +5348,52 @@ namespace VKE
             return ret;
         }
 
-        void CDDI::DestroySwapChain( SDDISwapChain* pInOut, const void* )
+        void CVulkanAPI::DestroySwapChainImpl( SDDISwapChain* pInOut, const void* )
         {
             Helper::SSwapChainAllocator* pInternalAllocator =
                 reinterpret_cast< Helper::SSwapChainAllocator* >( pInOut->pInternalAllocator );
             const VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
             for( uint32_t i = 0; i < pInOut->vImageViews.GetCount(); ++i )
             {
-                DestroyTextureView( &pInOut->vImageViews[ i ], pVkAllocator );
+                DestroyTextureViewImpl( &pInOut->vImageViews[ i ], pVkAllocator );
             }
-            if( pInOut->hSwapChain != NativeAPI::Null )
+            if( pInOut->hSwapChain != RHI::Null )
             {
-                m_Implementation.m_ICD.vkDestroySwapchainKHR( m_hDevice, pInOut->hSwapChain, pVkAllocator );
-                pInOut->hSwapChain = NativeAPI::Null;
+                m_pImplementation->m_ICD.vkDestroySwapchainKHR( m_pImplementation->m_hDevice, ToNative( pInOut->hSwapChain ), pVkAllocator );
+                pInOut->hSwapChain = RHI::Null;
             }
-            if( pInOut->hSurface != NativeAPI::Null )
+            if( pInOut->hSurface != RHI::Null )
             {
-                NativeAPI::SImplementation::sInstanceICD.vkDestroySurfaceKHR(
-                    NativeAPI::SImplementation::sVkInstance, pInOut->hSurface, pVkAllocator );
-                pInOut->hSurface = NativeAPI::Null;
+                SImplementation::sInstanceICD.vkDestroySurfaceKHR(
+                    SImplementation::sVkInstance, ToNative( pInOut->hSurface ), pVkAllocator );
+                pInOut->hSurface = RHI::Null;
             }
             if( pInternalAllocator != nullptr )
             {
                 pInternalAllocator->Destroy();
-                Memory::DestroyObject( &HeapAllocator, &pInternalAllocator );
+                VKE::Memory::DestroyObject( &HeapAllocator, &pInternalAllocator );
                 pInOut->pInternalAllocator = nullptr;
             }
         }
 
-        Result CDDI::GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
+        Result CVulkanAPI::GetCurrentBackBufferIndexImpl( const SDDISwapChain&         SwapChain,
+                                                          const SDDIGetBackBufferInfo& Info,
                                                 uint32_t* pOut )
         {
             Result ret = VKE_FAIL;
-            VkFence  hFence = Info.hSignalCPUFence;
-            VkSemaphore hSemaphore = Info.hSignalGPUFence;
+            VkFence  hFence = ToNative( Info.hSignalCPUFence );
+            VkSemaphore hSemaphore = ToNative( Info.hSignalGPUFence );
 
-            if( Info.hSignalFence )
+            if( Info.hSignalFence != RHI::Null )
             {
-                const auto pFences = Info.hSignalFence->Signal( this, Info.signalFenceValue );
+                const auto pFences = ToNative( Info.hSignalFence )->Signal( this, Info.signalFenceValue );
                 //hFence              = pFences->hFence;
-                hFence = pFences->hFence;
+                hFence = ( pFences->hFence );
                 hSemaphore = NativeAPI::Null;
                 VKE_ASSERT( hFence != NativeAPI::Null || hSemaphore != NativeAPI::Null );
             }
-            VkResult res = m_Implementation.m_ICD.vkAcquireNextImageKHR(
-                m_hDevice, SwapChain.hSwapChain, Info.waitTimeout, hSemaphore, hFence, pOut );
+            VkResult res = m_pImplementation->m_ICD.vkAcquireNextImageKHR(
+                m_pImplementation->m_hDevice, ToNative( SwapChain.hSwapChain ), Info.waitTimeout, hSemaphore, hFence, pOut );
             
             switch( res )
             {
@@ -5396,64 +5433,67 @@ namespace VKE
             return ret;
         }
 
-        void CDDI::Reset( const NativeAPI::CommandBuffer&     hCommandBuffer,
-                          const NativeAPI::CommandBufferPool& hCommandBufferPool )
+        void CVulkanAPI::ResetImpl( const RHI::CommandBuffer&     hCommandBuffer,
+                          const RHI::CommandBufferPool& hCommandBufferPool )
         {
             const auto flags = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
-            VK_ERR( m_Implementation.m_ICD.vkResetCommandBuffer( hCommandBuffer, flags ) );
+            VK_ERR( m_pImplementation->m_ICD.vkResetCommandBuffer( ToNative( hCommandBuffer ), flags ) );
         }
 
-        void CDDI::BeginCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer, const NativeAPI::CommandBufferPool& hCommandBufferPool )
+        void CVulkanAPI::BeginCommandBufferImpl( const RHI::CommandBuffer&     hCommandBuffer,
+                                                 const RHI::CommandBufferPool& hCommandBufferPool )
         {
             VkCommandBufferBeginInfo bi;
             bi.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             bi.pNext            = nullptr;
             bi.flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             bi.pInheritanceInfo = nullptr;
-            VK_ERR( m_Implementation.m_ICD.vkBeginCommandBuffer( hCommandBuffer, &bi ) );
+            VK_ERR( m_pImplementation->m_ICD.vkBeginCommandBuffer( ToNative( hCommandBuffer ), &bi ) );
         }
 
-        void CDDI::EndCommandBuffer( const NativeAPI::CommandBuffer& hCommandBuffer )
+        void CVulkanAPI::EndCommandBufferImpl( const RHI::CommandBuffer& hCommandBuffer )
         {
-            VK_ERR( m_Implementation.m_ICD.vkEndCommandBuffer( hCommandBuffer ) );
+            VK_ERR( m_pImplementation->m_ICD.vkEndCommandBuffer( ToNative( hCommandBuffer ) ) );
         }
 
-        void CDDI::Bind( const SBindPipelineInfo& Info )
+        void CVulkanAPI::BindImpl( const SBindPipelineInfo& Info )
         {
-            VKE_ASSERT2( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != NativeAPI::Null &&
-                             Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != NativeAPI::Null,
+            VKE_ASSERT2( Info.pCmdBuffer != nullptr && Info.pCmdBuffer->GetDDIObject() != RHI::Null &&
+                             Info.pPipeline != nullptr && Info.pPipeline->GetDDIObject() != RHI::Null,
                          "Invalid parameter" );
-            m_Implementation.m_ICD.vkCmdBindPipeline( Info.pCmdBuffer->GetDDIObject(),
+            m_pImplementation->m_ICD.vkCmdBindPipeline( ToNative( Info.pCmdBuffer->GetDDIObject() ),
                                                       Convert::PipelineTypeToBindPoint( Info.pPipeline->GetType() ),
-                                                      Info.pPipeline->GetDDIObject() );
+                                                      ToNative( Info.pPipeline->GetDDIObject() ) );
         }
 
-        void CDDI::UnbindPipeline( const NativeAPI::CommandBuffer&, const NativeAPI::Pipeline& )
+        void CVulkanAPI::UnbindPipelineImpl( const RHI::CommandBuffer&, const RHI::Pipeline& )
         {
         }
 
      
 
-        void CDDI::BeginRenderPass( NativeAPI::CommandBuffer hCommandBuffer, const SBeginRenderPassInfo& Info )
+        void CVulkanAPI::BeginRenderPassImpl( RHI::CommandBuffer    hCommandBuffer,
+                                              const SBeginRenderPassInfo& Info )
         {
-            if( Info.hDDIRenderPass->hNativeRenderPass != NativeAPI::Null )
+            if( ToNative( Info.hDDIRenderPass )->hNativeRenderPass != NativeAPI::Null )
             {
                 
                 
-                m_Implementation.m_ICD.vkCmdBeginRenderPass( hCommandBuffer, &Info.hDDIRenderPass->NativeBeginInfo, VK_SUBPASS_CONTENTS_INLINE );
+                m_pImplementation->m_ICD.vkCmdBeginRenderPass( ToNative( hCommandBuffer ), &ToNative( Info.hDDIRenderPass )->NativeBeginInfo, VK_SUBPASS_CONTENTS_INLINE );
             }
             else
             {
-                VkRenderingInfo VkInfo = Info.hDDIRenderPass->VkInfo;
+                VkRenderingInfo VkInfo = ToNative( Info.hDDIRenderPass )->VkInfo;
                 if( Info.RenderArea.Size.width > 0 )
                 {
                     Convert::RenderSystemToVkRect2D( Info.RenderArea, &VkInfo.renderArea );
                 }
-                m_Implementation.m_ICD.vkCmdBeginRenderingKHR( hCommandBuffer, &VkInfo );
+                m_pImplementation->m_ICD.vkCmdBeginRenderingKHR( ToNative( hCommandBuffer ), &VkInfo );
             }
         }
 
-        void CDDI::BeginRenderPass( NativeAPI::CommandBuffer hCommandBuffer, const SBeginRenderPassInfo2& Info )
+        void CVulkanAPI::BeginRenderPassImpl( RHI::CommandBuffer     hCommandBuffer,
+                                              const SBeginRenderPassInfo2& Info )
         {
             Utils::TCDynamicArray< VkRenderingAttachmentInfoKHR, 8 > vVkAttachments;
 
@@ -5475,7 +5515,7 @@ namespace VKE
                 const auto& RTInfo = Info.vColorRenderTargetInfos[ i ];
                 Convert::ClearValues( &RTInfo.ClearColor, 1, &vkRTInfo.clearValue );
                 vkRTInfo.imageLayout        = Map::ImageLayout( RTInfo.state );
-                vkRTInfo.imageView          = RTInfo.hDDIView;
+                vkRTInfo.imageView          = ToNative( RTInfo.hDDIView );
                 vkRTInfo.loadOp             = Convert::UsageToLoadOp( RTInfo.renderPassOp );
                 vkRTInfo.storeOp            = Convert::UsageToStoreOp( RTInfo.renderPassOp );
                 vkRTInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -5490,13 +5530,13 @@ namespace VKE
             vkInfo.pDepthAttachment   = nullptr;
             vkInfo.pStencilAttachment = nullptr;
 
-            if( Info.DepthRenderTargetInfo.hDDIView != NativeAPI::Null )
+            if( Info.DepthRenderTargetInfo.hDDIView != RHI::Null )
             {
                 const auto& RT           = Info.DepthRenderTargetInfo;
                 auto&       vkAttachment = vkDepthAttachment;
                 Convert::ClearValues( &RT.ClearColor, 1, &vkAttachment.clearValue );
                 vkAttachment.imageLayout        = Map::ImageLayout( RT.state );
-                vkAttachment.imageView          = RT.hDDIView;
+                vkAttachment.imageView          = ToNative( RT.hDDIView );
                 vkAttachment.loadOp             = Convert::UsageToLoadOp( RT.renderPassOp );
                 vkAttachment.storeOp            = Convert::UsageToStoreOp( RT.renderPassOp );
                 vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -5506,13 +5546,13 @@ namespace VKE
                 vkInfo.pDepthAttachment = &vkAttachment;
             }
 
-            if( Info.StencilRenderTargetInfo.hDDIView != NativeAPI::Null )
+            if( Info.StencilRenderTargetInfo.hDDIView != RHI::Null )
             {
                 const auto& RT           = Info.StencilRenderTargetInfo;
                 auto&       vkAttachment = vkStencilAttachment;
                 Convert::ClearValues( &RT.ClearColor, 1, &vkAttachment.clearValue );
                 vkAttachment.imageLayout        = Map::ImageLayout( RT.state );
-                vkAttachment.imageView          = RT.hDDIView;
+                vkAttachment.imageView          = ToNative( RT.hDDIView );
                 vkAttachment.loadOp             = Convert::UsageToLoadOp( RT.renderPassOp );
                 vkAttachment.storeOp            = Convert::UsageToStoreOp( RT.renderPassOp );
                 vkAttachment.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -5524,52 +5564,53 @@ namespace VKE
 
             vkInfo.pColorAttachments = vVkAttachments.GetDataOrNull();
 
-            m_Implementation.m_ICD.vkCmdBeginRenderingKHR( hCommandBuffer, &vkInfo );
+            m_pImplementation->m_ICD.vkCmdBeginRenderingKHR( ToNative( hCommandBuffer ), &vkInfo );
         }
 
-        /*void CDDI::EndRenderPass( NativeAPI::CommandBuffer hDDICommandBuffer )
+        /*void CVulkanAPI::EndRenderPass( RHI::CommandBuffer hDDICommandBuffer )
         {
-            m_Implementation.m_ICD.vkCmdEndRenderingKHR( hDDICommandBuffer );
+            m_pImplementation->m_ICD.vkCmdEndRenderingKHR( hDDICommandBuffer );
         }*/
 
-        void CDDI::EndRenderPass( NativeAPI::CommandBuffer hDDICommandBuffer, NativeAPI::RenderPass hPass )
+        void CVulkanAPI::EndRenderPassImpl( RHI::CommandBuffer hDDICommandBuffer, RHI::RenderPass hPass )
         {
-            if( hPass->hNativeRenderPass != NativeAPI::Null )
+            if( ToNative(hPass)->hNativeRenderPass != NativeAPI::Null )
             {
-                m_Implementation.m_ICD.vkCmdEndRenderPass( hDDICommandBuffer );
+                m_pImplementation->m_ICD.vkCmdEndRenderPass( ToNative( hDDICommandBuffer ) );
             }
             else
             {
-                m_Implementation.m_ICD.vkCmdEndRenderingKHR( hDDICommandBuffer );
+                m_pImplementation->m_ICD.vkCmdEndRenderingKHR( ToNative( hDDICommandBuffer ) );
             }
         }
 
-        void CDDI::Bind( const SBindDDIDescriptorSetsInfo& Info )
+        void CVulkanAPI::BindImpl( const SBindDDIDescriptorSetsInfo& Info )
         {
-            m_Implementation.m_ICD.vkCmdBindDescriptorSets( Info.hDDICommandBuffer,
+            const NativeAPI::DescriptorSet* pDDISets = reinterpret_cast< const NativeAPI::DescriptorSet* >( Info.aDDISetHandles );
+            m_pImplementation->m_ICD.vkCmdBindDescriptorSets( ToNative( Info.hDDICommandBuffer ),
                                                             Convert::PipelineTypeToBindPoint( Info.pipelineType ),
-                                                            Info.hDDIPipelineLayout,
+                                                            ToNative( Info.hDDIPipelineLayout ),
                                                             Info.firstSet,
                                                             Info.setCount,
-                                                            Info.aDDISetHandles,
+                                                            pDDISets,
                                                             Info.dynamicOffsetCount,
                                                             Info.aDynamicOffsets );
         }
 
-        void CDDI::Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+        void CVulkanAPI::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
                          const uint32_t offset )
         {
             VkDeviceSize ddiOffset = offset;
-            m_Implementation.m_ICD.vkCmdBindVertexBuffers( hDDICmdBuffer, 0, 1, &hDDIBuffer, &ddiOffset );
+            m_pImplementation->m_ICD.vkCmdBindVertexBuffers( ToNative( hDDICmdBuffer ), 0, 1, ToNativeArray( &hDDIBuffer ), &ddiOffset );
         }
 
-        void CDDI::Bind( const NativeAPI::CommandBuffer& hDDICmdBuffer, const NativeAPI::Buffer& hDDIBuffer,
+        void CVulkanAPI::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
                          const uint32_t offset, const INDEX_TYPE& type )
         {
-            m_Implementation.m_ICD.vkCmdBindIndexBuffer( hDDICmdBuffer, hDDIBuffer, offset, Map::IndexType( type ) );
+            m_pImplementation->m_ICD.vkCmdBindIndexBuffer( ToNative( hDDICmdBuffer ), ToNative( hDDIBuffer ), offset, Map::IndexType( type ) );
         }
 
-        void CDDI::SetState( const NativeAPI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
+        void CVulkanAPI::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
         {
             VkViewport Viewport;
             Viewport.width = Desc.Size.width;
@@ -5583,20 +5624,20 @@ namespace VKE
 #endif
             Viewport.minDepth = Desc.MinMaxDepth.min;
             Viewport.maxDepth = Desc.MinMaxDepth.max;
-            m_Implementation.m_ICD.vkCmdSetViewport( hCommandBuffer, 0, 1, &Viewport );
+            m_pImplementation->m_ICD.vkCmdSetViewport( ToNative( hCommandBuffer ), 0, 1, &Viewport );
         }
 
-        void CDDI::SetState( const NativeAPI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
+        void CVulkanAPI::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
         {
             VkRect2D Scissor;
             Scissor.extent.width  = Desc.Size.width;
             Scissor.extent.height = Desc.Size.height;
             Scissor.offset.x      = Desc.Position.x;
             Scissor.offset.y      = Desc.Position.y;
-            m_Implementation.m_ICD.vkCmdSetScissor( hCommandBuffer, 0, 1, &Scissor );
+            m_pImplementation->m_ICD.vkCmdSetScissor( ToNative( hCommandBuffer ), 0, 1, &Scissor );
         }
 
-        void CDDI::Barrier( const NativeAPI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
+        void CVulkanAPI::BarrierImpl( const RHI::CommandBuffer& hCommandBuffer, const SBarrierInfo& Info )
         {
             VkMemoryBarrier*       pVkMemBarriers = nullptr;
             VkImageMemoryBarrier*  pVkImgBarriers = nullptr;
@@ -5661,7 +5702,7 @@ namespace VKE
                 }
             }
 
-            m_Implementation.m_ICD.vkCmdPipelineBarrier( hCommandBuffer,
+            m_pImplementation->m_ICD.vkCmdPipelineBarrier( ToNative(hCommandBuffer),
                                                          srcStage,
                                                          dstStage,
                                                          0,
@@ -5673,14 +5714,14 @@ namespace VKE
                                                          pVkImgBarriers );
         }
 
-        void CDDI::Convert( const SClearValue& In, NativeAPI::ClearValue* pOut )
+        /*void CVulkanAPI::ConvertImpl( const SClearValue& In, RHI::ClearValue* pOut )
         {
-            Memory::Copy( pOut, sizeof( NativeAPI::ClearValue ), &In, sizeof( SClearValue ) );
-        }
+            VKE::Memory::Copy( pOut, sizeof( RHI::ClearValue ), &In, sizeof( SClearValue ) );
+        }*/
 
-        void CDDI::BeginDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
+        void CVulkanAPI::BeginDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
         {
-            if( NativeAPI::SImplementation::sInstanceICD.vkCmdBeginDebugUtilsLabelEXT && pInfo )
+            if( SImplementation::sInstanceICD.vkCmdBeginDebugUtilsLabelEXT && pInfo )
             {
                 VkDebugUtilsLabelEXT li = {};
                 li.color[ 0 ]           = pInfo->Color.r;
@@ -5690,37 +5731,37 @@ namespace VKE
                 li.pLabelName           = pInfo->pText;
                 li.pNext                = nullptr;
                 li.sType                = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-                NativeAPI::SImplementation::sInstanceICD.vkCmdBeginDebugUtilsLabelEXT( hDDICmdBuff, &li );
+                SImplementation::sInstanceICD.vkCmdBeginDebugUtilsLabelEXT( ToNative( hDDICmdBuff ), &li );
             }
         }
 
-        void CDDI::EndDebugInfo( const NativeAPI::CommandBuffer& hDDICmdBuff )
+        void CVulkanAPI::EndDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff )
         {
-            if( NativeAPI::SImplementation::sInstanceICD.vkCmdEndDebugUtilsLabelEXT )
+            if( SImplementation::sInstanceICD.vkCmdEndDebugUtilsLabelEXT )
             {
-                NativeAPI::SImplementation::sInstanceICD.vkCmdEndDebugUtilsLabelEXT( hDDICmdBuff );
+                SImplementation::sInstanceICD.vkCmdEndDebugUtilsLabelEXT( ToNative( hDDICmdBuff ) );
             }
         }
 
-        void CDDI::SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const
+        void CVulkanAPI::SetObjectDebugNameImpl( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const
         {
 #if VKE_RENDER_SYSTEM_DEBUG
-            if( NativeAPI::SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
+            if( SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT && pName )
             {
                 VKE_ASSERT2( strlen( pName ) > 0, "VKE_RENDER_SYSTEM_DEBUG requires debug names for all objects." );
-                VKE_ASSERT2( m_hDevice != NativeAPI::Null, "Device must be created first!" );
+                VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "Device must be created first!" );
                 VkDebugUtilsObjectNameInfoEXT ni;
                 ni.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
                 ni.pNext        = nullptr;
                 ni.objectHandle = handle;
                 ni.objectType   = (VkObjectType)objType;
                 ni.pObjectName  = pName;
-                NativeAPI::SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_hDevice, &ni );
+                SImplementation::sInstanceICD.vkSetDebugUtilsObjectNameEXT( m_pImplementation->m_hDevice, &ni );
             }
 #endif
         }
 
-        void CDDI::SetQueueDebugName( uint64_t handle, cstr_t pName ) const
+        void CVulkanAPI::SetQueueDebugNameImpl( uint64_t handle, cstr_t pName ) const
         {
             SetObjectDebugName( handle, VK_OBJECT_TYPE_QUEUE, pName );
         }
@@ -5811,4 +5852,3 @@ namespace VKE
 
     } // namespace RenderSystem
 } // namespace VKE
-#endif // VKE_RENDER_SYSTEM_VULKAN

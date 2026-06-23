@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#if VKE_RENDER_SYSTEM_VULKAN
-
 #define VKE_USE_VULKAN_KHR 1
 
 #if VKE_WINDOWS
@@ -23,13 +21,12 @@
 #include "RenderSystem/Vulkan/Vulkan.h"
 #include <vulkan/vulkan.h>
 
-namespace VKE::RenderSystem
+namespace VKE::RenderSystem::Vulkan
 {
-    static const uint32_t DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-
-    namespace NativeAPI
+    struct NativeAPI
     {
-        static decltype( VK_NULL_HANDLE ) Null;
+        static const uint32_t             DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
+        inline static const decltype( VK_NULL_HANDLE ) Null = nullptr;
 
         struct SRenderPass;
 
@@ -59,7 +56,7 @@ namespace VKE::RenderSystem
         using ImageViewType         = VkImageViewType;
         using ImageLayout           = VkImageLayout;
         using ImageUsageFlags       = VkImageUsageFlags;
-        using Memory                = VkDeviceMemory;
+        using MemoryHeap                = VkDeviceMemory;
         using PresentSurface        = VkSurfaceKHR;
         using SwapChain             = VkSwapchainKHR;
         using Adapter               = VkPhysicalDevice;
@@ -95,62 +92,68 @@ namespace VKE::RenderSystem
 
         using DDIExtLayerArray = Utils::TCDynamicArray< SDDIExtensionLayer, 1 >;
 
-        struct SImplementation
+       
+
+    }; // namespace RHI
+
+    struct SImplementation
+    {
+        static const uint32_t MAX_MEMORY_HEAPS = VK_MAX_MEMORY_HEAPS;
+
+        using GlobalICD   = VkICD::Global;
+        using InstanceICD = VkICD::Instance;
+        using DeviceICD   = VkICD::Device;
+
+        static NativeAPI::DDIExtArray      svExtensions;
+        static NativeAPI::DDIExtLayerArray svLayers;
+
+        static GlobalICD   sGlobalICD;
+        static InstanceICD sInstanceICD;
+        static handle_t    shICD;
+        static VkInstance  sVkInstance;
+
+        static VkDebugReportCallbackEXT sVkDebugReportCallback;
+        static VkDebugUtilsMessengerEXT sVkDebugMessengerCallback;
+
+        DeviceICD        m_ICD;
+        VkDevice         m_hDevice;
+        VkPhysicalDevice m_hAdapter;
+        VkDeviceSize     m_aHeapSizes[ MAX_MEMORY_HEAPS ];
+        uint32_t         m_instanceVersion = 0;
+        NativeAPI::DDIExtMap        m_mExtensions;
+
+        VKE::RenderSystem::SDeviceProperties EngineDeviceProperties;
+
+        struct SDeviceFeatures
         {
-            static const uint32_t MAX_MEMORY_HEAPS = VK_MAX_MEMORY_HEAPS;
+            VkPhysicalDeviceFeatures2                      Device;
+            VkPhysicalDeviceVulkan11Features               Device11;
+            VkPhysicalDeviceVulkan12Features               Device12;
+            VkPhysicalDeviceMeshShaderFeaturesEXT          MeshShaderEXT;
+            VkPhysicalDeviceMeshShaderFeaturesNV           MeshShaderNV;
+            VkPhysicalDeviceRayTracingPipelineFeaturesKHR  Raytracing10;
+            VkPhysicalDeviceRayQueryFeaturesKHR            Raytracing11;
+            VkPhysicalDeviceRayTracingMotionBlurFeaturesNV Raytracing12;
+            VkPhysicalDeviceDynamicRenderingFeaturesKHR    DynamicRendering;
+        } Features; // struct SDeviceFeatures
 
-            using GlobalICD   = VkICD::Global;
-            using InstanceICD = VkICD::Instance;
-            using DeviceICD   = VkICD::Device;
+        struct SDeviceProperties
+        {
+            VkPhysicalDeviceProperties2                     Device;
+            VkPhysicalDeviceVulkan11Properties              Device11;
+            VkPhysicalDeviceVulkan12Properties              Device12;
+            VkPhysicalDeviceMemoryProperties2               Memory;
+            VkPhysicalDeviceMeshShaderPropertiesEXT         MeshShaderEXT;
+            VkPhysicalDeviceMeshShaderPropertiesNV          MeshShaderNV;
+            VkPhysicalDeviceRayTracingPipelinePropertiesKHR Raytracing10;
+            VkPhysicalDeviceDescriptorIndexingProperties    DescriptorIndexing;
+            VkFormatProperties                              aFormatProperties[ Formats::_MAX_COUNT ];
+        } Properties; // struct SDeviceProperties
 
-            static DDIExtArray      svExtensions;
-            static DDIExtLayerArray svLayers;
+        VkPhysicalDeviceLimits Limits;
 
-            static GlobalICD   sGlobalICD;
-            static InstanceICD sInstanceICD;
-            static handle_t    shICD;
-            static VkInstance  sVkInstance;
+        const NativeAPI::SDDIExtension& GetExtensionInfo( cstr_t pName ) const;
 
-            static VkDebugReportCallbackEXT sVkDebugReportCallback;
-            static VkDebugUtilsMessengerEXT sVkDebugMessengerCallback;
-
-            DeviceICD    m_ICD;
-            VkDeviceSize m_aHeapSizes[ MAX_MEMORY_HEAPS ];
-            uint32_t     m_instanceVersion = 0;
-            DDIExtMap    m_mExtensions;
-
-            struct SDeviceFeatures
-            {
-                VkPhysicalDeviceFeatures2                      Device;
-                VkPhysicalDeviceVulkan11Features               Device11;
-                VkPhysicalDeviceVulkan12Features               Device12;
-                VkPhysicalDeviceMeshShaderFeaturesEXT          MeshShaderEXT;
-                VkPhysicalDeviceMeshShaderFeaturesNV           MeshShaderNV;
-                VkPhysicalDeviceRayTracingPipelineFeaturesKHR  Raytracing10;
-                VkPhysicalDeviceRayQueryFeaturesKHR            Raytracing11;
-                VkPhysicalDeviceRayTracingMotionBlurFeaturesNV Raytracing12;
-                VkPhysicalDeviceDynamicRenderingFeaturesKHR    DynamicRendering;
-            } Features; // struct SDeviceFeatures
-
-            struct SDeviceProperties
-            {
-                VkPhysicalDeviceProperties2                     Device;
-                VkPhysicalDeviceVulkan11Properties              Device11;
-                VkPhysicalDeviceVulkan12Properties              Device12;
-                VkPhysicalDeviceMemoryProperties2               Memory;
-                VkPhysicalDeviceMeshShaderPropertiesEXT         MeshShaderEXT;
-                VkPhysicalDeviceMeshShaderPropertiesNV          MeshShaderNV;
-                VkPhysicalDeviceRayTracingPipelinePropertiesKHR Raytracing10;
-                VkPhysicalDeviceDescriptorIndexingProperties    DescriptorIndexing;
-                VkFormatProperties                              aFormatProperties[ Formats::_MAX_COUNT ];
-            } Properties; // struct SDeviceProperties
-
-            const SDDIExtension& GetExtensionInfo( cstr_t pName ) const;
-
-        }; // struct SImplementation
-
-    } // namespace NativeAPI
+    }; // struct SImplementation
 
 } // namespace VKE::RenderSystem
-
-#endif // VKE_RENDER_SYSTEM_VULKAN

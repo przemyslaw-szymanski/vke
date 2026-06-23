@@ -33,8 +33,8 @@ namespace VKE::RenderSystem
     {
         union
         {
-            NativeAPI::CPUFence GPUToCPU;
-            NativeAPI::GPUFence GPUToGPU;
+            RHI::CPUFence GPUToCPU;
+            RHI::GPUFence GPUToGPU;
             Threads::SyncObject CPUToCPU;
         };
 
@@ -44,12 +44,12 @@ namespace VKE::RenderSystem
         {
         }
 
-        SSynchronizationObject( const NativeAPI::CPUFence& Obj ) :
+        SSynchronizationObject( const RHI::CPUFence& Obj ) :
             GPUToCPU{ Obj }, type{ SynchronizationObjectTypes::GPU_TO_CPU }
         {
         }
 
-        SSynchronizationObject( const NativeAPI::GPUFence& Obj ) :
+        SSynchronizationObject( const RHI::GPUFence& Obj ) :
             GPUToGPU{ Obj }, type{ SynchronizationObjectTypes::GPU_TO_GPU }
         {
         }
@@ -118,8 +118,8 @@ namespace VKE::RenderSystem
         using NodeQueue                               = vke_queue< CFrameGraphNode* >;
         using NodeArray                               = Utils::TCDynamicArray< CFrameGraphNode*, 1 >;
         using SyncObjArray                            = Utils::TCDynamicArray< SyncObject, 1 >;
-        using GPUFenceArray                           = Utils::TCDynamicArray< NativeAPI::GPUFence, 1 >;
-        using CPUFencearray                           = Utils::TCDynamicArray< NativeAPI::CPUFence, 1 >;
+        using GPUFenceArray                           = Utils::TCDynamicArray< RHI::GPUFence, 1 >;
+        using CPUFencearray                           = Utils::TCDynamicArray< RHI::CPUFence, 1 >;
         using ThreadFenceArray                        = Utils::TCDynamicArray< Platform::ThreadFence, 1 >;
         using TextureArray                            = Utils::TCDynamicArray< TexturePtr, 8 >;
         using index_t                                 = uint8_t;
@@ -164,7 +164,7 @@ namespace VKE::RenderSystem
         };
 
         using TaskResultArray       = Utils::TCDynamicArray< STaskResult*, 1024 >;
-        using CPUFenceTaskResultMap = vke_map< NativeAPI::CPUFence, TaskResultArray >;
+        using CPUFenceTaskResultMap = vke_map< RHI::CPUFence, TaskResultArray >;
         using FormatArray           = Utils::TCDynamicArray< FORMAT, 8 >;
 
     protected:
@@ -227,14 +227,14 @@ namespace VKE::RenderSystem
             m_vSyncObjects.PushBack( Obj );
         }
 
-        //NativeAPI::GPUFence&   GetGPUFence( uint32_t backBufferIndex ) const;
-        //NativeAPI::CPUFence&   GetCPUFence( uint32_t backBufferIndex ) const;
+        //RHI::GPUFence&   GetGPUFence( uint32_t backBufferIndex ) const;
+        //RHI::CPUFence&   GetCPUFence( uint32_t backBufferIndex ) const;
         Platform::ThreadFence& GetThreadFence();
 
         void   SignalThreadFence( uint32_t value );
         void   IncrementThreadFence();
-        Result Wait( const NativeAPI::GPUFence& );
-        Result Wait( const NativeAPI::CPUFence&, uint64_t timeout );
+        Result Wait( const RHI::GPUFence& );
+        Result Wait( const RHI::CPUFence&, uint64_t timeout );
         Result Wait( const Platform::ThreadFence&, uint32_t value, uint64_t timeout );
         Result WaitForFrame( const Platform::ThreadFence&, WAIT_FOR_FRAME frame, uint64_t timeout );
 
@@ -336,7 +336,7 @@ namespace VKE::RenderSystem
         // NodeArray m_vpSubpassNodes;
         WaitArray               m_vWaitForNodes;
         SyncObjArray            m_vSyncObjects;
-        NativeAPI::FenceValue   m_fenceValue = 0;
+        RHI::FenceValue   m_fenceValue = 0;
         CContextBase*           m_pContext = nullptr;
         CommandBufferRefPtr     m_pCommandBuffer;
         SIndex                  m_Index;
@@ -350,7 +350,7 @@ namespace VKE::RenderSystem
         TextureArray            m_vpColorRenderTargets;
         TexturePtr              m_pDepthStencilRenderTarget;
         FormatArray             m_vColorRenderTargetFormats;
-        NativeAPI::RenderPass   m_hNativeRenderPass = NativeAPI::Null;
+        RHI::RenderPass   m_hNativeRenderPass = RHI::Null;
         Rect2DI32               m_RenderArea;
         /// <summary>
         /// if true, this node will execute command buffers.
@@ -405,7 +405,7 @@ namespace VKE::RenderSystem
 
         struct SExecuteData
         {
-            Utils::TCDynamicArray< NativeAPI::CommandBuffer > vpCommandBuffers;
+            Utils::TCDynamicArray< RHI::CommandBuffer > vpCommandBuffers;
             SSubmitInfo                               SubmitInfo;
         };
 

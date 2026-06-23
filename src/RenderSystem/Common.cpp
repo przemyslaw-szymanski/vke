@@ -1,6 +1,6 @@
 #include "RenderSystem/Common.h"
 
-#if VKE_RENDER_SYSTEM_VULKAN
+#if VKE_COMPILE_VULKAN_RHI
 #include "RenderSystem/Vulkan/Vulkan.h"
 #endif
 
@@ -17,7 +17,7 @@ namespace VKE
 
         const SColor DebugColors::UPLOAD = SColor();
 
-#if VKE_RENDER_SYSTEM_VULKAN
+#if VKE_COMPILE_VULKAN_RHI
         void SColor::CopyToNative( void* pNativeArray ) const
         {
             VkClearColorValue* pClear = reinterpret_cast< VkClearColorValue* >( pNativeArray );

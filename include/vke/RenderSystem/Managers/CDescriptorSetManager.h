@@ -42,9 +42,9 @@ namespace VKE
 
             using SetArray =
                 Utils::TCDynamicArray< SDescriptorSet, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
-            using DDISetArray = Utils::TCDynamicArray< NativeAPI::DescriptorSet,
+            using DDISetArray = Utils::TCDynamicArray< RHI::DescriptorSet,
                                                        Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
-            using DDISetPool  = Utils::TSFreePool< NativeAPI::DescriptorSet, SetHandle,
+            using DDISetPool  = Utils::TSFreePool< RHI::DescriptorSet, SetHandle,
                                                    Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
 
             struct SPool
@@ -53,17 +53,17 @@ namespace VKE
                 {
                 }
 
-                SPool( NativeAPI::DescriptorPool hDDI ) : hDDIObject{ hDDI }
+                SPool( RHI::DescriptorPool hDDI ) : hDDIObject{ hDDI }
                 {
                     SetPool.Add( {} );
                 }
 
-                NativeAPI::DescriptorPool hDDIObject;
+                RHI::DescriptorPool hDDIObject;
                 DDISetPool                SetPool;
             };
 
             using PoolDescArray  = Utils::TCDynamicArray< SDescriptorPoolDesc >;
-            using DDIPoolBuffer  = Utils::TSFreePool< NativeAPI::DescriptorPool, uint16_t >;
+            using DDIPoolBuffer  = Utils::TSFreePool< RHI::DescriptorPool, uint16_t >;
             using PoolBuffer     = Utils::TSFreePool< SPool, PoolHandle >;
             using SetHandleArray = Utils::TCDynamicArray< DescriptorSetHandle >;
 
@@ -71,7 +71,7 @@ namespace VKE
 
             struct SLayout
             {
-                NativeAPI::DescriptorSetLayout hDDILayout;
+                RHI::DescriptorSetLayout hDDILayout;
                 SDescriptorSetLayoutDesc       Desc;
                 SetMap                         mFreeSets;
 
@@ -95,9 +95,9 @@ namespace VKE
             DescriptorSetLayoutHandle CreateLayout( const SDescriptorSetLayoutDesc& Desc );
             void                      DestroyLayout( DescriptorSetLayoutPtr pLayout );
 
-            const NativeAPI::DescriptorSet& GetSet( const DescriptorSetHandle& hSet );
+            const RHI::DescriptorSet& GetSet( const DescriptorSetHandle& hSet );
             DescriptorSetLayoutHandle       GetLayout( const DescriptorSetHandle& hSet );
-            NativeAPI::DescriptorSetLayout  GetLayout( const DescriptorSetLayoutHandle& hLayout );
+            RHI::DescriptorSetLayout  GetLayout( const DescriptorSetLayoutHandle& hLayout );
             DescriptorSetLayoutHandle       GetLayout( const SDescriptorSetLayoutDesc& Desc );
 
             // DescriptorSetLayoutPtr      GetDefaultLayout() const { return m_pDefaultLayout; }

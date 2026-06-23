@@ -1,10 +1,35 @@
 cmake_minimum_required(VERSION 3.5)
 
-if(VKE_RENDER_SYSTEM_VULKAN)
-    set(RENDER_SYSTEM_NAME vkEngineRenderSystem_Vulkan)
-endif()
 
 project(vkEngineRenderSystem C CXX)
+
+if(VKE_WINDOWS)
+    set(VKE_COMPILE_VULKAN_RHI 1)
+    set(VKE_COMPILE_D3D12_RHI 1)
+    set(VKE_COMPILE_METAL_RHI 0)
+elseif(VKE_LINUX)
+    set(VKE_COMPILE_VULKAN_RHI 1)
+    set(VKE_COMPILE_D3D12_RHI 0)
+    set(VKE_COMPILE_METAL_RHI 0)
+elseif(VKE_MACOS)
+    set(VKE_COMPILE_VULKAN_RHI 0)
+    set(VKE_COMPILE_D3D12_RHI 0)
+    set(VKE_COMPILE_METAL_RHI 1)
+elseif(VKE_IOS)
+    set(VKE_COMPILE_VULKAN_RHI 0)
+    set(VKE_COMPILE_D3D12_RHI 0)
+    set(VKE_COMPILE_METAL_RHI 1)
+elseif(VKE_ANDROID)
+    set(VKE_COMPILE_VULKAN_RHI 1)
+    set(VKE_COMPILE_D3D12_RHI 0)
+    set(VKE_COMPILE_METAL_RHI 0)
+endif()
+
+add_compile_definitions(
+    "VKE_COMPILE_D3D12_RHI=${VKE_COMPILE_D3D12_RHI}"
+    "VKE_COMPILE_VULKAN_RHI=${VKE_COMPILE_VULKAN_RHI}"
+    "VKE_COMPILE_METAL_RHI=${VKE_COMPILE_METAL_RHI}"
+)
 
 set(INC_DIRS
     "${INCLUDE_DIR}/RenderSystem/Managers/*.h"
@@ -26,7 +51,7 @@ set(SRC_DIRS
     "${SOURCE_DIR}/RenderSystem/Tasks/*.cpp"
 )
 
-if(VKE_RENDER_SYSTEM_VULKAN)
+if(VKE_COMPILE_VULKAN_RHI)
     set(INC_DIRS ${INC_DIRS}
         "${INCLUDE_DIR}/RenderSystem/Vulkan/*.h"
         "${INCLUDE_DIR}/RenderSystem/Vulkan/*.inl"
@@ -44,7 +69,7 @@ if(VKE_RENDER_SYSTEM_VULKAN)
     )
 endif()
 
-if(VKE_RENDER_SYSTEM_D3D12)
+if(VKE_COMPILE_D3D12_RHI)
     set(INC_DIRS ${INC_DIRS}
         "${INCLUDE_DIR}/RenderSystem/D3D12/*.h"
         "${INCLUDE_DIR}/RenderSystem/D3D12/*.inl"

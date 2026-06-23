@@ -5,7 +5,7 @@
 #include "Core/Utils/TCSmartPtr.h"
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/RHI.h"
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
 
 #include "glslang/Public/ShaderLang.h"
@@ -37,12 +37,12 @@ namespace VKE
                 };
             };
 
-            VKE_ADD_DDI_OBJECT( NativeAPI::Shader );
+            VKE_ADD_DDI_OBJECT( RHI::Shader );
             VKE_DECL_BASE_OBJECT( ShaderHandle );
             VKE_DECL_BASE_RESOURCE();
 
         public:
-            // using CompilerData = CDDI::CompilerData;
+            // using CompilerData = CAPI::CompilerData;
             using InitInfo = SShaderInitInfo;
             using ShaderBinaryBuffer =
                 Utils::TCDynamicArray< uint8_t, Config::RenderSystem::Shader::DEFAULT_SHADER_BINARY_SIZE >;

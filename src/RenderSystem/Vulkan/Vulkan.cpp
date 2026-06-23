@@ -19,7 +19,7 @@
 // #undef VK_EXPORTED_FUNCTION
 // #undef VKE_VK_FUNCTION
 
-namespace VKE
+namespace VKE::RenderSystem
 {
     namespace Vulkan
     {
@@ -43,71 +43,71 @@ namespace VKE
             return ret;
         }
 
-        SQueue::SQueue()
-        {
-            this->m_objRefCount = 0;
-            Vulkan::InitInfo( &m_PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR );
-            m_PresentInfo.pResults = nullptr;
-        }
+        //SQueue::SQueue()
+        //{
+        //    this->m_objRefCount = 0;
+        //    Vulkan::InitInfo( &m_PresentInfo, VK_STRUCTURE_TYPE_PRESENT_INFO_KHR );
+        //    m_PresentInfo.pResults = nullptr;
+        //}
 
-        VkResult SQueue::Submit( const VkICD::Device& ICD, const VkSubmitInfo& Info, const VkFence& vkFence )
-        {
-            Lock();
-            auto res = ICD.vkQueueSubmit( vkQueue, 1, &Info, vkFence );
-            Unlock();
-            return res;
-        }
+        //VkResult SQueue::Submit( const VkICD::Device& ICD, const VkSubmitInfo& Info, const VkFence& vkFence )
+        //{
+        //    Lock();
+        //    auto res = ICD.vkQueueSubmit( vkQueue, 1, &Info, vkFence );
+        //    Unlock();
+        //    return res;
+        //}
 
-        bool SQueue::IsPresentDone()
-        {
-            return m_isPresentDone;
-        }
+        //bool SQueue::IsPresentDone()
+        //{
+        //    return m_isPresentDone;
+        //}
 
-        void SQueue::ReleasePresentNotify()
-        {
-            Lock();
-            if( m_presentCount-- < 0 )
-            {
-                m_presentCount = 0;
-            }
-            m_isPresentDone = m_presentCount == 0;
-            Unlock();
-        }
+        //void SQueue::ReleasePresentNotify()
+        //{
+        //    Lock();
+        //    if( m_presentCount-- < 0 )
+        //    {
+        //        m_presentCount = 0;
+        //    }
+        //    m_isPresentDone = m_presentCount == 0;
+        //    Unlock();
+        //}
 
-        void SQueue::Wait( const VkICD::Device& ICD )
-        {
-            ICD.vkQueueWaitIdle( vkQueue );
-        }
+        //void SQueue::Wait( const VkICD::Device& ICD )
+        //{
+        //    ICD.vkQueueWaitIdle( vkQueue );
+        //}
 
-        Result SQueue::Present( const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
-                                VkSemaphore vkWaitSemaphore )
-        {
-            Result res = VKE_ENOTREADY;
-            Lock();
-            m_PresentData.vImageIndices.PushBack( imgIdx );
-            m_PresentData.vSwapChains.PushBack( vkSwpChain );
-            m_PresentData.vWaitSemaphores.PushBack( vkWaitSemaphore );
-            m_presentCount++;
-            m_isPresentDone = false;
-            if( this->GetRefCount() == m_PresentData.vSwapChains.GetCount() )
-            {
-                m_PresentInfo.pImageIndices      = &m_PresentData.vImageIndices[ 0 ];
-                m_PresentInfo.pSwapchains        = &m_PresentData.vSwapChains[ 0 ];
-                m_PresentInfo.pWaitSemaphores    = &m_PresentData.vWaitSemaphores[ 0 ];
-                m_PresentInfo.swapchainCount     = m_PresentData.vSwapChains.GetCount();
-                m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
-                VK_ERR( ICD.vkQueuePresentKHR( vkQueue, &m_PresentInfo ) );
-                // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]},
-                // imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
-                m_isPresentDone = true;
-                m_PresentData.vImageIndices.Clear();
-                m_PresentData.vSwapChains.Clear();
-                m_PresentData.vWaitSemaphores.Clear();
-                res = VKE_OK;
-            }
-            Unlock();
-            return res;
-        }
+        //Result SQueue::Present( const VkICD::Device& ICD, uint32_t imgIdx, VkSwapchainKHR vkSwpChain,
+        //                        VkSemaphore vkWaitSemaphore )
+        //{
+        //    Result res = VKE_ENOTREADY;
+        //    Lock();
+        //    m_PresentData.vImageIndices.PushBack( imgIdx );
+        //    m_PresentData.vSwapChains.PushBack( vkSwpChain );
+        //    m_PresentData.vWaitSemaphores.PushBack( vkWaitSemaphore );
+        //    m_presentCount++;
+        //    m_isPresentDone = false;
+        //    if( this->GetRefCount() == m_PresentData.vSwapChains.GetCount() )
+        //    {
+        //        m_PresentInfo.pImageIndices      = &m_PresentData.vImageIndices[ 0 ];
+        //        m_PresentInfo.pSwapchains        = &m_PresentData.vSwapChains[ 0 ];
+        //        m_PresentInfo.pWaitSemaphores    = &m_PresentData.vWaitSemaphores[ 0 ];
+        //        m_PresentInfo.swapchainCount     = m_PresentData.vSwapChains.GetCount();
+        //        m_PresentInfo.waitSemaphoreCount = m_PresentData.vWaitSemaphores.GetCount();
+        //        VK_ERR( ICD.vkQueuePresentKHR( vkQueue, &m_PresentInfo ) );
+        //        // $TID Present: q={vkQueue}, sc={m_PresentInfo.pSwapchains[0]},
+        //        // imgIdx={m_PresentInfo.pImageIndices[0]}, ws={m_PresentInfo.pWaitSemaphores[0]}
+        //        m_isPresentDone = true;
+        //        m_PresentData.vImageIndices.Clear();
+        //        m_PresentData.vSwapChains.Clear();
+        //        m_PresentData.vWaitSemaphores.Clear();
+        //        res = VKE_OK;
+        //    }
+        //    Unlock();
+        //    return res;
+        //}
 
         bool IsColorImage( VkFormat format )
         {

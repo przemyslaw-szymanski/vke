@@ -81,7 +81,7 @@ namespace VKE
                 tid = Desc.threadIndex;
             }
 
-            pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc, nullptr );
+            pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc );
             auto idx        = m_avpPools[ tid ].PushBack( pPool );
 
             SCommandBufferPoolHandleDecoder Decoder;
@@ -98,7 +98,7 @@ namespace VKE
             }
             else
             {
-                m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
+                m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool );
             }
             // auto pCbs = &pPool->vCommandBuffers[ 0 ];
             //  $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
@@ -106,7 +106,7 @@ namespace VKE
         }
 
         Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-                                                        NativeAPI::GPUFence* phDDISemaphore, CCommandBuffer** ppInOut )
+                                                        RHI::GPUFence* phDDISemaphore, CCommandBuffer** ppInOut )
         {
             auto pCb = *ppInOut;
             // SCommandBufferPoolHandleDecoder Decoder{ (uint32_t)pCb->m_hPool };
@@ -119,7 +119,7 @@ namespace VKE
         }
 
         /*Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-            NativeAPI::GPUFence* phDDISemaphore)
+            RHI::GPUFence* phDDISemaphore)
         {
             auto tid = _GetThreadId();
             auto pCb = m_apCurrentCommandBuffers[ tid ];
@@ -154,7 +154,7 @@ namespace VKE
             auto pPool = *ppPool;
             pPool->vCommandBuffers.ClearFull();
             pPool->vpFreeCommandBuffers.ClearFull();
-            m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool, nullptr );
+            m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool );
             Memory::DestroyObject( &HeapAllocator, &pPool );
         }
 
@@ -219,7 +219,7 @@ namespace VKE
             Result ret      = VKE_OK;
             if( vFreeCbs.GetCount() < count )
             {
-                Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
+                Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
 
                 auto& DDI = m_pCtx->_GetDDI();
 

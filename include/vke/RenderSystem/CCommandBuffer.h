@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/RHI.h"
 #include "RenderSystem/CPipeline.h"
 
 namespace VKE
@@ -50,7 +50,7 @@ namespace VKE
                 SBeginRenderPassInfo2 BeginInfo;
                 SPipelineInfo         PipelineInfo;
                 hash_t                hash              = 0;
-                NativeAPI::RenderPass hNativeRenderPass = NativeAPI::Null;
+                RHI::RenderPass hNativeRenderPass = RHI::Null;
             } RenderPass;
 
             PipelineRefPtr pPipeline;
@@ -74,14 +74,14 @@ namespace VKE
             friend class CContextBase;
 
             VKE_DECL_OBJECT_TS_REF_COUNT( 1 );
-            VKE_ADD_DDI_OBJECT( NativeAPI::CommandBuffer );
+            VKE_ADD_DDI_OBJECT( RHI::CommandBuffer );
 
             using States = CommandBufferStates;
 
         public:
             using DescSetArray      = Utils::TCDynamicArray< DescriptorSetHandle >;
-            using DDIDescSetArray   = Utils::TCDynamicArray< NativeAPI::DescriptorSet >;
-            using DDISemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, 8 >;
+            using DDIDescSetArray   = Utils::TCDynamicArray< RHI::DescriptorSet >;
+            using DDISemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
             using UintArray         = Utils::TCDynamicArray< uint32_t >;
             using HandleArray       = Utils::TCDynamicArray< handle_t >;
             using TriboolArray      = Utils::TCDynamicArray< tribool_t* >;
@@ -102,10 +102,10 @@ namespace VKE
             }
 
             bool IsExecuted();
-            void AddWaitOnSemaphore( const NativeAPI::GPUFence& hDDISemaphore );
+            void AddWaitOnSemaphore( const RHI::GPUFence& hDDISemaphore );
 
             // RenderPassRefPtr        GetCurrentRenderPass() const { return m_pCurrentRenderPass; }
-            // const NativeAPI::RenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
+            // const RHI::RenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
 
             void   Begin();
             Result End();
@@ -188,7 +188,7 @@ namespace VKE
 
             void Dispatch( uint32_t x, uint32_t y, uint32_t z );
             // Bindings
-            //void Bind( NativeAPI::RenderPass hRenderPass );
+            //void Bind( RHI::RenderPass hRenderPass );
             void Bind( VertexBufferPtr pBuffer, const uint32_t offset = 0 );
             void Bind( const VertexBufferHandle& hBuffer, const uint32_t offset = 0 );
             void Bind( const IndexBufferHandle& hBuffer, const uint32_t offset = 0 );
@@ -233,9 +233,9 @@ namespace VKE
             void Blit( const SBlitTextureInfo& Info );
             void GenerateMipmaps( TexturePtr );
 
-            void SetEvent( const NativeAPI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
+            void SetEvent( const RHI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
             void SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
-            void ResetEvent( const NativeAPI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
+            void ResetEvent( const RHI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
             void ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
 
             // Debug
@@ -260,12 +260,12 @@ namespace VKE
                 m_vStagingBufferAllocations.PushBack( hStagingBuffer );
             }
 
-            NativeAPI::CPUFence GetCPUFence() const
+            RHI::CPUFence GetCPUFence() const
             {
                 return m_hApiCpuFence;
             }
 
-            NativeAPI::GPUFence GetGPUFence() const
+            RHI::GPUFence GetGPUFence() const
             {
                 return m_hApiGpuFence;
             }
@@ -336,8 +336,8 @@ namespace VKE
             Result _UpdateCurrentPipeline();
             Result _UpdateCurrentRenderPass();
 
-            // void    _SetCPUSyncObject(const NativeAPI::CPUFence& hDDIFence) { m_hDDIFence = hDDIFence; }
-            // void    _SetGPUSyncObject(NativeAPI::GPUFence hApi) { m_hApiGPUSyncObject = hApi; }
+            // void    _SetCPUSyncObject(const RHI::CPUFence& hDDIFence) { m_hDDIFence = hDDIFence; }
+            // void    _SetGPUSyncObject(RHI::GPUFence hApi) { m_hApiGPUSyncObject = hApi; }
 
             /// <summary>
             /// Command buffer manager notifies CommandBuffer that is was executed.
@@ -350,7 +350,7 @@ namespace VKE
                 return m_hPool.value;
             }
 
-            const NativeAPI::CommandBufferPool& getNativeCmdBufferPool() const
+            const RHI::CommandBufferPool& getNativeCmdBufferPool() const
             {
                 return m_hDDICmdBufferPool;
             }
@@ -380,17 +380,17 @@ namespace VKE
             SPipelineCreateDesc       m_CurrentPipelineDesc;
             SPipelineLayoutDesc       m_CurrentPipelineLayoutDesc;
             PipelineLayoutRefPtr      m_pCurrentPipelineLayout;
-            NativeAPI::PipelineLayout m_hDDILastUsedLayout = NativeAPI::Null;
+            RHI::PipelineLayout m_hDDILastUsedLayout = RHI::Null;
             SRenderPassDesc           m_CurrentRenderPassDesc;
 #endif
             SCommandBufferState m_CurrentState;
             // PipelineRefPtr              m_pCurrentPipeline;
             // RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
             // RenderPassRefPtr            m_pCurrentRenderPass;
-            // NativeAPI::RenderPass               m_hDDICurrentRenderPass = NativeAPI::Null;
-            NativeAPI::CPUFence          m_hApiCpuFence      = NativeAPI::Null;
-            NativeAPI::GPUFence          m_hApiGpuFence      = NativeAPI::Null;
-            NativeAPI::CommandBufferPool m_hDDICmdBufferPool = NativeAPI::Null;
+            // RHI::RenderPass               m_hDDICurrentRenderPass = RHI::Null;
+            RHI::CPUFence          m_hApiCpuFence      = RHI::Null;
+            RHI::GPUFence          m_hApiGpuFence      = RHI::Null;
+            RHI::CommandBufferPool m_hDDICmdBufferPool = RHI::Null;
             void*                        m_pExecuteBatch     = nullptr;
             uint32_t                     m_currViewportHash  = 0;
             uint32_t                     m_currScissorHash   = 0;

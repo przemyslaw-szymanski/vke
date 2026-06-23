@@ -211,11 +211,6 @@ namespace VKE
                 *pInOut ^= std::hash< T >{}( Obj ) + CalcMagic( *pInOut );
             }
 
-            template< HasCalcHash T >
-            static vke_force_inline void Combine( hash_t* pInOut, const T& Obj )
-            {
-                *pInOut ^= T::CalcHash( Obj ) + CalcMagic( *pInOut );
-            }
 
         }; // namespace Hash
 

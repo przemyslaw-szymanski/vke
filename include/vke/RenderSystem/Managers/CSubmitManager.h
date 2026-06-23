@@ -22,20 +22,20 @@ namespace VKE
             static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
             using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
             using DDICommandBufferArray =
-                Utils::TCDynamicArray< NativeAPI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
-            using DDISemaphoreArray = Utils::TCDynamicArray< NativeAPI::GPUFence, DEFAULT_COMMAND_BUFFER_COUNT >;
+                Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using DDISemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, DEFAULT_COMMAND_BUFFER_COUNT >;
 
         public:
             void operator=( const CCommandBufferBatch& Other );
             void operator=( CCommandBufferBatch&& Other );
 
             // VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
-            const NativeAPI::GPUFence& GetSignaledSemaphore() const
+            const RHI::GPUFence& GetSignaledSemaphore() const
             {
                 return m_hDDISignalSemaphore;
             }
 
-            void WaitOnSemaphore( const NativeAPI::GPUFence& hDDISemaphore )
+            void WaitOnSemaphore( const RHI::GPUFence& hDDISemaphore )
             {
                 m_vDDIWaitSemaphores.PushBack( hDDISemaphore );
             }
@@ -56,8 +56,8 @@ namespace VKE
             CommandBufferArray    m_vpCommandBuffers;
             DDICommandBufferArray m_vDDICommandBuffers;
             DDISemaphoreArray     m_vDDIWaitSemaphores;
-            NativeAPI::GPUFence   m_hDDISignalSemaphore = NativeAPI::Null;
-            NativeAPI::CPUFence   m_hDDIFence           = NativeAPI::Null;
+            RHI::GPUFence   m_hDDISignalSemaphore = RHI::Null;
+            RHI::CPUFence   m_hDDIFence           = RHI::Null;
             CSubmitManager*       m_pMgr                = nullptr;
             uint8_t               m_currCmdBuffer       = 0;
             Threads::SyncObject   m_SyncObj;
@@ -121,8 +121,8 @@ namespace VKE
         //        return _GetCurrentBatch( pCtx, hCmdPool );
         //    }
 
-        //    void SignalSemaphore( NativeAPI::GPUFence* phDDISemaphoreOut );
-        //    void SetWaitOnSemaphore( const NativeAPI::GPUFence& hSemaphore );
+        //    void SignalSemaphore( RHI::GPUFence* phDDISemaphoreOut );
+        //    void SetWaitOnSemaphore( const RHI::GPUFence& hSemaphore );
 
         //    Result ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
         //    Result ExecuteBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppInOut );
@@ -154,7 +154,7 @@ namespace VKE
         //    BatchPtrArray             m_vpPendingBatches;
         //    CCommandBufferBatch*      m_pCurrBatch = nullptr;
         //    // SSubmitManagerDesc          m_Desc;
-        //    NativeAPI::GPUFence m_hDDIWaitSemaphore = NativeAPI::Null;
+        //    RHI::GPUFence m_hDDIWaitSemaphore = RHI::Null;
         //    Threads::SyncObject m_CurrentBatchSyncObj;
         //    bool                m_signalSemaphore   = true;
         //    bool                m_waitForSemaphores = true;

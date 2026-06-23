@@ -1,6 +1,6 @@
 #include "RenderSystem/Managers/CDeviceMemoryManager.h"
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/RHI.h"
 
 #define VKE_LOG_DEVICE_MEMORY_MANAGER 0
 #if VKE_LOG_DEVICE_MEMORY_MANAGER
@@ -81,7 +81,7 @@ namespace VKE
 
             for( uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; ++i )
             {
-                m_aHeapSizes[ i ]     = m_pCtx->NativeAPI().GetMemoryHeapTotalSize( (MEMORY_HEAP_TYPE)i );
+                m_aHeapSizes[ i ]     = m_pCtx->RHI().GetMemoryHeapTotalSize( (MEMORY_HEAP_TYPE)i );
                 m_aMaxPoolCounts[ i ] = DeviceInfo.Limits.Memory.maxAllocationCount;
                 m_aMinAllocSizes[ i ] = m_aHeapSizes[ i ] / m_aMaxPoolCounts[ i ];
             }
@@ -101,7 +101,7 @@ namespace VKE
             AllocDesc.usage = Desc.usage;
 
             SAllocateMemoryData MemData;
-            Result              res = m_pCtx->NativeAPI().Allocate( AllocDesc, &MemData );
+            Result              res = m_pCtx->RHI().Allocate( AllocDesc, &MemData );
             if( VKE_SUCCEEDED( res ) )
             {
                 SPool Pool;
@@ -110,7 +110,7 @@ namespace VKE
                 if( ret != UNDEFINED_U32 )
                 {
                     CMemoryPoolView::SInitInfo Info;
-                    Info.memory              = (uint64_t)( MemData.hDDIMemory );
+                    Info.memory              = (uint64_t)( MemData.hDDIMemory.ToUint64() );
                     Info.offset              = 0;
                     Info.size                = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
@@ -184,7 +184,7 @@ namespace VKE
                                                     const SAllocationMemoryRequirementInfo& MemReq )
         {
             auto&            lastPoolSize = m_mLastPoolSizes[ Desc.Memory.memoryUsages ];
-            MEMORY_HEAP_TYPE heapType     = m_pCtx->NativeAPI().GetMemoryHeapType( Desc.Memory.memoryUsages );
+            MEMORY_HEAP_TYPE heapType     = m_pCtx->RHI().GetMemoryHeapType( Desc.Memory.memoryUsages );
             lastPoolSize  = std::max< uint32_t >( lastPoolSize, (uint32_t)m_aMinAllocSizes[ heapType ] );
             auto poolSize = std::max< uint32_t >( lastPoolSize, MemReq.size );
             poolSize      = std::max< uint32_t >( poolSize, Desc.poolSize );
@@ -239,7 +239,7 @@ namespace VKE
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )
                     {
                         pBindInfoOut->reserved    = Info.reserved;
-                        pBindInfoOut->hDDIMemory  = (NativeAPI::Memory)( Data.memory );
+                        pBindInfoOut->hDDIMemory  = (RHI::MemoryHeap)( Data.memory );
                         pBindInfoOut->offset      = Data.offset;
                         pBindInfoOut->hMemory     = poolIdx;
 
@@ -343,7 +343,7 @@ namespace VKE
                 SAllocateMemoryDesc AllocDesc;
                 AllocDesc.size  = Info.size;
                 AllocDesc.usage = Info.memoryUsages;
-                Result res      = m_pCtx->_NativeAPI().Allocate( AllocDesc, &Data );
+                Result res      = m_pCtx->RHI().Allocate( AllocDesc, &Data );
                 if( VKE_SUCCEEDED( res ) )
                 {
                     auto& BindInfo       = *pOut;
@@ -353,7 +353,7 @@ namespace VKE
                     BindInfo.offset      = 0;
 
                     SSubAllocateMemoryInfo AllocInfo;
-                    AllocInfo.hMemory = (handle_t)( Data.hDDIMemory );
+                    AllocInfo.hMemory = (handle_t)( Data.hDDIMemory.ToUint64() );
                     AllocInfo.offset  = 0;
                     AllocInfo.size    = AllocDesc.size;
                     UAllocationHandle Handle;
@@ -384,14 +384,14 @@ namespace VKE
             MapInfo.hMemory = BindInfo.hDDIMemory;
             MapInfo.offset  = BindInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
-            void* pDst      = m_pCtx->NativeAPI().MapMemory( MapInfo );
+            void* pDst      = m_pCtx->RHI().MapMemory( MapInfo );
             if( pDst != nullptr )
             {
                 Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                 ret = VKE_OK;
             }
 
-            m_pCtx->NativeAPI().UnmapMemory( MapInfo );
+            m_pCtx->RHI().UnmapMemory( MapInfo );
             return ret;
         }*/
 
@@ -410,36 +410,36 @@ namespace VKE
             /*const auto&    AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             Result         ret       = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = (NativeAPI::Memory)( AllocInfo.hMemory );
+            MapInfo.hMemory = (RHI::Memory)( AllocInfo.hMemory );
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             {
                 
-                void*               pDst = m_pCtx->NativeAPI().MapMemory( MapInfo );
+                void*               pDst = m_pCtx->RHI().MapMemory( MapInfo );
                 if( pDst != nullptr )
                 {
                     Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                     ret = VKE_OK;
                 }
-                m_pCtx->NativeAPI().UnmapMemory( MapInfo );
+                m_pCtx->RHI().UnmapMemory( MapInfo );
             }*/
             return ret;
         }
 
         void* CDeviceMemoryManager::MapMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            VKE_ASSERT( DataInfo.hBuffer != NativeAPI::Null );
+            VKE_ASSERT( DataInfo.hBuffer != RHI::Null );
             VKE_ASSERT( DataInfo.hMemory != INVALID_HANDLE );
             UAllocationHandle Handle    = DataInfo.hMemory;
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             SMapMemoryInfo    MapInfo;
-            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
+            MapInfo.hMemory = (RHI::MemoryHeap)AllocInfo.hMemory;
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             MapInfo.hBuffer = DataInfo.hBuffer;
             // Threads::ScopedLock l(m_vSyncObjects[Handle.hPool]);
             m_vSyncObjects[ Handle.hPool ].Lock();
-            void* pRet = m_pCtx->NativeAPI().MapMemory( MapInfo );
+            void* pRet = m_pCtx->RHI().MapMemory( MapInfo );
             return pRet;
         }
 
@@ -449,10 +449,10 @@ namespace VKE
             const auto&       AllocInfo = m_AllocBuffer[ Handle.hAllocInfo ];
             SMapMemoryInfo    MapInfo;
             MapInfo.hBuffer = DataInfo.hBuffer;
-            MapInfo.hMemory = (NativeAPI::Memory)AllocInfo.hMemory;
+            MapInfo.hMemory = (RHI::MemoryHeap)AllocInfo.hMemory;
             MapInfo.offset  = DataInfo.dstDataOffset;
             m_vSyncObjects[ Handle.hPool ].Unlock();
-            m_pCtx->NativeAPI().UnmapMemory( MapInfo );
+            m_pCtx->RHI().UnmapMemory( MapInfo );
         }
 
         const SSubAllocateMemoryInfo& CDeviceMemoryManager::GetAllocationInfo( const handle_t& hMemory )

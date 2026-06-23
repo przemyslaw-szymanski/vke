@@ -56,7 +56,7 @@ namespace VKE
             if( !m_canRender && m_pDeviceMemMgr != nullptr )
             {
                 // m_pVkDevice->Wait();
-                m_DDI.WaitForDevice();
+                RHI().WaitForDevice();
 
                 for( auto& pCtx: m_GraphicsContexts.vPool )
                 {
@@ -126,18 +126,20 @@ namespace VKE
                 // m_vGraphicsContexts.Clear()
                 // Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             }
+            //Memory::DestroyObject( &HeapAllocator, &m_pRHI );
         }
 
         Result CDeviceContext::Create( const SDeviceContextDesc& Desc )
         {
+            //Memory::CreateObject( &HeapAllocator, &m_pRHI );
             m_Desc     = Desc;
-            Result ret = m_DDI.CreateDevice( Desc.DeviceDesc, this );
+            Result ret = RHI().CreateDevice( Desc.DeviceDesc, this );
             if( VKE_FAILED( ret ) )
             {
                 return ret;
             }
 
-            m_DDI.QueryDeviceInfo( &m_DeviceInfo );
+            RHI().QueryDeviceInfo( &m_DeviceInfo );
 
             {
                 if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pDeviceMemMgr, this ) ) )
@@ -422,7 +424,7 @@ namespace VKE
         QueueRefPtr CDeviceContext::_AcquireQueue( QUEUE_TYPE type, CContextBase* pCtx )
         {
             // Find a proper queue
-            const auto& vQueueFamilies = m_DDI.GetDeviceQueueInfos();
+            const auto& vQueueFamilies = RHI().GetDeviceQueueInfos();
 
             QueueRefPtr pRet;
             // Get graphics family
@@ -436,7 +438,7 @@ namespace VKE
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t   currentQueueCount = m_vQueues.GetCount();
                     const uint32_t   idx               = ( currentQueueCount ) % Family.vQueues.GetCount();
-                    NativeAPI::Queue hDDIQueue         = Family.vQueues[ idx ];
+                    RHI::Queue hDDIQueue         = Family.vQueues[ idx ];
                     CQueue*          pQueue            = nullptr;
 
                     // Find if this queue is already being used
@@ -508,14 +510,14 @@ namespace VKE
             return m_pPipelineMgr->CreatePipeline( Desc );
         }
 
-        NativeAPI::RenderPass CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
+        RHI::RenderPass CDeviceContext::CreateRenderPass( const SRenderPassDesc& Desc )
         {
-            return m_DDI.CreateRenderPass( Desc, nullptr );
+            return RHI().CreateRenderPass( Desc );
         }
 
-        void CDeviceContext::DestroyRenderPass( NativeAPI::RenderPass* phInOut )
+        void CDeviceContext::DestroyRenderPass( RHI::RenderPass* phInOut )
         {
-            m_DDI.DestroyRenderPass( phInOut, nullptr );
+            RHI().DestroyRenderPass( phInOut );
         }
 
         RenderTargetRefPtr CDeviceContext::GetRenderTarget( cstr_t pName )
@@ -568,7 +570,7 @@ namespace VKE
             return m_pShaderMgr->GetShader( hShader );
         }
 
-        NativeAPI::DescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
+        RHI::DescriptorSetLayout CDeviceContext::GetDescriptorSetLayout( DescriptorSetLayoutHandle hSet )
         {
             return m_pDescSetMgr->GetLayout( hSet );
         }
@@ -685,53 +687,6 @@ namespace VKE
             m_pTextureMgr->DestroySampler( phSampler );
         }
 
-        EventHandle CDeviceContext::CreateEvent( const SEventDesc& Desc )
-        {
-            EventHandle hRet = INVALID_HANDLE;
-            uint32_t    handle;
-            bool        handleSet = false;
-            {
-                Threads::ScopedLock l( m_EventSyncObj );
-                handleSet = m_DDIEventPool.GetFreeHandle( &handle );
-            }
-            if( handleSet )
-            {
-                hRet.handle = handle;
-            }
-            else
-            {
-                NativeAPI::Event hDDIEvent = m_DDI.CreateEvent( Desc, nullptr );
-                if( hDDIEvent != NativeAPI::Null )
-                {
-                    Threads::ScopedLock l( m_EventSyncObj );
-                    hRet.handle = m_DDIEventPool.Add( hDDIEvent );
-                }
-            }
-
-            return hRet;
-        }
-
-        void CDeviceContext::DestroyEvent( EventHandle* phEvent )
-        {
-            m_DDIEventPool.Free( static_cast< uint32_t >( phEvent->handle ) );
-            phEvent->handle = 0;
-        }
-
-        bool CDeviceContext::IsEventSet( const EventHandle& hEvent )
-        {
-            return m_DDI.IsSet( GetEvent( hEvent ) );
-        }
-
-        void CDeviceContext::SetEvent( const EventHandle& hEvent )
-        {
-            m_DDI.SetEvent( GetEvent( hEvent ) );
-        }
-
-        void CDeviceContext::ResetEvent( const EventHandle& hEvent )
-        {
-            m_DDI.Reset( GetEvent( hEvent ) );
-        }
-
         uint32_t CDeviceContext::LockStagingBuffer( const uint32_t maxSize )
         {
             uint32_t ret = m_pBufferMgr->LockStagingBuffer( maxSize );
@@ -785,7 +740,7 @@ namespace VKE
             return m_pDescSetMgr->CreateSet( INVALID_HANDLE, Desc );
         }
 
-        const NativeAPI::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
+        const RHI::DescriptorSet& CDeviceContext::GetDescriptorSet( const DescriptorSetHandle& hSet )
         {
             return m_pDescSetMgr->GetSet( hSet );
         }
@@ -797,7 +752,7 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&                        hSet    = *phInOut;
-            const NativeAPI::DescriptorSet&             hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet&             hDDISet = m_pDescSetMgr->GetSet( hSet );
             SUpdateBufferDescriptorSetInfo              Info;
             SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
             const auto&                                 BindInfo = pBuffer->GetBindingInfo();
@@ -808,13 +763,13 @@ namespace VKE
             Info.binding                                         = BindInfo.index;
             Info.hDDISet                                         = hDDISet;
             Info.vBufferInfos.PushBack( BuffInfo );
-            m_DDI.Update( Info );
+            RHI().Update( Info );
         }
 
         void CDeviceContext::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
         {
             // DescriptorSetHandle& hSet = *phInOut;
-            // const NativeAPI::DescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            // const RHI::DescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             // TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
         }
 
@@ -822,7 +777,7 @@ namespace VKE
                                                   DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&            hSet    = *phInOut;
-            const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
             RenderTargetPtr                 pRT     = GetRenderTarget( hRT );
             SSamplerTextureBinding          Binding;
             Binding.hSampler     = hSampler;
@@ -837,21 +792,21 @@ namespace VKE
             TexInfo.hDDITextureView = GetTextureView( pRT->GetTextureView() )->GetDDIObject();
             TexInfo.textureState    = TextureStates::SHADER_READ;
             UpdateInfo.vTextureInfos.PushBack( TexInfo );
-            m_DDI.Update( UpdateInfo );
+            RHI().Update( UpdateInfo );
         }
 
         void CDeviceContext::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&            hSet    = *phInOut;
-            const NativeAPI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
-            m_DDI.Update( hDDISet, Info );
+            const RHI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            RHI().Update( hDDISet, Info );
         }
 
         void CDeviceContext::UpdateDescriptorSet( SCopyDescriptorSetInfo& Info )
         {
             auto& hDDISrc = m_pDescSetMgr->GetSet( Info.hSrc );
             auto  hDDIDst = m_pDescSetMgr->GetSet( Info.hDst );
-            m_DDI.Update( hDDISrc, &hDDIDst );
+            RHI().Update( hDDISrc, &hDDIDst );
         }
 
         void CDeviceContext::_DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count )
@@ -901,7 +856,7 @@ namespace VKE
         ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr ); return ret;
         }*/
 
-        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const NativeAPI::GPUFence& hDDISemaphore )
+        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const RHI::GPUFence& hDDISemaphore )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
             m_vDDISignaledSemaphores[queueType].PushBack( hDDISemaphore );
@@ -959,20 +914,20 @@ namespace VKE
 
         void CDeviceContext::GetFormatFeatures( TEXTURE_FORMAT fmt, STextureFormatFeatures* pOut ) const
         {
-            _NativeAPI().GetFormatFeatures( fmt, pOut );
+            RHI().GetFormatFeatures( fmt, pOut );
         }
 
-        void CDeviceContext::_LockGPUFence( NativeAPI::GPUFence* phApi )
+        void CDeviceContext::_LockGPUFence( RHI::GPUFence* phApi )
         {
             m_mLockedGPUFences[ *phApi ] = true;
         }
 
-        void CDeviceContext::_UnlockGPUFence( NativeAPI::GPUFence* phApi )
+        void CDeviceContext::_UnlockGPUFence( RHI::GPUFence* phApi )
         {
             m_mLockedGPUFences[ *phApi ] = false;
         }
 
-        bool CDeviceContext::_IsGPUFenceLocked( NativeAPI::GPUFence hApi )
+        bool CDeviceContext::_IsGPUFenceLocked( RHI::GPUFence hApi )
         {
             return m_mLockedGPUFences[ hApi ];
         }
@@ -989,39 +944,39 @@ namespace VKE
 #endif
         }
 
-        NativeAPI::GPUFence CDeviceContext::CreateGPUFence( const SSemaphoreDesc& Desc )
+        RHI::GPUFence CDeviceContext::CreateGPUFence( const SSemaphoreDesc& Desc )
         {
-            return _NativeAPI().CreateSemaphore( Desc, nullptr );
+            return RHI().CreateGPUFence( Desc );
         }
 
-        void CDeviceContext::DestroyGPUFence( NativeAPI::GPUFence* phInOut )
+        void CDeviceContext::DestroyGPUFence( RHI::GPUFence* phInOut )
         {
-            _NativeAPI().DestroySemaphore( phInOut, nullptr );
+            RHI().DestroyGPUFence( phInOut );
         }
 
-        NativeAPI::CPUFence CDeviceContext::CreateCPUFence( const SFenceDesc& Desc )
+        RHI::CPUFence CDeviceContext::CreateCPUFence( const SFenceDesc& Desc )
         {
-            return _NativeAPI().CreateFence( Desc, nullptr );
+            return RHI().CreateFence( Desc );
         }
 
-        void CDeviceContext::DestroyCPUFence( NativeAPI::CPUFence* phInOut )
+        void CDeviceContext::DestroyCPUFence( RHI::CPUFence* phInOut )
         {
-            _NativeAPI().DestroyFence( phInOut, nullptr );
+            RHI().DestroyFence( phInOut );
         }
 
-        NativeAPI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc ) const
+        RHI::Fence CDeviceContext::CreateFence( const SFenceDesc& Desc ) const
         {
-            return _NativeAPI().CreateFence2( Desc );
+            return RHI().CreateFence2( Desc );
         }
 
-        void CDeviceContext::DestroyFence( NativeAPI::Fence* phInOut )
+        void CDeviceContext::DestroyFence( RHI::Fence* phInOut )
         {
-            _NativeAPI().DestroyFence( phInOut );
+            RHI().DestroyFence( phInOut );
         }
 
-        void CDeviceContext::Reset( NativeAPI::CPUFence* phInOut )
+        void CDeviceContext::Reset( RHI::CPUFence* phInOut )
         {
-            NativeAPI().Reset( phInOut );
+            RHI().Reset( phInOut );
         }
 
     } // namespace RenderSystem

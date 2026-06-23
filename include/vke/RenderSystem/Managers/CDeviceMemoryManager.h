@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Memory/CMemoryPoolManager.h"
-#include "RenderSystem/CDDI.h"
+#include "RenderSystem/RHI.h"
 
 namespace VKE
 {
@@ -9,7 +9,7 @@ namespace VKE
     {
         struct SAllocateDesc
         {
-            CDDI::AllocateDescs::SMemory Memory;
+            AllocateDescs::SMemory Memory;
             uint32_t                     poolSize = 0; /// 0 for default settings
 #if VKE_RENDER_SYSTEM_MEMORY_DEBUG
             union

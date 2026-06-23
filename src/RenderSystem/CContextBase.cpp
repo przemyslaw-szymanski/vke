@@ -126,7 +126,7 @@ namespace VKE
         }
 
         CContextBase::CContextBase( CDeviceContext* pCtx, cstr_t pName ) :
-            m_DDI( pCtx->NativeAPI() ), m_pDeviceCtx( pCtx ), m_pName( pName ), m_pLastExecutedBatch( &g_sDummyBatch ),
+            m_DDI( pCtx->RHI() ), m_pDeviceCtx( pCtx ), m_pName( pName ), m_pLastExecutedBatch( &g_sDummyBatch ),
             m_CmdBuffMgr( this )
         {
         }
@@ -219,7 +219,7 @@ namespace VKE
             }
             else
             {
-                m_pDeviceCtx->NativeAPI().Reset( pCmdBuffer->GetDDIObject(), pCmdBuffer->m_hDDICmdBufferPool );
+                m_pDeviceCtx->RHI().Reset( pCmdBuffer->GetDDIObject(), pCmdBuffer->m_hDDICmdBufferPool );
                 pCmdBuffer->m_state = CCommandBuffer::States::RESET;
             }
         }
@@ -233,7 +233,7 @@ namespace VKE
             _Reset( pCb );
             pCb->m_hPool;
 
-            m_pDeviceCtx->NativeAPI().BeginCommandBuffer( pCb->GetDDIObject(), pCb->getNativeCmdBufferPool() );
+            m_pDeviceCtx->RHI().BeginCommandBuffer( pCb->GetDDIObject(), pCb->getNativeCmdBufferPool() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
             pCb->m_state             = CCommandBuffer::States::BEGIN;
             return ret;

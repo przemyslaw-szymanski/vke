@@ -44,7 +44,6 @@ namespace VKE
             friend class CSubmitManager;
             friend class CPipelineManager;
             friend struct Tasks::SGraphicsContext;
-            friend class CDDI;
             struct SPrivate;
 
             // using SemaphoreArray = Utils::TCDynamicArray< VkSemaphore >;
@@ -138,7 +137,7 @@ namespace VKE
                 return /*m_BaseCtx.*/ m_backBufferIdx;
             }
 
-            // Result                  ExecuteCommandBuffers( NativeAPI::GPUFence* phDDISignalSemaphore );
+            // Result                  ExecuteCommandBuffers( RHI::GPUFence* phDDISignalSemaphore );
 
             void SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
             // void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) {
@@ -171,7 +170,7 @@ namespace VKE
         protected:
             SGraphicsContextDesc m_Desc;
             // CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
-            // CDDI&                       m_DDI;
+            // CAPI&                       m_DDI;
             // CContextBase                m_BaseCtx;
             CPipelineManager m_PipelineMgr;
             // CSubmitManager              m_SubmitMgr;

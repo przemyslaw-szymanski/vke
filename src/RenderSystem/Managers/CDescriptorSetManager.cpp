@@ -18,7 +18,7 @@ namespace VKE
         {
             for( auto& Pair: m_mLayouts )
             {
-                m_pCtx->NativeAPI().DestroyDescriptorSetLayout( &Pair.second.hDDILayout, nullptr );
+                m_pCtx->RHI().DestroyDescriptorSetLayout( &Pair.second.hDDILayout );
             }
             m_mLayouts.clear();
 
@@ -36,7 +36,7 @@ namespace VKE
         {
             Result ret = VKE_OK;
             // Push null element
-            m_PoolBuffer.Add( static_cast< NativeAPI::DescriptorPool >( NativeAPI::Null ) );
+            m_PoolBuffer.Add( static_cast< RHI::DescriptorPool >( RHI::Null ) );
             m_mLayouts[ INVALID_HANDLE ] = {};
 
             {
@@ -107,8 +107,8 @@ namespace VKE
         {
             handle_t hRet = INVALID_HANDLE;
 
-            NativeAPI::DescriptorPool hPool = m_pCtx->NativeAPI().CreateDescriptorPool( Desc, nullptr );
-            if( hPool != NativeAPI::Null )
+            RHI::DescriptorPool hPool = m_pCtx->RHI().CreateDescriptorPool( Desc );
+            if( hPool != RHI::Null )
             {
                 hRet = m_PoolBuffer.Add( { hPool } );
             }
@@ -118,8 +118,8 @@ namespace VKE
         void CDescriptorSetManager::DestroyPool( handle_t* phInOut )
         {
             SPool&                     Pool     = m_PoolBuffer[ static_cast< PoolHandle >( *phInOut ) ];
-            NativeAPI::DescriptorPool& hDDIPool = Pool.hDDIObject;
-            m_pCtx->NativeAPI().DestroyDescriptorPool( &hDDIPool, nullptr );
+            RHI::DescriptorPool& hDDIPool = Pool.hDDIObject;
+            m_pCtx->RHI().DestroyDescriptorPool( &hDDIPool );
             Pool.SetPool.Clear();
             m_PoolBuffer.Free( static_cast< PoolHandle >( *phInOut ) );
             *phInOut = INVALID_HANDLE;
@@ -127,11 +127,11 @@ namespace VKE
 
         DescriptorSetHandle CDescriptorSetManager::CreateSet( handle_t hPool, const SDescriptorSetDesc& Desc )
         {
-            NativeAPI::DescriptorSet hDDISet;
+            RHI::DescriptorSet hDDISet;
             DescriptorSetHandle      hRet = INVALID_HANDLE;
 
             DescriptorSetLayoutHandle hLayout = Desc.hLayout;
-            // NativeAPI::DescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
+            // RHI::DescriptorSetLayout hDDILayout = m_mLayouts[ hLayout.handle ].hDDILayout;
             auto& Layout = m_mLayouts[ (hash_t)hLayout.handle ];
             if( hPool == INVALID_HANDLE )
             {
@@ -142,12 +142,12 @@ namespace VKE
             {
                 SPool& Pool = m_PoolBuffer[ static_cast< PoolHandle >( hPool ) ];
 
-                CDDI::AllocateDescs::SDescSet SetDesc;
+                AllocateDescs::SDescSet SetDesc;
                 SetDesc.count     = 1;
                 SetDesc.hPool     = Pool.hDDIObject;
                 SetDesc.phLayouts = &Layout.hDDILayout;
                 SetDesc.SetDebugName( Desc.GetDebugName() );
-                Result res = m_pCtx->NativeAPI().CreateDescriptorSets( SetDesc, &hDDISet );
+                Result res = m_pCtx->RHI().CreateDescriptorSets( SetDesc, &hDDISet );
                 if( VKE_SUCCEEDED( res ) )
                 {
                     SDescriptorSet Set;
@@ -239,9 +239,9 @@ namespace VKE
             }
             else
             {
-                NativeAPI::DescriptorSetLayout hDDILayout =
-                    m_pCtx->NativeAPI().CreateDescriptorSetLayout( Desc, nullptr );
-                if( hDDILayout != NativeAPI::Null )
+                RHI::DescriptorSetLayout hDDILayout =
+                    m_pCtx->RHI().CreateDescriptorSetLayout( Desc );
+                if( hDDILayout != RHI::Null )
                 {
                     ret.handle            = hLayout;
                     m_mLayouts[ hLayout ] = { .hDDILayout = hDDILayout, .Desc = Desc };
@@ -266,11 +266,11 @@ namespace VKE
                 if( hPool != hSet.hPool && !vDDISets.IsEmpty() )
                 {
                     SPool&                    Pool = m_PoolBuffer[ hPool ];
-                    CDDI::FreeDescs::SDescSet Sets;
+                    FreeDescs::SDescSet Sets;
                     Sets.count  = vDDISets.GetCount();
                     Sets.hPool  = Pool.hDDIObject;
                     Sets.phSets = vDDISets.GetData();
-                    m_pCtx->NativeAPI().FreeObjects( Sets );
+                    m_pCtx->RHI().FreeObjects( Sets );
                     vDDISets.Clear();
                 }
 
@@ -284,11 +284,11 @@ namespace VKE
             if( !vDDISets.IsEmpty() )
             {
                 SPool&                    Pool = m_PoolBuffer[ hPool ];
-                CDDI::FreeDescs::SDescSet Sets;
+                FreeDescs::SDescSet Sets;
                 Sets.count  = vDDISets.GetCount();
                 Sets.hPool  = Pool.hDDIObject;
                 Sets.phSets = vDDISets.GetData();
-                m_pCtx->NativeAPI().FreeObjects( Sets );
+                m_pCtx->RHI().FreeObjects( Sets );
                 vDDISets.Clear();
             }
         }
@@ -299,14 +299,14 @@ namespace VKE
             // SLayout* pTmpLayout = nullptr;
         }
 
-        const NativeAPI::DescriptorSet& CDescriptorSetManager::GetSet( const DescriptorSetHandle& hSet )
+        const RHI::DescriptorSet& CDescriptorSetManager::GetSet( const DescriptorSetHandle& hSet )
         {
             UDescSetHandle hDescSet;
             hDescSet.handle = hSet.handle;
             return m_PoolBuffer[ hDescSet.hPool ].SetPool[ hDescSet.index ];
         }
 
-        NativeAPI::DescriptorSetLayout CDescriptorSetManager::GetLayout( const DescriptorSetLayoutHandle& hLayout )
+        RHI::DescriptorSetLayout CDescriptorSetManager::GetLayout( const DescriptorSetLayoutHandle& hLayout )
         {
             return m_mLayouts[ (const hash_t)hLayout.handle ].hDDILayout;
         }

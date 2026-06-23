@@ -62,7 +62,7 @@
 //        {
 //            if( destroyRenderPass )
 //            {
-//                m_pCtx->_NativeAPI().DestroyRenderPass( &m_hDDIObject, nullptr );
+//                m_pCtx->RHI().DestroyRenderPass( &m_hDDIObject, nullptr );
 //            }
 //        }
 //
@@ -111,9 +111,9 @@
 //            }
 //            if( VKE_SUCCEEDED( ret ) )
 //            {
-//                m_hDDIObject = m_pCtx->_NativeAPI().CreateRenderPass( m_Desc, nullptr );
+//                m_hDDIObject = m_pCtx->RHI().CreateRenderPass( m_Desc, nullptr );
 //            }
-//            if( m_hDDIObject != NativeAPI::Null )
+//            if( m_hDDIObject != RHI::Null )
 //            {
 //                SFramebufferDesc FbDesc;
 //                FbDesc.hRenderPass.handle = (handle_t)( m_hDDIObject );
@@ -124,11 +124,11 @@
 //                    VKE_ASSERT2( hView != INVALID_HANDLE, "A proper texture view handle must be set in Attachment" );
 //                    if( hView != INVALID_HANDLE )
 //                    {
-//                        // NativeAPI::TextureView hDDIView = reinterpret_cast<NativeAPI::TextureView>(hView.handle);
+//                        // RHI::TextureView hDDIView = reinterpret_cast<RHI::TextureView>(hView.handle);
 //                        TextureViewPtr pView = m_pCtx->GetTextureView( hView );
 //                        FbDesc.vDDIAttachments.PushBack( pView->GetDDIObject() );
-//                        NativeAPI::ClearValue DDIValue;
-//                        m_pCtx->NativeAPI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &DDIValue );
+//                        RHI::ClearValue DDIValue;
+//                        m_pCtx->RHI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &DDIValue );
 //                        m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
 //                    }
 //                    else
@@ -137,8 +137,8 @@
 //                        break;
 //                    }
 //                }
-//                m_hDDIFramebuffer = m_pCtx->_NativeAPI().CreateFramebuffer( FbDesc, nullptr );
-//                if( m_hDDIFramebuffer != NativeAPI::Null )
+//                m_hDDIFramebuffer = m_pCtx->RHI().CreateFramebuffer( FbDesc, nullptr );
+//                if( m_hDDIFramebuffer != RHI::Null )
 //                {
 //                    ret                               = VKE_OK;
 //                    m_BeginInfo.hDDIFramebuffer       = m_hDDIFramebuffer;

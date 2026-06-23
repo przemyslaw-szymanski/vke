@@ -492,7 +492,7 @@ namespace VKE
         {
             CBuffer* pBuffer = *ppInOut;
             auto&    hDDIObj = pBuffer->m_hDDIObject;
-            m_pCtx->_NativeAPI().DestroyBuffer( &hDDIObj, nullptr );
+            m_pCtx->RHI().DestroyBuffer( &hDDIObj );
             pBuffer->_Destroy();
             if( pBuffer->m_pStagingBuffer != nullptr )
             {
@@ -531,11 +531,11 @@ namespace VKE
                 }
             }
 
-            if( pBuffer->GetDDIObject() == NativeAPI::Null )
+            if( pBuffer->GetDDIObject() == RHI::Null )
             {
                 SAllocationMemoryRequirementInfo AllocationInfo;
                 if( VKE_SUCCEEDED(
-                        m_pCtx->NativeAPI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
+                        m_pCtx->RHI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
                 {
                     AllocationInfo.memoryUsages = Desc.memoryUsage | MemoryUsages::BUFFER;
                     /// TODO: be smarter than 128mb hardcode!
@@ -554,9 +554,9 @@ namespace VKE
                     //pBuffer->m_Desc.size = AllocationInfo.size;
                     pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
 
-                    pBuffer->m_hDDIObject = m_pCtx->_NativeAPI().CreateBuffer( pBuffer->m_Desc, BindInfo );
+                    pBuffer->m_hDDIObject = m_pCtx->RHI().CreateBuffer( pBuffer->m_Desc, BindInfo );
 
-                    if( pBuffer->m_hDDIObject == NativeAPI::Null )
+                    if( pBuffer->m_hDDIObject == RHI::Null )
                     {
                         VKE_LOG_ERR( "Unable to create buffer DDI object: " << pBuffer->GetDesc().GetDebugName() );
                         goto ERR;

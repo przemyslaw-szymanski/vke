@@ -210,8 +210,8 @@ namespace VKE::RenderSystem
         using ResourceNameArray             = Utils::TCDynamicArray< ResourceName >;
         using ExecuteBatchArray             = Utils::TCDynamicArray< SExecuteBatch >;
         using UintQueue                     = std::queue< uint32_t >;
-        using GPUFenceArray                 = Utils::TCDynamicArray< NativeAPI::GPUFence >;
-        using CPUFenceArray                 = Utils::TCDynamicArray< NativeAPI::CPUFence >;
+        using GPUFenceArray                 = Utils::TCDynamicArray< RHI::GPUFence >;
+        using CPUFenceArray                 = Utils::TCDynamicArray< RHI::CPUFence >;
         using ThreadFenceArray              = Utils::TCDynamicArray< Platform::ThreadFence >;
         using INDEX_TYPE                    = CFrameGraphNode::index_t;
         using ThreadPtrArray                = Utils::TCDynamicArray< std::thread* >;
@@ -237,7 +237,7 @@ namespace VKE::RenderSystem
             /// Holds all command buffers. Passes just reference these command buffers.
             /// </summary>
             CommandBufferArray avpCommandBuffers[ ContextTypes::_MAX_COUNT ];
-            NativeAPI::Fence   hFrameFence;
+            RHI::Fence   hFrameFence;
             /// <summary>
             /// Indicates at what value the fence must wait to check if a frame is finished on GPU
             /// </summary>
@@ -313,12 +313,12 @@ namespace VKE::RenderSystem
             return m_pRootNode;
         }
 
-        /*const NativeAPI::CPUFence& GetFrameCPUFence( uint8_t backBufferIndex ) const
+        /*const RHI::CPUFence& GetFrameCPUFence( uint8_t backBufferIndex ) const
         {
             return m_ahFrameCPUFences[ backBufferIndex ];
         }*/
 
-        NativeAPI::Fence GetFrameFence( uint8_t backBufferIndex ) const
+        RHI::Fence GetFrameFence( uint8_t backBufferIndex ) const
         {
             return m_aFrameData[ backBufferIndex ].hFrameFence;
         }
@@ -360,12 +360,12 @@ namespace VKE::RenderSystem
             return m_pScene;
         }
 
-        NativeAPI::FenceValue IncrementFrameFenceValue( uint8_t backBufferIndexx )
+        RHI::FenceValue IncrementFrameFenceValue( uint8_t backBufferIndexx )
         {
             return ++m_aFrameData[ backBufferIndexx ].frameFenceValue;
         }
 
-        NativeAPI::Fence GetFrameFence( uint8_t backBufferIndex )
+        RHI::Fence GetFrameFence( uint8_t backBufferIndex )
         {
             return m_aFrameData[ backBufferIndex ].hFrameFence;
         }
@@ -424,12 +424,12 @@ namespace VKE::RenderSystem
 
         // CFrameGraphNode& _GetNode( const std::string_view& Name ) { return m_mNodes[Name]; }
 
-        /*NativeAPI::GPUFence& _GetGPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
+        /*RHI::GPUFence& _GetGPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
         {
             return m_aFrameData[ backBufferIndex ].vGPUFences[ index ];
         }
 
-        NativeAPI::CPUFence& _GetCPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
+        RHI::CPUFence& _GetCPUFence( INDEX_TYPE index, uint32_t backBufferIndex ) const
         {
             return m_aFrameData[ backBufferIndex ].vCPUFences[ index ];
         }*/
@@ -477,7 +477,7 @@ namespace VKE::RenderSystem
         ThreadPtrArray     m_vpThreads;
         ThreadDataPtrArray m_vpThreadData;
 
-        //NativeAPI::CPUFence m_ahFrameCPUFences[ MAX_BACKBUFFER_COUNT ] = { NativeAPI::Null };
+        //RHI::CPUFence m_ahFrameCPUFences[ MAX_BACKBUFFER_COUNT ] = { RHI::Null };
 
         SFrameData m_aFrameData[ MAX_BACKBUFFER_COUNT ];
         struct
