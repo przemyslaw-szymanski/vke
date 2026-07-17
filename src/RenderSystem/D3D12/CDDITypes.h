@@ -88,9 +88,11 @@ namespace VKE::RenderSystem::D3D12
                     {
                         if( Pair.pCmdList == pCommandList )
                         {
+                            VKE_LOG( "getAllocator: returned #" << index );
                             out = Pair.pAllocator;
                             break;
                         }
+                        index++;
                     }
                     return out;
                 }
@@ -265,6 +267,7 @@ namespace VKE::RenderSystem::D3D12
                 using SSubpassArray = Utils::TCDynamicArray< SSubpass, 1 >;
 
                 TSStaticArray< D3D12_CPU_DESCRIPTOR_HANDLE, MAX_RENDER_TARGETS > RenderTargetViews;
+                TSStaticArray< Aliases::Resource*, MAX_RENDER_TARGETS >          DiscardResources;
                 SClear                                                           Clear;
 
                 SSubpassArray vSubpasses          = {};

@@ -910,20 +910,26 @@ namespace VKE::RenderSystem::D3D12
                               static_cast< UINT8 >( std::lround( std::clamp( EngineColor.b, 0.0f, 1.0f ) * 0xFF ) ) );
         }
 
-        D3D12_CLEAR_VALUE GetClearValue( const SRenderTargetInfo& EngineInfo )
+        D3D12_CLEAR_VALUE vke_force_inline GetClearValue( const FORMAT&      EngineFormat,
+                                                          const SClearValue& EngineClearValue )
         {
             D3D12_CLEAR_VALUE ClearValue;
-            ClearValue.Format = Convert::GetDXGIFormat( EngineInfo.format );
+            ClearValue.Format = Convert::GetDXGIFormat( EngineFormat );
 
-            ClearValue.Color[ 0 ] = EngineInfo.ClearColor.Color.r;
-            ClearValue.Color[ 1 ] = EngineInfo.ClearColor.Color.g;
-            ClearValue.Color[ 2 ] = EngineInfo.ClearColor.Color.b;
-            ClearValue.Color[ 3 ] = EngineInfo.ClearColor.Color.a;
+            ClearValue.Color[ 0 ] = EngineClearValue.Color.r;
+            ClearValue.Color[ 1 ] = EngineClearValue.Color.g;
+            ClearValue.Color[ 2 ] = EngineClearValue.Color.b;
+            ClearValue.Color[ 3 ] = EngineClearValue.Color.a;
 
             return ClearValue;
         }
 
-        D3D12_DSV_FLAGS GetDepthStencilViewFlags()
+        D3D12_CLEAR_VALUE vke_force_inline GetClearValue( const SRenderTargetInfo& EngineInfo )
+        {
+            return GetClearValue( EngineInfo.format, EngineInfo.ClearColor.Color );
+        }
+
+        D3D12_DSV_FLAGS vke_force_inline GetDepthStencilViewFlags()
         {
             return D3D12_DSV_FLAG_NONE;
         }
@@ -1687,8 +1693,8 @@ namespace VKE::RenderSystem::D3D12
         Alignment.memoryMap =
             0; // DX12 doesn't require alignments for memory mapping but resources needs to be aligned
                // appropriately, eg.:  64KB for default buffers/textures, 4KB for upload/readback buffers/textures.
-        Alignment.texelBufferOffset   = 0;
-        Alignment.storageBufferOffset = 0;
+        Alignment.texelBufferOffset   = 128;
+        Alignment.storageBufferOffset = 128;
 
         auto& Binding                        = Limits.Binding;
         Binding.maxConstantBufferRange       = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16; // 16 bytes per element
@@ -1762,7 +1768,8 @@ namespace VKE::RenderSystem::D3D12
 
     NativeAPI::D3D12Resource* CreateResource( NativeAPI::Device                   pDevice,
                                                 const NativeAPI::D3D12ResourceDesc& ResourceDesc,
-                                              const SBindMemoryInfo&              MemInfo )
+                                              const SBindMemoryInfo&              MemInfo,
+                                              const D3D12_CLEAR_VALUE*            pOptimizedClearValue = nullptr )
     {
         NativeAPI::D3D12Resource* pResource = NativeAPI::Null;
 
@@ -1770,7 +1777,7 @@ namespace VKE::RenderSystem::D3D12
                                                    MemInfo.offset,
                                                    &ResourceDesc,
                                                    D3D12_RESOURCE_STATE_COMMON,
-                                                   nullptr,
+                                                   pOptimizedClearValue,
                                                    IID_PPV_ARGS( &pResource ) ) ) )
         {
             VKE_LOG_ERR( "CD3D12API::CreateResource: Create resource failure." );
@@ -1797,7 +1804,7 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateBuffer: m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_pImplementation->Features );
-        NativeAPI::Buffer            pBuffer      = CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo );
+        NativeAPI::Buffer            pBuffer      = CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo, nullptr );
 
         if( pBuffer != NativeAPI::Null )
         {
@@ -1835,8 +1842,12 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "CD3D12API::CreateTexture: m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::D3D12ResourceDesc ResourceDesc;
-        Convert::GetResourceDesc( Desc, m_pImplementation->Features, &ResourceDesc );
         NativeAPI::Texture pTexture = CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo );
+        Convert::GetResourceDesc( Desc, m_pImplementation->Features, &ResourceDesc );
+
+        const D3D12_CLEAR_VALUE optimizedClearValue = Convert::GetClearValue( Desc.format, Desc.optimizedClearValue );
+
+        NativeAPI::Texture pTexture = CreateResource( m_hDevice, ResourceDesc, MemInfo, &optimizedClearValue );
 
         if( pTexture != NativeAPI::Null )
         {
@@ -2054,6 +2065,13 @@ namespace VKE::RenderSystem::D3D12
 
         pFence->Value = Desc.startValue;
 
+        // Create event handle for CPU synchronization
+        pFence->hEvent = ::CreateEventEx( nullptr, nullptr, 0, EVENT_ALL_ACCESS );
+        if( pFence->hEvent == nullptr )
+        {
+            VKE_LOG_ERR( "CDDI::CreateFence2: Failed to create event handle" );
+        }
+
         return FromNative<RHI::Fence>(pFence);
     }
 
@@ -2064,7 +2082,16 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyFenceImpl( RHI::Fence* pInOut )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        NativeAPI::Fence pFence = *pInOut;
+
+        ::CloseHandle( pFence->hEvent );
+
+        if( pFence->pObject != NativeAPI::Null )
+        {
+            pFence->pObject->Release();
+        }
+
+        *pInOut = nullptr;
     }
 
     RHI::GPUFence CD3D12API::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
@@ -2197,6 +2224,9 @@ namespace VKE::RenderSystem::D3D12
                     return RHI::Null;
             }
 
+            // TODO(blturkot): If not isClearOp then API have to call commandList->DiscardResource( textureResource,
+            // nullptr ) on RT/DS;
+
             if( isRenderTargetView )
             {
                 if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::RTV ) )
@@ -2208,7 +2238,6 @@ namespace VKE::RenderSystem::D3D12
 
                 m_pImplementation->m_hDevice->CreateRenderTargetView(
                     NativeResourceView.pResource, &NativeResourceView.RenderTargetViewDesc, hNativeCPUDescriptor );
-                hNativeCPUDescriptor.ptr += pDescriptorHeapRTV->DescriptorSize;
 
                 auto& NativeRenderTargetView = pNativeRenderPass->RenderTargetViews.Reserve();
                 NativeRenderTargetView.ptr   = hNativeCPUDescriptor.ptr;
@@ -2228,8 +2257,8 @@ namespace VKE::RenderSystem::D3D12
 
                     ClearArgsRTV.Rect.left   = EngineRenderPassDesc.PositionOffset.x;
                     ClearArgsRTV.Rect.top    = EngineRenderPassDesc.PositionOffset.y;
-                    ClearArgsRTV.Rect.right  = EngineRenderPassDesc.Size.x;
-                    ClearArgsRTV.Rect.bottom = EngineRenderPassDesc.Size.y;
+                    ClearArgsRTV.Rect.right  = ClearArgsRTV.Rect.left + EngineRenderPassDesc.Size.x;
+                    ClearArgsRTV.Rect.bottom = ClearArgsRTV.Rect.top + EngineRenderPassDesc.Size.y;
 
                     // ClearRenderTargetView() requires resource state D3D12_RESOURCE_STATE_RENDER_TARGET.
                     Helper::ExpectResourceState( NativeResourceView.pResource,
@@ -2239,6 +2268,12 @@ namespace VKE::RenderSystem::D3D12
 
                     // After clear resource state is left in D3D12_RESOURCE_STATE_RENDER_TARGET.
                     NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                }
+                else
+                {
+                    // If not cleared, discard resource.
+                    auto& DiscardResource = pNativeRenderPass->DiscardResources.Reserve();
+                    DiscardResource       = NativeResourceView.pResource;
                 }
 
                 if( createDefaultSubpass )
@@ -2253,6 +2288,9 @@ namespace VKE::RenderSystem::D3D12
                                              Map::GetResourceState( EngineRenderTarget.beginState ),
                                              NativeTrackedResourceState,
                                              &pDefaultSubpass->BeginBarriers );
+
+                // Increment CPUDescriptorHandle once everything is done.
+                hNativeCPUDescriptor.ptr += pDescriptorHeapRTV->DescriptorSize;
 
                 // TODO(blturkot): Handle STORE/DEFAULT usage
             }
@@ -2293,8 +2331,8 @@ namespace VKE::RenderSystem::D3D12
                                              NativeTrackedResourceState,
                                              &pNativeRenderPass->Clear.Barriers );
 
-                // After clear resource state is left in D3D12_RESOURCE_STATE_RENDER_TARGET.
-                NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                // After clear resource state is left in D3D12_RESOURCE_STATE_DEPTH_WRITE.
+                NativeTrackedResourceState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
                 auto EngineRequestedState  = Map::GetResourceState( EngineRenderTarget.beginState );
 
                 // Barriers for BeginRenderPass() after Clear() is done.
@@ -2320,11 +2358,21 @@ namespace VKE::RenderSystem::D3D12
                                          &pNativeRenderPass->EndBarriers );
         }
 
-        for( const auto& Subpass: EngineRenderPassDesc.vSubpasses )
+        if( createDefaultSubpass )
         {
-            VKE_LOG( "Subpass" << Subpass.GetDebugName() );
-            UNIMPLEMENTED_D3D12_METHOD();
+            pNativeRenderPass->vSubpasses.PushBack( *pDefaultSubpass );
         }
+        else
+        {
+            for( const auto& Subpass: EngineRenderPassDesc.vSubpasses )
+            {
+                VKE_LOG( "Subpass" << Subpass.GetDebugName() );
+                UNIMPLEMENTED_D3D12_METHOD();
+            }
+        }
+
+        VKE_ASSERT2( pNativeRenderPass->vSubpasses.GetCount() > 0,
+                     "CDDI::CreateRenderPass: At least one subpass has to be defined in render pass" );
 
         pNativeRenderPass->pName = EngineRenderPassDesc.GetDebugName();
         return FromNative<RHI::RenderPass>(pNativeRenderPass);
@@ -3192,10 +3240,19 @@ namespace VKE::RenderSystem::D3D12
 
         const auto& NativeFirstSubpass = pNativeRenderPass->CurrentSubpass();
         const auto& NativeClearInfo    = pNativeRenderPass->Clear;
+        const auto& NativeDiscardInfo  = pNativeRenderPass->DiscardResources;
+
         NativeAPI::CommandBuffer pNativeCommandBuffer = ToNative( hCommandBuffer );
         // Add custom breadcrumb before BeginRenderPass() insert anything on cmdlist
         PIXBeginEvent( pNativeCommandBuffer,
                        PIX_COLOR( 255, 0, 0 ), "EmulatedRenderPass: Begin: %s", pNativeRenderPass->pName );
+
+        // Record discard operations
+        for( uint32_t index = 0; index < NativeDiscardInfo.count; index++ )
+        {
+            const auto pNativeResource = NativeDiscardInfo.Data[ index ];
+            pNativeCommandBuffer->DiscardResource( pNativeResource, NULL );
+        }
 
         // Record barriers for potential clear operations.
         if( NativeClearInfo.Barriers.count > 0 )
@@ -3211,13 +3268,22 @@ namespace VKE::RenderSystem::D3D12
             if( NativeClearInfoSurface.Type == NativeClearInfoSurface.RENDER_TARGET )
             {
                 const auto& Args = NativeClearInfoSurface.RenderTargetView;
-                pNativeCommandBuffer->ClearRenderTargetView( Args.hRenderTargetView, Args.aColorRGBA, 1, &Args.Rect );
+                pNativeCommandBuffer->OMSetRenderTargets( 1, &Args.hRenderTargetView, 0, nullptr );
+                // pNativeCommandBuffer->ClearRenderTargetView( Args.hRenderTargetView, Args.aColorRGBA, 1, &Args.Rect
+                // );
+                pNativeCommandBuffer->ClearRenderTargetView( Args.hRenderTargetView, Args.aColorRGBA, 0, NULL );
             }
             else if( NativeClearInfoSurface.Type == NativeClearInfoSurface.DEPTH_STENCIL_VIEW )
             {
                 const auto& Args = NativeClearInfoSurface.DepthStencilView;
                 pNativeCommandBuffer->ClearDepthStencilView(
-                    Args.hDepthStencilView, Args.ClearFlags, Args.depth, Args.stencil, 1, &Args.Rect );
+                    // Args.hDepthStencilView, Args.ClearFlags, Args.depth, Args.stencil, 1, &Args.Rect );
+                    Args.hDepthStencilView,
+                    Args.ClearFlags,
+                    Args.depth,
+                    Args.stencil,
+                    0,
+                    NULL );
             }
         }
 
@@ -3269,9 +3335,60 @@ namespace VKE::RenderSystem::D3D12
         PIXEndEvent( pNativeCommandBuffer );
     }
 
-    void CD3D12API::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
+    void CD3D12API::CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& EngineInfo )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        NativeAPI::Aliases::ResourceDesc srcDesc = EngineInfo.pBaseInfo->hDDISrcTexture->GetDesc();
+        NativeAPI::Aliases::ResourceDesc dstDesc = EngineInfo.pBaseInfo->hDDIDstTexture->GetDesc();
+
+        UINT srcMipLevels = ( srcDesc.MipLevels > 0 ) ? srcDesc.MipLevels : 1;
+        UINT srcArraySize = ( srcDesc.DepthOrArraySize > 0 ) ? srcDesc.DepthOrArraySize : 1;
+        UINT dstMipLevels = ( dstDesc.MipLevels > 0 ) ? dstDesc.MipLevels : 1;
+        UINT dstArraySize = ( dstDesc.DepthOrArraySize > 0 ) ? dstDesc.DepthOrArraySize : 1;
+
+        // For 3D textures, array size should be 1
+        if( srcDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D )
+        {
+            srcArraySize = 1;
+        }
+
+        if( dstDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D )
+        {
+            dstArraySize = 1;
+        }
+
+        // Calculate proper subresource indices using the helper function
+        D3D12_TEXTURE_COPY_LOCATION Source;
+        Source.pResource        = EngineInfo.pBaseInfo->hDDISrcTexture;
+        Source.Type             = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        Source.SubresourceIndex = Convert::GetSubresourceIndex( EngineInfo.SrcSubresource.beginMipmapLevel,
+                                                                srcMipLevels,
+                                                                EngineInfo.SrcSubresource.beginArrayLayer,
+                                                                srcArraySize,
+                                                                0 ); // Plane index, 0 for color textures
+
+        D3D12_TEXTURE_COPY_LOCATION Destination;
+        Destination.pResource        = EngineInfo.pBaseInfo->hDDIDstTexture;
+        Destination.Type             = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        Destination.SubresourceIndex = Convert::GetSubresourceIndex( EngineInfo.DstSubresource.beginMipmapLevel,
+                                                                     dstMipLevels,
+                                                                     EngineInfo.DstSubresource.beginArrayLayer,
+                                                                     dstArraySize,
+                                                                     0 ); // Plane index, 0 for color textures
+
+        auto& SrcOffset = EngineInfo.pBaseInfo->SrcOffset;
+        auto& DstOffset = EngineInfo.pBaseInfo->DstOffset;
+
+        // Setup source box for the copy region
+        // TextureSize is 2D (width, height), depth is a separate field
+        D3D12_BOX SourceBox;
+        SourceBox.left   = SrcOffset.width;
+        SourceBox.top    = SrcOffset.height;
+        SourceBox.front  = 0; // Depth offset - for 2D textures this is always 0
+        SourceBox.right  = SrcOffset.width + EngineInfo.pBaseInfo->Size.width;
+        SourceBox.bottom = SrcOffset.height + EngineInfo.pBaseInfo->Size.height;
+        SourceBox.back   = Math::Max( 1u, EngineInfo.pBaseInfo->depth ); // Depth extent
+
+        hDDICmdBuffer->CopyTextureRegion( &Destination, DstOffset.width, DstOffset.height, 0, &Source, &SourceBox );
     }
 
     void CD3D12API::CopyImpl( const RHI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info )
@@ -3327,13 +3444,74 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::D3D12CommandList* const* ppCommandLists =
             (NativeAPI::D3D12CommandList* const*)&Info.pDDICommandBuffers[ 0 ];
         ToNative(Info.hDDIQueue)->ExecuteCommandLists( Info.commandBufferCount, ppCommandLists );
+        for( uint32_t index = 0; index < Info.waitSemaphoreCount; index++ )
+        {
+            Info.hDDIQueue->Wait( Info.pDDIWaitSemaphores[ index ]->pObject, 1 );
+        }
+
+        if( Info.hWaitForFence != NativeAPI::Null )
+        {
+            Info.hDDIQueue->Wait( Info.hWaitForFence->pObject, Info.waitForFenceValue );
+        }
+
+        Info.hDDIQueue->ExecuteCommandLists( Info.commandBufferCount, ppCommandLists );
+
+        for( uint32_t index = 0; index < Info.signalSemaphoreCount; index++ )
+        {
+            Info.hDDIQueue->Signal( Info.pDDISignalSemaphores[ index ]->pObject, 1 );
+        }
+
+        if( Info.hSignalFence != NativeAPI::Null )
+        {
+            Info.hDDIQueue->Signal( Info.hSignalFence->pObject, Info.signalFenceValue );
+        }
+
+        // TODO(blturkot): Add pDDISignalSemaphores, pDDIWaitSemaphores
         return Result::OK;
     }
 
     Result CD3D12API::PresentImpl( const SPresentData& Info )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-        return Result::OK;
+        VKE_ASSERT( Info.hQueue != NativeAPI::Null );
+
+        static uint64_t presentIndex = 0;
+        VKE_LOG( "CDDI::Present: [#" << ++presentIndex << "]" );
+
+        Result res = Result::OK;
+
+        // Validate input arrays match in size
+        VKE_ASSERT( Info.vWaitForFences.GetCount() == Info.vWaitForFenceValues.GetCount() );
+
+        // Wait for GPU work to complete before presenting
+        for( uint32_t index = 0; index < Info.vWaitForFences.GetCount(); index++ )
+        {
+            NativeAPI::Fence      fence      = Info.vWaitForFences[ index ];
+            NativeAPI::FenceValue fenceValue = Info.vWaitForFenceValues[ index ];
+            Info.hQueue->Wait( fence->pObject, fenceValue );
+        }
+
+        // Present all swap chains
+        for( uint32_t index = 0; index < Info.vSwapchains.GetCount(); index++ )
+        {
+            auto pSwapChain = Info.vSwapchains[ index ];
+
+            // TODO(blturkot): Support VSync but we don't have full information here.
+            UINT syncInterval = 0;
+            UINT presentFlags = ( syncInterval == 0 && NativeAPI::SImplementation::SDeviceFeatures::sTearingSupported )
+                                    ? DXGI_PRESENT_ALLOW_TEARING
+                                    : 0;
+
+            NativeAPI::Result result = pSwapChain->Present( syncInterval, presentFlags );
+
+            if( FAILED( result ) )
+            {
+                VKE_LOG_ERR( "CDDI::Present: [#" << presentIndex << "] Failed to present swap chain " 
+                             << index << " with HRESULT 0x" << std::hex << result << std::dec );
+                res = Result::FAIL;
+            }
+        }
+
+        return res;
     }
 
     Result CD3D12API::CreateSwapChainImpl( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pOut )
@@ -3398,10 +3576,10 @@ namespace VKE::RenderSystem::D3D12
         swapChainDesc.Flags       = 0;
 
         // Enable tearing if supported and allowed by application.
-        // if( SImplementation::sTearingSupported )
-        //{
-        //    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-        //}
+        if( SImplementation::SDeviceFeatures::sTearingSupported )
+        {
+            swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+        }
 
         // TODO(blturkot): Implement support for fullscreen.
         // TODO(blturkot): Support for vsync
@@ -3669,14 +3847,20 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::ResetImpl( RHI::Fence* phFence, RHI::FenceValue value )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        NativeAPI::Fence pFence = *phFence;
+        pFence->Value           = value;
+
+        if( FAILED( pFence->pObject->Signal( value ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::Reset: Failed to reset fence" );
+        }
     }
 
     RHI::FenceValue CD3D12API::GetCompletedValueImpl( const RHI::Fence& hFence ) const
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-
-        return 0;
+        VKE_ASSERT( hFence->pObject != NativeAPI::Null );
+        NativeAPI::FenceValue completedValue = hFence->pObject->GetCompletedValue();
+        return completedValue;
     }
 
     Result CD3D12API::WaitForFencesImpl( const RHI::CPUFence& hFence, uint64_t timeout ) const
@@ -3688,8 +3872,45 @@ namespace VKE::RenderSystem::D3D12
 
     Result CD3D12API::WaitForFenceImpl( RHI::Fence Fence, RHI::FenceValue value ) const
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-        return Result::OK;
+        Result resultStatus = Result::OK;
+
+        if( Fence->pObject->GetCompletedValue() >= value )
+        {
+            return resultStatus;
+        }
+
+        HRESULT hr = Fence->pObject->SetEventOnCompletion( value, Fence->hEvent );
+
+        if( FAILED( hr ) )
+        {
+            VKE_LOG_ERR( "CDDI::WaitForFence: SetEventOnCompletion failed with HRESULT 0x"
+                         << std::hex << hr << std::dec << " while waiting for fence value " << value
+                         << ". Current value: " << Fence->pObject->GetCompletedValue() );
+            return Result::FAIL;
+        }
+
+        // TODO(blturkot): Change INFINITE to something more reliable.
+        DWORD waitResult = ::WaitForSingleObjectEx( Fence->hEvent, INFINITE, FALSE );
+
+        switch( waitResult )
+        {
+            case WAIT_OBJECT_0:
+                resultStatus = Result::OK;
+                break;
+
+            case WAIT_ABANDONED:
+            case WAIT_TIMEOUT:
+            case WAIT_FAILED:
+            case WAIT_IO_COMPLETION:
+                resultStatus = Result::FAIL;
+                break;
+
+            default:
+                resultStatus = Result::NOT_SUPPORTED;
+                break;
+        }
+
+        return resultStatus;
     }
 
     Result CD3D12API::WaitForQueueImpl( const RHI::Queue& hQueue )
