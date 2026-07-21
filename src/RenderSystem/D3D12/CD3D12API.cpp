@@ -2537,8 +2537,8 @@ namespace VKE::RenderSystem::D3D12
             totalDescriptorSlotCount += poolSize.count;
         }
 
-        if( VKE_FAILED(
-                pPool->DescriptorSetMemMgr.Create( totalDescriptorSlotCount, sizeof( NativeAPI::DescriptorSet ), 1 ) ) )
+        if( VKE_FAILED( pPool->DescriptorSetMemMgr.Create(
+                totalDescriptorSlotCount, sizeof( std::remove_pointer_t< NativeAPI::DescriptorSet > ), 1 ) ) )
         {
             Memory::DestroyObject( &HeapAllocator, &pPool );
             VKE_LOG_ERR( "Critical: Not enouth memory to create descriptor pool. Required number of descriptor slots: "
