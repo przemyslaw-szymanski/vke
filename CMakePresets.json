@@ -2,7 +2,8 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "D3D12-x64-Debug",
+      "name": "base",
+      "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
@@ -11,49 +12,66 @@
         "strategy": "external"
       },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_DEBUG_POSTFIX": "_d",
-        "VKE_RENDER_SYSTEM": "2",
         "VKE_COMPILE_VULKAN_RHI": "ON",
-        "VKE_COMPILE_D3D12_RHI": "ON",
-        "CMAKE_C_FLAGS": "/DWIN32 /D_WINDOWS /W4 /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_D3D12",
-        "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /W4 /GR /EHsc /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_D3D12"
+        "VKE_COMPILE_D3D12_RHI": "ON"
       },
       "environment": {
         "VK_ADD_LAYER_PATH": "${sourceDir}/out/build/${presetName}/vcpkg_installed/x64-windows/bin"
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "inheritedEnvironments": ["msvc_x64_x64"]
+          "inheritedEnvironments": [ "msvc_x64_x64" ]
         }
       }
     },
     {
-      "name": "VK-x64-Debug",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
+      "name": "debug",
+      "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_DEBUG_POSTFIX": "_d",
+        "CMAKE_DEBUG_POSTFIX": "_d"
+      }
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "d3d12",
+      "hidden": true,
+      "cacheVariables": {
+        "VKE_RENDER_SYSTEM": "2",
+        "CMAKE_C_FLAGS": "/DWIN32 /D_WINDOWS /W4 /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_D3D12",
+        "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /W4 /GR /EHsc /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_D3D12"
+      }
+    },
+    {
+      "name": "vulkan",
+      "hidden": true,
+      "cacheVariables": {
         "VKE_RENDER_SYSTEM": "1",
-        "VKE_COMPILE_VULKAN_RHI": "ON",
-        "VKE_COMPILE_D3D12_RHI": "ON",
         "CMAKE_C_FLAGS": "/DWIN32 /D_WINDOWS /W4 /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_VULKAN",
         "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /W4 /GR /EHsc /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_VULKAN"
-      },
-      "environment": {
-        "VK_ADD_LAYER_PATH": "${sourceDir}/out/build/${presetName}/vcpkg_installed/x64-windows/bin"
-      },
-      "vendor": {
-        "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "inheritedEnvironments": ["msvc_x64_x64"]
-        }
       }
+    },
+    {
+      "name": "D3D12-x64-Debug",
+      "inherits": [ "d3d12", "debug", "base" ]
+    },
+    {
+      "name": "D3D12-x64-Release",
+      "inherits": [ "d3d12", "release", "base" ]
+    },
+    {
+      "name": "Vulkan-x64-Debug",
+      "inherits": [ "vulkan", "debug", "base" ]
+    },
+    {
+      "name": "Vulkan-x64-Release",
+      "inherits": [ "vulkan", "release", "base" ]
     }
   ],
   "buildPresets": [
@@ -62,8 +80,16 @@
       "configurePreset": "D3D12-x64-Debug"
     },
     {
-      "name": "VK-x64-Debug",
-      "configurePreset": "VK-x64-Debug"
+      "name": "D3D12-x64-Release",
+      "configurePreset": "D3D12-x64-Release"
+    },
+    {
+      "name": "Vulkan-x64-Debug",
+      "configurePreset": "Vulkan-x64-Debug"
+    },
+    {
+      "name": "Vulkan-x64-Release",
+      "configurePreset": "Vulkan-x64-Release"
     }
   ]
 }
