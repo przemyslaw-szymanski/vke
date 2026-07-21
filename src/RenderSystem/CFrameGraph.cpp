@@ -28,10 +28,10 @@ namespace VKE::RenderSystem
                 if( ( Desc.flags & FrameGraphFlagBits::BASIC_MULTITHREADED ) != 0 )
                 {
                     auto pSwapBufferPass  = CreatePass( {
-                         .pName = "SwapBuffers",
+                        .pName = "SwapBuffers",
                     } );
                     auto pBeginFramePass  = CreatePass( {
-                         .pName = "BeginFrame",
+                        .pName = "BeginFrame",
                     } );
                     auto pRenderFramePass = CreatePass(
                         { .pName          = "RenderFrame",
@@ -47,7 +47,7 @@ namespace VKE::RenderSystem
                                       .vRenderTargets = { { .pName     = "Diffuse",
                                                             .operation = FrameGraphPassOperations::SHADER_READ } } } );
                     auto pEndFramePass      = CreatePass( {
-                             .pName = "EndFrame",
+                        .pName = "EndFrame",
                     } );
                     auto pExecuteFrame      = CreateExecutePass( { .pName = "ExecuteFrame",
                                                                    //.pThread = "ExecuteFrame",
@@ -368,6 +368,9 @@ namespace VKE::RenderSystem
 
     Result CFrameGraph::_GetNextFrame()
     {
+        static const char* ascStatusMap[] = { "ERROR", "READY", "WAITED", "TIMEOUT" };
+        uint32_t           status         = 0;
+
         Result ret = VKE_OK;
         ++m_currentFrameIndex;
         m_backBufferIndex     = ( m_backBufferIndex + 1 ) % MAX_BACKBUFFER_COUNT;
@@ -378,6 +381,7 @@ namespace VKE::RenderSystem
         {
             if( m_Desc.pDevice->IsReadyToUse( FrameData.hFrameFence, FrameData.frameFenceValue ) )
             {
+                status   = 1;
                 needWait = false;
                 break;
             }
@@ -388,6 +392,7 @@ namespace VKE::RenderSystem
         }
         if( needWait )
         {
+            status = 2;
             // If no frame is executed, wait for first one
             // Find context to wait on
             // Do active wait...
@@ -400,9 +405,14 @@ namespace VKE::RenderSystem
                 2000 * 1000 );
             if( !res )
             {
+                status = 3;
                 ret = VKE_TIMEOUT;
             }
         }
+
+        VKE_LOG( "CFrameGraph::_GetNextFrame: [" << ascStatusMap[ status ] << "] [" << (uint32_t)m_backBufferIndex
+                                                 << "] hFrameFence_" << std::hex << FrameData.hFrameFence.ToUint64()
+                                                 << std::dec << "->Value() = " << FrameData.frameFenceValue );
 
         _ResetFrameData( &m_aFrameData[ m_backBufferIndex ] );
         m_aFrameData[ m_backBufferIndex ].localUseIndex++;
@@ -724,8 +734,8 @@ namespace VKE::RenderSystem
         {
             auto threadIndex = pNode->m_Index.thread;
             VKE_ASSERT( threadIndex != INVALID_INDEX );
-            SCreateCommandBufferInfo                                       CreateInfo = { .count = MAX_BACKBUFFER_COUNT,
-                                                                                          .threadIndex = (uint8_t)threadIndex };
+            SCreateCommandBufferInfo CreateInfo = { .count       = MAX_BACKBUFFER_COUNT,
+                                                    .threadIndex = (uint8_t)threadIndex };
             Utils::TCDynamicArray< CCommandBuffer*, MAX_BACKBUFFER_COUNT > vCbs( CreateInfo.count );
             VKE_ASSERT( m_Desc.apContexts[ ctxType ] != nullptr );
             Result res = m_Desc.apContexts[ ctxType ]->_CreateCommandBuffers( CreateInfo, &vCbs[ 0 ] );

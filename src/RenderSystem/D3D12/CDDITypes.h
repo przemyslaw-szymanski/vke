@@ -40,8 +40,8 @@ namespace VKE::RenderSystem::D3D12
         using D3D12DescriptorHeap      = ID3D12DescriptorHeap;
         using D3D12ResourceDesc        = D3D12_RESOURCE_DESC;
 
-        static const uint32_t            DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
-        inline static const decltype( nullptr ) Null = nullptr;
+        static const uint32_t                   DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
+        inline static const decltype( nullptr ) Null                                = nullptr;
 
         enum struct ResourceViewTypes : uint32_t
         {
@@ -58,6 +58,11 @@ namespace VKE::RenderSystem::D3D12
                 NativeAPI::D3D12Fence* pObject = nullptr;
                 HANDLE                 hEvent  = nullptr;
                 UINT64                 Value   = 0;
+
+                void Signal( UINT64 Value );
+                void Wait( UINT64 Value );
+                void Signal( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
+                void Wait( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
             };
 
             struct SCPUFence : public SFence
@@ -75,7 +80,7 @@ namespace VKE::RenderSystem::D3D12
 
                 struct SCommandListWithAllocator
                 {
-                    NativeAPI::D3D12CommandAllocator*      pAllocator = nullptr;
+                    NativeAPI::D3D12CommandAllocator*    pAllocator = nullptr;
                     NativeAPI::D3D12GraphicsCommandList* pCmdList   = nullptr;
                 };
 
@@ -88,11 +93,9 @@ namespace VKE::RenderSystem::D3D12
                     {
                         if( Pair.pCmdList == pCommandList )
                         {
-                            VKE_LOG( "getAllocator: returned #" << index );
                             out = Pair.pAllocator;
                             break;
                         }
-                        index++;
                     }
                     return out;
                 }
@@ -267,7 +270,7 @@ namespace VKE::RenderSystem::D3D12
                 using SSubpassArray = Utils::TCDynamicArray< SSubpass, 1 >;
 
                 TSStaticArray< D3D12_CPU_DESCRIPTOR_HANDLE, MAX_RENDER_TARGETS > RenderTargetViews;
-                TSStaticArray< Aliases::Resource*, MAX_RENDER_TARGETS >          DiscardResources;
+                TSStaticArray< NativeAPI::D3D12Resource*, MAX_RENDER_TARGETS >   DiscardResources;
                 SClear                                                           Clear;
 
                 SSubpassArray vSubpasses          = {};
@@ -369,7 +372,7 @@ namespace VKE::RenderSystem::D3D12
         using ImageType             = D3D12_RESOURCE_DIMENSION;
         using ImageLayout           = D3D12_RESOURCE_FLAGS;
         using ImageUsageFlags       = D3D12_RESOURCE_FLAGS;
-        using MemoryHeap                = D3D12Heap*;
+        using MemoryHeap            = D3D12Heap*;
         using PresentSurface        = D3D12Output*;
         using SwapChain             = D3D12SwapChain*;
         using Adapter               = D3D12Adapter*;
@@ -396,8 +399,6 @@ namespace VKE::RenderSystem::D3D12
             D3D12_VIEW_TYPE_TEXCUBE_ARRAY,
             D3D12_VIEW_TYPE_RT_ACC_STRUCT,
         };
-
-       
 
     }; // struct RHI
 
@@ -512,6 +513,6 @@ namespace VKE::RenderSystem::D3D12
         Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
     };
 
-} // namespace VKE::RenderSystem
+} // namespace VKE::RenderSystem::D3D12
 
 #endif // VKE_COMPILE_D3D12_RHI
