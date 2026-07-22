@@ -263,13 +263,45 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
+    void LogFenceImpl( const std::string& message )
+    {
+        static const bool  scEnabled = true;
+        static const char* scLogFile = "./fence_log.txt";
+
+        if( !scEnabled )
+        {
+            return;
+        }
+
+        // Open once and truncate the file on first use, then keep appending for the rest of the run.
+        static std::ofstream sFile( scLogFile, std::ios::out | std::ios::trunc );
+
+        if( sFile.is_open() )
+        {
+            sFile << message << std::endl;
+            sFile.flush();
+        }
+    }
+
+    // Route SFence debug logging through LogFenceImpl while keeping the same streaming syntax as VKE_LOG,
+    // e.g. LogFence( "value: " << std::hex << value ).
+#define LOG_FENCE( _msg )                                                                                              \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        std::stringstream _fenceLogStream;                                                                             \
+        _fenceLogStream << _msg;                                                                                       \
+        VKE::RenderSystem::D3D12::LogFenceImpl( _fenceLogStream.str() );                                               \
+    }                                                                                                                  \
+    while( 0 )
+
     // -----------------------------------------------------------------------------------------------------------------
     // Fence unified Wait/Signal() implementation.
     void NativeAPI::CustomTypes::SFence::Signal( UINT64 value )
     {
         VKE_ASSERT( pObject != nullptr );
 
-        VKE_LOG( "SFence::Signal: [CPU] Fence_" << std::hex << (uint64_t)pObject << std::dec << "->Signal( " << value << " )" );
+        LOG_FENCE( "SFence::Signal: [CPU] " << GetFenceName() << "->Signal( " << value << " )" );
+
         HRESULT hResult = pObject->Signal( value );
         this->Value     = value;
 
@@ -279,11 +311,11 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void NativeAPI::CustomTypes::SFence::Wait( UINT64 value )
+    void NativeAPI::CustomTypes::SFence::Wait( UINT64 value, DWORD timeout )
     {
         VKE_ASSERT( pObject != nullptr );
 
-        VKE_LOG( "SFence::Wait: [CPU] Fence_" << std::hex << (uint64_t)pObject << std::dec << "->Wait( " << value << " )" );
+        LOG_FENCE( "SFence::Wait: [CPU] " << GetFenceName() << "->Wait( " << value << " )" );
         if( pObject->GetCompletedValue() >= value )
         {
             return;
@@ -300,16 +332,17 @@ namespace VKE::RenderSystem::D3D12
         }
 
         // TODO(blturkot): Change INFINITE to something more reliable.
-        ::WaitForSingleObjectEx( hEvent, INFINITE, FALSE );
+        ::WaitForSingleObjectEx( hEvent, timeout, FALSE );
     }
 
     void NativeAPI::CustomTypes::SFence::Signal( NativeAPI::D3D12CommandQueue* pQueue, UINT64 value )
     {
         VKE_ASSERT( pObject != nullptr );
 
-        VKE_LOG( "SFence::Signal: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Signal( " << std::hex << (uint64_t)pObject << std::dec << ", " << value << " )" );
+        LOG_FENCE( "SFence::Signal: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Signal( "
+                                                  << GetFenceName() << ", " << value << " )" );
         HRESULT hResult = pQueue->Signal( pObject, value );
-        this->Value = value;
+        this->Value     = value;
 
         if( FAILED( hResult ) )
         {
@@ -321,8 +354,8 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT( pObject != nullptr );
 
-        VKE_LOG( "SFence::Wait: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Wait( " << std::hex
-                                                << (uint64_t)pObject << std::dec << ", " << value << " )" );
+        LOG_FENCE( "SFence::Wait: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Wait( "
+                                                << GetFenceName() << ", " << value << " )" );
         HRESULT hResult = pQueue->Wait( pObject, value );
         this->Value     = value;
 
@@ -330,6 +363,22 @@ namespace VKE::RenderSystem::D3D12
         {
             VKE_LOG_ERR( "SFence::Wait: Failed with HR: " << std::hex << (uint64_t)hResult << std::dec );
         }
+    }
+
+    UINT64 NativeAPI::CustomTypes::SFence::GetCompletedValue()
+    {
+        VKE_ASSERT( pObject != nullptr );
+        UINT64 completedValue = pObject->GetCompletedValue();
+
+        LOG_FENCE( "SFence::GetCompletedValue: " << GetFenceName() << "->GetCompletedValue() = " << completedValue
+                                                 << "[ SIGNALED: " << GetSignaledValue() << " ]" );
+
+        return completedValue;
+    }
+
+    UINT64 NativeAPI::CustomTypes::SFence::GetSignaledValue()
+    {
+        return Value;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -1570,7 +1619,7 @@ namespace VKE::RenderSystem::D3D12
     {
         if( Info.enableDebugMode )
         {
-            ID3D12Debug* pDebug;
+            ID3D12Debug1* pDebug;
             if( FAILED( D3D12GetDebugInterface( IID_PPV_ARGS( &pDebug ) ) ) )
             {
                 VKE_LOG_ERR( "CD3D12API::Load: Error while getting debug interface." );
@@ -1578,6 +1627,7 @@ namespace VKE::RenderSystem::D3D12
             else
             {
                 pDebug->EnableDebugLayer();
+                pDebug->SetEnableGPUBasedValidation( TRUE );
                 SImplementation::sDebugLayerEnabled = true;
             }
         }
@@ -1636,6 +1686,12 @@ namespace VKE::RenderSystem::D3D12
 
     Result CD3D12API::CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx )
     {
+        // Enable WaitForDebugger
+        //VKE_LOG( "CD3D12API::CreateDeviceImpl: Waiting for debugger..." );
+        //while( !IsDebuggerPresent() )
+        //{
+        //    Sleep( 100 );
+        //}
 
         m_pImplementation->m_hAdapter =
             reinterpret_cast< NativeAPI::Adapter >( pCtx->m_Desc.pAdapterInfo->hDDIAdapter );
@@ -2358,7 +2414,17 @@ namespace VKE::RenderSystem::D3D12
                 }
                 else
                 {
-                    // If not cleared, discard resource.
+                    // If not cleared, discard resource to initialize it.
+                    // ID3D12GraphicsCommandList::DiscardResource only initializes the resource when it is in
+                    // D3D12_RESOURCE_STATE_RENDER_TARGET. Record the transition barrier into Clear.Barriers so it is
+                    // applied in BeginRenderPass() BEFORE the discard is recorded. Without this, PIX GPU-Based
+                    // Validation reports the subsequent use as RENDER_TARGET_OR_DEPTH_STENCIL_RESOUCE_NOT_INITIALIZED.
+                    Helper::ExpectResourceState( NativeResourceView.pResource,
+                                                 D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                                 NativeTrackedResourceState,
+                                                 &pNativeRenderPass->Clear.Barriers );
+                    NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
                     auto& DiscardResource = pNativeRenderPass->DiscardResources.Reserve();
                     DiscardResource       = NativeResourceView.pResource;
                 }
@@ -2411,6 +2477,16 @@ namespace VKE::RenderSystem::D3D12
                     ClearArgsDSV.Rect.top    = EngineRenderPassDesc.PositionOffset.y;
                     ClearArgsDSV.Rect.right  = EngineRenderPassDesc.Size.x;
                     ClearArgsDSV.Rect.bottom = EngineRenderPassDesc.Size.y;
+                }
+                else
+                {
+                    // If not cleared, discard the depth/stencil resource to initialize it. The transition to
+                    // D3D12_RESOURCE_STATE_DEPTH_WRITE below (recorded into Clear.Barriers) is applied in
+                    // BeginRenderPass() before the discard, which is the state DiscardResource requires to actually
+                    // initialize the resource. Otherwise PIX GPU-Based Validation reports the subsequent use as
+                    // RENDER_TARGET_OR_DEPTH_STENCIL_RESOUCE_NOT_INITIALIZED.
+                    auto& DiscardResource = pNativeRenderPass->DiscardResources.Reserve();
+                    DiscardResource       = NativeResourceView.pResource;
                 }
 
                 // ClearDepthStencilView() requires resource state D3D12_RESOURCE_STATE_DEPTH_WRITE.
@@ -3384,17 +3460,23 @@ namespace VKE::RenderSystem::D3D12
         PIXBeginEvent(
             pNativeCommandBuffer, PIX_COLOR( 255, 0, 0 ), "EmulatedRenderPass: Begin: %s", pNativeRenderPass->pName );
 
+        // Record barriers for potential clear/discard operations.
+        // DiscardResource and Clear*View both require the resource to be in the correct state
+        // (D3D12_RESOURCE_STATE_RENDER_TARGET for RTVs, D3D12_RESOURCE_STATE_DEPTH_WRITE for DSVs).
+        // These transition barriers must be recorded BEFORE the discard/clear operations, otherwise the
+        // discard is invalid and does not initialize the resource. The normal runtime tolerates this, but
+        // PIX GPU-Based Validation flags the subsequent use as RENDER_TARGET_OR_DEPTH_STENCIL_RESOUCE_NOT_INITIALIZED.
+        if( NativeClearInfo.Barriers.count > 0 )
+        {
+            pNativeCommandBuffer->ResourceBarrier( NativeClearInfo.Barriers.count,
+                                                   &NativeClearInfo.Barriers.Data[ 0 ] );
+        }
+
         // Record discard operations
         for( uint32_t index = 0; index < NativeDiscardInfo.count; index++ )
         {
             const auto pNativeResource = NativeDiscardInfo.Data[ index ];
             pNativeCommandBuffer->DiscardResource( pNativeResource, NULL );
-        }
-
-        // Record barriers for potential clear operations.
-        if( NativeClearInfo.Barriers.count > 0 )
-        {
-            pNativeCommandBuffer->ResourceBarrier( NativeClearInfo.count, &NativeClearInfo.Barriers.Data[ 0 ] );
         }
 
         // Record clear operations
@@ -3626,14 +3708,13 @@ namespace VKE::RenderSystem::D3D12
             // Advance to a fresh value so this frame's wait cannot be satisfied by a previous frame's signal.
             const NativeAPI::FenceValue signalValue = ++pNativeSemaphore->Value;
             pNativeSemaphore->Signal( pNativeQueue, signalValue );
-            // pNativeQueue->Signal( pNativeSemaphore->pObject, signalValue );
         }
 
+        
         auto pNativeSignalFence = ToNative( Info.hSignalFence );
         if( pNativeSignalFence != NativeAPI::Null )
         {
             pNativeSignalFence->Signal( pNativeQueue, Info.signalFenceValue );
-            // pNativeQueue->Signal( pNativeSignalFence->pObject, Info.signalFenceValue );
         }
 
         // TODO(blturkot): Add pDDISignalSemaphores, pDDIWaitSemaphores
@@ -3646,7 +3727,7 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT( pNativeQueue != NativeAPI::Null );
 
         static uint64_t presentIndex = 0;
-        VKE_LOG( "CDDI::Present: [#" << ++presentIndex << "]" );
+        ++presentIndex;
 
         Result res = Result::OK;
 
@@ -3905,9 +3986,21 @@ namespace VKE::RenderSystem::D3D12
     Result CD3D12API::GetCurrentBackBufferIndexImpl( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
                                                      uint32_t* pOut )
     {
-        *pOut = static_cast< uint32_t >( ToNative( SwapChain.hSwapChain )->GetCurrentBackBufferIndex() );
-        ToNative( Info.hSignalFence )->Signal( ToNative( Info.hQueue ), Info.signalFenceValue );
-        return Result::OK;
+        Result backBufferStatus = Result::NOT_READY;
+
+        auto pFence = ToNative( Info.hSignalFence );
+        auto pQueue = ToNative( Info.hQueue );
+
+        pFence->Signal( pQueue, Info.signalFenceValue );
+        pFence->Wait( Info.signalFenceValue, (DWORD)Info.waitTimeout );
+
+        if( pFence->GetCompletedValue() >= Info.signalFenceValue )
+        {
+            *pOut            = static_cast< uint32_t >( ToNative( SwapChain.hSwapChain )->GetCurrentBackBufferIndex() );
+            backBufferStatus = Result::OK;
+        }
+
+        return backBufferStatus;
     }
 
     /*void CD3D12API::Convert( const SClearValue& In, RHI::ClearValue* pOut )
@@ -4012,7 +4105,8 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
                      "CD3D12API::IsSignaled: m_pImplementation->m_hDevice is null" );
-        return ToNative( hFence )->pObject->GetCompletedValue() >= ToNative( hFence )->Value;
+        auto pNativeFence = ToNative( hFence );
+        return pNativeFence->GetCompletedValue() >= pNativeFence->GetSignaledValue();
     }
 
     void CD3D12API::ResetImpl( RHI::CPUFence* phFence )
@@ -4021,10 +4115,10 @@ namespace VKE::RenderSystem::D3D12
         // pNativeFence->Value              = 0;
 
         pNativeFence->Signal( 0 );
-        //if( FAILED( pNativeFence->pObject->Signal( 0 ) ) )
+        // if( FAILED( pNativeFence->pObject->Signal( 0 ) ) )
         //{
-        //    VKE_LOG_ERR( "CD3D12API::Reset: Failed to reset fence" );
-        //}
+        //     VKE_LOG_ERR( "CD3D12API::Reset: Failed to reset fence" );
+        // }
     }
 
     void CD3D12API::ResetImpl( RHI::Fence* phFence, RHI::FenceValue value )
@@ -4042,7 +4136,7 @@ namespace VKE::RenderSystem::D3D12
         // Like the Vulkan backend, Reset only clears CPU-side bookkeeping and leaves the monotonic timeline intact.
         NativeAPI::Fence pNativeFence = ToNative( *phFence );
         VKE_ASSERT( pNativeFence != NativeAPI::Null );
-        (void)value;
+        pNativeFence->Signal( 0 );
     }
 
     RHI::FenceValue CD3D12API::GetCompletedValueImpl( const RHI::Fence& hFence ) const
@@ -4050,7 +4144,7 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::Fence pNativeFence = ToNative( hFence );
         VKE_ASSERT( pNativeFence != NativeAPI::Null );
 
-        NativeAPI::FenceValue completedValue = pNativeFence->pObject->GetCompletedValue();
+        NativeAPI::FenceValue completedValue = pNativeFence->GetCompletedValue();
         return completedValue;
     }
 
@@ -4069,30 +4163,30 @@ namespace VKE::RenderSystem::D3D12
         pNativeFence->Wait( value );
         return resultStatus;
 
-        //if( pNativeFence->pObject->GetCompletedValue() >= value )
+        // if( pNativeFence->pObject->GetCompletedValue() >= value )
         //{
-        //    return resultStatus;
-        //}
+        //     return resultStatus;
+        // }
 
-        //HRESULT hr = pNativeFence->pObject->SetEventOnCompletion( value, pNativeFence->hEvent );
+        // HRESULT hr = pNativeFence->pObject->SetEventOnCompletion( value, pNativeFence->hEvent );
 
-        //if( FAILED( hr ) )
+        // if( FAILED( hr ) )
         //{
-        //    VKE_LOG_ERR( "CDDI::WaitForFence: SetEventOnCompletion failed with HRESULT 0x"
-        //                 << std::hex << hr << std::dec << " while waiting for fence value " << value
-        //                 << ". Current value: " << pNativeFence->pObject->GetCompletedValue() );
-        //    ::CloseHandle( pNativeFence->hEvent );
-        //    return Result::FAIL;
-        //}
+        //     VKE_LOG_ERR( "CDDI::WaitForFence: SetEventOnCompletion failed with HRESULT 0x"
+        //                  << std::hex << hr << std::dec << " while waiting for fence value " << value
+        //                  << ". Current value: " << pNativeFence->pObject->GetCompletedValue() );
+        //     ::CloseHandle( pNativeFence->hEvent );
+        //     return Result::FAIL;
+        // }
 
         //// TODO(blturkot): Change INFINITE to something more reliable.
-        //DWORD waitResult = ::WaitForSingleObjectEx( pNativeFence->hEvent, INFINITE, FALSE );
+        // DWORD waitResult = ::WaitForSingleObjectEx( pNativeFence->hEvent, INFINITE, FALSE );
 
-        //switch( waitResult )
+        // switch( waitResult )
         //{
-        //    case WAIT_OBJECT_0:
-        //        resultStatus = Result::OK;
-        //        break;
+        //     case WAIT_OBJECT_0:
+        //         resultStatus = Result::OK;
+        //         break;
 
         //    case WAIT_ABANDONED:
         //    case WAIT_TIMEOUT:
@@ -4106,7 +4200,7 @@ namespace VKE::RenderSystem::D3D12
         //        break;
         //}
 
-        //return resultStatus;
+        // return resultStatus;
     }
 
     Result CD3D12API::WaitForQueueImpl( const RHI::Queue& hQueue )

@@ -60,9 +60,19 @@ namespace VKE::RenderSystem::D3D12
                 UINT64                 Value   = 0;
 
                 void Signal( UINT64 Value );
-                void Wait( UINT64 Value );
+                void Wait( UINT64 Value, DWORD timeout = INFINITE );
                 void Signal( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
                 void Wait( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
+
+                UINT64 GetCompletedValue();
+                UINT64 GetSignaledValue();
+
+                vke_force_inline std::string GetFenceName()
+                {
+                    std::stringstream name;
+                    name << "Fence_" << std::hex << (uint64_t)pObject << std::dec;
+                    return name.str();
+                }
             };
 
             struct SCPUFence : public SFence

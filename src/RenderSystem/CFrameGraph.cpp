@@ -374,12 +374,17 @@ namespace VKE::RenderSystem
         Result ret = VKE_OK;
         ++m_currentFrameIndex;
         m_backBufferIndex     = ( m_backBufferIndex + 1 ) % MAX_BACKBUFFER_COUNT;
-        SFrameData& FrameData = m_aFrameData[ m_backBufferIndex ];
+        
+        SFrameData* pFrameData = &m_aFrameData[ m_backBufferIndex ];
+
         // Get first free frame
         bool needWait = true;
         for( uint32_t i = 0; i < MAX_BACKBUFFER_COUNT; ++i )
         {
-            if( m_Desc.pDevice->IsReadyToUse( FrameData.hFrameFence, FrameData.frameFenceValue ) )
+            uint8_t nextBackBufferIndex = ( m_backBufferIndex + i ) % MAX_BACKBUFFER_COUNT;
+            pFrameData                   = &m_aFrameData[ nextBackBufferIndex ];
+
+            if( m_Desc.pDevice->IsReadyToUse( pFrameData->hFrameFence, pFrameData->frameFenceValue ) )
             {
                 status   = 1;
                 needWait = false;
@@ -387,7 +392,7 @@ namespace VKE::RenderSystem
             }
             else
             {
-                m_backBufferIndex = ( m_backBufferIndex + 1 ) % MAX_BACKBUFFER_COUNT;
+                m_backBufferIndex = nextBackBufferIndex;
             }
         }
         if( needWait )
@@ -409,10 +414,6 @@ namespace VKE::RenderSystem
                 ret = VKE_TIMEOUT;
             }
         }
-
-        VKE_LOG( "CFrameGraph::_GetNextFrame: [" << ascStatusMap[ status ] << "] [" << (uint32_t)m_backBufferIndex
-                                                 << "] hFrameFence_" << std::hex << FrameData.hFrameFence.ToUint64()
-                                                 << std::dec << "->Value() = " << FrameData.frameFenceValue );
 
         _ResetFrameData( &m_aFrameData[ m_backBufferIndex ] );
         m_aFrameData[ m_backBufferIndex ].localUseIndex++;
