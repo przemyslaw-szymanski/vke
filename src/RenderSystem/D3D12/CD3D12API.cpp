@@ -398,7 +398,7 @@ namespace VKE::RenderSystem::D3D12
             };
 
             // Update ascNativeMap when changing QUEUE_TYPE enum
-            static_assert( QUEUE_TYPE::_MAX_COUNT == _countof( ascNativeMap ) );
+            static_assert( QueueTypes::_MAX_COUNT == _countof( ascNativeMap ) );
 
             return ascNativeMap[ static_cast< size_t >( EngineType ) ];
         }
@@ -1874,7 +1874,7 @@ namespace VKE::RenderSystem::D3D12
                      "Device cannot be Null when calling QueryDeviceIndo" );
 
         // TODO(any): Think about queue priorities and multiple queues per family.
-        for( int i = 0; i < QUEUE_TYPE::_MAX_COUNT; i++ )
+        for( int i = 0; i < QueueTypes::_MAX_COUNT; i++ )
         {
             RHI::Queue pQueue = RHI::Null;
 
@@ -1882,6 +1882,7 @@ namespace VKE::RenderSystem::D3D12
 
             QueueInfo.index = i;
             QueueInfo.type  = static_cast< QUEUE_TYPE >( i );
+            /// TODO: Add support for caps
 
             D3D12_COMMAND_LIST_TYPE Type = Map::GetCommandListType( QueueInfo.type );
 

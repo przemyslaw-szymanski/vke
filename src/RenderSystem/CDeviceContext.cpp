@@ -316,9 +316,9 @@ namespace VKE
             {
                 // Get next free graphics queue
                 QueueRefPtr pQueue = _AcquireQueue( QueueTypes::TRANSFER, pCtx );
-                if( pQueue== nullptr )
+                if( pQueue == nullptr )
                 {
-                    VKE_LOG_ERR( "This GPU does not support graphics queue." );
+                    VKE_LOG_ERR( "This GPU does not support transfer/copy queue." );
                     return nullptr;
                 }
 

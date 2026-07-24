@@ -1859,7 +1859,9 @@ namespace VKE
                 uint32_t isTransfer = VkProp.queueFlags & VK_QUEUE_TRANSFER_BIT;
                 uint32_t isSparse   = VkProp.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
                 uint32_t isGraphics = VkProp.queueFlags & VK_QUEUE_GRAPHICS_BIT;
-                VkBool32 isPresent  = VK_FALSE;
+                uint32_t isVideoEncode = VkProp.queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT_KHR;
+                uint32_t isVideoDecode = VkProp.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR;
+                VkBool32 isPresent     = VK_FALSE;
 #if VKE_USE_VULKAN_WINDOWS
                 isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR(
                     hAdapter, i );
@@ -1869,32 +1871,51 @@ namespace VKE
 #elif VKE_USE_VULKAN_ANDROID
 #error "implement"
 #endif
+                // Video not supported
+                if( isVideoEncode || isVideoDecode )
+                {
+                    continue;
+                }
 
                 SQueueFamilyInfo Family;
                 Family.vQueues.Resize( vProps[ i ].queueCount );
                 Family.vPriorities.Resize( vProps[ i ].queueCount, 1.0f );
                 Family.index = i;
                 Family.type  = QueueTypes::GENERAL;
-
-                if( isSparse )
+                
+                if( isGraphics && isCompute && isTransfer && isPresent )
                 {
-                    Family.type = QueueTypeBits::SPARSE;
-                }
-                if( isPresent )
-                {
-                    Family.type = QueueTypeBits::PRESENT;
-                }
-                if( isTransfer )
-                {
-                    Family.type = QueueTypeBits::TRANSFER;
+                    Family.type  = QueueTypeBits::GENERAL;
+                    Family.Caps += QueueCaps::GRAPHICS;
                 }
                 if( isCompute )
                 {
-                    Family.type = QueueTypeBits::COMPUTE;
+                    // It is async compute
+                    if( !isGraphics )
+                    {
+                        Family.type = QueueTypeBits::COMPUTE;
+                    }
+                    Family.Caps += QueueCaps::COMPUTE;
                 }
-                if( isGraphics )
+                if( isTransfer )
                 {
-                    Family.type = QueueTypeBits::GENERAL;
+                    // copy only
+                    if( !isGraphics && !isCompute )
+                    {
+                        Family.type = QueueTypeBits::TRANSFER;
+                    }
+                    Family.Caps += QueueCaps::TRANSFER;
+                }
+                
+                if( isSparse )
+                {
+                    //Family.type = QueueTypeBits::SPARSE;
+                    Family.Caps += QueueCaps::SPARSE;
+                }
+                if( isPresent )
+                {
+                    //Family.type = QueueTypeBits::PRESENT;
+                    Family.Caps += QueueCaps::PRESENT;
                 }
 
                 vQueueFamilies.PushBack( Family );
@@ -2429,7 +2450,6 @@ namespace VKE
                     pExtOut->PushBack( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
                     pExtOut->PushBack( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
                     pExtOut->PushBack( VK_KHR_RAY_QUERY_EXTENSION_NAME );
-                    pExtOut->PushBack( VK_NV_RAY_TRACING_MOTION_BLUR_EXTENSION_NAME );
                 }
                 const auto v = GetCommandLineParam< bool >( "rs.mesh_shaders", true );
                 if( v )

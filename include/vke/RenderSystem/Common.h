@@ -3934,12 +3934,35 @@ namespace VKE
             TextureInfoArray    vTextures;
         };
 
+        struct QueueCaps
+        {
+            enum CAPABILITY
+            {
+                GRAPHICS = VKE_BIT(0),
+                COMPUTE = VKE_BIT(1),
+                TRANSFER = VKE_BIT(2),
+                SPARSE = VKE_BIT(3),
+                PRESENT = VKE_BIT(4),
+                VIDEO_ENCODE = VKE_BIT(5),
+                VIDEO_DECODE = VKE_BIT(6),
+                TIMESTMAP = VKE_BIT(7),
+            };
+        };
+        using QueueCapsBits = Utils::TCBitset< uint32_t >;
+
         struct SQueueFamilyInfo
         {
             DDIQueueArray      vQueues;
             QueuePriorityArray vPriorities;
             uint32_t           index;
+            /// <summary>
+            /// Main queue type
+            /// </summary>
             QUEUE_TYPE         type;
+            /// <summary>
+            /// Indicates all capabilities of the family
+            /// </summary>
+            QueueCapsBits      Caps;
         };
 
         using QueueFamilyInfoArray = Utils::TCDynamicArray< SQueueFamilyInfo >;
