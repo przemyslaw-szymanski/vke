@@ -289,6 +289,11 @@ namespace VKE::RenderSystem
 
         Scene::ScenePtr GetScene();
 
+        RHI::RenderPass GetRHIRenderPass() const
+        {
+            return m_hRHIRenderPass;
+        }
+
     protected:
         Result _Create( const SFrameGraphPassDesc& );
         void   _Destroy();
@@ -350,7 +355,7 @@ namespace VKE::RenderSystem
         TextureArray            m_vpColorRenderTargets;
         TexturePtr              m_pDepthStencilRenderTarget;
         FormatArray             m_vColorRenderTargetFormats;
-        RHI::RenderPass   m_hNativeRenderPass = RHI::Null;
+        RHI::RenderPass   m_hRHIRenderPass = RHI::Null;
         Rect2DI32               m_RenderArea;
         /// <summary>
         /// if true, this node will execute command buffers.

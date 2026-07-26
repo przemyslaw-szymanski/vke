@@ -138,7 +138,7 @@ namespace VKE::RenderSystem
                 if( HasRenderPass() )
                 {
                     SBeginRenderPassInfo Info = {};
-                    Info.hDDIRenderPass      = m_hNativeRenderPass;
+                    Info.hDDIRenderPass      = m_hRHIRenderPass;
                     Info.RenderArea          = GetRenderArea();
                     m_pCommandBuffer->BeginRenderPass( Info );
                 }
@@ -522,7 +522,7 @@ namespace VKE::RenderSystem
             RpDesc.Size           = m_pFrameGraph->_GetRenderArea( Desc.size ).Size;
             RpDesc.PositionOffset = m_pFrameGraph->_GetRenderArea( Desc.size ).Position;
 
-            m_hNativeRenderPass = m_pContext->GetDeviceContext()->CreateRenderPass( RpDesc );
+            m_hRHIRenderPass = m_pContext->GetDeviceContext()->CreateRenderPass( RpDesc );
         }
 
         m_BeginRenderPassInfo.SetDebugName( m_Name.GetData() );

@@ -1039,19 +1039,22 @@ namespace VKE
 
             bool IsValid() const
             {
-                VKE_ASSERT( vBindings.GetCount() > 0 );
-                auto currType = BindingTypeToPoolType( vBindings[ 0 ].type );
-                for( uint32_t i = 1; i < vBindings.GetCount(); ++i )
+                if( vBindings.IsEmpty() == false )
                 {
-                    const auto newType = BindingTypeToPoolType( vBindings[ i ].type );
-                    if( currType != newType )
+                    auto currType = BindingTypeToPoolType( vBindings[ 0 ].type );
+                    for( uint32_t i = 1; i < vBindings.GetCount(); ++i )
                     {
-                        VKE_LOG_ERRF( "It is not possible to mix different DescriptorPool types: {} and {}",
-                                      (uint32_t)currType,
-                                      (uint32_t)newType );
-                        return false;
+                        const auto newType = BindingTypeToPoolType( vBindings[ i ].type );
+                        if( currType != newType )
+                        {
+                            VKE_LOG_ERRF( "It is not possible to mix different DescriptorPool types: {} and {}",
+                                          (uint32_t)currType,
+                                          (uint32_t)newType );
+                            return false;
+                        }
                     }
                 }
+                // It is ok to have no bindings
                 return true;
             }
         };

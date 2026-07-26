@@ -67,13 +67,13 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
                     auto pDevice = pNode->GetContext()->GetDeviceContext();
 
-                    VKE::RenderSystem::SCreateBindingDesc BindingDesc;
+                    /*VKE::RenderSystem::SCreateBindingDesc BindingDesc;
                     BindingDesc.SetDebugName( "SimpleMS" );
                     BindingDesc.LayoutDesc.SetDebugName( "SimpleMS" );
                     auto hBindings = pDevice->CreateResourceBindings( BindingDesc );
-                    auto hDescLayout = pDevice->GetDescriptorSetLayout( hBindings );
+                    auto hDescLayout = pDevice->GetDescriptorSetLayout( hBindings );*/
                     VKE::RenderSystem::SPipelineLayoutDesc PipelineLayoutDesc;
-                    PipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hDescLayout );
+                    //PipelineLayoutDesc.vDescriptorSetLayouts.PushBack( hDescLayout );
                     PipelineLayoutDesc.SetDebugName( "SimpleMS" );
                     auto hPipelineLayout = pDevice->CreatePipelineLayout( PipelineLayoutDesc );
                     VKE::RenderSystem::SPipelineCreateDesc PipelineDesc;
@@ -85,6 +85,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     Pipeline.hLayout = hPipelineLayout->GetHandle();
                     Pipeline.vColorRenderTargetFormats = vColorFormaats;
                     Pipeline.depthRenderTargetFormat = depthFormat;
+                    Pipeline.hDDIRenderPass = pRenderPass->GetRHIRenderPass();
                     Pipeline.SetDebugName( "SimpleMS" );
                     pPSO = pDevice->CreatePipeline( PipelineDesc );
                     return true;
