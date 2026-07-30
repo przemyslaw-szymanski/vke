@@ -377,40 +377,54 @@ def generate_formatter(enum: EnumDef) -> str:
 # Bitmask detection + generators
 # ---------------------------------------------------------------------------
 
-def _is_zero_value(expr: str) -> bool:
-    try:
-        return int(expr.strip(), 0) == 0
-    except ValueError:
-        return False
-
-
-def _is_power_of_two_value(expr: str) -> bool:
-    expr = expr.strip()
-    if re.match(r'^VKE_BIT\s*\(', expr):
-        return True
-    try:
-        val = int(expr, 0)
-        return val > 0 and (val & (val - 1)) == 0
-    except ValueError:
-        return False
+def _is_power_of_two(val: int) -> bool:
+    return val > 0 and (val & (val - 1)) == 0
 
 
 def is_bitmask_enum(members: list[EnumMember]) -> bool:
-    """Return True if enough members have power-of-2 or VKE_BIT values."""
+    """Return True if enough members have power-of-2 or zero computed values."""
+    values = _compute_member_values(members)
     explicit = [m for m in members
                 if m.value_expr is not None and not m.name.startswith('_')]
     if not explicit:
         return False
-    bit_count = sum(1 for m in explicit
-                    if _is_power_of_two_value(m.value_expr) or _is_zero_value(m.value_expr))
+    bit_count = sum(
+        1 for m in explicit
+        if values.get(m.name, -1) == 0 or _is_power_of_two(values.get(m.name, -1))
+    )
     return bit_count > 0 and bit_count >= (len(explicit) + 1) // 2
 
 
 def _bitmask_members(members: list[EnumMember]) -> tuple[list, list]:
-    """Split valid members into (zero_members, bit_members)."""
-    vm = valid_switch_members(members)
-    zero_members = [m for m in vm if m.value_expr is not None and _is_zero_value(m.value_expr)]
-    bit_members  = [m for m in vm if m.value_expr is not None and _is_power_of_two_value(m.value_expr)]
+    """Split members into (zero_members, bit_members) using computed integer values.
+
+    Skips sentinel names (leading '_'), aliases, and duplicate values.
+    Combination members (value is not a pure power-of-two) are excluded from
+    bit_members so they don't appear in the per-bit check loop.
+    """
+    values = _compute_member_values(members)
+    all_names = {m.name for m in members}
+    zero_members: list[EnumMember] = []
+    bit_members: list[EnumMember] = []
+    seen_values: set[int] = set()
+
+    for m in members:
+        if m.name.startswith('_'):
+            continue
+        if _is_alias_of_member(m, all_names):
+            continue
+        val = values.get(m.name)
+        if val is None:
+            continue
+        if val in seen_values:
+            continue
+        seen_values.add(val)
+        if val == 0:
+            zero_members.append(m)
+        elif _is_power_of_two(val):
+            bit_members.append(m)
+        # else: combination member (e.g. ALL = A | B | C) – skip from bit loop
+
     return zero_members, bit_members
 
 
