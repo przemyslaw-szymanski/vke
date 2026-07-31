@@ -43,7 +43,7 @@ namespace VKE
             m_Desc          = Desc;
             m_Desc.pPrivate = &m_DDIDesc;
 
-            if( m_Desc.pWindow== nullptr )
+            if( m_Desc.pWindow == nullptr )
             {
                 // auto pEngine = m_pCtx->GetDeviceContext()->GetRenderSystem()->GetEngine();
                 // m_Desc.pWindow = pEngine->GetWindow();
@@ -154,8 +154,8 @@ namespace VKE
                                 m_pCtx->GetDeviceContext()->RHI().CreateGPUFence( Desc );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
-                            
-                            InternalBackBuffer.hFence    = m_pCtx->GetDeviceContext()->CreateFence( FenceDesc );
+
+                            InternalBackBuffer.hFence = m_pCtx->GetDeviceContext()->CreateFence( FenceDesc );
                             if( BackBuffer.hDDIPresentImageReadySemaphore == RHI::Null ||
                                 BackBuffer.hDDIQueueFinishedSemaphore == RHI::Null ||
                                 InternalBackBuffer.hFence == RHI::Null )
@@ -426,15 +426,17 @@ namespace VKE
             const auto& PrevBuffer = m_vInternalBackBufers[ m_backBufferIdx ];
             (void)PrevBuffer;
 
-            m_backBufferIdx          = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
-            auto& Buffer             = m_vInternalBackBufers[ m_backBufferIdx ];
-            Buffer.hFence            = hFrameFence != RHI::Null ? hFrameFence : Buffer.hFence;
+            m_backBufferIdx = ( m_backBufferIdx + 1 ) % m_vInternalBackBufers.GetCount();
+            auto& Buffer    = m_vInternalBackBufers[ m_backBufferIdx ];
+            Buffer.hFence   = hFrameFence != RHI::Null ? hFrameFence : Buffer.hFence;
             // Get new texture present index
             SDDIGetBackBufferInfo Info;
-            Info.hSignalFence      = Buffer.hFence;
-            Info.waitTimeout     = UINT64_MAX;
-            Info.signalFenceValue  = Buffer.fenceValue++;
-            Buffer.PresentInfo.hWaitForFence = Info.hSignalFence;
+            Info.hSignalFence     = Buffer.hFence;
+            Info.waitTimeout      = UINT64_MAX;
+            Info.signalFenceValue = Buffer.fenceValue++;
+            Info.hQueue           = m_pCtx->_GetQueue()->GetDDIObject();
+
+            Buffer.PresentInfo.hWaitForFence     = Info.hSignalFence;
             Buffer.PresentInfo.waitForFenceValue = Info.signalFenceValue;
             Buffer.PresentInfo.hSwapChain        = this->GetDDIObject();
             // std::unique_lock<std::mutex> l( m_mutex );
@@ -472,7 +474,7 @@ namespace VKE
 
         Result CSwapChain::SwapBuffers()
         {
-            //auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
+            // auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
             return SwapBuffers( RHI::Null );
         }
 
@@ -497,9 +499,9 @@ namespace VKE
                 m_qAcquiredBuffers.pop();
                 auto& Buffer = m_vInternalBackBufers[ backBufferIndex ];
                 VKE_ASSERT( backBufferIndex == Buffer.index );
-                
+
                 Threads::ScopedLock l( m_SyncObj );
-              
+
                 ret = m_pCtx->Present( Buffer.PresentInfo );
                 if( VKE_SUCCEEDED( ret ) )
                 {
@@ -579,18 +581,18 @@ namespace VKE
             // m_pCurrBackBuffer->pAcquiredElement->vkBarrierAttachmentToPresent.newLayout;
         }
 
-        //void CSwapChain::BeginPass( CommandBufferPtr pCb )
+        // void CSwapChain::BeginPass( CommandBufferPtr pCb )
         //{
-        //    pCb->Bind( m_DDISwapChain );
-        //}
+        //     pCb->Bind( m_DDISwapChain );
+        // }
 
-        //void CSwapChain::EndPass( CommandBufferPtr pCb )
+        // void CSwapChain::EndPass( CommandBufferPtr pCb )
         //{
-        //    // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
-        //    // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
-        //    // m_pCurrAcquireElement->pRenderPass->End( vkCb );
-        //    pCb->Bind( (RHI::RenderPass)RHI::Null );
-        //}
+        //     // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
+        //     // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+        //     // m_pCurrAcquireElement->pRenderPass->End( vkCb );
+        //     pCb->Bind( (RHI::RenderPass)RHI::Null );
+        // }
 
     } // namespace RenderSystem
 } // namespace VKE

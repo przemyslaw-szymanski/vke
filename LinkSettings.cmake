@@ -10,6 +10,7 @@ if(VKE_DEBUG_INFO)
 endif()
 
 function(SetProjectLinkProperties ver)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME_${ver} ${PROJECT_NAME})
     set_target_properties(${PROJECT_NAME} PROPERTIES ${ver}_OUTPUT_NAME ${PROJECT_NAME})
     set_target_properties(${PROJECT_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${ver} ${LIB_DIR})
     set_target_properties(${PROJECT_NAME} PROPERTIES IMPORT_LIBRARY_OUTPUT_DIRECTORY_${ver} ${LIB_DIR})
@@ -33,6 +34,13 @@ endfunction()
 
 
 SetProjectLinkAllProperties()
+
+# Set default output directories for all configurations
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+    LIBRARY_OUTPUT_DIRECTORY ${LIB_DIR}
+    ARCHIVE_OUTPUT_DIRECTORY ${LIB_DIR}
+)
 
 #set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_OUTPUT_NAME ${PROJECT_NAME}_d)
 #set_target_properties(${PROJECT_NAME} PROPERTIES RELEASE_OUTPUT_NAME ${PROJECT_NAME})

@@ -552,7 +552,7 @@ namespace VKE
 
                     // Update size from requirements.
                     //pBuffer->m_Desc.size = AllocationInfo.size;
-                    pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
+                    //pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
 
                     pBuffer->m_hDDIObject = m_pCtx->RHI().CreateBuffer( pBuffer->m_Desc, BindInfo );
 
