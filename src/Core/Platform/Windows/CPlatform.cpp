@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <shlwapi.h>
 #include <crtdbg.h>
+#include <DbgHelp.h>
 
 #include "Core/Utils/TCList.h"
 
@@ -13,6 +14,8 @@
 #ifdef GetCommandLine
 #undef GetCommandLine
 #endif
+
+#pragma comment( lib, "dbghelp.lib" )
 
 // #if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
 // #   pragma push_macro(VKE_TO_STRING(LoadLibrary))
@@ -191,6 +194,70 @@ namespace VKE
     void Platform::Debug::PrintOutput( const cstr_t msg )
     {
         ::OutputDebugStringA( (LPCSTR)msg );
+    }
+
+
+    void Platform::Debug::PrintStallstack()
+    {
+        const int MAX_FRAMES = 64;
+        void*     stack[ MAX_FRAMES ];
+
+        // 1. Pobranie surowych adresów ramek stosu
+        USHORT framesCount = CaptureStackBackTrace( 0, MAX_FRAMES, stack, NULL );
+
+        // 2. Inicjalizacja menedżera symboli Windows
+        HANDLE process = GetCurrentProcess();
+        SymSetOptions( SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS );
+        if( !SymInitialize( process, NULL, TRUE ) )
+        {
+            return;
+        }
+
+        VKE_LOG( "CALLSTACK" );
+
+        // Alokacja bufora na strukturę informacji o symbolu (nazwa funkcji)
+        char         symbolBuffer[ sizeof( SYMBOL_INFO ) + MAX_SYM_NAME * sizeof( TCHAR ) ];
+        PSYMBOL_INFO pSymbol  = (PSYMBOL_INFO)symbolBuffer;
+        pSymbol->SizeOfStruct = sizeof( SYMBOL_INFO );
+        pSymbol->MaxNameLen   = MAX_SYM_NAME;
+
+        IMAGEHLP_LINE64 line;
+        line.SizeOfStruct = sizeof( IMAGEHLP_LINE64 );
+        DWORD displacement;
+
+        // 3. Iteracja po zebranych ramkach i zamiana adresów na tekst
+        for( USHORT i = 0; i < framesCount; ++i )
+        {
+            DWORD64 address = (DWORD64)( stack[ i ] );
+
+            // Pomiń ramki samego mechanizmu drukowania, jeśli chcesz zachować czystszy log
+            if( address == 0 )
+            {
+                continue;
+            }
+
+            // std::cout << "[" << i << "] Adres: 0x" << std::hex << address << std::dec << " -> ";
+
+            // Pobieranie nazwy funkcji
+            if( SymFromAddr( process, address, 0, pSymbol ) )
+            {
+                // std::cout << pSymbol->Name;
+
+                // Pobieranie pliku i numeru linii (opcjonalnie)
+                if( SymGetLineFromAddr64( process, address, &displacement, &line ) )
+                {
+                    // std::cout << " (" << line.FileName << ":" << line.LineNumber << ")";
+                    VKE_LOGF( "{}", pSymbol->Name );
+                }
+            }
+            else
+            {
+                VKE_LOGF( "Unknown function" );
+            }
+        }
+
+        // Cyszczenie pamięci po dbghelp
+        SymCleanup( process );
     }
 
     void Platform::Debug::ConvertErrorCodeToText( uint32_t err, char* pBuffOut, uint32_t buffSize )

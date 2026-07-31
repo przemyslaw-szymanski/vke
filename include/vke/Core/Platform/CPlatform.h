@@ -87,6 +87,8 @@ namespace VKE
 
             static VKE_API void ConvertErrorCodeToText( uint32_t err, char* pBuffOut, uint32_t buffSize );
 
+            static VKE_API void PrintStallstack();
+
             class VKE_API CMemoryLeakDetector
             {
             public:
