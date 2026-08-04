@@ -320,7 +320,7 @@ namespace VKE
 #else
                 vArgs.push_back( L"-O3" );
 #endif
-#if VKE_COMPILE_VULKAN_RHI
+#if VKE_RENDER_SYSTEM == VKE_VULKAN
                 vArgs.push_back( L"-spirv" );
                 vArgs.push_back( L"-fvk-use-gl-layout" );
                 vArgs.push_back( L"-fspv-target-env=vulkan1.2" );

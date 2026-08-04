@@ -614,7 +614,7 @@ namespace VKE
             maxTextures          = Math::Min( maxTextures, CTerrain::MAX_TEXTURE_COUNT );
             {
                 // Constant buffer
-                g_TileBindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
+                g_TileBindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL, 1u );
                 // Heightmap texture
 #if VKE_TERRAIN_BINDLESS_TEXTURES
                 // Color texture sampler
@@ -648,9 +648,9 @@ namespace VKE
             }
             // Instancing
             {
-                g_InstanceBindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
+                g_InstanceBindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL, 1u );
                 // Instance buffer
-                g_InstanceBindingDesc.AddConstantBuffer( 1, RenderSystem::PipelineStages::ALL );
+                g_InstanceBindingDesc.AddConstantBuffer( 1, RenderSystem::PipelineStages::ALL, 1u );
                 // Color texture sampler
                 g_InstanceBindingDesc.AddSamplers( 2, RenderSystem::PipelineStages::ALL );
                 // Heightmap textures
@@ -673,7 +673,7 @@ namespace VKE
 
             RenderSystem::SCreateBindingDesc BindingDesc;
             {
-                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL, 1u );
                 BindingDesc.LayoutDesc.SetDebugName( "VKE_Scene_Terrain_Bindings0" );
                 BindingDesc.SetDebugName( "VKE_Scene_Terrain_Bindings0" );
                 for( uint32_t f = 0; f < MAX_FRAME_COUNT; ++f )

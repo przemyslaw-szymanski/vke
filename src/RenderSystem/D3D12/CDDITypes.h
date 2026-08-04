@@ -23,7 +23,7 @@ namespace VKE::RenderSystem::D3D12
         using D3D12Fence               = ID3D12Fence1;
         using D3D12CommandAllocator    = ID3D12CommandAllocator;
         using D3D12CommandList         = ID3D12CommandList;
-        using D3D12GraphicsCommandList = ID3D12GraphicsCommandList4;
+        using D3D12GraphicsCommandList = ID3D12GraphicsCommandList6;
         using D3D12Shader              = D3D12_SHADER_BYTECODE;
         using D3D12RootParameter       = D3D12_ROOT_PARAMETER1;
         using D3D12DescriptorRange     = D3D12_DESCRIPTOR_RANGE1;
@@ -67,12 +67,18 @@ namespace VKE::RenderSystem::D3D12
                 UINT64 GetCompletedValue();
                 UINT64 GetSignaledValue();
 
-                vke_force_inline std::string GetFenceName()
+                // Formatted once on first request, then cached. No heap allocation.
+                vke_force_inline const char* GetFenceName()
                 {
-                    std::stringstream name;
-                    name << "Fence_" << std::hex << (uint64_t)pObject << std::dec;
-                    return name.str();
+                    if( aFenceName[ 0 ] == '\0' )
+                    {
+                        snprintf( aFenceName, sizeof( aFenceName ), "Fence_%llx", (uint64_t)pObject );
+                    }
+                    return aFenceName;
                 }
+
+            private:
+                char aFenceName[ 32 ] = {};
             };
 
             struct SCPUFence : public SFence
@@ -283,6 +289,11 @@ namespace VKE::RenderSystem::D3D12
                 TSStaticArray< NativeAPI::D3D12Resource*, MAX_RENDER_TARGETS >   DiscardResources;
                 SClear                                                           Clear;
 
+                // For pipeline states created with render passes
+                UINT        NumRenderTargetViews = 0;
+                DXGI_FORMAT RenderTargetViewFormats[ MAX_RENDER_TARGETS ] = { DXGI_FORMAT_UNKNOWN };
+                DXGI_FORMAT DepthStencilRenderTargetFormat;
+
                 SSubpassArray vSubpasses          = {};
                 uint32_t      currentSubpassIndex = 0;
 
@@ -303,6 +314,27 @@ namespace VKE::RenderSystem::D3D12
                 {
                     return vSubpasses[ ++currentSubpassIndex ];
                 }
+            };
+
+            struct SPipelineStateObject
+            {
+                enum PipelineStateObjectType : uint8_t
+                {
+                    GRAPHICS,
+                    COMPUTE,
+                    MESH,
+                    RAYTRACING,
+                };
+
+                PipelineStateObjectType Type;
+
+                union
+                {
+                    NativeAPI::D3D12PipelineState* Graphics;
+                    NativeAPI::D3D12PipelineState* Compute;
+                    NativeAPI::D3D12PipelineState* Mesh;
+                    ID3D12StateObject*             Raytracing;
+                };
             };
         }; // struct CustomTypes
 
@@ -361,7 +393,7 @@ namespace VKE::RenderSystem::D3D12
         using Buffer                = D3D12Resource*;
         using Pipeline              = D3D12PipelineState*;
         using Texture               = D3D12Resource*;
-        using Sampler               = void*;
+        using Sampler               = D3D12_SAMPLER_DESC*;
         using RenderPass            = CustomTypes::SRenderPass*;
         using CommandBuffer         = D3D12GraphicsCommandList*;
         using TextureView           = CustomTypes::SResourceView*;
@@ -518,6 +550,8 @@ namespace VKE::RenderSystem::D3D12
 
         SDescriptorHeapInfo* GetDescriptorHeap( const NativeAPI::Device& pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type,
                                                 D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
+
+        NativeAPI::Fence     m_pGlobalFence = nullptr;
 
     private:
         Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;

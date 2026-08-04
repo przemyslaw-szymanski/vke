@@ -41,6 +41,7 @@ namespace VKE
             BindInfo.idx    = Binding.index;
             BindInfo.stages = Binding.stages;
             BindInfo.type   = BufferUsageToBindingType( pBuffer->GetDesc().usage );
+            BindInfo.space  = Binding.space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -51,6 +52,7 @@ namespace VKE
             BindInfo.idx    = Binding.index;
             BindInfo.stages = Binding.stages;
             BindInfo.type   = BindingTypes::TEXTURE;
+            BindInfo.space  = Binding.space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
@@ -61,67 +63,76 @@ namespace VKE
             BindInfo.idx    = Binding.index;
             BindInfo.stages = Binding.stages;
             BindInfo.type   = BindingTypes::SAMPLER;
+            BindInfo.space  = Binding.space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages )
+        void SCreateBindingDesc::AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages, uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = 1;
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::CONSTANT_BUFFER;
+            BindInfo.space  = space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount )
+        void SCreateBindingDesc::AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount, uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = arrayElementCount;
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::BUFFER;
+            BindInfo.space  = space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages )
+        void SCreateBindingDesc::AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages, uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = 1;
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::DYNAMIC_CONSTANT_BUFFER;
+            BindInfo.space  = space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
         void SCreateBindingDesc::AddDynamicBuffer( uint8_t index, PIPELINE_STAGES stages,
-                                                   const uint16_t& arrayElementCount )
+                                                   const uint16_t& arrayElementCount, uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = arrayElementCount;
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::DYNAMIC_BUFFER;
+            BindInfo.space  = space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count )
+        void SCreateBindingDesc::AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count,
+                                              uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = count;
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::TEXTURE;
+            BindInfo.space  = space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count )
+        void SCreateBindingDesc::AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count,
+                                              uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = count;
             BindInfo.idx    = index;
             BindInfo.stages = stages;
             BindInfo.type   = BindingTypes::SAMPLER;
+            BindInfo.space  = space;
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
