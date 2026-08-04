@@ -298,7 +298,25 @@ namespace VKE::RenderSystem::D3D12
                 uint32_t      currentSubpassIndex = 0;
 
                 SRenderPassBarriers EndBarriers;
-                const char*         pName = nullptr;
+
+                char aName[ 256 ] = { 0 };
+
+                const char* GetName() const
+                {
+                    return aName;
+                }
+
+                void SetName( const char* pInName )
+                {
+                    if( pInName != nullptr )
+                    {
+                        ::strncpy_s( aName, pInName, _TRUNCATE );
+                    }
+                    else
+                    {
+                        aName[ 0 ] = 0;
+                    }
+                }
 
                 void Reset()
                 {

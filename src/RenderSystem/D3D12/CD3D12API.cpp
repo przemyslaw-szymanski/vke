@@ -3227,7 +3227,7 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT2( pNativeRenderPass->vSubpasses.GetCount() > 0,
                      "CDDI::CreateRenderPass: At least one subpass has to be defined in render pass" );
 
-        pNativeRenderPass->pName = EngineRenderPassDesc.GetDebugName();
+        pNativeRenderPass->SetName( EngineRenderPassDesc.GetDebugName() );
         return FromNative< RHI::RenderPass >( pNativeRenderPass );
     }
 
@@ -3939,8 +3939,8 @@ namespace VKE::RenderSystem::D3D12
     void CD3D12API::BindImpl( const SBindPipelineInfo& Info )
     {
         auto pNativeCmdBuffer = ToNative( Info.pCmdBuffer->GetDDIObject() );
-        
-        auto pNativePipelineLayout = ToNative(Info.pPipeline->GetLayout()->GetDDIObject());
+
+        auto pNativePipelineLayout = ToNative( Info.pPipeline->GetLayout()->GetDDIObject() );
         VKE_ASSERT( pNativePipelineLayout != NativeAPI::Null );
 
         if( Info.pPipeline->GetType() == PIPELINE_TYPE::COMPUTE )
@@ -4191,6 +4191,12 @@ namespace VKE::RenderSystem::D3D12
         {
             VKE_LOG_ERR( "CD3D12API::MapMemory: Failed to map memory" );
         }
+        else if( pData != nullptr )
+        {
+            // DX12 Map always returns pointer to the beginning of the resource. Offset must be added manually to match
+            // Vulkan implementation.
+            pData = reinterpret_cast< uint8_t* >( pData ) + Info.offset;
+        }
 
         return pData;
     }
@@ -4337,8 +4343,10 @@ namespace VKE::RenderSystem::D3D12
 
         NativeAPI::CommandBuffer pNativeCommandBuffer = ToNative( hCommandBuffer );
         // Add custom breadcrumb before BeginRenderPass() insert anything on cmdlist
-        PIXBeginEvent(
-            pNativeCommandBuffer, PIX_COLOR( 255, 0, 0 ), "EmulatedRenderPass: Begin: %s", pNativeRenderPass->pName );
+        PIXBeginEvent( pNativeCommandBuffer,
+                       PIX_COLOR( 255, 0, 0 ),
+                       "EmulatedRenderPass: Begin: %hs",
+                       pNativeRenderPass->GetName() );
 
         // Record barriers for potential clear/discard operations.
         // DiscardResource and Clear*View both require the resource to be in the correct state

@@ -180,7 +180,12 @@ namespace VKE::Scene
                 RenderSystem::SUpdateMemoryInfo UpdateInfo;
                 UpdateInfo.dataSize = bufferSize;
                 UpdateInfo.pData    = vMeshlets.GetData();
-                ret                 = pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
+#if VKE_RENDER_SYSTEM_DEBUG
+                RenderSystem::SDebugInfo DebugInfo = { .pText = "Upload MeshShader MeshletBuffer",
+                                                       .Color = RenderSystem::SColor::GREEN };
+                UpdateInfo.pDebugInfo              = &DebugInfo;
+#endif
+                ret = pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
             }
         }
         else
@@ -247,6 +252,11 @@ namespace VKE::Scene
             Update.dataSize      = sizeof( STileGPUBindingData ) * m_vTileData.GetCount();
             Update.dstDataOffset = 0;
             Update.pData         = m_vTileData.GetData();
+#if VKE_RENDER_SYSTEM_DEBUG
+            RenderSystem::SDebugInfo DebugInfo = { .pText = "Upload MeshShader STileGPUBindingData",
+                                                   .Color = RenderSystem::SColor::GREEN };
+            Update.pDebugInfo                  = &DebugInfo;
+#endif
             pCmdBuff->GetContext()->UpdateBuffer( pCmdBuff, Update, &m_pTileBuffer );
         }
         return ret;
@@ -762,6 +772,11 @@ namespace VKE::Scene
             UpdateInfo.dataSize      = BuffDesc.Buffer.CalcSize();
             UpdateInfo.dstDataOffset = 0;
             UpdateInfo.pData         = vIndices.GetData();
+#if VKE_RENDER_SYSTEM_DEBUG
+            RenderSystem::SDebugInfo DebugInfo = { .pText = "Upload MeshShader IndexBuffer",
+                                                   .Color = RenderSystem::SColor::GREEN };
+            UpdateInfo.pDebugInfo              = &DebugInfo;
+#endif
             ret                      = pContext->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
         }
         return ret;
