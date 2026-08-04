@@ -45,33 +45,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         auto pGfxCtx = pCtx->GetGraphicsContext( 0 );
         auto pCmdBuffer = pGfxCtx->GetCommandBuffer();
 
-        VKE::RenderSystem::SCreateBufferDesc BuffDesc;
-
-        const float vertexData[] = {
-            0.0f, 0.5f, 0.0f,
-            -0.5f, -0.5f, 0.0f,
-            0.5f, -0.5f, 0.0f
-        };
-
-        BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
-        BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
-        BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS | VKE::RenderSystem::MemoryUsages::BUFFER;
-        BuffDesc.Buffer.size = sizeof( vertexData );
-        BuffDesc.Buffer.SetDebugName( "VKE_SimpleTriangle_DebugView" );
-
-        auto hVb = pCtx->CreateBuffer( BuffDesc );
-        pVb = pCtx->GetBuffer( hVb );
-
-        VKE::RenderSystem::SUpdateMemoryInfo Info;
-        Info.pData = ( const void* )vertexData;
-        Info.dataSize = sizeof( vertexData );
-        pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, Info, &hVb );
-
-        if (!pVb!= nullptr)
-        {
-            return false;
-        }
-
         auto pFrameGraph = pCtx->GetRenderSystem()->GetFrameGraph();
         auto pPass = pFrameGraph->GetPass( "RenderFrame" );
 
@@ -91,16 +64,47 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Shaders.apShaders[ VKE::RenderSystem::ShaderTypes::PIXEL ] = pPS;
         // VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
         Pipeline.SetDebugName( "VKE_Triangle_Simple" );
-        Pipeline.depthRenderTargetFormat = pPass->GetDepthRenderTargetFormat();
-        Pipeline.vColorRenderTargetFormats = pPass->GetColorRenderTargetFormats();
+        Pipeline.hDDIRenderPass = pPass->GetRHIRenderPass();
 
         pPipeline = pCtx->CreatePipeline( PipelineTemplate );
         
+        auto pUploadPass = pFrameGraph->GetPass( "Upload" );
+        pUploadPass->AddTask( [this, pCtx](const VKE::RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIndex)
+        {
+            auto        pCmdBuffer = pPass->GetCommandBuffer( backBufferIndex );
+            static bool uploaded = false;
+            if( !uploaded )
+            {
+                VKE::RenderSystem::SCreateBufferDesc BuffDesc;
+
+                const float vertexData[] = { 0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
+
+                BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
+                BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
+                BuffDesc.Buffer.memoryUsage =
+                    VKE::RenderSystem::MemoryUsages::GPU_ACCESS | VKE::RenderSystem::MemoryUsages::BUFFER;
+                BuffDesc.Buffer.vRegions = { { sizeof( vertexData ), 1u } };
+                BuffDesc.Buffer.SetDebugName( "VKE_SimpleTriangle_DebugView" );
+
+                auto hVb = pCtx->CreateBuffer( BuffDesc );
+                this->pVb      = pCtx->GetBuffer( hVb );
+
+                VKE::RenderSystem::SUpdateMemoryInfo Info;
+                Info.pData    = (const void*)vertexData;
+                Info.dataSize = sizeof( vertexData );
+                pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, Info, &hVb );
+                uploaded = true;
+            }
+            return true;
+        }, nullptr );
+
         auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "Triangle" } );
-        pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {
+        pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+        {
+            auto        pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
+            
             if( pPipeline!= nullptr && pPipeline->IsResourceReady() )
             {
-                auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
                 pCmdBuffer->Bind( pPipeline );
                 pCmdBuffer->Bind( pVb );
                 pCmdBuffer->Draw( 3 );
@@ -110,9 +114,6 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         
         pPass->AddSubpass( pRenderFrame );
         pFrameGraph->Build();
-
-        pGfxCtx->Execute( VKE::RenderSystem::ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE
-                          | VKE::RenderSystem::ExecuteCommandBufferFlags::WAIT );
 
         return true;
     }
