@@ -3,6 +3,7 @@
 #include "Core/VKEConfig.h"
 #include "Core/Resources/CFile.h"
 #include "Core/Utils/TCSmartPtr.h"
+#include "Core/Resources/CResource.h"
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/RHI.h"
@@ -18,7 +19,7 @@ namespace VKE
         {
         };
 
-        class VKE_API CShader
+        class VKE_API CShader : public Core::TCResource< CShader >
         {
             friend class CShaderManager;
             friend class SShaderCompiler;
@@ -39,7 +40,6 @@ namespace VKE
 
             VKE_ADD_DDI_OBJECT( RHI::Shader );
             VKE_DECL_BASE_OBJECT( ShaderHandle );
-            VKE_DECL_BASE_RESOURCE();
 
         public:
             // using CompilerData = CAPI::CompilerData;
@@ -83,14 +83,13 @@ namespace VKE
             EntryPointArray apEntryPoints = { nullptr };
         };
 
-        class VKE_API CShaderProgram
+        class VKE_API CShaderProgram : public Core::TCResource< CShaderProgram >
         {
             friend class CShaderManager;
             VKE_DECL_BASE_OBJECT( handle_t );
-            VKE_DECL_BASE_RESOURCE();
 
         public:
-            CShaderProgram( CShaderManager* pMgr );
+            CShaderProgram( CShaderManager* pMgr ); 
             ~CShaderProgram();
             void operator delete( void* );
             void Init( const SShaderProgramDesc& Desc );

@@ -179,3 +179,22 @@ private:                                                                        
 #endif // VKE_USE_OBJECT_CLASS
     } // namespace Core
 } // namespace VKE
+
+namespace VKE::Core
+{
+    template<class T>
+    class TCReinterpret
+    {
+    protected:
+
+        T& _Reinterpret()
+        {
+            return *reinterpret_cast< T* >( this );
+        }
+
+        const T& _Reinterpret() const
+        {
+            return *reinterpret_cast< T* >( this );
+        }
+    };
+} // namespace VKE::Core

@@ -3089,7 +3089,7 @@ namespace VKE
             uint32_t           dataSize;
             uint32_t           dstDataOffset = 0;
             handle_t           hMemory       = INVALID_HANDLE;
-            StagingBufferFlags flags         = 0;
+            StagingBufferFlags flags         = StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
@@ -3191,7 +3191,7 @@ namespace VKE
             bool IsValid() const
             {
                 // DX12 spec distinguish these resource types
-                Utils::TCBitset< uint8_t > TypeBits = 0;
+                Utils::TCBitset< uint8_t > TypeBits = (uint8_t)0;
 
                 for( uint32_t i = 0; i < vPoolSizes.GetCount(); ++i )
                 {
@@ -3973,7 +3973,7 @@ namespace VKE
                 TIMESTMAP = VKE_BIT(7),
             };
         };
-        using QueueCapsBits = Utils::TCBitset< uint32_t >;
+        using QueueCapsBits = Utils::TCBitset< QueueCaps::CAPABILITY >;
 
         struct SQueueFamilyInfo
         {

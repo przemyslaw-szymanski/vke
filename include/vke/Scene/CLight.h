@@ -9,13 +9,12 @@ namespace VKE
         class CScene;
         struct SLights;
 
-        class VKE_API CLight
+        class VKE_API CLight : public Core::TCResource< CLight >
         {
             friend class CSceneManager;
             friend class CScene;
             friend struct SLights;
             VKE_DECL_BASE_OBJECT( LightHandle );
-            VKE_DECL_BASE_RESOURCE();
 
         public:
             struct SData

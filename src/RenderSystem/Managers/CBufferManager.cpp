@@ -387,7 +387,7 @@ namespace VKE
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size      = maxSize;
 
-            m_pStagingBufferMgr->GetBuffer( ReqInfo, 0, &hStagingBuffer, &Data );
+            m_pStagingBufferMgr->GetBuffer( ReqInfo, StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT, &hStagingBuffer, &Data );
             {
                 pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
             }

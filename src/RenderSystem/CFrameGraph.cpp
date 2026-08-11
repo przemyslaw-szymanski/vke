@@ -250,8 +250,8 @@ namespace VKE::RenderSystem
 
                     pPresent->WaitFor( { .pNode  = pExecuteFrame,
                                          .frame  = VKE::RenderSystem::WaitForFrames::CURRENT,
-                                         .WaitOn = VKE::RenderSystem::WaitOnBits::GPU_WAITS_FOR_GPU |
-                                                   VKE::RenderSystem::WaitOnBits::CPU_WAITS_FOR_CPU } );
+                                         .WaitOn = ( VKE::RenderSystem::WaitOnBits::GPU_WAITS_FOR_GPU | VKE::RenderSystem::WaitOnBits::CPU_WAITS_FOR_CPU )
+                                     } );
                     pBeginFramePass->WaitFor( { .pNode  = pFinishFramePass,
                                                 .frame  = VKE::RenderSystem::WaitForFrames::LAST,
                                                 .WaitOn = VKE::RenderSystem::WaitOnBits::CPU_WAITS_FOR_CPU } );
