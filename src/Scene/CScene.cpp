@@ -191,7 +191,7 @@ namespace VKE
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.SetDebugName( "VKE_Scene_ConstantBuffer" );
                 BindingDesc.LayoutDesc.SetDebugName( BindingDesc.GetDebugName() );
-                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL );
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL, 1u );
                 //uint32_t cbSize = m_pConstantBufferGPU->GetSize();
                 for( uint32_t i = 0; i < swapchainElCount + 1; ++i )
                 {
@@ -1245,7 +1245,7 @@ namespace VKE
                     pPerFrameConstantBuffer     = pDevice->GetBuffer( hBuff );
                 }
                 RenderSystem::SCreateBindingDesc BindingDesc;
-                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX );
+                BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX, 1u );
                 hPerFrameDescSet = pDevice->CreateResourceBindings( BindingDesc );
                 RenderSystem::SUpdateBindingsHelper UpdateHelper;
                 hBuff = pPerFrameConstantBuffer->GetHandle();

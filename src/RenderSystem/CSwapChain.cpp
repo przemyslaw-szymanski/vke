@@ -444,22 +444,20 @@ namespace VKE
             //  used in more threads.
             //  Present and get next image can be used in parallel.
 
+            do
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
                     m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
+            while( ret == VKE_ENOTREADY );
+
             // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
             // In case when there are more frames rendered than it can be presented
             // a driver can return not_ready result as the present surface is still to be
             // presented. Brute-force query for the surface instead of return fail.
             /// TODO: implement timeout to not get into endless loop.
-            while( ret == VKE_ENOTREADY )
-            {
-                Threads::ScopedLock l( m_SyncObj );
-                ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
-            }
+
             VKE_ASSERT( VKE_SUCCEEDED( ret ) );
             if( VKE_SUCCEEDED( ret ) )
             {

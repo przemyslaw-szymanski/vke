@@ -54,7 +54,13 @@ namespace VKE::RenderSystem::D3D12
     }                                                                                                                  \
     s_called = true;
 
-#define UNIMPLEMENTED_D3D12_METHOD() VKE_ASSERT2( false, "D3D12 Render System: Unimplemented method" )
+#define UNIMPLEMENTED_D3D12_METHOD()                                                                                   \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        ::__debugbreak();                                                                                              \
+        VKE_LOG_ERR( "D3D12 Render System: Unimplemented method: " << __FUNCTION__ );                                  \
+    }                                                                                                                  \
+    while( 0 )
 
     // -----------------------------------------------------------------------------------------------------------------
     // Initialization of static members.
@@ -263,36 +269,38 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void LogFenceImpl( const std::string& message )
+#if defined( ENABLE_D3D12_RHI_LOGGING )
+
+    std::ostringstream& _GetLogStream()
     {
-        static const bool  scEnabled = true;
-        static const char* scLogFile = "./fence_log.txt";
+        thread_local std::ostringstream sStream;
+        sStream.str( std::string() );
+        sStream.clear();
+        return sStream;
+    }
 
-        if( !scEnabled )
-        {
-            return;
-        }
-
-        // Open once and truncate the file on first use, then keep appending for the rest of the run.
+    void _Log( const std::ostringstream& stream )
+    {
+        static const char*   scLogFile = "./d3d12rhi.log.txt";
         static std::ofstream sFile( scLogFile, std::ios::out | std::ios::trunc );
 
         if( sFile.is_open() )
         {
-            sFile << message << std::endl;
-            sFile.flush();
+            sFile << stream.str() << '\n';
         }
     }
 
-    // Route SFence debug logging through LogFenceImpl while keeping the same streaming syntax as VKE_LOG,
-    // e.g. LogFence( "value: " << std::hex << value ).
-#define LOG_FENCE( _msg )                                                                                              \
+#define D3D12_RHI_LOG( _msg )                                                                                          \
     do                                                                                                                 \
     {                                                                                                                  \
-        std::stringstream _fenceLogStream;                                                                             \
-        _fenceLogStream << _msg;                                                                                       \
-        VKE::RenderSystem::D3D12::LogFenceImpl( _fenceLogStream.str() );                                               \
+        std::ostringstream& _logStream = VKE::RenderSystem::D3D12::_GetLogStream();                                    \
+        _logStream << _msg;                                                                                            \
+        VKE::RenderSystem::D3D12::_Log( _logStream );                                                                  \
     }                                                                                                                  \
     while( 0 )
+#else
+#define D3D12_RHI_LOG( _msg )
+#endif
 
     // -----------------------------------------------------------------------------------------------------------------
     // Fence unified Wait/Signal() implementation.
@@ -300,7 +308,7 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT( pObject != nullptr );
 
-        LOG_FENCE( "SFence::Signal: [CPU] " << GetFenceName() << "->Signal( " << value << " )" );
+        D3D12_RHI_LOG( "SFence::Signal: [CPU] " << GetFenceName() << "->Signal( " << value << " )" );
 
         HRESULT hResult = pObject->Signal( value );
         this->Value     = value;
@@ -315,7 +323,7 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT( pObject != nullptr );
 
-        LOG_FENCE( "SFence::Wait: [CPU] " << GetFenceName() << "->Wait( " << value << " )" );
+        D3D12_RHI_LOG( "SFence::Wait: [CPU] " << GetFenceName() << "->Wait( " << value << " )" );
         if( pObject->GetCompletedValue() >= value )
         {
             return;
@@ -331,7 +339,6 @@ namespace VKE::RenderSystem::D3D12
             ::CloseHandle( hEvent );
         }
 
-        // TODO(blturkot): Change INFINITE to something more reliable.
         ::WaitForSingleObjectEx( hEvent, timeout, FALSE );
     }
 
@@ -339,8 +346,8 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT( pObject != nullptr );
 
-        LOG_FENCE( "SFence::Signal: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Signal( "
-                                                  << GetFenceName() << ", " << value << " )" );
+        D3D12_RHI_LOG( "SFence::Signal: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Signal( "
+                                                      << GetFenceName() << ", " << value << " )" );
         HRESULT hResult = pQueue->Signal( pObject, value );
         this->Value     = value;
 
@@ -354,8 +361,8 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT( pObject != nullptr );
 
-        LOG_FENCE( "SFence::Wait: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Wait( "
-                                                << GetFenceName() << ", " << value << " )" );
+        D3D12_RHI_LOG( "SFence::Wait: [GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Wait( "
+                                                    << GetFenceName() << ", " << value << " )" );
         HRESULT hResult = pQueue->Wait( pObject, value );
         this->Value     = value;
 
@@ -370,8 +377,8 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT( pObject != nullptr );
         UINT64 completedValue = pObject->GetCompletedValue();
 
-        LOG_FENCE( "SFence::GetCompletedValue: " << GetFenceName() << "->GetCompletedValue() = " << completedValue
-                                                 << "[ SIGNALED: " << GetSignaledValue() << " ]" );
+        D3D12_RHI_LOG( "SFence::GetCompletedValue: " << GetFenceName() << "->GetCompletedValue() = " << completedValue
+                                                     << "[ SIGNALED: " << GetSignaledValue() << " ]" );
 
         return completedValue;
     }
@@ -380,6 +387,72 @@ namespace VKE::RenderSystem::D3D12
     {
         return Value;
     }
+
+    template< typename DataTypeT >
+    struct TSSubobject
+    {
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Type;
+        DataTypeT                           Data;
+    };
+
+    struct TSPipelineStateStreamBuffer
+    {
+        static const size_t scBufferByteSize = 2048;
+
+        template< typename SubobjectTypeT >
+        void vke_force_inline AddData( const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Type, const SubobjectTypeT& Data )
+        {
+            TSSubobject< SubobjectTypeT >* pSubobject = Allocate< TSSubobject< SubobjectTypeT > >();
+
+            pSubobject->Type = Type;
+            pSubobject->Data = Data;
+        }
+
+        template< typename SubobjectTypeT >
+        SubobjectTypeT* GetPtr( const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Type )
+        {
+            TSSubobject< SubobjectTypeT >* pSubobject = Allocate< TSSubobject< SubobjectTypeT > >();
+
+            pSubobject->Type = Type;
+            return &pSubobject->Data;
+        }
+
+        void* GetData()
+        {
+            return static_cast< void* >( &buffer );
+        }
+
+        size_t GetSize() const
+        {
+            return bufferSize;
+        }
+
+        Utils::TCDynamicArray< D3D12_INPUT_ELEMENT_DESC > vNativeInputElementDesc;
+
+    private:
+        alignas( void* ) BYTE buffer[ scBufferByteSize ];
+        size_t bufferSize = 0;
+
+        template< typename SubobjectTypeT >
+        SubobjectTypeT* Allocate()
+        {
+            // The pipeline state stream requires every subobject to start on a void* boundary.
+            // The runtime walks the stream using the subobject type enum and expects each entry
+            // to be aligned to sizeof( void* ). Rather than forcing this with alignas( void* ) on
+            // TSSubobject - which makes the compiler insert implicit trailing padding and emit
+            // C4324 - we align the running offset here so every subobject starts aligned.
+            constexpr size_t alignment = alignof( void* );
+            bufferSize                 = ( bufferSize + ( alignment - 1 ) ) & ~( alignment - 1 );
+
+            memptr_t ptr  = ( static_cast< memptr_t >( &buffer[ 0 ] ) + bufferSize );
+            bufferSize   += sizeof( SubobjectTypeT );
+
+            // Prevent buffer overflow
+            VKE_ASSERT( bufferSize <= scBufferByteSize );
+
+            return reinterpret_cast< SubobjectTypeT* >( ptr );
+        }
+    };
 
     // -----------------------------------------------------------------------------------------------------------------
     // Map functions.
@@ -571,10 +644,10 @@ namespace VKE::RenderSystem::D3D12
                 D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // SAMPLER
                 D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // TEXTURE
                 D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // STORAGE_TEXTURE
-                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // READ_ONLY_TEXEL_BUFFER  : basically read only UAV
                 D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // READ_WRITE_TEXEL_BUFFER : basically R/W UAV
                 D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // CONSTANT_BUFFER
-                D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // BUFFER
+                D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // BUFFER
                 D3D12_DESCRIPTOR_RANGE_TYPE_CBV,     // DYNAMIC_CONSTANT_BUFFER
                 D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // DYNAMIC_BUFFER
                 D3D12_DESCRIPTOR_RANGE_TYPE_SRV,     // RENDER_TARGET
@@ -627,6 +700,204 @@ namespace VKE::RenderSystem::D3D12
             static_assert( RENDER_TARGET_RENDER_PASS_OP::_MAX_COUNT == _countof( ascNativeMap ) );
 
             return ascNativeMap[ EngineOp ];
+        }
+
+        D3D12_FILTER_TYPE GetFilter( SAMPLER_FILTER EngineFilter )
+        {
+            static const D3D12_FILTER_TYPE ascNativeMap[] = {
+                D3D12_FILTER_TYPE_POINT,  // NEAREST
+                D3D12_FILTER_TYPE_LINEAR, // LINEAR
+                D3D12_FILTER_TYPE_LINEAR, // CUBIC_IMG - no D3D12 equivalent, fall back to linear
+            };
+
+            if( EngineFilter == SAMPLER_FILTER::CUBIC_IMG )
+            {
+                VKE_LOG_ERR( "Map::GetFilter: D3D12 doesn't support CUBIC_IMG" );
+            }
+
+            static_assert( SamplerFilters::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineFilter ) ];
+        }
+
+        D3D12_TEXTURE_ADDRESS_MODE GetTextureAddressMode( ADDRESS_MODE EngineMode )
+        {
+            static const D3D12_TEXTURE_ADDRESS_MODE ascNativeMap[] = {
+                D3D12_TEXTURE_ADDRESS_MODE_WRAP,        // REPEAT
+                D3D12_TEXTURE_ADDRESS_MODE_MIRROR,      // MIRRORED_REPEAT
+                D3D12_TEXTURE_ADDRESS_MODE_CLAMP,       // CLAMP_TO_EDGE
+                D3D12_TEXTURE_ADDRESS_MODE_BORDER,      // CLAMP_TO_BORDER
+                D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE, // MIRROR_CLAMP_TO_EDGE
+            };
+
+            static_assert( ADDRESS_MODE::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineMode ) ];
+        }
+
+        D3D12_COMPARISON_FUNC GetComparisonFunc( COMPARE_FUNCTION EngineFunc )
+        {
+            static const D3D12_COMPARISON_FUNC ascNativeMap[] = {
+                D3D12_COMPARISON_FUNC_NEVER,         // NEVER,
+                D3D12_COMPARISON_FUNC_LESS,          // LESS,
+                D3D12_COMPARISON_FUNC_EQUAL,         // EQUAL,
+                D3D12_COMPARISON_FUNC_LESS_EQUAL,    // LESS_EQUAL,
+                D3D12_COMPARISON_FUNC_GREATER,       // GREATER,
+                D3D12_COMPARISON_FUNC_NOT_EQUAL,     // NOT_EQUAL,
+                D3D12_COMPARISON_FUNC_GREATER_EQUAL, // GREATER_EQUAL,
+                D3D12_COMPARISON_FUNC_ALWAYS,        // ALWAYS,
+            };
+
+            static_assert( COMPARE_FUNCTION::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineFunc ) ];
+        }
+
+        D3D12_PIPELINE_STATE_SUBOBJECT_TYPE
+        GetPipelineStateSubobjectType( SHADER_TYPE EngineType )
+        {
+            static const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE ascNativeMap[] = {
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, // VERTEX,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS, // HULL,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS, // DOMAIN,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_GS, // GEOMETRY,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS, // PIXEL,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS, // COMPUTE,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_AS, // TASK,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS, // MESH,
+                // ---------------------------------------------
+                // Unsupported shader types by this path
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MAX_VALID, // RAYGEN,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MAX_VALID, // ANY_HIT,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MAX_VALID, // CLOSEST_HIT,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MAX_VALID, // MISS,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MAX_VALID, // CALLABLE,
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MAX_VALID, // INTERSECTION,
+            };
+
+            static_assert( ShaderTypes::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineType ) ];
+        }
+
+        D3D12_BLEND GetBlend( const BLEND_FACTOR EngineBlendFactor )
+        {
+            static const D3D12_BLEND ascNativeMap[] = {
+                D3D12_BLEND_ZERO,             // ZERO,
+                D3D12_BLEND_ONE,              // ONE,
+                D3D12_BLEND_SRC_COLOR,        // SRC_COLOR,
+                D3D12_BLEND_INV_SRC_COLOR,    // ONE_MINUS_SRC_COLOR,
+                D3D12_BLEND_DEST_COLOR,       // DST_COLOR,
+                D3D12_BLEND_INV_DEST_COLOR,   // ONE_MINUS_DST_COLOR,
+                D3D12_BLEND_SRC_ALPHA,        // SRC_ALPHA,
+                D3D12_BLEND_INV_SRC_ALPHA,    // ONE_MINUS_SRC_ALPHA,
+                D3D12_BLEND_DEST_ALPHA,       // DST_ALPHA,
+                D3D12_BLEND_INV_DEST_ALPHA,   // ONE_MINUS_DST_ALPHA,
+                D3D12_BLEND_BLEND_FACTOR,     // CONSTANT_COLOR,
+                D3D12_BLEND_INV_BLEND_FACTOR, // ONE_MINUS_CONSTANT_COLOR,
+                D3D12_BLEND_ALPHA_FACTOR,     // CONSTANT_ALPHA,
+                D3D12_BLEND_INV_ALPHA_FACTOR, // ONE_MINUS_CONSTANT_ALPHA,
+                D3D12_BLEND_SRC_ALPHA_SAT,    // SRC_ALPHA_SATURATE,
+                D3D12_BLEND_SRC1_COLOR,       // SRC1_COLOR,
+                D3D12_BLEND_INV_SRC1_COLOR,   // ONE_MINUS_SRC1_COLOR,
+                D3D12_BLEND_SRC1_ALPHA,       // SRC1_ALPHA,
+                D3D12_BLEND_INV_SRC1_ALPHA,   // ONE_MINUS_SRC1_ALPHA,
+            };
+
+            static_assert( BLEND_FACTOR::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineBlendFactor ) ];
+        }
+
+        D3D12_BLEND_OP GetBlendOp( const BLEND_OPERATION EngineBlendOp )
+        {
+            static const D3D12_BLEND_OP ascNativeMap[] = {
+                D3D12_BLEND_OP_ADD,          // ADD,
+                D3D12_BLEND_OP_SUBTRACT,     // SUBTRACT,
+                D3D12_BLEND_OP_REV_SUBTRACT, // REVERSE_SUBTRACT,
+                D3D12_BLEND_OP_MIN,          // MIN,
+                D3D12_BLEND_OP_MAX,          // MAX,
+            };
+
+            static_assert( BLEND_OPERATION::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineBlendOp ) ];
+        }
+
+        D3D12_LOGIC_OP GetLogicOp( const LOGIC_OPERATION EngineLogicOp )
+        {
+            static const D3D12_LOGIC_OP ascNativeMap[] = {
+                D3D12_LOGIC_OP_CLEAR,         // CLEAR,
+                D3D12_LOGIC_OP_AND,           // AND,
+                D3D12_LOGIC_OP_AND_REVERSE,   // AND_REVERSE,
+                D3D12_LOGIC_OP_COPY,          // COPY,
+                D3D12_LOGIC_OP_AND_INVERTED,  // AND_INVERTED,
+                D3D12_LOGIC_OP_NOOP,          // NO_OPERATION,
+                D3D12_LOGIC_OP_XOR,           // XOR,
+                D3D12_LOGIC_OP_OR,            // OR,
+                D3D12_LOGIC_OP_NOR,           // NOR,
+                D3D12_LOGIC_OP_EQUIV,         // EQUIVALENT,
+                D3D12_LOGIC_OP_INVERT,        // INVERT,
+                D3D12_LOGIC_OP_OR_REVERSE,    // OR_REVERSE,
+                D3D12_LOGIC_OP_COPY_INVERTED, // COPY_INVERTED,
+                D3D12_LOGIC_OP_OR_INVERTED,   // OR_INVERTED,
+                D3D12_LOGIC_OP_NAND,          // NAND,
+                D3D12_LOGIC_OP_SET,           // SET,
+            };
+
+            static_assert( LOGIC_OPERATION::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineLogicOp ) ];
+        }
+
+        D3D12_FILL_MODE GetFillMode( POLYGON_MODE EngineMode )
+        {
+            if( EngineMode == POLYGON_MODE::FILL )
+            {
+                return D3D12_FILL_MODE_SOLID;
+            }
+            else
+            {
+                return D3D12_FILL_MODE_WIREFRAME;
+            }
+        }
+
+        D3D12_CULL_MODE GetCullMode( CULL_MODE EngineMode )
+        {
+            D3D12_CULL_MODE NativeMode = D3D12_CULL_MODE_NONE;
+
+            switch( EngineMode )
+            {
+                case CULL_MODE::NONE:
+                    break;
+
+                case CULL_MODE::FRONT:
+                    NativeMode = D3D12_CULL_MODE_FRONT;
+                    break;
+                case CULL_MODE::BACK:
+                    NativeMode = D3D12_CULL_MODE_BACK;
+                    break;
+
+                case CULL_MODE::FRONT_AND_BACK:
+                    VKE_LOG_ERR( "D3D12 doesn't support FRONT_AND_BACK cull mode" );
+                    break;
+
+                default:
+                    VKE_ASSERT( false );
+                    break;
+            }
+
+            return NativeMode;
+        }
+
+        D3D12_STENCIL_OP GetStencilOp( STENCIL_FUNCTION EngineStencilOp )
+        {
+            static const D3D12_STENCIL_OP ascNativeMap[] = {
+                D3D12_STENCIL_OP_KEEP,     // KEEP,
+                D3D12_STENCIL_OP_ZERO,     // ZERO,
+                D3D12_STENCIL_OP_REPLACE,  // REPLACE,
+                D3D12_STENCIL_OP_INCR_SAT, // INCREMENT_AND_CLAMP,
+                D3D12_STENCIL_OP_DECR_SAT, // DECREMENT_AND_CLAMP,
+                D3D12_STENCIL_OP_INVERT,   // INVERT,
+                D3D12_STENCIL_OP_INCR,     // INCREMENT_AND_WRAP,
+                D3D12_STENCIL_OP_DECR,     // DECREMENT_AND_WRAP,
+            };
+
+            static_assert( STENCIL_FUNCTION::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineStencilOp ) ];
         }
 
     }; // namespace Map
@@ -858,7 +1129,6 @@ namespace VKE::RenderSystem::D3D12
             bool CPUAccess     = EngineUsage & MemoryUsages::CPU_ACCESS;
             bool GPUAccess     = EngineUsage & MemoryUsages::GPU_ACCESS;
             bool IsWriteback   = EngineUsage & MemoryUsages::CPU_CACHED;
-            bool IsUpload      = EngineUsage & MemoryUsages::CPU_NO_FLUSH;
 
             D3D12_HEAP_DESC Desc;
             Desc.SizeInBytes = 0;                                          // To be filled later
@@ -923,27 +1193,26 @@ namespace VKE::RenderSystem::D3D12
             // Custom heaps requires overriding.
             if( Desc.Properties.Type == D3D12_HEAP_TYPE_CUSTOM )
             {
-                if( !CPUAccess )
+                // Custom types default to GPU access only
+                Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
+                Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
+
+                if( CPUAccess )
                 {
-                    // No CPU access, acts like DEFAULT heap.
-                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE;
-                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L1;
-                }
-                else if( CPUAccess && IsWriteback )
-                {
-                    Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+                    // If heap has CPU access, make it default to write-combine (uncached CPU side).
                     Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-                }
-                else if( CPUAccess && IsUpload )
-                {
                     Desc.Properties.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
-                    Desc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+
+                    if( IsWriteback )
+                    {
+                        Desc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+                    }
                 }
             }
 
             // TODO(szymansk): I've added this flag assuming engine will handle not zeroed resources. Or should we allow
             // API to zero?
-            // desc.Flags = D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
+            // Desc.Flags = D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
             Desc.Flags = D3D12_HEAP_FLAG_NONE;
 
             if( ( AllowBuffers && AllowTextures ) || HeapTier2 )
@@ -1062,7 +1331,7 @@ namespace VKE::RenderSystem::D3D12
             return D3D12_DSV_FLAG_NONE;
         }
 
-        D3D12_CLEAR_FLAGS GetClearDepthStencilViewFlags( TEXTURE_FORMAT EngineFormat )
+        D3D12_CLEAR_FLAGS vke_force_inline GetClearDepthStencilViewFlags( TEXTURE_FORMAT EngineFormat )
         {
             D3D12_CLEAR_FLAGS flags = (D3D12_CLEAR_FLAGS)0;
 
@@ -1085,6 +1354,400 @@ namespace VKE::RenderSystem::D3D12
             pNativeRect->top    = EngineRect.Position.y;
             pNativeRect->right  = pNativeRect->left + EngineRect.Size.width;
             pNativeRect->bottom = pNativeRect->top + EngineRect.Size.height;
+        }
+
+        D3D12_FILTER GetSamplerFilter( const SSamplerDesc& EngineDesc )
+        {
+            const D3D12_FILTER_REDUCTION_TYPE reduction = EngineDesc.enableCompare
+                                                              ? D3D12_FILTER_REDUCTION_TYPE_COMPARISON
+                                                              : D3D12_FILTER_REDUCTION_TYPE_STANDARD;
+
+            // Anisotropic filtering is a dedicated D3D12_FILTER value that ignores the per-axis point/linear
+            // selection, so handle it before encoding the basic filter.
+            if( EngineDesc.enableAnisotropy )
+            {
+                return D3D12_ENCODE_ANISOTROPIC_FILTER( reduction );
+            }
+
+            const D3D12_FILTER_TYPE minFilter = Map::GetFilter( EngineDesc.Filter.min );
+            const D3D12_FILTER_TYPE magFilter = Map::GetFilter( EngineDesc.Filter.mag );
+
+            const D3D12_FILTER_TYPE mipFilter =
+                ( EngineDesc.mipmapMode == MipmapModes::LINEAR ) ? D3D12_FILTER_TYPE_LINEAR : D3D12_FILTER_TYPE_POINT;
+
+            return D3D12_ENCODE_BASIC_FILTER( minFilter, magFilter, mipFilter, reduction );
+        }
+
+        void GetBorderColor( BORDER_COLOR EngineColor, FLOAT* pOutNativeColor )
+        {
+            VKE_ASSERT( pOutNativeColor != nullptr );
+            FLOAT NativeColor[ 4 ] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+            switch( EngineColor )
+            {
+                case BORDER_COLOR::FLOAT_OPAQUE_WHITE:
+                case BORDER_COLOR::INT_OPAQUE_WHITE:
+                    NativeColor[ 0 ] = 1.0f;
+                    NativeColor[ 1 ] = 1.0f;
+                    NativeColor[ 2 ] = 1.0f;
+                    NativeColor[ 3 ] = 1.0f;
+                    break;
+
+                case BORDER_COLOR::FLOAT_OPAQUE_BLACK:
+                case BORDER_COLOR::INT_OPAQUE_BLACK:
+                    NativeColor[ 3 ] = 1.0f;
+                    break;
+            }
+
+            size_t byteSize = sizeof( NativeColor );
+            Memory::Copy( pOutNativeColor, byteSize, &NativeColor, byteSize );
+        }
+
+        void GetBlendDesc( const SPipelineDesc::SBlending& EngineBlending, D3D12_BLEND_DESC* pOutNativeBlendDesc )
+        {
+            pOutNativeBlendDesc->AlphaToCoverageEnable  = FALSE;
+            pOutNativeBlendDesc->IndependentBlendEnable = TRUE;
+
+            // D3D12_BLEND_DESC allows max of 8 blend states for each render target.
+            // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_blend_desc
+            VKE_ASSERT( EngineBlending.vBlendStates.GetCount() <= 8 );
+
+            const D3D12_LOGIC_OP NativeLogicOp = Map::GetLogicOp( EngineBlending.logicOperation );
+
+            for( uint8_t index = 0; index < EngineBlending.vBlendStates.GetCount(); index++ )
+            {
+                const SBlendState&              EngineBlendState = EngineBlending.vBlendStates[ index ];
+                D3D12_RENDER_TARGET_BLEND_DESC& NativeBlendState = pOutNativeBlendDesc->RenderTarget[ index ];
+
+                NativeBlendState.BlendEnable = EngineBlendState.enable ? TRUE : FALSE;
+                NativeBlendState.LogicOpEnable =
+                    ( EngineBlending.logicOperation != LogicOperations::NO_OPERATION ) ? TRUE : FALSE;
+
+                NativeBlendState.SrcBlend  = Map::GetBlend( EngineBlendState.Color.src );
+                NativeBlendState.DestBlend = Map::GetBlend( EngineBlendState.Color.dst );
+                NativeBlendState.BlendOp   = Map::GetBlendOp( EngineBlendState.Color.operation );
+
+                NativeBlendState.SrcBlendAlpha  = Map::GetBlend( EngineBlendState.Alpha.src );
+                NativeBlendState.DestBlendAlpha = Map::GetBlend( EngineBlendState.Alpha.dst );
+                NativeBlendState.BlendOpAlpha   = Map::GetBlendOp( EngineBlendState.Alpha.operation );
+
+                NativeBlendState.LogicOp               = NativeLogicOp;
+                NativeBlendState.RenderTargetWriteMask = static_cast< UINT8 >( EngineBlendState.writeMask );
+            }
+        }
+
+        void GetRasterizerDesc( const SPipelineDesc::SRasterization& EngineRasterization, bool multisampleEnabled,
+                                D3D12_RASTERIZER_DESC* pOutNativeRasterizerDesc )
+        {
+            pOutNativeRasterizerDesc->FillMode = Map::GetFillMode( EngineRasterization.Polygon.mode );
+            pOutNativeRasterizerDesc->CullMode = Map::GetCullMode( EngineRasterization.Polygon.cullMode );
+            pOutNativeRasterizerDesc->FrontCounterClockwise =
+                (BOOL)( EngineRasterization.Polygon.frontFace == FRONT_FACE::CLOCKWISE );
+            pOutNativeRasterizerDesc->DepthBias             = (INT)EngineRasterization.Depth.biasConstantFactor;
+            pOutNativeRasterizerDesc->DepthBiasClamp        = (FLOAT)EngineRasterization.Depth.biasClampFactor;
+            pOutNativeRasterizerDesc->SlopeScaledDepthBias  = (FLOAT)EngineRasterization.Depth.biasSlopeFactor;
+            pOutNativeRasterizerDesc->DepthClipEnable       = (BOOL)EngineRasterization.Depth.enableClamp;
+            pOutNativeRasterizerDesc->MultisampleEnable     = (BOOL)multisampleEnabled;
+            pOutNativeRasterizerDesc->AntialiasedLineEnable = FALSE;
+            pOutNativeRasterizerDesc->ForcedSampleCount     = 0;
+            pOutNativeRasterizerDesc->ConservativeRaster    = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+        }
+
+        void GetInputLayoutDesc( const SPipelineDesc::SInputLayout&                 EngineInputLayout,
+                                 Utils::TCDynamicArray< D3D12_INPUT_ELEMENT_DESC >& vNativeInputElementDesc,
+                                 D3D12_INPUT_LAYOUT_DESC*                           pOutInputLayoutDesc )
+        {
+            // NOTE: vNativeInputElementDesc is owned by the caller so that the memory pointed to by
+            // pOutInputLayoutDesc->pInputElementDescs stays alive until the pipeline state is created.
+            for( uint64_t index = 0; index < EngineInputLayout.vVertexAttributes.GetCount(); index++ )
+            {
+                const auto& EngineVertexAttribute = EngineInputLayout.vVertexAttributes[ index ];
+                const bool  isPerInstance         = ( EngineVertexAttribute.inputRate == VertexInputRates::INSTANCE );
+
+                D3D12_INPUT_ELEMENT_DESC NativeElementDesc;
+                // TODO(blturkot): Semantic name needs to be valid for DX. If pName doesnt match it's an error.
+                // We need engine supporting something that may indicate this attribute is a semantic.
+                NativeElementDesc.SemanticName      = EngineVertexAttribute.pName;
+                NativeElementDesc.SemanticIndex     = EngineVertexAttribute.location;
+                NativeElementDesc.Format            = Convert::GetDXGIFormat( EngineVertexAttribute.format );
+                NativeElementDesc.InputSlot         = EngineVertexAttribute.vertexBufferBindingIndex;
+                NativeElementDesc.AlignedByteOffset = EngineVertexAttribute.offset;
+                NativeElementDesc.InputSlotClass    = isPerInstance ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA
+                                                                    : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+                // Per-vertex data must use step rate 0. Per-instance data steps once per instance.
+                NativeElementDesc.InstanceDataStepRate = isPerInstance ? 1u : 0u;
+
+                vNativeInputElementDesc.PushBack( NativeElementDesc );
+            }
+
+            pOutInputLayoutDesc->NumElements        = vNativeInputElementDesc.GetCount();
+            pOutInputLayoutDesc->pInputElementDescs = vNativeInputElementDesc.GetData();
+        }
+
+        void GetPrimitiveTopology( const SPipelineDesc::SInputLayout& EngineInputLayout,
+                                   D3D12_PRIMITIVE_TOPOLOGY_TYPE*     pOutNativePrimitiveTopologyType )
+        {
+            switch( EngineInputLayout.topology )
+            {
+                case PRIMITIVE_TOPOLOGY::POINT_LIST:
+                    *pOutNativePrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+                    break;
+
+                case PRIMITIVE_TOPOLOGY::LINE_LIST:
+                case PRIMITIVE_TOPOLOGY::LINE_STRIP:
+                case PRIMITIVE_TOPOLOGY::LINE_LIST_WITH_ADJACENCY:
+                case PRIMITIVE_TOPOLOGY::LINE_STRIP_WITH_ADJACENCY:
+                    *pOutNativePrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+                    break;
+
+                case PRIMITIVE_TOPOLOGY::TRIANGLE_LIST:
+                case PRIMITIVE_TOPOLOGY::TRIANGLE_STRIP:
+                case PRIMITIVE_TOPOLOGY::TRIANGLE_FAN:
+                case PRIMITIVE_TOPOLOGY::TRIANGLE_LIST_WITH_ADJACENCY:
+                case PRIMITIVE_TOPOLOGY::TRIANGLE_STRIP_WITH_ADJACENCY:
+                    *pOutNativePrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+                    break;
+
+                case PRIMITIVE_TOPOLOGY::PATCH_LIST:
+                    *pOutNativePrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+                    break;
+
+                default:
+                    *pOutNativePrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+                    break;
+            }
+        }
+
+        void GetRTFormatArray( const SPipelineDesc::FormatArray& vEngineFormats,
+                               D3D12_RT_FORMAT_ARRAY*            pOutNativeFormatArray )
+        {
+            VKE_ASSERT( vEngineFormats.GetCount() <= 8 );
+            pOutNativeFormatArray->NumRenderTargets = vEngineFormats.GetCount();
+
+            uint8_t index = 0;
+
+            for( ; index < pOutNativeFormatArray->NumRenderTargets; index++ )
+            {
+                pOutNativeFormatArray->RTFormats[ index ] = GetDXGIFormat( vEngineFormats[ index ] );
+            }
+
+            for( ; index < 8; index++ )
+            {
+                pOutNativeFormatArray->RTFormats[ index ] = DXGI_FORMAT_UNKNOWN;
+            }
+        }
+
+        void GetDepthStencilFormat( const SPipelineDesc& EnginePipelineDesc, DXGI_FORMAT* pOutDepthStencilFormat )
+        {
+            const FORMAT depthFormat   = EnginePipelineDesc.depthRenderTargetFormat;
+            const FORMAT stencilFormat = EnginePipelineDesc.stencilRenderTargetFormat;
+            const bool   depthHasDepth = VKE::RenderSystem::IsDepthFormat( depthFormat );
+            const bool   depthIsPacked = VKE::RenderSystem::IsDepthStencilFormat( depthFormat );
+            const bool   hasStencil    = VKE::RenderSystem::IsStencilFormat( stencilFormat );
+
+            FORMAT resolvedFormat = Formats::UNDEFINED;
+
+            if( depthIsPacked )
+            {
+                resolvedFormat = depthFormat;
+            }
+            else if( depthHasDepth && hasStencil )
+            {
+                switch( depthFormat )
+                {
+                    case Formats::D16_UNORM:
+                        resolvedFormat = Formats::D16_UNORM_S8_UINT;
+                        break;
+                    case Formats::X8_D24_UNORM_PACK32:
+                        resolvedFormat = Formats::D24_UNORM_S8_UINT;
+                        break;
+                    case Formats::D32_SFLOAT:
+                        resolvedFormat = Formats::D32_SFLOAT_S8_UINT;
+                        break;
+                    default:
+                        VKE_LOG_ERR( "Convert::GetDepthStencilFormat: Unsupported depth format for a combined "
+                                     "depth-stencil target: "
+                                     << static_cast< uint32_t >( depthFormat ) );
+                        break;
+                }
+            }
+            else if( depthHasDepth )
+            {
+                // Depth only.
+                resolvedFormat = depthFormat;
+            }
+            else if( hasStencil )
+            {
+                // Stencil only.
+                resolvedFormat = stencilFormat;
+            }
+
+            *pOutDepthStencilFormat = ( resolvedFormat != Formats::UNDEFINED )
+                                          ? Convert::GetDXGIFormat( resolvedFormat )
+                                          : DXGI_FORMAT_UNKNOWN;
+        }
+
+        void GetSampleDesc( const SPipelineDesc::SMultisampling& EngineMultisampling,
+                            DXGI_SAMPLE_DESC*                    pOutNativeSample )
+        {
+            if( EngineMultisampling.enable )
+            {
+                pOutNativeSample->Count   = EngineMultisampling.sampleCount;
+                pOutNativeSample->Quality = 0;
+            }
+            else
+            {
+                pOutNativeSample->Count   = 1;
+                pOutNativeSample->Quality = 0;
+            }
+        }
+
+        void GetDepthStencilOpDesc( const SStencilOperationDesc& EngineDepthStencil,
+                                    D3D12_DEPTH_STENCILOP_DESC*  pOutNativeDesc )
+        {
+            pOutNativeDesc->StencilFailOp      = Map::GetStencilOp( EngineDepthStencil.failFunc );
+            pOutNativeDesc->StencilDepthFailOp = Map::GetStencilOp( EngineDepthStencil.depthFailFunc );
+            pOutNativeDesc->StencilPassOp      = Map::GetStencilOp( EngineDepthStencil.passFunc );
+            pOutNativeDesc->StencilFunc        = Map::GetComparisonFunc( EngineDepthStencil.compareFunc );
+        }
+
+        void GetDepthStencil( const SPipelineDesc::SDepthStencil& EngineDepthStencil,
+                              D3D12_DEPTH_STENCIL_DESC1*          pOutNativeDepthStencil )
+        {
+            pOutNativeDepthStencil->DepthEnable = (BOOL)EngineDepthStencil.Depth.test;
+            pOutNativeDepthStencil->DepthWriteMask =
+                ( EngineDepthStencil.Depth.write ) ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+            pOutNativeDepthStencil->DepthFunc = Map::GetComparisonFunc( EngineDepthStencil.Depth.compareFunc );
+            pOutNativeDepthStencil->DepthBoundsTestEnable = TRUE;
+
+            pOutNativeDepthStencil->StencilEnable    = (BOOL)EngineDepthStencil.Stencil.test;
+            pOutNativeDepthStencil->StencilReadMask  = (UINT8)EngineDepthStencil.Stencil.FrontFace.compareMask;
+            pOutNativeDepthStencil->StencilWriteMask = (UINT8)EngineDepthStencil.Stencil.FrontFace.writeMask;
+            GetDepthStencilOpDesc( EngineDepthStencil.Stencil.FrontFace, &pOutNativeDepthStencil->FrontFace );
+            GetDepthStencilOpDesc( EngineDepthStencil.Stencil.BackFace, &pOutNativeDepthStencil->BackFace );
+        }
+
+        void GetViewInstancing( const SPipelineDesc::SViewport& EngineViewport,
+                                D3D12_VIEW_INSTANCING_DESC*     pOutViewInstancingDesc )
+        {
+            pOutViewInstancingDesc->ViewInstanceCount;
+            pOutViewInstancingDesc->pViewInstanceLocations;
+            pOutViewInstancingDesc->Flags;
+        }
+
+        D3D12_PIPELINE_STATE_STREAM_DESC GetPipelineStateStreamDesc( const SPipelineDesc&         EngineDesc,
+                                                                     TSPipelineStateStreamBuffer& PSOStream )
+        {
+            // All stages will be going in order with D3D12_PIPELINE_STATE_SUBOBJECT_TYPE enum.
+            // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_pipeline_state_subobject_type
+            // WITH EXCEPTION of shader types AS/MS.
+
+            // 1. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE
+            auto pNativeLayout = ToNative( EngineDesc.hDDILayout );
+            VKE_ASSERT( pNativeLayout != NativeAPI::Null );
+            PSOStream.AddData( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, pNativeLayout );
+
+            // 2. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_*S
+            for( uint8_t shaderType = 0; shaderType < SHADER_TYPE::_MAX_COUNT; shaderType++ )
+            {
+                ShaderPtr pShader = EngineDesc.Shaders.apShaders[ shaderType ];
+
+                if( pShader == nullptr )
+                {
+                    // Shaders stage is not bound for this pipeline.
+                    continue;
+                }
+
+                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE NativeType =
+                    Map::GetPipelineStateSubobjectType( (SHADER_TYPE)shaderType );
+                if( NativeType == D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MAX_VALID )
+                {
+                    // Skip unsupported shader types.
+                    continue;
+                }
+
+                PSOStream.AddData( NativeType, *( ToNative( pShader->GetDDIObject() ) ) );
+            }
+
+            // 3. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_STREAM_OUTPUT - skip, not supported by engine.
+            // 4. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND
+            if( EngineDesc.Blending.enable )
+            {
+                Convert::GetBlendDesc(
+                    EngineDesc.Blending,
+                    PSOStream.GetPtr< D3D12_BLEND_DESC >( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND ) );
+            }
+
+            // 5. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK
+            *PSOStream.GetPtr< UINT >( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK ) = UINT_MAX;
+
+            // 6. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER
+            Convert::GetRasterizerDesc(
+                EngineDesc.Rasterization,
+                EngineDesc.Multisampling.enable,
+                PSOStream.GetPtr< D3D12_RASTERIZER_DESC >( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER ) );
+
+            // 7. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT
+            if( EngineDesc.InputLayout.enable )
+            {
+                Convert::GetInputLayoutDesc(
+                    EngineDesc.InputLayout,
+                    PSOStream.vNativeInputElementDesc,
+                    PSOStream.GetPtr< D3D12_INPUT_LAYOUT_DESC >( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT ) );
+
+                // 8. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE - skip, not supported by engine.
+            }
+
+            // 9. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY
+            Convert::GetPrimitiveTopology( EngineDesc.InputLayout,
+                                           PSOStream.GetPtr< D3D12_PRIMITIVE_TOPOLOGY_TYPE >(
+                                               D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY ) );
+
+            // 10. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS
+            auto pNativeRenderPass = ToNative( EngineDesc.hDDIRenderPass );
+            VKE_ASSERT( pNativeRenderPass != NativeAPI::Null );
+
+            auto pNativeRTFormatArray =
+                PSOStream.GetPtr< D3D12_RT_FORMAT_ARRAY >( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS );
+            pNativeRTFormatArray->NumRenderTargets = pNativeRenderPass->NumRenderTargetViews;
+            Memory::Copy( &pNativeRTFormatArray->RTFormats,
+                          sizeof( pNativeRTFormatArray->RTFormats ),
+                          pNativeRenderPass->RenderTargetViewFormats,
+                          sizeof( pNativeRenderPass->RenderTargetViewFormats ) );
+
+            // 11. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT
+            DXGI_FORMAT& NativeDepthStencilFormat =
+                *( PSOStream.GetPtr< DXGI_FORMAT >( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT ) );
+            NativeDepthStencilFormat = pNativeRenderPass->DepthStencilRenderTargetFormat;
+
+            // 12. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC
+            Convert::GetSampleDesc(
+                EngineDesc.Multisampling,
+                PSOStream.GetPtr< DXGI_SAMPLE_DESC >( D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC ) );
+
+            // 13. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_NODE_MASK - skip, not supported by engine.
+            // 14. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CACHED_PSO - skip for later
+            // 15. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_FLAGS - skip for later
+            // 16. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1
+            if( EngineDesc.DepthStencil.Depth.enable || EngineDesc.DepthStencil.Stencil.enable )
+            {
+                Convert::GetDepthStencil( EngineDesc.DepthStencil,
+                                          PSOStream.GetPtr< D3D12_DEPTH_STENCIL_DESC1 >(
+                                              D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1 ) );
+            }
+
+            // 17. D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING
+            // Convert::GetViewInstancing( EngineDesc.Viewport,
+            //                            PSOStream.GetPtr< D3D12_VIEW_INSTANCING_DESC >(
+            //                                D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VIEW_INSTANCING ) );
+
+            // TODO(blturkot): Support for CACHED_PSO
+
+            D3D12_PIPELINE_STATE_STREAM_DESC NativeDesc;
+            NativeDesc.pPipelineStateSubobjectStream = PSOStream.GetData();
+            NativeDesc.SizeInBytes                   = PSOStream.GetSize();
+
+            return NativeDesc;
         }
 
     }; // namespace Convert
@@ -1617,7 +2280,19 @@ namespace VKE::RenderSystem::D3D12
 
     Result CD3D12API::LoadImpl( const SDDILoadInfo& Info, SDriverInfo* pOut )
     {
-        if( Info.enableDebugMode )
+        // PIX GPU capture injects its capturer DLL into the process. Its GPU-Based Validation tracks per-capture
+        // resource initialization and conflicts with the D3D12 debug layer / GBV we enable ourselves. When PIX is
+        // attached, skip enabling our own debug interface so PIX can drive validation instead.
+        const bool pixAttached = ( ::GetModuleHandleW( L"WinPixGpuCapturer.dll" ) != nullptr );
+        if( pixAttached )
+        {
+            VKE_LOG(
+                "CD3D12API::Load: PIX GPU capturer detected - skipping D3D12 debug layer / GPU-Based Validation." );
+        }
+
+        const bool enableDebugMode = Info.enableDebugMode && !pixAttached;
+
+        if( enableDebugMode )
         {
             ID3D12Debug1* pDebug;
             if( FAILED( D3D12GetDebugInterface( IID_PPV_ARGS( &pDebug ) ) ) )
@@ -1635,7 +2310,7 @@ namespace VKE::RenderSystem::D3D12
         // DX12 doesn't actually have a driver to load, just create the DXGI Factory via DXGI.
         Result Res = VKE_OK;
 
-        UINT Flags = Info.enableDebugMode ? DXGI_CREATE_FACTORY_DEBUG : 0;
+        UINT Flags = enableDebugMode ? DXGI_CREATE_FACTORY_DEBUG : 0;
 
         if( FAILED( CreateDXGIFactory2( Flags, IID_PPV_ARGS( &SImplementation::spFactory ) ) ) )
         {
@@ -1686,9 +2361,11 @@ namespace VKE::RenderSystem::D3D12
 
     Result CD3D12API::CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx )
     {
+        D3D12_RHI_LOG( "CD3D12API::CreateDevice" );
+
         // Enable WaitForDebugger
-        //VKE_LOG( "CD3D12API::CreateDeviceImpl: Waiting for debugger..." );
-        //while( !IsDebuggerPresent() )
+        // VKE_LOG( "CD3D12API::CreateDeviceImpl: Waiting for debugger..." );
+        // while( !IsDebuggerPresent() )
         //{
         //    Sleep( 100 );
         //}
@@ -1793,6 +2470,12 @@ namespace VKE::RenderSystem::D3D12
             VKE_LOG_WARN( "CD3D12API::CreateDevice: Hardware does not support Tier2 resource heaps." );
         }
 
+        // Create a global fence for draining queues.
+        SFenceDesc FenceDesc;
+        FenceDesc.startValue              = 0;
+        RHI::Fence Fence                  = CreateFence2Impl( FenceDesc );
+        m_pImplementation->m_pGlobalFence = ToNative( Fence );
+
         return Result::OK;
     }
 
@@ -1826,13 +2509,13 @@ namespace VKE::RenderSystem::D3D12
 
         auto& Alignment                = Limits.Alignment;
         Alignment.constantBufferOffset = 256;
-        Alignment.bufferCopyOffset     = 0;
+        Alignment.bufferCopyOffset     = 4;
         Alignment.bufferCopyRowPitch   = 256;
         Alignment.memoryMap =
             0; // DX12 doesn't require alignments for memory mapping but resources needs to be aligned
                // appropriately, eg.:  64KB for default buffers/textures, 4KB for upload/readback buffers/textures.
         Alignment.texelBufferOffset   = 128;
-        Alignment.storageBufferOffset = 128;
+        Alignment.storageBufferOffset = 4;
 
         auto& Binding                        = Limits.Binding;
         Binding.maxConstantBufferRange       = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16; // 16 bytes per element
@@ -1951,7 +2634,7 @@ namespace VKE::RenderSystem::D3D12
 
         if( pBuffer != NativeAPI::Null )
         {
-            SetObjectDebugName( (const uint64_t)pBuffer, ApiObjectTypes::BUFFER, "Unnamed buffer" );
+            SetObjectDebugName( (const uint64_t)pBuffer, ApiObjectTypes::BUFFER, Desc.GetDebugName() );
         }
 
         // return RHI::Buffer{ reinterpret_cast<handle_t>( pBuffer ) };
@@ -1984,12 +2667,21 @@ namespace VKE::RenderSystem::D3D12
     {
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
                      "CD3D12API::CreateTexture: m_pImplementation->m_hDevice can't be null" );
-        const D3D12_CLEAR_VALUE optimizedClearValue = Convert::GetClearValue( Desc.format, Desc.optimizedClearValue );
 
         NativeAPI::D3D12ResourceDesc ResourceDesc;
         Convert::GetResourceDesc( Desc, m_pImplementation->Features, &ResourceDesc );
+
+        const D3D12_CLEAR_VALUE* pOptimizedClearValue = nullptr;
+        if( ResourceDesc.Flags & ( D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL ) )
+        {
+            // Pass optimized clear value only for RT and DS. Otherwise it's violation.
+            const D3D12_CLEAR_VALUE optimizedClearValue =
+                Convert::GetClearValue( Desc.format, Desc.optimizedClearValue );
+            pOptimizedClearValue = &optimizedClearValue;
+        }
+
         NativeAPI::Texture pTexture =
-            CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo, &optimizedClearValue );
+            CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo, pOptimizedClearValue );
 
         if( pTexture != NativeAPI::Null )
         {
@@ -2316,6 +3008,7 @@ namespace VKE::RenderSystem::D3D12
             bool isDepthStencilView = false;
             bool isClearOp          = false;
             bool isStoreOp          = false;
+            bool isDiscardOp        = false;
 
             switch( EngineRenderTarget.usage )
             {
@@ -2325,6 +3018,7 @@ namespace VKE::RenderSystem::D3D12
 
                 case RENDER_TARGET_RENDER_PASS_OP::COLOR:
                     isRenderTargetView = true;
+                    isDiscardOp        = true;
                     break;
 
                 case RENDER_TARGET_RENDER_PASS_OP::COLOR_CLEAR:
@@ -2334,6 +3028,7 @@ namespace VKE::RenderSystem::D3D12
 
                 case RENDER_TARGET_RENDER_PASS_OP::COLOR_STORE:
                     isRenderTargetView = true;
+                    isDiscardOp        = true;
                     isStoreOp          = true;
                     break;
 
@@ -2345,6 +3040,7 @@ namespace VKE::RenderSystem::D3D12
 
                 case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL:
                     isDepthStencilView = true;
+                    isDiscardOp        = true;
                     break;
 
                 case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_CLEAR:
@@ -2354,6 +3050,7 @@ namespace VKE::RenderSystem::D3D12
 
                 case RENDER_TARGET_RENDER_PASS_OP::DEPTH_STENCIL_STORE:
                     isDepthStencilView = true;
+                    isDiscardOp        = true;
                     isStoreOp          = true;
                     break;
 
@@ -2368,9 +3065,6 @@ namespace VKE::RenderSystem::D3D12
                     return RHI::Null;
             }
 
-            // TODO(blturkot): If not isClearOp then API have to call commandList->DiscardResource( textureResource,
-            // nullptr ) on RT/DS;
-
             if( isRenderTargetView )
             {
                 if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::RTV ) )
@@ -2382,6 +3076,10 @@ namespace VKE::RenderSystem::D3D12
 
                 m_pImplementation->m_hDevice->CreateRenderTargetView(
                     NativeResourceView.pResource, &NativeResourceView.RenderTargetViewDesc, hNativeCPUDescriptor );
+
+                // Bind render target formats for PSO creation
+                pNativeRenderPass->RenderTargetViewFormats[ pNativeRenderPass->NumRenderTargetViews++ ] =
+                    NativeResourceView.RenderTargetViewDesc.Format;
 
                 auto& NativeRenderTargetView = pNativeRenderPass->RenderTargetViews.Reserve();
                 NativeRenderTargetView.ptr   = hNativeCPUDescriptor.ptr;
@@ -2403,8 +3101,17 @@ namespace VKE::RenderSystem::D3D12
                     ClearArgsRTV.Rect.top    = EngineRenderPassDesc.PositionOffset.y;
                     ClearArgsRTV.Rect.right  = ClearArgsRTV.Rect.left + EngineRenderPassDesc.Size.x;
                     ClearArgsRTV.Rect.bottom = ClearArgsRTV.Rect.top + EngineRenderPassDesc.Size.y;
+                }
+                else if( isDiscardOp )
+                {
+                    auto& DiscardResource = pNativeRenderPass->DiscardResources.Reserve();
+                    DiscardResource       = NativeResourceView.pResource;
+                }
 
-                    // ClearRenderTargetView() requires resource state D3D12_RESOURCE_STATE_RENDER_TARGET.
+                // Any init operation (clear/discard) may require barriers.
+                if( isClearOp || isDiscardOp )
+                {
+                    // DiscardResource() requires resource state D3D12_RESOURCE_STATE_RENDER_TARGET.
                     Helper::ExpectResourceState( NativeResourceView.pResource,
                                                  D3D12_RESOURCE_STATE_RENDER_TARGET,
                                                  NativeTrackedResourceState,
@@ -2412,22 +3119,6 @@ namespace VKE::RenderSystem::D3D12
 
                     // After clear resource state is left in D3D12_RESOURCE_STATE_RENDER_TARGET.
                     NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                }
-                else
-                {
-                    // If not cleared, discard resource to initialize it.
-                    // ID3D12GraphicsCommandList::DiscardResource only initializes the resource when it is in
-                    // D3D12_RESOURCE_STATE_RENDER_TARGET. Record the transition barrier into Clear.Barriers so it is
-                    // applied in BeginRenderPass() BEFORE the discard is recorded. Without this, PIX GPU-Based
-                    // Validation reports the subsequent use as RENDER_TARGET_OR_DEPTH_STENCIL_RESOUCE_NOT_INITIALIZED.
-                    Helper::ExpectResourceState( NativeResourceView.pResource,
-                                                 D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                                 NativeTrackedResourceState,
-                                                 &pNativeRenderPass->Clear.Barriers );
-                    NativeTrackedResourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
-
-                    auto& DiscardResource = pNativeRenderPass->DiscardResources.Reserve();
-                    DiscardResource       = NativeResourceView.pResource;
                 }
 
                 if( createDefaultSubpass )
@@ -2463,6 +3154,8 @@ namespace VKE::RenderSystem::D3D12
                     &NativeResourceView.DepthStencilViewDesc,
                     pNativeRenderPass->DepthStencilView.hCPUDescriptor );
 
+                pNativeRenderPass->DepthStencilRenderTargetFormat = NativeResourceView.DepthStencilViewDesc.Format;
+
                 if( isClearOp )
                 {
                     auto& ClearArgs = pNativeRenderPass->Clear.Reserve();
@@ -2479,13 +3172,8 @@ namespace VKE::RenderSystem::D3D12
                     ClearArgsDSV.Rect.right  = EngineRenderPassDesc.Size.x;
                     ClearArgsDSV.Rect.bottom = EngineRenderPassDesc.Size.y;
                 }
-                else
+                else if( isDiscardOp )
                 {
-                    // If not cleared, discard the depth/stencil resource to initialize it. The transition to
-                    // D3D12_RESOURCE_STATE_DEPTH_WRITE below (recorded into Clear.Barriers) is applied in
-                    // BeginRenderPass() before the discard, which is the state DiscardResource requires to actually
-                    // initialize the resource. Otherwise PIX GPU-Based Validation reports the subsequent use as
-                    // RENDER_TARGET_OR_DEPTH_STENCIL_RESOUCE_NOT_INITIALIZED.
                     auto& DiscardResource = pNativeRenderPass->DiscardResources.Reserve();
                     DiscardResource       = NativeResourceView.pResource;
                 }
@@ -2539,7 +3227,7 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT2( pNativeRenderPass->vSubpasses.GetCount() > 0,
                      "CDDI::CreateRenderPass: At least one subpass has to be defined in render pass" );
 
-        pNativeRenderPass->pName = EngineRenderPassDesc.GetDebugName();
+        pNativeRenderPass->SetName( EngineRenderPassDesc.GetDebugName() );
         return FromNative< RHI::RenderPass >( pNativeRenderPass );
     }
 
@@ -2707,7 +3395,7 @@ namespace VKE::RenderSystem::D3D12
             range.RangeType          = Map::GetDescriptorRangeType( binding.type );
             range.NumDescriptors     = binding.count;
             range.BaseShaderRegister = binding.idx;
-            range.RegisterSpace      = 0;
+            range.RegisterSpace      = binding.space;
 
             // This flag allows us to update descriptors in descriptor table on command list execution.
             // Same as in vulkan.
@@ -2952,9 +3640,35 @@ namespace VKE::RenderSystem::D3D12
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    RHI::Pipeline CD3D12API::CreatePipelineImpl( const SPipelineDesc& Desc, const void* pAllocator )
+    RHI::Pipeline CD3D12API::CreatePipelineImpl( const SPipelineDesc& EngineDesc, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        VKE_ASSERT( m_pImplementation->m_hDevice != NativeAPI::Null );
+
+        if( EngineDesc.Shaders.apShaders[ ShaderTypes::RAYGEN ] != nullptr )
+        {
+            // RayTracing not yet supported.
+            UNIMPLEMENTED_D3D12_METHOD();
+        }
+        else
+        {
+            // Build helper for composing pipelines using streaming method.
+            // This was introduced to unify pipeline creation of classic shaders and mesh shaders.
+            // Unfortunately Microsoft decided to go for another solution for raytracing pipelines only,
+            // therefore we need to support both implementation and skip RT shaders here.
+            TSPipelineStateStreamBuffer      PSOStream;
+            D3D12_PIPELINE_STATE_STREAM_DESC NativeStreamDesc =
+                Convert::GetPipelineStateStreamDesc( EngineDesc, PSOStream );
+
+            NativeAPI::D3D12PipelineState* pNativePSO;
+            if( FAILED( m_pImplementation->m_hDevice->CreatePipelineState( &NativeStreamDesc,
+                                                                           IID_PPV_ARGS( &pNativePSO ) ) ) )
+            {
+                VKE_LOG_ERR( "CD3D12API::CreatePipeline: PSO creation failed" );
+            }
+
+            return FromNative< RHI::Pipeline >( pNativePSO );
+        }
+
         return RHI::Null;
     }
 
@@ -3034,7 +3748,24 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::Shader shader;
         Memory::CreateObject( &HeapAllocator, &shader );
 
-        shader->pShaderBytecode = (BYTE*)Desc.pCode;
+        BYTE* pOwnedBytecode = nullptr;
+        if( Desc.pCode != nullptr && Desc.codeSize > 0 )
+        {
+            pOwnedBytecode =
+                reinterpret_cast< BYTE* >( Memory::AllocMemory( &HeapAllocator, &pOwnedBytecode, Desc.codeSize ) );
+            if( pOwnedBytecode == nullptr )
+            {
+                VKE_LOG_ERR( "CD3D12API::CreateShader: Out of memory while copying shader bytecode." );
+                Memory::DestroyObject( &HeapAllocator, &shader );
+                return RHI::Null;
+            }
+            else
+            {
+                Memory::Copy( pOwnedBytecode, Desc.codeSize, Desc.pCode, Desc.codeSize );
+            }
+        }
+
+        shader->pShaderBytecode = pOwnedBytecode;
         shader->BytecodeLength  = Desc.codeSize;
 
         return FromNative< RHI::Shader >( shader );
@@ -3042,13 +3773,51 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyShaderImpl( RHI::Shader* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        if( pInOut == nullptr || *pInOut == RHI::Null )
+        {
+            return;
+        }
+
+        NativeAPI::Shader shader = ToNative( *pInOut );
+        if( shader->pShaderBytecode != nullptr )
+        {
+            VKE_FREE( const_cast< void* >( shader->pShaderBytecode ) );
+            shader->pShaderBytecode = nullptr;
+        }
+
+        shader->BytecodeLength = 0;
+
+        Memory::DestroyObject( &HeapAllocator, &shader );
+        *pInOut = RHI::Null;
     }
 
     RHI::Sampler CD3D12API::CreateSamplerImpl( const SSamplerDesc& Desc, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-        return RHI::Null;
+        NativeAPI::Sampler pNativeDesc = nullptr;
+        if( FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDesc ) ) )
+        {
+            VKE_LOG_ERR( "CDDI::CreateSampler: Out of memory" );
+            return RHI::Null;
+        }
+
+        pNativeDesc->Filter        = Convert::GetSamplerFilter( Desc );
+        pNativeDesc->AddressU      = Map::GetTextureAddressMode( Desc.AddressMode.U );
+        pNativeDesc->AddressV      = Map::GetTextureAddressMode( Desc.AddressMode.V );
+        pNativeDesc->AddressW      = Map::GetTextureAddressMode( Desc.AddressMode.W );
+        pNativeDesc->MipLODBias    = Desc.mipLODBias;
+        pNativeDesc->MaxAnisotropy = 0;
+
+        if( Desc.enableAnisotropy )
+        {
+            pNativeDesc->MaxAnisotropy = (UINT)Desc.maxAnisotropy;
+        }
+
+        pNativeDesc->ComparisonFunc = Map::GetComparisonFunc( Desc.compareFunc );
+        Convert::GetBorderColor( Desc.borderColor, pNativeDesc->BorderColor );
+        pNativeDesc->MinLOD = Desc.LOD.begin;
+        pNativeDesc->MaxLOD = Desc.LOD.end;
+
+        return FromNative< RHI::Sampler >( pNativeDesc );
     }
 
     void CD3D12API::DestroySamplerImpl( RHI::Sampler* pInOut, const void* pAllocator )
@@ -3169,12 +3938,101 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::BindImpl( const SBindPipelineInfo& Info )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeCmdBuffer = ToNative( Info.pCmdBuffer->GetDDIObject() );
+
+        auto pNativePipelineLayout = ToNative( Info.pPipeline->GetLayout()->GetDDIObject() );
+        VKE_ASSERT( pNativePipelineLayout != NativeAPI::Null );
+
+        if( Info.pPipeline->GetType() == PIPELINE_TYPE::COMPUTE )
+        {
+            pNativeCmdBuffer->SetComputeRootSignature( pNativePipelineLayout );
+        }
+        else
+        {
+            pNativeCmdBuffer->SetGraphicsRootSignature( pNativePipelineLayout );
+        }
+
+        pNativeCmdBuffer->SetPipelineState( ToNative( Info.pPipeline->GetDDIObject() ) );
     }
 
     void CD3D12API::BindImpl( const SBindDDIDescriptorSetsInfo& Info )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeCommandBuffer = ToNative( Info.hDDICommandBuffer );
+        VKE_ASSERT( pNativeCommandBuffer != NativeAPI::Null );
+
+        if( Info.setCount == 0 )
+        {
+            return;
+        }
+
+        const NativeAPI::DescriptorSet* pNativeSets =
+            reinterpret_cast< const NativeAPI::DescriptorSet* >( Info.aDDISetHandles );
+
+        // D3D12 requires the shader-visible descriptor heaps to be bound before binding descriptor tables.
+        // Collect the unique heaps referenced by the sets being bound. There can be at most one CBV_SRV_UAV heap
+        // and one SAMPLER heap active at a time.
+        NativeAPI::D3D12DescriptorHeap* pCbvSrvUavHeap = NativeAPI::Null;
+        NativeAPI::D3D12DescriptorHeap* pSamplerHeap   = NativeAPI::Null;
+
+        for( uint16_t index = 0; index < Info.setCount; index++ )
+        {
+            const NativeAPI::DescriptorSet pNativeSet = pNativeSets[ index ];
+            if( pNativeSet == NativeAPI::Null || pNativeSet->pPool == nullptr )
+            {
+                continue;
+            }
+
+            NativeAPI::D3D12DescriptorHeap* pHeap = pNativeSet->pPool->pHeap;
+            if( pNativeSet->pPool->type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER )
+            {
+                pSamplerHeap = pHeap;
+            }
+            else
+            {
+                pCbvSrvUavHeap = pHeap;
+            }
+        }
+
+        NativeAPI::D3D12DescriptorHeap* apHeaps[ 2 ] = {};
+        UINT                            heapCount    = 0;
+        if( pCbvSrvUavHeap != NativeAPI::Null )
+        {
+            apHeaps[ heapCount++ ] = pCbvSrvUavHeap;
+        }
+        if( pSamplerHeap != NativeAPI::Null )
+        {
+            apHeaps[ heapCount++ ] = pSamplerHeap;
+        }
+
+        if( heapCount > 0 )
+        {
+            pNativeCommandBuffer->SetDescriptorHeaps( heapCount, apHeaps );
+        }
+
+        // Each descriptor set is bound as a root descriptor table. The root parameter index matches the set index
+        // (firstSet + i), consistent with how the root signature is composed in CreatePipelineLayoutImpl.
+        const bool isCompute = ( Info.pipelineType == PipelineTypes::COMPUTE );
+
+        for( uint16_t index = 0; index < Info.setCount; index++ )
+        {
+            const NativeAPI::DescriptorSet pNativeSet = pNativeSets[ index ];
+            if( pNativeSet == NativeAPI::Null )
+            {
+                continue;
+            }
+
+            const UINT                        rootParameterIndex = Info.firstSet + index;
+            const D3D12_GPU_DESCRIPTOR_HANDLE hGpuDescriptor     = pNativeSet->GetGpuDescriptorHandle( 0 );
+
+            if( isCompute )
+            {
+                pNativeCommandBuffer->SetComputeRootDescriptorTable( rootParameterIndex, hGpuDescriptor );
+            }
+            else
+            {
+                pNativeCommandBuffer->SetGraphicsRootDescriptorTable( rootParameterIndex, hGpuDescriptor );
+            }
+        }
     }
 
     /*void CD3D12API::Bind( const SBindRenderPassInfo& Info )
@@ -3333,6 +4191,12 @@ namespace VKE::RenderSystem::D3D12
         {
             VKE_LOG_ERR( "CD3D12API::MapMemory: Failed to map memory" );
         }
+        else if( pData != nullptr )
+        {
+            // DX12 Map always returns pointer to the beginning of the resource. Offset must be added manually to match
+            // Vulkan implementation.
+            pData = reinterpret_cast< uint8_t* >( pData ) + Info.offset;
+        }
 
         return pData;
     }
@@ -3408,12 +4272,32 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SViewportDesc& Desc )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeCommandBuffer = ToNative( hCommandBuffer );
+        VKE_ASSERT( pNativeCommandBuffer != NativeAPI::Null );
+
+        D3D12_VIEWPORT NativeViewport;
+        NativeViewport.TopLeftX = Desc.Position.x;
+        NativeViewport.TopLeftY = Desc.Position.y;
+        NativeViewport.Width    = Desc.Size.width;
+        NativeViewport.Height   = Desc.Size.height;
+        NativeViewport.MinDepth = Desc.MinMaxDepth.min;
+        NativeViewport.MaxDepth = Desc.MinMaxDepth.max;
+
+        pNativeCommandBuffer->RSSetViewports( 1, &NativeViewport );
     }
 
     void CD3D12API::SetStateImpl( const RHI::CommandBuffer& hCommandBuffer, const SScissorDesc& Desc )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeCommandBuffer = ToNative( hCommandBuffer );
+        VKE_ASSERT( pNativeCommandBuffer != NativeAPI::Null );
+
+        D3D12_RECT NativeRect;
+        NativeRect.left   = Desc.Position.x;
+        NativeRect.top    = Desc.Position.y;
+        NativeRect.right  = Desc.Position.x + static_cast< LONG >( Desc.Size.width );
+        NativeRect.bottom = Desc.Position.y + static_cast< LONG >( Desc.Size.height );
+
+        pNativeCommandBuffer->RSSetScissorRects( 1, &NativeRect );
     }
 
     void CD3D12API::DrawImpl( const RHI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
@@ -3431,7 +4315,8 @@ namespace VKE::RenderSystem::D3D12
     void CD3D12API::DrawMeshImpl( const RHI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
                                   uint32_t depth )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeCommandBuffer = ToNative( hCommandBuffer );
+        pNativeCommandBuffer->DispatchMesh( width, height, depth );
     }
 
     void CD3D12API::BeginRenderPassImpl( RHI::CommandBuffer           pNativeCommandBuffer,
@@ -3458,8 +4343,10 @@ namespace VKE::RenderSystem::D3D12
 
         NativeAPI::CommandBuffer pNativeCommandBuffer = ToNative( hCommandBuffer );
         // Add custom breadcrumb before BeginRenderPass() insert anything on cmdlist
-        PIXBeginEvent(
-            pNativeCommandBuffer, PIX_COLOR( 255, 0, 0 ), "EmulatedRenderPass: Begin: %s", pNativeRenderPass->pName );
+        PIXBeginEvent( pNativeCommandBuffer,
+                       PIX_COLOR( 255, 0, 0 ),
+                       "EmulatedRenderPass: Begin: %hs",
+                       pNativeRenderPass->GetName() );
 
         // Record barriers for potential clear/discard operations.
         // DiscardResource and Clear*View both require the resource to be in the correct state
@@ -3488,7 +4375,7 @@ namespace VKE::RenderSystem::D3D12
             if( NativeClearInfoSurface.Type == NativeClearInfoSurface.RENDER_TARGET )
             {
                 const auto& Args = NativeClearInfoSurface.RenderTargetView;
-                pNativeCommandBuffer->OMSetRenderTargets( 1, &Args.hRenderTargetView, 0, nullptr );
+                // pNativeCommandBuffer->OMSetRenderTargets( 1, &Args.hRenderTargetView, 0, nullptr );
                 // pNativeCommandBuffer->ClearRenderTargetView( Args.hRenderTargetView, Args.aColorRGBA, 1, &Args.Rect
                 // );
                 pNativeCommandBuffer->ClearRenderTargetView( Args.hRenderTargetView, Args.aColorRGBA, 0, NULL );
@@ -3670,55 +4557,35 @@ namespace VKE::RenderSystem::D3D12
 
         NativeAPI::D3D12CommandList* const* ppCommandLists = (NativeAPI::D3D12CommandList* const*)&pNativeCommandBuffer;
 
-        // Waits must be enqueued on the queue before the command lists are executed.
-        //
-        // Engine semaphores are binary (Vulkan-style). Vulkan binary semaphores auto-reset once a wait consumes
-        // the signal, so each frame the consumer genuinely waits for the producer again. An ID3D12Fence never
-        // auto-resets: once signaled to a value it stays there. Waiting on a constant value (e.g. 1) therefore
-        // becomes a no-op from the second frame on -- the cross-queue GPU->GPU wait silently stops waiting, work
-        // runs out of order, and a back buffer's frame fence can reach its awaited value before the dependent GPU
-        // work has finished. That lets the frame graph recycle command buffers (ID3D12CommandAllocator::Reset in
-        // BeginRenderPass) while the GPU is still executing -> sporadic COMMAND_ALLOCATOR_SYNC (#552).
-        //
-        // To emulate binary-semaphore auto-reset we advance the semaphore's value on every signal and wait on the
-        // value the producer most recently signaled. Because submits are ordered on the CPU (producer submitted
-        // before consumer), the consumer observes the producer's latest signaled value.
         auto pNativeWaitSemaphoreArray = ToNativeArray( Info.pDDIWaitSemaphores );
         for( uint32_t index = 0; index < Info.waitSemaphoreCount; index++ )
         {
             auto pNativeSemaphore = pNativeWaitSemaphoreArray[ index ];
             pNativeSemaphore->Wait( pNativeQueue, pNativeSemaphore->Value );
-            // pNativeQueue->Wait( pNativeSemaphore->pObject, pNativeSemaphore->Value );
         }
 
         auto pNativeFence = ToNative( Info.hWaitForFence );
         if( pNativeFence != NativeAPI::Null )
         {
             pNativeFence->Wait( Info.waitForFenceValue );
-            // pNativeQueue->Wait( pNativeFence->pObject, Info.waitForFenceValue );
         }
 
-        // Execute the command lists exactly once. Executing the same command list more than once before its
-        // previous execution has completed triggers COMMAND_LIST_SYNC (EXECUTION ERROR #553).
         pNativeQueue->ExecuteCommandLists( Info.commandBufferCount, ppCommandLists );
 
         auto pNativeSignalSemaphoreArray = ToNativeArray( Info.pDDISignalSemaphores );
         for( uint32_t index = 0; index < Info.signalSemaphoreCount; index++ )
         {
-            auto pNativeSemaphore = pNativeSignalSemaphoreArray[ index ];
-            // Advance to a fresh value so this frame's wait cannot be satisfied by a previous frame's signal.
-            const NativeAPI::FenceValue signalValue = ++pNativeSemaphore->Value;
+            auto                        pNativeSemaphore = pNativeSignalSemaphoreArray[ index ];
+            const NativeAPI::FenceValue signalValue      = ++pNativeSemaphore->Value;
             pNativeSemaphore->Signal( pNativeQueue, signalValue );
         }
 
-        
         auto pNativeSignalFence = ToNative( Info.hSignalFence );
         if( pNativeSignalFence != NativeAPI::Null )
         {
             pNativeSignalFence->Signal( pNativeQueue, Info.signalFenceValue );
         }
 
-        // TODO(blturkot): Add pDDISignalSemaphores, pDDIWaitSemaphores
         return Result::OK;
     }
 
@@ -4113,28 +4980,11 @@ namespace VKE::RenderSystem::D3D12
     void CD3D12API::ResetImpl( RHI::CPUFence* phFence )
     {
         NativeAPI::CPUFence pNativeFence = ToNative( *phFence );
-        // pNativeFence->Value              = 0;
-
         pNativeFence->Signal( 0 );
-        // if( FAILED( pNativeFence->pObject->Signal( 0 ) ) )
-        //{
-        //     VKE_LOG_ERR( "CD3D12API::Reset: Failed to reset fence" );
-        // }
     }
 
     void CD3D12API::ResetImpl( RHI::Fence* phFence, RHI::FenceValue value )
     {
-        // An ID3D12Fence is the DX12 equivalent of a Vulkan timeline semaphore: it is inherently monotonic and
-        // GetCompletedValueImpl() reads it directly. The engine's per-frame fence value (SFrameData::frameFenceValue)
-        // grows monotonically forever and is compared against GetCompletedValue() to decide when a back buffer's
-        // command buffers/allocators may be reused (see CFrameGraph::_GetNextFrame / _ResetFrameData).
-        //
-        // We must NOT CPU-Signal the fence here: doing so would drive the GPU-visible completed value backwards
-        // (e.g. to 0) every frame, making the completion comparison pass spuriously. That would let the frame graph
-        // reset command buffers -- and therefore ID3D12CommandAllocator::Reset() -- while the GPU is still executing
-        // work associated with that allocator, producing COMMAND_ALLOCATOR_SYNC (EXECUTION ERROR #552).
-        //
-        // Like the Vulkan backend, Reset only clears CPU-side bookkeeping and leaves the monotonic timeline intact.
         NativeAPI::Fence pNativeFence = ToNative( *phFence );
         VKE_ASSERT( pNativeFence != NativeAPI::Null );
         pNativeFence->Signal( 0 );
@@ -4163,52 +5013,27 @@ namespace VKE::RenderSystem::D3D12
 
         pNativeFence->Wait( value );
         return resultStatus;
-
-        // if( pNativeFence->pObject->GetCompletedValue() >= value )
-        //{
-        //     return resultStatus;
-        // }
-
-        // HRESULT hr = pNativeFence->pObject->SetEventOnCompletion( value, pNativeFence->hEvent );
-
-        // if( FAILED( hr ) )
-        //{
-        //     VKE_LOG_ERR( "CDDI::WaitForFence: SetEventOnCompletion failed with HRESULT 0x"
-        //                  << std::hex << hr << std::dec << " while waiting for fence value " << value
-        //                  << ". Current value: " << pNativeFence->pObject->GetCompletedValue() );
-        //     ::CloseHandle( pNativeFence->hEvent );
-        //     return Result::FAIL;
-        // }
-
-        //// TODO(blturkot): Change INFINITE to something more reliable.
-        // DWORD waitResult = ::WaitForSingleObjectEx( pNativeFence->hEvent, INFINITE, FALSE );
-
-        // switch( waitResult )
-        //{
-        //     case WAIT_OBJECT_0:
-        //         resultStatus = Result::OK;
-        //         break;
-
-        //    case WAIT_ABANDONED:
-        //    case WAIT_TIMEOUT:
-        //    case WAIT_FAILED:
-        //    case WAIT_IO_COMPLETION:
-        //        resultStatus = Result::FAIL;
-        //        break;
-
-        //    default:
-        //        resultStatus = Result::NOT_SUPPORTED;
-        //        break;
-        //}
-
-        // return resultStatus;
     }
 
     Result CD3D12API::WaitForQueueImpl( const RHI::Queue& hQueue )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-        // TODO(blturkot): Each queue needs to have its own fence for synchronization.
-        return Result::OK;
+        Result out = Result::NOT_READY;
+
+        auto pNativeQueue = ToNative( hQueue );
+        auto pNativeFence = m_pImplementation->m_pGlobalFence;
+
+        // This can be either of:
+        // - Signal( value + 1 ), Wait ( )
+        // - Wait( pNativeFence->GetSignaledValue() )
+        // First option seems more reasonable because RHI doesn't need to track submission and relies on new value.
+        // Second option requires proper Signal() after each submission.
+        UINT64 drainValue = pNativeFence->GetSignaledValue() + 1;
+        pNativeFence->Signal( pNativeQueue, drainValue );
+        pNativeFence->Wait( drainValue );
+
+        // TODO(blturkot): Result should come from Wait function.
+        out = Result::OK;
+        return out;
     }
 
     Result CD3D12API::WaitForDeviceImpl()
