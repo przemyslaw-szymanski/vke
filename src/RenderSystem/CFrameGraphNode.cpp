@@ -344,9 +344,12 @@ namespace VKE::RenderSystem
 
     CFrameGraphNode* CFrameGraphNode::AddSubpass( cstr_t pName, FrameGraphWorkload&& Wl )
     {
-        SFrameGraphNodeDesc Desc;
-        Desc.pName = pName;
-        auto pNode = m_pFrameGraph->CreatePass( Desc );
+        auto pNode = m_pFrameGraph->CreatePass( [pName](CFrameGraphNode** ppNode)
+        {
+            SFrameGraphNodeDesc Desc;
+            Desc.pName = pName;
+            return ( *ppNode )->_Create( Desc );
+        } );
         auto pRet  = this;
         if( pNode )
         {

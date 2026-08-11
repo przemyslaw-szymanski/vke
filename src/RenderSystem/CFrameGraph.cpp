@@ -27,53 +27,185 @@ namespace VKE::RenderSystem
                 VKE_ASSERT( m_Desc.pDevice != nullptr );
                 if( ( Desc.flags & FrameGraphFlagBits::BASIC_MULTITHREADED ) != 0 )
                 {
-                    auto pSwapBufferPass  = CreatePass( {
-                        .pName = "SwapBuffers",
+                    auto pSwapBufferPass  = CreatePass( [&](CFrameGraphNode** ppNode)
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "SwapBuffers";
+                        
+                        Result ret = (*ppNode)->_Create( Desc );
+
+                        return ret;
                     } );
-                    auto pBeginFramePass  = CreatePass( {
-                        .pName = "BeginFrame",
+
+                    auto pBeginFramePass  = CreatePass( [&](CFrameGraphNode** ppNode)
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "BeginFrame";
+                        Desc.Flags = FrameGraphNodeFlags::START_FRAME;
+
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
                     } );
-                    auto pRenderFramePass = CreatePass(
-                        { .pName          = "RenderFrame",
-                          .vRenderTargets = { { .pName     = "Diffuse",
-                                                .format    = Formats::R8G8B8A8_UNORM,
-                                                .operation = FrameGraphPassOperations::RENDER_PASS_OVERWRITE },
-                                              { .pName      = "Depth",
-                                                .format     = Formats::D32_SFLOAT,
-                                                .operation  = FrameGraphPassOperations::RENDER_PASS_OVERWRITE,
-                                                .clearValue = { 1.0f, 0u } } } } );
-                    auto pFinishRenderFramePass =
-                        CreatePass( { .pName          = "FinishRenderFrame",
-                                      .vRenderTargets = { { .pName     = "Diffuse",
-                                                            .operation = FrameGraphPassOperations::SHADER_READ } } } );
-                    auto pEndFramePass      = CreatePass( {
-                        .pName = "EndFrame",
+
+                    auto pRenderFramePass = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    { 
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName      = "RenderFrame";
+                        Desc.Flags          = FrameGraphNodeFlags::RENDER_OPAQUE | FrameGraphNodeFlags::RENDER_DEPTH;
+                        Desc.vRenderTargets = { { .pName     = "Diffuse",
+                                                  .format    = Formats::R8G8B8A8_UNORM,
+                                                  .operation = FrameGraphPassOperations::RENDER_PASS_OVERWRITE },
+                                                { .pName      = "Depth",
+                                                  .format     = Formats::D32_SFLOAT,
+                                                  .operation  = FrameGraphPassOperations::RENDER_PASS_OVERWRITE,
+                                                  .clearValue = { 1.0f, 0u } } };
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
                     } );
-                    auto pExecuteFrame      = CreateExecutePass( { .pName = "ExecuteFrame",
-                                                                   //.pThread = "ExecuteFrame",
-                                                                   .pCommandBuffer = nullptr,
-                                                                   .gpuFenceValue  = 2 } );
-                    auto pPresent           = CreatePresentPass( { .pName = "PresentFrame",
-                                                                   //.pThread = "PresentFrame",
-                                                                   .pCommandBuffer = nullptr,
-                                                                   .gpuFenceValue  = 3 } );
-                    auto pTextureLoadPass   = CreatePass( { .pName = "LoadTextures", .pCommandBuffer = nullptr } );
-                    auto pBufferLoadPass    = CreatePass( { .pName = "LoadBuffers", .pCommandBuffer = nullptr } );
-                    auto pBufferUploadPass  = CreatePass( { .pName = "BufferUpload", .pCommandBuffer = "Upload" } );
-                    auto pCompileShaderPass = CreatePass( { .pName = "CompileShaders",
-                                                            //.pThread = "CompileShaders",
-                                                            .pCommandBuffer = nullptr } );
-                    auto pTextureUploadPass = CreatePass( { .pName = "UploadTextures", .pCommandBuffer = "Upload" } );
-                    auto pTextureGenMipmapPass = CreatePass( { .pName = "GenMipmaps" } );
-                    auto pLoadDataPass         = CreatePass( { .pName = "Load", .pCommandBuffer = nullptr } );
-                    auto pUploadDataPass       = CreatePass( { .pName = "Upload", .pCommandBuffer = "Upload" } );
-                    auto pSceneUpdatePass      = CreatePass( { .pName = "SceneUpdate", .pCommandBuffer = nullptr } );
-                    auto pUpdatePass           = CreatePass( { .pName = "Update", .pCommandBuffer = "Update" } );
-                    auto pExecuteUploadPass =
-                        CreateExecutePass( { .pName = "ExecuteUpload", .pCommandBuffer = nullptr } );
-                    auto pExecuteUpdatePass = CreateExecutePass(
-                        { .pName = "ExecuteUpdate", .pCommandBuffer = nullptr, .gpuFenceValue = 1 } );
-                    auto pFinishFramePass = CreatePass( { .pName = "FinishFrame" } );
+                    auto pFinishRenderFramePass = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "FinishRenderFrame";
+                        Desc.Flags = FrameGraphNodeFlags::END_FRAME;
+                        Desc.vRenderTargets = { { .pName     = "Diffuse",
+                                                  .operation = FrameGraphPassOperations::SHADER_READ } };
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pEndFramePass      = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "EndFrame";
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pExecuteFrame = CreateExecutePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "ExecuteFrame";
+                        Desc.pCommandBuffer = nullptr;
+                        Desc.Flags = FrameGraphNodeFlags::EXECUTE_COMMAND_BUFFERS | FrameGraphNodeFlags::SIGNAL_GPU_FENCE;
+                        //.pThread = "ExecuteFrame",
+                        Desc.gpuFenceValue  = 2;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pPresent               = CreatePresentPass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "PresentFrame";
+                        //.pThread = "PresentFrame";
+                        Desc.pCommandBuffer = nullptr;
+                        Desc.gpuFenceValue  = 3;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pTextureLoadPass   = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "LoadTextures";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pBufferLoadPass    = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "LoadBuffers";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pBufferUploadPass  = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "BufferUpload";
+                        Desc.pCommandBuffer = "Upload";
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pCompileShaderPass = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "CompileShaders";
+                        //.pThread = "CompileShaders";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pTextureUploadPass = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "UploadTextures";
+                        Desc.pCommandBuffer = "Upload";
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pTextureGenMipmapPass = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "GenMipmaps";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pLoadDataPass         = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "Load";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pUploadDataPass       = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "Upload";
+                        Desc.pCommandBuffer = "Upload";
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pSceneUpdatePass      = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "SceneUpdate";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pUpdatePass           = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "Update";
+                        Desc.pCommandBuffer = "Update";
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pExecuteUploadPass     = CreateExecutePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "ExecuteUpload";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pExecuteUpdatePass = CreateExecutePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "ExecuteUpdate";
+                        Desc.pCommandBuffer = nullptr;
+                        Desc.gpuFenceValue = 1;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
+                    auto pFinishFramePass = CreatePass( [&]( CFrameGraphNode** ppNode )
+                    {
+                        SFrameGraphNodeDesc Desc;
+                        Desc.pName = "FinishFrame";
+                        Desc.pCommandBuffer = nullptr;
+                        Result ret = ( *ppNode )->_Create( Desc );
+                        return ret;
+                    } );
                     // auto pCreateResourcePass
                     //   = CreateCustomPass<VKE::RenderSystem::CFrameGraphMultiWorkloadNode>( { .pName =
                     //   "CreateResource" }, nullptr );
@@ -512,49 +644,51 @@ namespace VKE::RenderSystem
         return ret;
     }
 
-    CFrameGraphNode* CFrameGraph::CreatePass( const SFrameGraphPassDesc& Desc )
+    CFrameGraphNode* CFrameGraph::CreatePass( OnCreateNodeCallback&& Callback )
     {
-        CFrameGraphNode* pRet = _CreateNode< CFrameGraphNode >( Desc );
+        CFrameGraphNode* pRet = _CreateNode< CFrameGraphNode >( std::move( Callback ) );
         return pRet;
     }
 
-    CFrameGraphExecuteNode* CFrameGraph::CreateExecutePass( const SFrameGraphNodeDesc& Desc )
+    CFrameGraphExecuteNode* CFrameGraph::CreateExecutePass( OnCreateNodeCallback&& Callback )
     {
-        auto idx = m_avExecuteNames[ Desc.contextType ].Find( Desc.pName );
-        if( idx != INVALID_POSITION )
-        {
-            VKE_LOG_ERR( "FrameGraph: " << Desc.pName << ", Node: " << Desc.pName << ": Execution: " << Desc.pExecute
-                                        << " already exists." );
-        }
-        SFrameGraphNodeDesc NewDesc = Desc;
-
-        CFrameGraphExecuteNode* pPass = _CreateNode< CFrameGraphExecuteNode >( Desc );
+        CFrameGraphExecuteNode* pPass = _CreateNode< CFrameGraphExecuteNode >( std::move( Callback ) );
         if( pPass != nullptr )
         {
-            pPass->m_doExecute     = true;
-            pPass->m_Index.execute = _CreateExecute( static_cast< CFrameGraphNode* >( pPass ) );
-            pPass->m_pExecuteNode  = pPass;
-            pPass->SetWorkload( [ this ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex ) {
-                Result ret = pPass->OnWorkloadBegin( backBufferIndex );
-                if( VKE_SUCCEEDED( ret ) )
+            auto idx = m_avExecuteNames[ pPass->m_ctxType ].Find( pPass->m_Name );
+            if( idx != INVALID_POSITION )
+            {
+                VKE_LOG_ERR( "FrameGraph: " << pPass->m_Name << ", Node: " << pPass->m_Name
+                                            << ": Execution: " << pPass->m_doExecute << " already exists." );
+            }
+            else
+            {
+                pPass->m_doExecute     = true;
+                pPass->m_Index.execute = _CreateExecute( static_cast< CFrameGraphNode* >( pPass ) );
+                pPass->m_pExecuteNode  = pPass;
+                pPass->SetWorkload( [ this ]( CFrameGraphNode* const pPass, uint8_t backBufferIndex )
                 {
-                    CFrameGraphExecuteNode* pNode        = static_cast< CFrameGraphExecuteNode* >( pPass );
-                    auto                    pExecuteData = pNode->_BuildDataToExecute( backBufferIndex );
-                    if( pExecuteData )
+                    Result ret = pPass->OnWorkloadBegin( backBufferIndex );
+                    if( VKE_SUCCEEDED( ret ) )
                     {
+                        CFrameGraphExecuteNode* pNode        = static_cast< CFrameGraphExecuteNode* >( pPass );
+                        auto                    pExecuteData = pNode->_BuildDataToExecute( backBufferIndex );
+                        if( pExecuteData )
+                        {
 #if VKE_LOG_FRAMEGRAPH
-                        auto& Exe = _GetExecute( pNode, backBufferIndex );
-                        VKE_LOG( pPass->m_Name << ", bbidx: " << (uint32_t)this->m_backBufferIndex << " "
-                                               << pPass->GetThreadFence().Load()
-                                               << " signal gpufence: " << Exe.hSignalGPUFence );
+                            auto& Exe = _GetExecute( pNode, backBufferIndex );
+                            VKE_LOG( pPass->m_Name << ", bbidx: " << (uint32_t)this->m_backBufferIndex << " "
+                                                   << pPass->GetThreadFence().Load()
+                                                   << " signal gpufence: " << Exe.hSignalGPUFence );
 #endif
-                        VKE_ASSERT( pExecuteData->SubmitInfo.commandBufferCount );
-                        ret = pNode->m_pContext->Execute( pExecuteData->SubmitInfo );
+                            VKE_ASSERT( pExecuteData->SubmitInfo.commandBufferCount );
+                            ret = pNode->m_pContext->Execute( pExecuteData->SubmitInfo );
+                        }
                     }
-                }
-                ret = pPass->OnWorkloadEnd( ret );
-                return ret;
-            } );
+                    ret = pPass->OnWorkloadEnd( ret );
+                    return ret;
+                } );
+            }
         }
         return pPass;
     }
@@ -579,9 +713,9 @@ namespace VKE::RenderSystem
         m_CounterMgr.FrameTimer.Start();
     }
 
-    CFrameGraphNode* CFrameGraph::CreatePresentPass( const SFrameGraphNodeDesc& Desc )
+    CFrameGraphNode* CFrameGraph::CreatePresentPass( OnCreateNodeCallback&& Callback )
     {
-        auto pRet = CreatePass( Desc );
+        auto pRet = CreatePass( std::move( Callback ) );
         if( pRet != nullptr )
         {
             // Present executes as well but via Present api call

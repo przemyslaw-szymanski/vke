@@ -445,8 +445,13 @@ namespace VKE
 
             hash_t CalcHash() const
             {
+                return CalcHash( GetData() );
+            }
+
+            static hash_t CalcHash( const DataType* pStr )
+            {
                 hash_t      ret   = 5381;
-                DataTypePtr pCurr = GetData();
+                const DataType* pCurr = pStr;
                 DataType    c;
                 while( ( c = *pCurr++ ) != 0 )
                 {
@@ -594,4 +599,15 @@ namespace std
         ss << Str.GetData();
         return ss;
     }
+
+    template< typename DataType, uint32_t DEFAULT_ELEMENT_COUNT, class AllocatorType, class Policy, class Utils >
+    struct std::formatter< VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS > > : std::formatter< std::string_view >
+    {
+        auto format( const VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Str, std::format_context& ctx ) const
+        {
+            std::string_view name( Str.GetData(), Str.GetLength() );
+            return std::formatter< std::string_view >::format( name, ctx );
+        }
+    };
+
 } // namespace std

@@ -203,7 +203,7 @@ namespace VKE::RenderSystem
         friend class CResourceLoaddManager;
         friend FrameGraphWorkload;
 
-        using NodeMap   = vke_hash_map< vke_string, CFrameGraphNode* >;
+        using NodeMap   = vke_hash_map< hash_t, CFrameGraphNode* >;
         using NodeQueue = vke_queue< CFrameGraphNode* >;
 
         using CommandBufferArray            = Utils::TCDynamicArray< CommandBufferPtr >;
@@ -291,9 +291,13 @@ namespace VKE::RenderSystem
         using ThreadDataPtrArray = Utils::TCDynamicArray< SThreadData* >;
 
     public:
-        CFrameGraphNode*        CreatePass( const SFrameGraphPassDesc& );
-        CFrameGraphExecuteNode* CreateExecutePass( const SFrameGraphNodeDesc& );
-        CFrameGraphNode*        CreatePresentPass( const SFrameGraphNodeDesc& );
+
+        using OnCreateNodeCallback = std::function< Result( CFrameGraphNode** ) >;
+
+    public:
+        CFrameGraphNode*        CreatePass( OnCreateNodeCallback&& );
+        CFrameGraphExecuteNode* CreateExecutePass( OnCreateNodeCallback&& );
+        CFrameGraphNode*        CreatePresentPass( OnCreateNodeCallback&& );
         template< class T >
         T*     CreateCustomPass( const SFrameGraphPassDesc&, const void* );
         Result Build();
@@ -441,7 +445,7 @@ namespace VKE::RenderSystem
 
         Result _OnCreateNode( const SFrameGraphNodeDesc&, CFrameGraphNode** );
         template< class T >
-        T* _CreateNode( const SFrameGraphNodeDesc& );
+        T* _CreateNode( OnCreateNodeCallback&& );
         template< class T >
         T* _GetNode( const char* );
 
@@ -503,7 +507,7 @@ namespace VKE::RenderSystem
     T* CFrameGraph::_GetNode( const char* pName )
     {
         T*   pNode = nullptr;
-        auto Itr   = m_mNodes.find( pName );
+        auto Itr   = m_mNodes.find( decltype(CFrameGraphNode::m_Name)::CalcHash( pName )  );
         if( Itr != m_mNodes.end() )
         {
             pNode = static_cast< T* >( Itr->second );
@@ -512,17 +516,25 @@ namespace VKE::RenderSystem
     }
 
     template< class T >
-    T* CFrameGraph::_CreateNode( const SFrameGraphNodeDesc& Desc )
+    T* CFrameGraph::_CreateNode( OnCreateNodeCallback&& Callback )
     {
-        T* pNode = _GetNode< T >( Desc.pName );
-        if( pNode == nullptr )
+        T* pNode = nullptr;
         {
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pNode ) ) )
             {
                 pNode->m_pFrameGraph = this;
-                if( VKE_SUCCEEDED( pNode->_Create( Desc ) ) )
+
+                if( VKE_SUCCEEDED( Callback( (CFrameGraphNode**)&pNode ) ) )
                 {
-                    m_mNodes.insert( std::pair( Desc.pName, pNode ) );
+                    if( _GetNode< T >( pNode->m_Name.GetData() ) == nullptr )
+                    {
+                        m_mNodes.insert( std::pair( pNode->m_Name.CalcHash(), pNode ) );
+                    }
+                    else
+                    {
+                        VKE_LOG_ERRF( "Node with name {} already exists in the frame graph", pNode->m_Name );
+                        Memory::DestroyObject( &HeapAllocator, &pNode );
+                    }
                 }
                 else
                 {
