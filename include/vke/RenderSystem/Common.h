@@ -3093,7 +3093,7 @@ namespace VKE
             uint32_t           dataSize;
             uint32_t           dstDataOffset = 0;
             handle_t           hMemory       = INVALID_HANDLE;
-            StagingBufferFlags flags         = 0;
+            StagingBufferFlags flags         = StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT;
             VKE_RENDER_SYSTEM_DEBUG_INFO;
         };
 
@@ -3195,7 +3195,7 @@ namespace VKE
             bool IsValid() const
             {
                 // DX12 spec distinguish these resource types
-                Utils::TCBitset< uint8_t > TypeBits = 0;
+                Utils::TCBitset< uint8_t > TypeBits = (uint8_t)0;
 
                 for( uint32_t i = 0; i < vPoolSizes.GetCount(); ++i )
                 {
@@ -3501,19 +3501,6 @@ namespace VKE
         class CFrameGraphNode;
         using FrameGraphWorkload = std::function< Result( CFrameGraphNode* const, uint8_t ) >;
 
-        using FrameGraphNodeFlags = Utils::TCBitset< uint32_t >;
-
-        struct FrameGraphNodeFlagBits
-        {
-            enum BITS : uint32_t
-            {
-                NONE             = 0x0,
-                SIGNAL_GPU_FENCE = VKE_BIT( 0 ),
-                SIGNAL_CPU_FENCE = VKE_BIT( 1 ),
-                SIGNAL_THREAD    = VKE_BIT( 2 )
-            };
-        };
-
         struct RenderPassSizes
         {
             enum SIZE : uint8_t
@@ -3559,6 +3546,40 @@ namespace VKE
             SClearValue      clearValue     = { 0.0, 0.0, 0.0, 0.0 };
         };
 
+        struct FrameGraphNodeFlags
+        {
+            enum FLAG : uint64_t
+            {
+                NONE = 0,
+                START_FRAME             = VKE_BIT( 0 ),
+                END_FRAME               = VKE_BIT( 1 ),
+                UPLOAD                  = VKE_BIT( 2 ),
+                RENDER_OPAQUE           = VKE_BIT( 3 ),
+                RENDER_TRANSPARENT      = VKE_BIT( 4 ),
+                RENDER_DEPTH            = VKE_BIT( 5 ),
+                RENDER_UPDATE           = VKE_BIT( 6 ),
+                RESOURCE_UPDATE         = VKE_BIT( 7 ),
+                COMPUTE_UPDATE          = VKE_BIT( 8 ),
+                COPY_UPDATE             = VKE_BIT( 9 ),
+                COMPUTE_POST_RENDER     = VKE_BIT( 10 ),
+                COPY_POST_RENDER        = VKE_BIT( 11 ),
+                COMPUTE_POSTPROCESS     = VKE_BIT( 12 ),
+                RENDER_POSTPROCESS      = VKE_BIT( 13 ),
+                COMPILE_DATA            = VKE_BIT( 14 ),
+                GENERATE_DATA           = VKE_BIT( 15 ),
+                EXECUTE_COMMAND_BUFFERS = VKE_BIT( 16 ),
+                PROCESS_TEXTURES        = VKE_BIT( 17 ),
+                PROCESS_BUFFERS         = VKE_BIT( 18 ),
+                PROCESS_SCRIPTS         = VKE_BIT( 19 ),
+                LOAD_FILES              = VKE_BIT( 20 ),
+                SIGNAL_GPU_FENCE        = VKE_BIT( 21 ),
+                SIGNAL_THREAD_FENCE     = VKE_BIT( 22 ),
+                _LAST_BIT               = 22
+            };
+        };
+
+        using FrameGraphNodeFlagBits = Utils::TCBitset< FrameGraphNodeFlags::FLAG >;
+
         struct SFrameGraphNodeDesc
         {
             using TextureDescArray = Utils::TCDynamicArray< SFrameGraphRenderTargetTextureDesc, 8 >;
@@ -3567,6 +3588,7 @@ namespace VKE
             cstr_t           pExecute       = "Main";
             cstr_t           pThread        = "Main";
             cstr_t           pCommandBuffer = "Main";
+            FrameGraphNodeFlagBits Flags          = FrameGraphNodeFlags::NONE;
             CONTEXT_TYPE     contextType    = ContextTypes::GENERAL;
             RENDER_PASS_SIZE size           = RenderPassSizes::_1_1;
             uint16_t         gpuFenceValue  = 0;
@@ -3955,7 +3977,7 @@ namespace VKE
                 TIMESTMAP = VKE_BIT(7),
             };
         };
-        using QueueCapsBits = Utils::TCBitset< uint32_t >;
+        using QueueCapsBits = Utils::TCBitset< QueueCaps::CAPABILITY >;
 
         struct SQueueFamilyInfo
         {

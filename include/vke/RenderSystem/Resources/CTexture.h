@@ -79,7 +79,7 @@ namespace VKE::RenderSystem
     using TextureViewRefPtr = Utils::TCObjectSmartPtr< CTextureView >;
     using TextureViewPtr    = Utils::TCWeakPtr< CTextureView >;
 
-    class VKE_API CTexture
+    class VKE_API CTexture : public Core::TCResource< CTexture >
     {
         friend class CGraphicsContext;
         friend class CDeviceContext;
@@ -178,7 +178,6 @@ namespace VKE::RenderSystem
         STextureDesc m_Desc;
         VKE_ADD_DDI_OBJECT( RHI::Texture );
         VKE_DECL_BASE_OBJECT( TextureHandle );
-        VKE_DECL_BASE_RESOURCE();
 
     protected:
         CommandBufferPtr  m_pCmdBuffer;

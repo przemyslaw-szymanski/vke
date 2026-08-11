@@ -575,7 +575,6 @@ namespace VKE
                             }
                             else
                             {
-                                pImage->_LockResource();
                                 if( !m_Buffer.Add( hash, pImage ) )
                                 {
                                     std::stringstream ss;
@@ -613,7 +612,7 @@ namespace VKE
             {
                 VKE_ASSERT( pImage != nullptr );
 
-                if( pImage != nullptr && pImage->IsLockedInThisThread() && pImage->GetHandle() == INVALID_HANDLE )
+                if( pImage != nullptr && pImage->GetHandle() == INVALID_HANDLE )
                 {
                     if( !pImage->IsResourceStateSet( Core::ResourceStates::LOADED ) )
                     {
@@ -644,7 +643,6 @@ namespace VKE
                     {
                         VKE_LOG_IMGR( "Image: " << pImage->GetDesc().Name << " is already loaded." );
                     }
-                    pImage->_UnlockResource();
                 }
             }
             VKE_ASSERT( ret == VKE_OK );

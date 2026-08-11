@@ -310,7 +310,7 @@ namespace VKE
                 if( hPipeline != RHI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject      = hPipeline;
-                    pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
+                    pPipeline->_AddResourceState( Core::ResourceStates::PREPARED );
                     ret                          = VKE_OK;
                 }
                 else
@@ -322,7 +322,7 @@ namespace VKE
             VKE_ASSERT2( pPipeline->GetDDIObject() != RHI::Null, "Pipeline API object not created." );
             return ret;
         ERR:
-            pPipeline->m_resourceStates |= Core::ResourceStates::INVALID;
+            pPipeline->_AddResourceState( Core::ResourceStates::INVALID );
             ret                          = VKE_FAIL;
             return ret;
         }
@@ -348,7 +348,7 @@ namespace VKE
                 if( hPipeline != RHI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
                     pPipeline->m_hDDIObject      = hPipeline;
-                    pPipeline->m_resourceStates |= Core::ResourceStates::PREPARED;
+                    pPipeline->_AddResourceState( Core::ResourceStates::PREPARED );
                     ret                          = VKE_OK;
                 }
                 else

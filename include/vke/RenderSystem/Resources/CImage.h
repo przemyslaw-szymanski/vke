@@ -65,10 +65,9 @@ namespace VKE
             ResourceName      Name;
         };
 
-        class VKE_API CImage : public CObject
+        class VKE_API CImage : public CObject, public Core::TCResource< CImage >
         {
             friend class CImageManager;
-            VKE_DECL_BASE_RESOURCE();
 
         public:
             CImage( CImageManager* );

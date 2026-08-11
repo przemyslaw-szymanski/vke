@@ -28,8 +28,8 @@ namespace VKE
             };
         };
 
-        using RESOURCE_STATE = uint16_t;
-        using ResourceState  = Utils::TCBitset< RESOURCE_STATE >;
+        using RESOURCE_STATE = ResourceStates::STATE;
+        using ResourceStateBits  = Utils::TCBitset< RESOURCE_STATE >;
 
         struct ResourceStages
         {

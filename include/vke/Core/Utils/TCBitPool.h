@@ -37,7 +37,7 @@ namespace VKE
             {
                 // Round up
                 auto numChunks = slotCount / BitsPerChunk + 1;
-                if( !m_vBitPool.Resize( numChunks, 0 ) )
+                if( !m_vBitPool.Resize( numChunks, static_cast < ChunkSizeT >( 0 ) ) )
                 {
                     return VKE_ENOMEMORY;
                 }
@@ -112,7 +112,7 @@ namespace VKE
                 for( uint32_t c = BitHandle.chunkIndex; c < numWholeChunks; ++c )
                 {
                     pChunk    = &m_vBitPool[ c ];
-                    *pChunk   = 0;
+                    *pChunk   = static_cast<ChunkSizeT>( 0 );
                     currSlot += BitsPerChunk;
                     BitHandle.chunkIndex++;
                 }

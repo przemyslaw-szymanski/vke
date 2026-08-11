@@ -357,6 +357,7 @@ namespace VKE::RenderSystem
         FormatArray             m_vColorRenderTargetFormats;
         RHI::RenderPass   m_hRHIRenderPass = RHI::Null;
         Rect2DI32               m_RenderArea;
+        FrameGraphNodeFlagBits  m_Flags;
         /// <summary>
         /// if true, this node will execute command buffers.
         /// Usually that means that this node is the last one using particular ExecuteBatch

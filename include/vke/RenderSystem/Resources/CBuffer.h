@@ -129,7 +129,7 @@ namespace VKE
             uint32_t bufferSize;
         };
 
-        class VKE_API CBuffer
+        class VKE_API CBuffer : public Core::TCResource< CBuffer >
         {
             friend class CBufferManager;
             friend class CStagingBufferManager;
@@ -138,7 +138,6 @@ namespace VKE
             VKE_ADD_OBJECT_MEMBERS;
             VKE_ADD_DDI_OBJECT( RHI::Buffer );
             VKE_DECL_BASE_OBJECT( BufferHandle );
-            VKE_DECL_BASE_RESOURCE();
 
             using RegionArray = Utils::TCDynamicArray< SBufferRegion, 8 >;
 

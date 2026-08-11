@@ -1373,7 +1373,7 @@ namespace VKE
                         pCtx->UpdateBuffer( pCmdBuffer, UpdateInfo, &CB.pStorageBuffer );
                     }
                 }
-                Curr.UpdateBufferMask.Set( 0u );
+                Curr.UpdateBufferMask.Set( static_cast<uint16_t>( 0u ) );
             }
         }
 

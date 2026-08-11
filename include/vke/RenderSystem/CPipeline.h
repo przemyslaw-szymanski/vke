@@ -33,7 +33,7 @@ namespace VKE::RenderSystem
     using PipelineLayoutPtr    = Utils::TCWeakPtr< CPipelineLayout >;
     using PipelineLayoutRefPtr = Utils::TCObjectSmartPtr< CPipelineLayout >;
 
-    class VKE_API CPipeline
+    class VKE_API CPipeline : public Core::TCResource< CPipeline >
     {
         friend class CPipelineManager;
         friend class CDeviceContext;
@@ -43,7 +43,6 @@ namespace VKE::RenderSystem
 
         VKE_ADD_DDI_OBJECT( RHI::Pipeline );
         VKE_DECL_BASE_OBJECT( PipelineHandle );
-        VKE_DECL_BASE_RESOURCE();
 
     public:
         CPipeline( CPipelineManager* );

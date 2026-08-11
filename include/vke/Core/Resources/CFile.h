@@ -11,13 +11,12 @@ namespace VKE
     {
         class CFileManager;
 
-        class VKE_API CFile
+        class VKE_API CFile : public TCResource< CFile >
         {
             friend class Core::CFileManager;
             using CFileManager = Core::CFileManager;
 
             VKE_DECL_BASE_OBJECT( handle_t );
-            VKE_DECL_BASE_RESOURCE();
 
         public:
             // TODO(szymansk): Change to std::byte for use in CImageManager instead of reinterpret_cast
