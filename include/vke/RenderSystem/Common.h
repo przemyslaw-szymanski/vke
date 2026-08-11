@@ -994,6 +994,7 @@ namespace VKE
             uint8_t         set;
             PIPELINE_STAGES stages;
             uint16_t        count;
+            uint16_t        space;
         };
 
         struct STextureBinding : SResourceBinding
@@ -1020,6 +1021,7 @@ namespace VKE
                 BINDING_TYPE    type;
                 uint16_t        count;
                 PIPELINE_STAGES stages;
+                uint16_t        space;
             };
 
             using BindingArray =
@@ -2533,14 +2535,16 @@ namespace VKE
             void AddBinding( const STextureBinding& Binding );
             void AddBinding( const SSamplerBinding& Binding );
             void AddBinding( const SSamplerTextureBinding& Binding );
-            void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
-            void AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
-            void AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages );
-            void AddDynamicBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount );
-            void AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
-            void AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u );
+            void AddConstantBuffer( uint8_t index, PIPELINE_STAGES stages, uint16_t space = 0u );
+            void AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount,
+                            uint16_t space = 0u );
+            void AddDynamicConstantBuffer( uint8_t index, PIPELINE_STAGES stages, uint16_t space = 0u );
+            void AddDynamicBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount,
+                                   uint16_t space = 0u );
+            void AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u, uint16_t space = 0u );
+            void AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count = 1u, uint16_t space = 0u );
 
-            void                     AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages );
+            void                     AddSamplerAndTexture( uint8_t index, PIPELINE_STAGES stages, uint16_t space = 0u );
             SDescriptorSetLayoutDesc LayoutDesc;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };

@@ -47,13 +47,11 @@ namespace VKE
         void CLight::SetPosition( const Math::CVector3& vecPos )
         {
             m_Desc.vecPosition               = vecPos;
-            m_pLights->vPositions[ m_index ] = vecPos;
         }
 
         void CLight::_SetDebugView( uint32_t hView )
         {
             m_hDbgView                      = hView;
-            m_pLights->vDbgViews[ m_index ] = hView;
         }
 
         void CLight::CalcMatrix( Math::CMatrix4x4* pOut ) const

@@ -5372,7 +5372,7 @@ namespace VKE
         {
             Helper::SSwapChainAllocator* pInternalAllocator =
                 reinterpret_cast< Helper::SSwapChainAllocator* >( pInOut->pInternalAllocator );
-            const VkAllocationCallbacks* pVkAllocator = &pInternalAllocator->VkCallbacks;
+            const VkAllocationCallbacks* pVkAllocator = pInternalAllocator != nullptr ? &pInternalAllocator->VkCallbacks : nullptr;
             for( uint32_t i = 0; i < pInOut->vImageViews.GetCount(); ++i )
             {
                 DestroyTextureViewImpl( &pInOut->vImageViews[ i ], pVkAllocator );

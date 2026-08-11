@@ -23,8 +23,8 @@ namespace VKE
 
         Result CBuffer::Init( const SBufferDesc& Desc )
         {
-            Result ret = VKE_OK;
-            m_Desc.indexType = Desc.indexType;
+            Result ret         = VKE_OK;
+            m_Desc.indexType   = Desc.indexType;
             m_Desc.memoryUsage = Desc.memoryUsage;
             m_Desc.usage       = Desc.usage;
             m_Desc.SetDebugName( Desc.GetDebugName() );
@@ -71,24 +71,24 @@ namespace VKE
             for( uint32_t i = 0; i < Desc.vRegions.GetCount(); ++i )
             {
                 const auto& Curr = Desc.vRegions[ i ];
-                
-                SBufferRegion     Region;
+
+                SBufferRegion Region;
                 Region.elementSize  = Memory::CalcAlignedSize( Curr.elementSize, alignment );
-                Region.elementCount  = Curr.elementCount;
-                Region.offset        = currOffset;
-                
+                Region.elementCount = Curr.elementCount;
+                Region.offset       = currOffset;
+
                 auto size      = Region.elementSize * Region.elementCount;
-                Region.offset    = Memory::CalcAlignedSize( currOffset, alignment );
-                currOffset      += size;
-                totalSize       += size;
-                
+                Region.offset  = Memory::CalcAlignedSize( currOffset, alignment );
+                currOffset    += size;
+                totalSize     += size;
+
                 VKE_ASSERT2( totalSize % alignment == 0, "" );
                 VKE_ASSERT2( currOffset % alignment == 0, "" );
                 VKE_ASSERT2( Region.elementSize % alignment == 0, "" );
                 VKE_ASSERT2( size % alignment == 0, "" );
                 m_Desc.vRegions.PushBack( Region );
             }
-            
+
             VKE_ASSERT( !Desc.vRegions.IsEmpty() );
             m_size = totalSize;
             return ret;
@@ -103,7 +103,7 @@ namespace VKE
         hash_t CBuffer::CalcHash( const SBufferDesc& Desc )
         {
             Utils::SHash Hash;
-            for(uint32_t i = 0; i < Desc.vRegions.GetCount(); ++i )
+            for( uint32_t i = 0; i < Desc.vRegions.GetCount(); ++i )
             {
                 const auto& Curr = Desc.vRegions[ i ];
                 Hash.Combine( Curr.offset, Curr.elementSize, Curr.elementCount );
@@ -118,7 +118,8 @@ namespace VKE
             const uint32_t localOffset = Curr.elementSize * elemIdx;
             ret                        = Curr.offset + localOffset;
 
-            VKE_ASSERT2( localOffset + Curr.elementSize <= Curr.elementSize * Curr.elementCount, "elemIdx out of bounds in the region." );
+            VKE_ASSERT2( localOffset + Curr.elementSize <= Curr.elementSize * Curr.elementCount,
+                         "elemIdx out of bounds in the region." );
             VKE_ASSERT2( ret + Curr.elementSize <= GetSize(), "elemIdx out of bounds." );
             VKE_ASSERT2( ret % m_alignment == 0, "" );
             return ret;
@@ -140,10 +141,10 @@ namespace VKE
             VKE_ASSERT( offset < m_size );
             VKE_ASSERT( offset % m_alignment == 0 );
             VKE_ASSERT( size <= m_size - offset );
-            
+
             SUpdateMemoryInfo Info;
-            Info.hBuffer = GetDDIObject();
-            Info.dataSize = size;
+            Info.hBuffer       = GetDDIObject();
+            Info.dataSize      = size;
             Info.dstDataOffset = offset;
             Info.hMemory       = m_hMemory;
             return m_pMgr->LockMemory( Info );
@@ -151,17 +152,17 @@ namespace VKE
 
         void* CBuffer::MapRegion( uint16_t regionIndex, uint16_t elementIndex )
         {
-            auto size   = GetRegionSize( regionIndex ) - ( elementIndex * m_Desc.vRegions[regionIndex].elementSize );
+            auto size   = GetRegionSize( regionIndex ) - ( elementIndex * m_Desc.vRegions[ regionIndex ].elementSize );
             auto offset = CalcAbsoluteOffset( regionIndex, elementIndex );
-            //return m_pMgr->LockMemory( offset, size, &m_hMemory );
+            // return m_pMgr->LockMemory( offset, size, &m_hMemory );
             return Map( offset, size );
         }
 
         void CBuffer::Unmap()
         {
             SUpdateMemoryInfo Info;
-            Info.hBuffer       = GetDDIObject();
-            Info.hMemory       = m_hMemory;
+            Info.hBuffer = GetDDIObject();
+            Info.hMemory = m_hMemory;
             m_pMgr->UnlockMemory( Info );
         }
 

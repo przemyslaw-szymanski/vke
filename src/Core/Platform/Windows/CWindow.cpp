@@ -614,6 +614,11 @@ namespace VKE
     bool CWindow::Update()
     {
         m_needUpdate = true;
+        if( GetThreadId() == Platform::ThisThread::GetID() )
+        {
+            auto taskResult = _UpdateTask( nullptr );
+            return taskResult != TaskResults::FAIL;
+        }
         return true;
     }
 

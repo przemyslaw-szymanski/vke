@@ -37,7 +37,6 @@ namespace VKE
             Result ret = VKE_OK;
             // Push null element
             m_PoolBuffer.Add( static_cast< RHI::DescriptorPool >( RHI::Null ) );
-            m_mLayouts[ INVALID_HANDLE ] = {};
 
             {
                 SDescriptorPoolDesc& Desc = m_aDefaultPoolDescs[ DescriptorPoolTypes::SAMPLER ];
@@ -308,7 +307,9 @@ namespace VKE
 
         RHI::DescriptorSetLayout CDescriptorSetManager::GetLayout( const DescriptorSetLayoutHandle& hLayout )
         {
-            return m_mLayouts[ (const hash_t)hLayout.handle ].hDDILayout;
+            //return m_mLayouts[ (const hash_t)hLayout.handle ].hDDILayout;
+            auto Itr = m_mLayouts.find( hLayout.handle );
+            return Itr != m_mLayouts.end() ? Itr->second.hDDILayout : RHI::Null;
         }
 
         DescriptorSetLayoutHandle CDescriptorSetManager::GetLayout( const DescriptorSetHandle& hSet )
