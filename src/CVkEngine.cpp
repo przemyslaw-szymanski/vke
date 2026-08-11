@@ -249,14 +249,19 @@ ERR:
             ( *ppReturn )->SetReady( ( pWnd ), VKE_OK );
             return TaskResults::OK;
         };
-        Threads::TCTaskReturn<WindowPtr> Return;
-        constexpr auto size = sizeof( Return );
-        ( void )size;
-        this->GetThreadPool()->AddTask( Threads::ThreadUsageBits::GENERAL, "Create Window", Func, &Return, Desc );
-        // Wait for task
-        // Task.Get(&pWnd);
-        // return pWnd;
-        return Return.Get();
+        
+        if( false )
+        {
+            Threads::TCTaskReturn< WindowPtr > Return;
+            constexpr auto                     size = sizeof( Return );
+            (void)size;
+            this->GetThreadPool()->AddTask( Threads::ThreadUsageBits::GENERAL, "Create Window", Func, &Return, Desc );
+            return Return.Get();
+        }
+        else
+        {
+            return this->_CreateWindow( Desc );
+        }
     }
     WindowPtr CVkEngine::_CreateWindow( const SWindowDesc& Desc )
     {
@@ -283,15 +288,13 @@ ERR:
             m_pPrivate->mWindows.insert( SInternal::WndMap::value_type( pWnd->GetDesc().hWnd, pWnd.Get() ) );
             m_pPrivate->mWindows2.insert( SInternal::WndMap2::value_type( Desc.pTitle, pWnd.Get() ) );
             m_WindowSyncObj.Unlock();
-            if( m_pCurrentWindow== nullptr )
+            if( m_pCurrentWindow == nullptr )
             {
                 m_currWndHandle = pWnd->GetDesc().hWnd;
                 m_pCurrentWindow = pWnd;
+                m_pCurrentWindow->_UpdateTask( nullptr );
             }
-            /*auto& WndUpdateTask = m_pPrivate->Task.aWndUpdates[idx];
-            WndUpdateTask.pWnd = pWnd.Get();
-            WndUpdateTask.Flags |= Threads::TaskFlags::RENDER_THREAD | Threads::TaskFlags::HIGH_PRIORITY;
-            WndUpdateTask.SetName( "Window Update" );*/
+
             Threads::CThreadPool::NativeThreadID ID = Threads::CThreadPool::NativeThreadID( pWnd->GetThreadId() );
             auto workerIndex = GetThreadPool()->GetThisThreadID();
             Threads::TaskFunction Func = [ & ]( void* pData ) {
@@ -307,10 +310,10 @@ ERR:
                 }
                 return ret;
             };
-            this->GetThreadPool()->AddWorkerThreadTask(
-                workerIndex, // window must be updated on the same thread as it was created
-                Threads::ThreadUsageBits::GENERAL, "Update Window", Func, ( pWnd ) );
-            // WndUpdateTask.IsActive(true);
+            //this->GetThreadPool()->AddWorkerThreadTask(
+            //    workerIndex, // window must be updated on the same thread as it was created
+            //    Threads::ThreadUsageBits::GENERAL, "Update Window", Func, ( pWnd ) );
+
         }
         return pWnd;
     }

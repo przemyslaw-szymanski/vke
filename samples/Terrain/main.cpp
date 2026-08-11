@@ -99,7 +99,7 @@ struct SGfxContextListener
     SInputListener* pInputListener;
     VKE::RenderSystem::SBeginRenderPassInfo2 m_RenderPassInfo;
 
-    VKE::Scene::LightRefPtr m_pLight;
+    //VKE::Scene::LightRefPtr m_pLight;
     VKE::WindowPtr pWindow;
     VKE::Utils::CTimer Timer;
     float frameTime = 0;
@@ -401,8 +401,8 @@ struct SGfxContextListener
             LightDesc.Name = "TerrainLight";
             LightDesc.vecPosition = pInputListener->vecLightPos;
             LightDesc.vecDirection = { 0, -1, 0 };
-            m_pLight = pScene->CreateLight( LightDesc );
-            pScene->AddDebugView( pCmdBuffer, &m_pLight );
+            //auto hLight = pScene->CreateLight( LightDesc );
+            //pScene->AddDebugView( pCmdBuffer, &m_pLight );
         }
 
         auto pUploadPass = Sample.m_pFrameGraph->GetPass( "Upload" );
@@ -524,8 +524,8 @@ struct SGfxContextListener
         {
             pInputListener->dbgCameraSpeed -= 10;
         }
-
-        m_pLight->SetPosition( pInputListener->vecLightPos );
+        /// TODO: add support for light
+        //m_pLight->SetPosition( pInputListener->vecLightPos );
         pWnd = pCtx->GetDeviceContext()
                         ->GetRenderSystem()
                         ->GetEngine()

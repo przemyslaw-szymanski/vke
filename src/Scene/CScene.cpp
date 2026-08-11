@@ -107,33 +107,9 @@ namespace VKE
             }
 
             m_vpDrawcalls.Clear();
-
-            _DestroyLights();
         }
 
-        void CScene::_DestroyLights()
-        {
-            for( uint32_t i = 0; i < LightTypes::_MAX_COUNT; ++i )
-            {
-                SLights& Lights = m_Lights[ i ];
-                for( uint32_t l = 0; l < Lights.vpLights.GetCount(); ++l )
-                {
-                    CLight* pLight = Lights.vpLights[ l ].Release();
-                    Memory::DestroyObject( &HeapAllocator, &pLight );
-                }
-                Lights.vpLights.Clear();
-                Lights.vFreeIndices.Clear();
-                Lights.vColors.Clear();
-                Lights.vDbgViews.Clear();
-                Lights.vDirections.Clear();
-                Lights.vEnableds.clear();
-                Lights.vNeedUpdates.clear();
-                Lights.vPositions.Clear();
-                Lights.vRadiuses.Clear();
-                Lights.vSortedLightData.Clear();
-                Lights.vStrengths.Clear();
-            }
-        }
+
 
         Result CScene::Init( RenderSystem::CommandBufferPtr pCmdBuffer )
         {
@@ -222,8 +198,15 @@ namespace VKE
         void CScene::_UpdateConstantBuffers( RenderSystem::CommandBufferPtr pCmdBuffer )
         {
             auto backBufferIndex = pCmdBuffer->GetBackBufferIndex();
-            // const auto& LightData = GetLight( LightTypes::DIRECTIONAL, 0 )->GetData();
-            const auto& LightDesc = GetLight( LightTypes::DIRECTIONAL, 0 )->GetDesc();
+            /// TODO: rework handling of lights
+            SLightDesc LightDesc;
+            LightDesc.vecPosition = { 0, 10, 0 };
+            LightDesc.radius      = 100.0f;
+            LightDesc.vecDirection = { 0, -1, 0 };
+            LightDesc.attenuation  = 100.0f;
+            LightDesc.Color        = RenderSystem::SColor::ONE;
+            LightDesc.Name         = "VKE_Default_Directional";
+            LightDesc.type         = LightTypes::DIRECTIONAL;
 
             void*                       pData = m_pConstantBufferCPU->MapRegion( backBufferIndex, 0 );
             RenderSystem::SBufferWriter Builder( pData, m_pConstantBufferCPU->GetRegionSize( backBufferIndex ) );
@@ -406,19 +389,7 @@ namespace VKE
 
             for( uint32_t lt = 0; lt < LightTypes::_MAX_COUNT; ++lt )
             {
-                const auto& Lights = m_Lights[ lt ];
-                for( uint32_t l = 0; l < Lights.vDbgViews.GetCount(); ++l )
-                {
-                    const auto hDbgView = Lights.vDbgViews[ l ];
-                    if( Lights.vDbgViews[ l ] != UNDEFINED_U32 )
-                    {
-                        SDebugView::SInstancingShaderData Data;
-                        const auto&                       pLight = Lights.vpLights[ l ];
-                        pLight->CalcMatrix( &Data.mtxTransform );
-                        Data.vecColor = { 0, 1, 0, 1 };
-                        m_pDebugView->UpdateInstancing( pCmdbuff, SDebugView::InstancingTypes::AABB, hDbgView, Data );
-                    }
-                }
+
             }
         }
 
@@ -756,66 +727,14 @@ namespace VKE
             m_pDebugView->Render( pCmdBuff );
         }
 
-        LightRefPtr CScene::CreateLight( const SLightDesc& Desc )
+        handle_t CScene::CreateLight( const SLightDesc& Desc )
         {
-            // Get free
-            uint32_t    idx;
-            LightRefPtr pRet;
-            SLights&    Lights = m_Lights[ Desc.type ];
-
-            if( Lights.vFreeIndices.PopBack( &idx ) )
-            {
-                pRet                       = Lights.vpLights[ idx ];
-                Lights.vColors[ idx ]      = Desc.Color;
-                Lights.vDirections[ idx ]  = Desc.vecDirection;
-                Lights.vNeedUpdates[ idx ] = true;
-                Lights.vPositions[ idx ]   = Desc.vecPosition;
-                Lights.vRadiuses[ idx ]    = Desc.radius;
-                Lights.vStrengths[ idx ]   = Desc.attenuation;
-                Lights.vDbgViews[ idx ]    = UNDEFINED_U32;
-                pRet->_Create( Desc, &Lights, idx );
-            }
-            else
-            {
-                CLight* pLight;
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pLight ) ) )
-                {
-                    idx             = Lights.vpLights.PushBack( LightRefPtr{ pLight } );
-                    pLight->m_index = idx;
-                    pLight->_Create( Desc, &Lights, idx );
-                    Lights.vColors.PushBack( Desc.Color );
-                    Lights.vDirections.PushBack( Desc.vecDirection );
-                    Lights.vPositions.PushBack( Desc.vecPosition );
-                    Lights.vRadiuses.PushBack( Desc.radius );
-                    Lights.vStrengths.PushBack( Desc.attenuation );
-                    Lights.vNeedUpdates.push_back( true );
-                    Lights.vDbgViews.PushBack( UNDEFINED_U32 );
-                    pRet = Lights.vpLights[ idx ];
-                }
-            }
-            return pRet;
+            return INVALID_HANDLE;
         }
 
         void CScene::_SortLights( LIGHT_TYPE type )
         {
-            SLights& Lights = m_Lights[ type ];
-            Lights.vSortedLightData.Clear();
-
-            for( uint32_t i = 0; i < Lights.vEnableds.size(); ++i )
-            {
-                if( Lights.vEnableds[ i ] )
-                {
-                    CLight*           pLight = Lights.vpLights[ i ].Get();
-                    const SLightDesc& Desc   = pLight->GetDesc();
-                    auto              idx    = Lights.vSortedLightData.PushBack( {} );
-                    auto&             Data   = Lights.vSortedLightData[ idx ];
-                    Data.radius              = Desc.radius;
-                    Data.attenuation         = Desc.attenuation;
-                    Data.vecColor            = { Desc.Color.r, Desc.Color.g, Desc.Color.b };
-                    Data.vecDir              = Desc.vecDirection;
-                    Data.vecPos              = Desc.vecPosition;
-                }
-            }
+            
         }
 
         void CScene::_SortLights()

@@ -115,30 +115,6 @@ namespace VKE
             bool                  debugView   = false;
         };
 
-        struct SLights
-        {
-            using Vec3Array      = Utils::TCDynamicArray< Math::CVector3, 1 >;
-            using FloatArray     = Utils::TCDynamicArray< float, 1 >;
-            using NameArray      = Utils::TCDynamicArray< ResourceName, 1 >;
-            using ColorArray     = Utils::TCDynamicArray< RenderSystem::SColor, 1 >;
-            using LightArray     = Utils::TCDynamicArray< LightRefPtr, 1 >;
-            using IndexArray     = Utils::TCDynamicArray< uint32_t, 1 >;
-            using LightDataArray = Utils::TCDynamicArray< CLight::SData, 1 >;
-            Vec3Array       vPositions;
-            Vec3Array       vDirections;
-            FloatArray      vStrengths;
-            FloatArray      vRadiuses;
-            ColorArray      vColors;
-            IndexArray      vDbgViews;
-            vke_bool_vector vNeedUpdates;
-            vke_bool_vector vEnableds;
-            LightArray      vpLights;
-            LightDataArray  vSortedLightData;
-            IndexArray      vFreeIndices;
-            uint32_t        enabledCount    = 0;
-            uint32_t        needUpdateCount = 0;
-        };
-
         struct ConstantBufferLayoutElements
         {
             enum ELEMENT : uint8_t
@@ -456,6 +432,7 @@ namespace VKE
 
             ~CScene()
             {
+                _Destroy();
             }
 
             Result Init( RenderSystem::CommandBufferPtr );
@@ -499,23 +476,22 @@ namespace VKE
 
             void Update( const SUpdateSceneInfo& );
 
-            LightRefPtr CreateLight( const SLightDesc& Desc );
-            void        DestroyLight( LightPtr );
-
-            LightRefPtr GetLight( LIGHT_TYPE type, uint32_t idx ) const
-            {
-                return m_Lights[ type ].vpLights[ idx ];
-            }
-
             RenderSystem::DescriptorSetHandle GetBindings() const
             {
                 return m_hCurrentBindings;
             }
 
+            /// <summary>
+            /// TODO: currently noop. Will be implemented or replaced with Object Component System mechanism.
+            /// </summary>
+            /// <param name=""></param>
+            /// <returns></returns>
+            handle_t CreateLight( const SLightDesc& );
+
         protected:
             Result                _Create( const SSceneDesc& );
             void                  _Destroy();
-            void                  _DestroyLights();
+
             void                  _FrustumCullDrawcalls( const Math::CFrustum& Frustum );
             void                  _SortDrawcalls( const Math::CFrustum& Frustum );
             void                  _Draw( VKE::RenderSystem::CommandBufferPtr );
@@ -546,8 +522,6 @@ namespace VKE
             RenderSystem::CDeviceContext* m_pDeviceCtx  = nullptr;
             CameraArray                   m_vCameras;
             FrustumArray                  m_vFrustums;
-            LightsArray                   m_Lights;
-            LightsArray                   m_SortedLights;
             DrawcallArray                 m_vpDrawcalls;
             DrawcallArray                 m_vpAlwaysVisibleDrawcalls;
             DrawcallArrayArray            m_vpVisibleLayerDrawcalls;
