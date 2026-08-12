@@ -98,7 +98,7 @@ set(VKE_ENUM_STRINGS_SCRIPT   "${CMAKE_SOURCE_DIR}/tools/gen_enum_strings.py")
 set(VKE_ENUM_STRINGS_INPUT    "${INCLUDE_DIR}/RenderSystem/Common.h")
 set(VKE_ENUM_STRINGS_OUTPUT   "${INCLUDE_DIR}/RenderSystem/CommonEnumStrings.h")
 
-set(SRC_DIRS
+set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/Common.cpp"
     "${SOURCE_DIR}/RenderSystem/CComputeContext.cpp"
     "${SOURCE_DIR}/RenderSystem/CCommandBuffer.cpp"
