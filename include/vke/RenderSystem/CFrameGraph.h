@@ -290,10 +290,14 @@ namespace VKE::RenderSystem
 
         using ThreadDataPtrArray = Utils::TCDynamicArray< SThreadData* >;
 
+        using NodeFlagArray = Utils::TCDynamicArray<FrameGraphNodeFlagBits>;
+        using ArrayOfNodeFlagArrays = Utils::TCDynamicArray< NodeFlagArray, 64 >;
+
     public:
 
         using OnCreateNodeCallback = std::function< Result( CFrameGraphNode** ) >;
         using NodeArray            = Utils::TCDynamicArray< CFrameGraphNode* >;
+        using ArrayOfNodeArrays    = Utils::TCDynamicArray< NodeArray, 64 >;
 
     public:
         CFrameGraphNode*        CreatePass( OnCreateNodeCallback&& );
@@ -319,6 +323,7 @@ namespace VKE::RenderSystem
         }
 
         void QueryNodes( FrameGraphNodeFlagBits Flags, NodeArray* pOut ) const;
+        CFrameGraphNode* QueryNode( FrameGraphNodeFlagBits Flags ) const;
 
         /*const RHI::CPUFence& GetFrameCPUFence( uint8_t backBufferIndex ) const
         {
@@ -494,6 +499,8 @@ namespace VKE::RenderSystem
         CFrameGraphNode* m_pLastNode = nullptr;
         NodePtrArray     m_vpNextNodes;
         SCounterManager  m_CounterMgr;
+        ArrayOfNodeFlagArrays m_vvNodeFlags;
+        ArrayOfNodeArrays m_vvpNodesPerFlag;
 
         // Scene::CScene*      m_pScene = nullptr;
         Scene::ScenePtr m_pScene;
@@ -530,6 +537,16 @@ namespace VKE::RenderSystem
                     if( _GetNode< T >( pNode->m_Name.GetData() ) == nullptr )
                     {
                         m_mNodes.insert( std::pair( pNode->m_Name.CalcHash(), pNode ) );
+                        // Add this node for every flag it has set
+                        FrameGraphNodeFlagBits Flags = pNode->m_Flags;
+                        for( uint8_t bitIndex = 0; bitIndex < 64; ++bitIndex )
+                        {
+                            if( Flags.IsBitSet( bitIndex ) )
+                            {
+                                m_vvpNodesPerFlag[bitIndex].PushBack( pNode );
+                                m_vvNodeFlags[ bitIndex ].PushBack( Flags );
+                            }
+                        }
                     }
                     else
                     {

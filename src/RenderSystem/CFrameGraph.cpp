@@ -19,6 +19,8 @@ namespace VKE::RenderSystem
     {
         Result ret = VKE_FAIL;
         m_Desc     = Desc;
+        m_vvpNodesPerFlag.Resize( 64 );
+        m_vvNodeFlags.Resize( 64 );
         // VKE_ASSERT( Desc.Size != TextureSize{ 0, 0 } );
         if( Desc.Size != TextureSize{ 0, 0 } )
         {
@@ -1098,6 +1100,42 @@ namespace VKE::RenderSystem
 
     void CFrameGraph::QueryNodes(FrameGraphNodeFlagBits Flags, NodeArray* pOut) const
     {
+        for( uint8_t bitIndex = 0; bitIndex < 64; ++bitIndex )
+        {
+            if( Flags.IsBitSet( bitIndex ) )
+            {
+                const auto& vFlags = m_vvNodeFlags[ bitIndex ];
+                for( uint32_t i = 0; i < vFlags.GetCount(); ++i )
+                {
+                    const auto& NodeFlags = vFlags[ i ];
+                    // check if flags for this node match the requested flags
+                    if( NodeFlags.Contains( Flags ) )
+                    {
+                        pOut->PushBack( m_vvpNodesPerFlag[ bitIndex ][ i ] );
+                    }
+                }
+            }
+        }
+    }
 
+    CFrameGraphNode* CFrameGraph::QueryNode(FrameGraphNodeFlagBits Flags) const
+    {
+        for( uint8_t bitIndex = 0; bitIndex < 64; ++bitIndex )
+        {
+            if( Flags.IsBitSet( bitIndex ) )
+            {
+                const auto& vFlags = m_vvNodeFlags[ bitIndex ];
+                for( uint32_t i = 0; i < vFlags.GetCount(); ++i )
+                {
+                    const auto& NodeFlags = vFlags[ i ];
+                    // check if flags for this node match the requested flags
+                    if( NodeFlags.Contains( Flags ) )
+                    {
+                        return( m_vvpNodesPerFlag[ bitIndex ][ i ] );
+                    }
+                }
+            }
+        }
+        return nullptr;
     }
 } // namespace VKE::RenderSystem
