@@ -294,6 +294,11 @@ namespace VKE::RenderSystem
             return m_hRHIRenderPass;
         }
 
+        Result Create(const SFrameGraphPassDesc& Desc)
+        {
+            return _Create( Desc );
+        }
+
     protected:
         Result _Create( const SFrameGraphPassDesc& );
         void   _Destroy();

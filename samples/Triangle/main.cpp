@@ -98,19 +98,30 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             return true;
         }, nullptr );
 
-        auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "Triangle" } );
-        pRenderFrame->SetWorkload( [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx )
+        auto pRenderFrame = pFrameGraph->CreatePass( [&]( VKE::RenderSystem::CFrameGraphNode** ppNode )
         {
-            auto        pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
-            
-            if( pPipeline!= nullptr && pPipeline->IsResourceReady() )
+            auto                                   pNode = ( *ppNode );
+            VKE::RenderSystem::SFrameGraphNodeDesc Desc;
+            Desc.pName = "Triangle";
+            VKE::Result ret = pNode->Create( Desc );
+            if( VKE_SUCCEEDED( ret ) )
             {
-                pCmdBuffer->Bind( pPipeline );
-                pCmdBuffer->Bind( pVb );
-                pCmdBuffer->Draw( 3 );
+                pNode->SetWorkload(
+                    [ & ]( VKE::RenderSystem::CFrameGraphNode* const pPass, uint8_t backBufferIdx ) {
+                        auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIdx );
+
+                        if( pPipeline != nullptr && pPipeline->IsResourceReady() )
+                        {
+                            pCmdBuffer->Bind( pPipeline );
+                            pCmdBuffer->Bind( pVb );
+                            pCmdBuffer->Draw( 3 );
+                        }
+                        return VKE::VKE_OK;
+                    } );
             }
-            return VKE::VKE_OK;
+            return ret;
         } );
+        
         
         pPass->AddSubpass( pRenderFrame );
         pFrameGraph->Build();

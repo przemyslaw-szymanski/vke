@@ -293,6 +293,7 @@ namespace VKE::RenderSystem
     public:
 
         using OnCreateNodeCallback = std::function< Result( CFrameGraphNode** ) >;
+        using NodeArray            = Utils::TCDynamicArray< CFrameGraphNode* >;
 
     public:
         CFrameGraphNode*        CreatePass( OnCreateNodeCallback&& );
@@ -316,6 +317,8 @@ namespace VKE::RenderSystem
             m_pRootNode = pNode;
             return m_pRootNode;
         }
+
+        void QueryNodes( FrameGraphNodeFlagBits Flags, NodeArray* pOut ) const;
 
         /*const RHI::CPUFence& GetFrameCPUFence( uint8_t backBufferIndex ) const
         {
@@ -373,8 +376,6 @@ namespace VKE::RenderSystem
         {
             return m_aFrameData[ backBufferIndex ].hFrameFence;
         }
-
-        
 
     protected:
         Result _Create( const SFrameGraphDesc& );

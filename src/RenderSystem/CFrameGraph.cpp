@@ -105,6 +105,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "LoadTextures";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags          = FrameGraphNodeFlags::LOAD_FILES | FrameGraphNodeFlags::PROCESS_TEXTURES;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -113,6 +114,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "LoadBuffers";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags          = FrameGraphNodeFlags::LOAD_FILES | FrameGraphNodeFlags::PROCESS_BUFFERS;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -121,6 +123,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "BufferUpload";
                         Desc.pCommandBuffer = "Upload";
+                        Desc.Flags          = FrameGraphNodeFlags::UPLOAD | FrameGraphNodeFlags::PROCESS_BUFFERS;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -130,6 +133,7 @@ namespace VKE::RenderSystem
                         Desc.pName = "CompileShaders";
                         //.pThread = "CompileShaders";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags          = FrameGraphNodeFlags::COMPILE_DATA | FrameGraphNodeFlags::PROCESS_SCRIPTS;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -138,6 +142,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "UploadTextures";
                         Desc.pCommandBuffer = "Upload";
+                        Desc.Flags          = FrameGraphNodeFlags::UPLOAD | FrameGraphNodeFlags::PROCESS_TEXTURES;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -146,6 +151,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "GenMipmaps";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags = FrameGraphNodeFlags::GENERATE_DATA | FrameGraphNodeFlags::PROCESS_TEXTURES;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -154,6 +160,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "Load";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags          = FrameGraphNodeFlags::LOAD_FILES;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -162,6 +169,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "Upload";
                         Desc.pCommandBuffer = "Upload";
+                        Desc.Flags          = FrameGraphNodeFlags::UPLOAD;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -170,6 +178,8 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "SceneUpdate";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags = FrameGraphNodeFlags::RESOURCE_UPDATE |
+                                     FrameGraphNodeFlags::FRAME_UPDATE;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -178,6 +188,8 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "Update";
                         Desc.pCommandBuffer = "Update";
+                        Desc.Flags = FrameGraphNodeFlags::RESOURCE_UPDATE | FrameGraphNodeFlags::COMPUTE_UPDATE |
+                                     FrameGraphNodeFlags::RENDER_UPDATE;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -186,6 +198,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "ExecuteUpload";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags = FrameGraphNodeFlags::EXECUTE_COMMAND_BUFFERS | FrameGraphNodeFlags::SIGNAL_GPU_FENCE;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
                     } );
@@ -194,6 +207,7 @@ namespace VKE::RenderSystem
                         SFrameGraphNodeDesc Desc;
                         Desc.pName = "ExecuteUpdate";
                         Desc.pCommandBuffer = nullptr;
+                        Desc.Flags = FrameGraphNodeFlags::EXECUTE_COMMAND_BUFFERS | FrameGraphNodeFlags::SIGNAL_GPU_FENCE;
                         Desc.gpuFenceValue = 1;
                         Result ret = ( *ppNode )->_Create( Desc );
                         return ret;
@@ -1080,5 +1094,10 @@ namespace VKE::RenderSystem
     void CFrameGraph::_IsNodeEnabled( CFrameGraphNode** ppCurrNode, bool isEnabled )
     {
         // auto pCurrNode = *ppCurrNode;
+    }
+
+    void CFrameGraph::QueryNodes(FrameGraphNodeFlagBits Flags, NodeArray* pOut) const
+    {
+
     }
 } // namespace VKE::RenderSystem

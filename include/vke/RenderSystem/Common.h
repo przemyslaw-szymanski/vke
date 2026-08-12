@@ -3574,7 +3574,8 @@ namespace VKE
                 LOAD_FILES              = VKE_BIT( 20 ),
                 SIGNAL_GPU_FENCE        = VKE_BIT( 21 ),
                 SIGNAL_THREAD_FENCE     = VKE_BIT( 22 ),
-                _LAST_BIT               = 22
+                FRAME_UPDATE            = VKE_BIT( 23 ),
+                _LAST_BIT               = 23
             };
         };
 
