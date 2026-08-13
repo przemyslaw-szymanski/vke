@@ -67,7 +67,6 @@ namespace VKE::RenderSystem::D3D12
                 UINT64 GetCompletedValue();
                 UINT64 GetSignaledValue();
 
-                // Formatted once on first request, then cached. No heap allocation.
                 vke_force_inline const char* GetFenceName()
                 {
                     if( aFenceName[ 0 ] == '\0' )
@@ -91,23 +90,27 @@ namespace VKE::RenderSystem::D3D12
 
             struct SCommandBufferPool
             {
-                D3D12_COMMAND_LIST_TYPE NativeType = D3D12_COMMAND_LIST_TYPE_DIRECT;
-                uint8_t                 EngineType = 0;
-
                 struct SCommandListWithAllocator
                 {
                     NativeAPI::D3D12CommandAllocator*    pAllocator = nullptr;
                     NativeAPI::D3D12GraphicsCommandList* pCmdList   = nullptr;
                 };
 
-                Utils::TCDynamicArray< SCommandListWithAllocator, 32 > vCommandListsWithAllocators;
+                Utils::TCDynamicArray< SCommandListWithAllocator, 32 > vNativeCommandListsWithAllocators;
 
-                NativeAPI::D3D12CommandAllocator* getAllocator( NativeAPI::D3D12GraphicsCommandList* pCommandList )
+                D3D12_COMMAND_LIST_TYPE NativeType = D3D12_COMMAND_LIST_TYPE_DIRECT;
+                uint32_t                EngineType = 0;
+
+            protected:
+                wstr_t m_name;
+
+            public:
+                NativeAPI::D3D12CommandAllocator* GetAllocator( NativeAPI::D3D12GraphicsCommandList* pNativeCommandList )
                 {
                     NativeAPI::D3D12CommandAllocator* out = nullptr;
-                    for( auto& Pair: vCommandListsWithAllocators )
+                    for( auto& Pair: vNativeCommandListsWithAllocators )
                     {
-                        if( Pair.pCmdList == pCommandList )
+                        if( Pair.pCmdList == pNativeCommandList )
                         {
                             out = Pair.pAllocator;
                             break;
@@ -116,13 +119,10 @@ namespace VKE::RenderSystem::D3D12
                     return out;
                 }
 
-                void SetName( cwstr_t pName )
+                void SetName( cwstr_t name )
                 {
-                    m_pName = pName;
+                    m_name = name;
                 }
-
-            protected:
-                wstr_t m_pName;
             };
 
             struct SDescriptorSetLayout
@@ -571,13 +571,12 @@ namespace VKE::RenderSystem::D3D12
         SDescriptorHeapInfo* GetDescriptorHeap( const NativeAPI::Device& pDevice, D3D12_DESCRIPTOR_HEAP_TYPE Type,
                                                 D3D12_DESCRIPTOR_HEAP_FLAGS Flags );
 
-        NativeAPI::Fence     m_pGlobalFence = nullptr;
+        NativeAPI::Fence m_pGlobalFence = nullptr;
 
         void ReleaseDescriptorHeaps();
 
     private:
         Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
-
     };
 
 } // namespace VKE::RenderSystem::D3D12

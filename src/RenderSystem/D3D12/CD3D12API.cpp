@@ -954,6 +954,115 @@ namespace VKE::RenderSystem::D3D12
             return ascNativeMap[ static_cast< size_t >( EngineStencilOp ) ];
         }
 
+        D3D12_UAV_DIMENSION DimmensionToUAVDimmension( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_UAV_DIMENSION cValues[] = {
+                D3D12_UAV_DIMENSION_UNKNOWN,   // unknown
+                D3D12_UAV_DIMENSION_BUFFER,    // buffer
+                D3D12_UAV_DIMENSION_TEXTURE1D, // texture 1d
+                D3D12_UAV_DIMENSION_TEXTURE2D, // texture 2d
+                D3D12_UAV_DIMENSION_TEXTURE3D, // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_UAV_DIMENSION DimmensionToUAVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_UAV_DIMENSION cValues[] = {
+                D3D12_UAV_DIMENSION_UNKNOWN,        // unknown
+                D3D12_UAV_DIMENSION_BUFFER,         // buffer
+                D3D12_UAV_DIMENSION_TEXTURE1DARRAY, // texture 1d
+                D3D12_UAV_DIMENSION_TEXTURE2DARRAY, // texture 2d
+                D3D12_UAV_DIMENSION_TEXTURE3D,      // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_SRV_DIMENSION DimmensionToSRVDimmension( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_SRV_DIMENSION cValues[] = {
+                D3D12_SRV_DIMENSION_UNKNOWN,   // unknown
+                D3D12_SRV_DIMENSION_BUFFER,    // buffer
+                D3D12_SRV_DIMENSION_TEXTURE1D, // texture 1d
+                D3D12_SRV_DIMENSION_TEXTURE2D, // texture 2d
+                D3D12_SRV_DIMENSION_TEXTURE3D, // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_SRV_DIMENSION DimmensionToSRVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
+        {
+            const D3D12_SRV_DIMENSION cValues[] = {
+                D3D12_SRV_DIMENSION_UNKNOWN,        // unknown
+                D3D12_SRV_DIMENSION_BUFFER,         // buffer
+                D3D12_SRV_DIMENSION_TEXTURE1DARRAY, // texture 1d
+                D3D12_SRV_DIMENSION_TEXTURE2DARRAY, // texture 2d
+                D3D12_SRV_DIMENSION_TEXTURE3D,      // texture 3d
+            };
+            return cValues[ dim ];
+        }
+
+        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorPoolTypeToDescriptorHeapType( RenderSystem::DESCRIPTOR_POOL_TYPE type )
+        {
+            /*
+            struct DescriptorPoolTypes
+            {
+                enum TYPE
+                {
+                    TEXTURE_BUFFER_CBUFFER,
+                    SAMPLER,
+                    RENDER_TARGET,
+                    DEPTH_STENCIL,
+                    _MAX_COUNT
+                };
+            };
+            */
+            static const D3D12_DESCRIPTOR_HEAP_TYPE scValues[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+                D3D12_DESCRIPTOR_HEAP_TYPE_DSV
+            };
+            return scValues[ type ];
+        }
+
+        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorBindingTypeToHeapType( RenderSystem::BINDING_TYPE type )
+        {
+            /*struct BindingTypes
+            {
+                enum TYPE : uint8_t
+                {
+                    SAMPLER,             // only sampler
+                    TEXTURE,             // only texture without sampler
+                    STORAGE_TEXTURE,
+                    READ_ONLY_TEXEL_BUFFER,
+                    READ_WRITE_TEXEL_BUFFER,
+                    CONSTANT_BUFFER,
+                    BUFFER,
+                    DYNAMIC_CONSTANT_BUFFER,
+                    DYNAMIC_BUFFER,
+                    RENDER_TARGET,
+                    DEPTH_STENCIL,
+                    _MAX_COUNT,
+                    UNKNOWN = _MAX_COUNT
+                };
+            };*/
+            static const D3D12_DESCRIPTOR_HEAP_TYPE ascValues[ RenderSystem::BindingTypes::_MAX_COUNT ] = {
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // sampler
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // texture
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // storage tex
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // ro tex buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // rw tex buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // cbuff
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // buffer
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn cbuffer
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn buff
+                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,         // render target
+                D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES    // depth stencil
+            };
+            return ascValues[ type ];
+        }
+
     }; // namespace Map
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -2427,32 +2536,6 @@ namespace VKE::RenderSystem::D3D12
 
     // Object methods
 
-    void BitTest()
-    {
-        Utils::TCBitPool< uint8_t > Pool;
-        Pool.Create( 100 );
-        Utils::TCDynamicArray< ExtentU32 > vAllocated;
-
-        for( uint32_t i = 0; i < 20; ++i )
-        {
-            uint32_t s         = rand() % 15;
-            uint32_t firstSlot = Pool.AllocateSlots( s );
-            Pool.Print( std::format( "+({},{})", firstSlot, s ) );
-
-            bool doFree = vAllocated.GetCount() > 4 && ( ( rand() % 12 ) % 3 == 0 );
-
-            if( doFree )
-            {
-                s       = rand() % vAllocated.GetCount();
-                auto al = vAllocated[ s ];
-                Pool.FreeSlots( al.begin, al.end );
-                vAllocated.RemoveFast( s );
-                Pool.Print( std::format( "-({},{})", al.begin, al.end ) );
-            }
-            vAllocated.PushBack( { firstSlot, s } );
-        }
-    }
-
     Result CD3D12API::CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx )
     {
         D3D12_RHI_LOG( "CD3D12API::CreateDevice" );
@@ -2828,118 +2911,6 @@ namespace VKE::RenderSystem::D3D12
             *pInOut        = RHI::Null;
         }
     }
-
-    namespace Map
-    {
-        D3D12_UAV_DIMENSION DimmensionToUAVDimmension( D3D12_RESOURCE_DIMENSION dim )
-        {
-            const D3D12_UAV_DIMENSION cValues[] = {
-                D3D12_UAV_DIMENSION_UNKNOWN,   // unknown
-                D3D12_UAV_DIMENSION_BUFFER,    // buffer
-                D3D12_UAV_DIMENSION_TEXTURE1D, // texture 1d
-                D3D12_UAV_DIMENSION_TEXTURE2D, // texture 2d
-                D3D12_UAV_DIMENSION_TEXTURE3D, // texture 3d
-            };
-            return cValues[ dim ];
-        }
-
-        D3D12_UAV_DIMENSION DimmensionToUAVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
-        {
-            const D3D12_UAV_DIMENSION cValues[] = {
-                D3D12_UAV_DIMENSION_UNKNOWN,        // unknown
-                D3D12_UAV_DIMENSION_BUFFER,         // buffer
-                D3D12_UAV_DIMENSION_TEXTURE1DARRAY, // texture 1d
-                D3D12_UAV_DIMENSION_TEXTURE2DARRAY, // texture 2d
-                D3D12_UAV_DIMENSION_TEXTURE3D,      // texture 3d
-            };
-            return cValues[ dim ];
-        }
-
-        D3D12_SRV_DIMENSION DimmensionToSRVDimmension( D3D12_RESOURCE_DIMENSION dim )
-        {
-            const D3D12_SRV_DIMENSION cValues[] = {
-                D3D12_SRV_DIMENSION_UNKNOWN,   // unknown
-                D3D12_SRV_DIMENSION_BUFFER,    // buffer
-                D3D12_SRV_DIMENSION_TEXTURE1D, // texture 1d
-                D3D12_SRV_DIMENSION_TEXTURE2D, // texture 2d
-                D3D12_SRV_DIMENSION_TEXTURE3D, // texture 3d
-            };
-            return cValues[ dim ];
-        }
-
-        D3D12_SRV_DIMENSION DimmensionToSRVDimmensionArray( D3D12_RESOURCE_DIMENSION dim )
-        {
-            const D3D12_SRV_DIMENSION cValues[] = {
-                D3D12_SRV_DIMENSION_UNKNOWN,        // unknown
-                D3D12_SRV_DIMENSION_BUFFER,         // buffer
-                D3D12_SRV_DIMENSION_TEXTURE1DARRAY, // texture 1d
-                D3D12_SRV_DIMENSION_TEXTURE2DARRAY, // texture 2d
-                D3D12_SRV_DIMENSION_TEXTURE3D,      // texture 3d
-            };
-            return cValues[ dim ];
-        }
-
-        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorPoolTypeToDescriptorHeapType( RenderSystem::DESCRIPTOR_POOL_TYPE type )
-        {
-            /*
-            struct DescriptorPoolTypes
-            {
-                enum TYPE
-                {
-                    TEXTURE_BUFFER_CBUFFER,
-                    SAMPLER,
-                    RENDER_TARGET,
-                    DEPTH_STENCIL,
-                    _MAX_COUNT
-                };
-            };
-            */
-            static const D3D12_DESCRIPTOR_HEAP_TYPE scValues[ D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES ] = {
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-                D3D12_DESCRIPTOR_HEAP_TYPE_DSV
-            };
-            return scValues[ type ];
-        }
-
-        D3D12_DESCRIPTOR_HEAP_TYPE DescriptorBindingTypeToHeapType( RenderSystem::BINDING_TYPE type )
-        {
-            /*struct BindingTypes
-            {
-                enum TYPE : uint8_t
-                {
-                    SAMPLER,             // only sampler
-                    TEXTURE,             // only texture without sampler
-                    STORAGE_TEXTURE,
-                    READ_ONLY_TEXEL_BUFFER,
-                    READ_WRITE_TEXEL_BUFFER,
-                    CONSTANT_BUFFER,
-                    BUFFER,
-                    DYNAMIC_CONSTANT_BUFFER,
-                    DYNAMIC_BUFFER,
-                    RENDER_TARGET,
-                    DEPTH_STENCIL,
-                    _MAX_COUNT,
-                    UNKNOWN = _MAX_COUNT
-                };
-            };*/
-            static const D3D12_DESCRIPTOR_HEAP_TYPE ascValues[ RenderSystem::BindingTypes::_MAX_COUNT ] = {
-                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,     // sampler
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // texture
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // storage tex
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // ro tex buff
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // rw tex buff
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // cbuff
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // buffer
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn cbuffer
-                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, // dyn buff
-                D3D12_DESCRIPTOR_HEAP_TYPE_RTV,         // render target
-                D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES    // depth stencil
-            };
-            return ascValues[ type ];
-        }
-    } // namespace Map
 
     RHI::TextureView CD3D12API::CreateTextureViewImpl( const STextureViewDesc& TextureViewDesc, const void* pAllocator )
     {
@@ -3424,7 +3395,7 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::CommandBufferPool pNativeCommandBufferPool = ToNative( *pInOut );
         if( pNativeCommandBufferPool != NativeAPI::Null )
         {
-            for( auto& NativeCommandListWithAllocator: pNativeCommandBufferPool->vCommandListsWithAllocators )
+            for( auto& NativeCommandListWithAllocator: pNativeCommandBufferPool->vNativeCommandListsWithAllocators )
             {
                 NativeCommandListWithAllocator.pCmdList->Release();
                 NativeCommandListWithAllocator.pCmdList = NativeAPI::Null;
@@ -4115,7 +4086,7 @@ namespace VKE::RenderSystem::D3D12
             Pair.pCmdList->Close();
             pBuffers[ i ] = FromNative< RHI::CommandBuffer >( Pair.pCmdList );
 
-            ToNative( Info.hDDIPool )->vCommandListsWithAllocators.PushBack( Pair );
+            ToNative( Info.hDDIPool )->vNativeCommandListsWithAllocators.PushBack( Pair );
         }
 
         return result;
@@ -4488,7 +4459,7 @@ namespace VKE::RenderSystem::D3D12
                                             const RHI::CommandBufferPool& hCommandBufferPool )
     {
         NativeAPI::D3D12CommandAllocator* pCommandAllocator =
-            ToNative( hCommandBufferPool )->getAllocator( ToNative( hCommandBuffer ) );
+            ToNative( hCommandBufferPool )->GetAllocator( ToNative( hCommandBuffer ) );
         VKE_ASSERT( pCommandAllocator != nullptr );
 
         if( FAILED( pCommandAllocator->Reset() ) )
