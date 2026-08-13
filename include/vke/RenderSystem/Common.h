@@ -3123,15 +3123,9 @@ namespace VKE
 
         struct SBindVertexBufferInfo
         {
-            CCommandBuffer* pCmdBuffer;
-            CVertexBuffer*  pBuffer;
-            size_t          offset;
-        };
-
-        struct SBindVertexBufferInfo2
-        {
             RHI::CommandBuffer hDDICommandBuffer;
             RHI::Buffer        hDDIBuffer;
+            RHI::Pipeline      hDDIPipeline;
             uint32_t           offset;
         };
 
@@ -3649,7 +3643,7 @@ namespace VKE
 
         struct SAllocateMemoryData
         {
-            RHI::MemoryHeap  hDDIMemory;
+            RHI::MemoryHeap  hDDIMemory = RHI::Null;
             uint32_t         sizeLeft;
             MEMORY_HEAP_TYPE heapType;
         };

@@ -32,16 +32,16 @@ namespace VKE
             {
                 RHI::Texture     hDDITexture     = RHI::Null;
                 RHI::TextureView hDDITextureView = RHI::Null;
-                TEXTURE_STATE          currentState    = TextureStates::UNDEFINED;
-                TEXTURE_STATE          oldState        = TextureStates::UNDEFINED;
+                TEXTURE_STATE    currentState    = TextureStates::UNDEFINED;
+                TEXTURE_STATE    oldState        = TextureStates::UNDEFINED;
                 RHI::Framebuffer hDDIFramebuffer = RHI::Null;
             };
 
             Threads::SyncObject SyncObj;
             SAcquireElement*    pAcquiredElement               = nullptr;
-            RHI::GPUFence hDDIPresentImageReadySemaphore = RHI::Null;
-            RHI::GPUFence hDDIQueueFinishedSemaphore     = RHI::Null;
-            RHI::CPUFence hDDIPresentImageReadyFence     = RHI::Null;
+            RHI::GPUFence       hDDIPresentImageReadySemaphore = RHI::Null;
+            RHI::GPUFence       hDDIQueueFinishedSemaphore     = RHI::Null;
+            RHI::CPUFence       hDDIPresentImageReadyFence     = RHI::Null;
             RenderTargetHandle  hRenderTarget                  = INVALID_HANDLE;
             uint32_t            ddiBackBufferIdx               = 0;
             bool                presentDone                    = true;
@@ -81,13 +81,13 @@ namespace VKE
                 /// For every frame it can be different index.
                 /// It is not related to index of this back buffer.
                 /// </summary>
-                //uint32_t            swapChainBufferIndex = UNDEFINED_U32;
-                RHI::GPUFence hGPUFence            = RHI::Null;
-                RHI::CPUFence hCPUFence            = RHI::Null;
-                RHI::GPUFence hExternalGPUFence    = RHI::Null;
-                RHI::CPUFence hExternalCpuFence    = RHI::Null;
-                RHI::Fence    hFence                = RHI::Null;
-                RHI::FenceValue fenceValue          = 1;
+                // uint32_t            swapChainBufferIndex = UNDEFINED_U32;
+                RHI::GPUFence   hGPUFence         = RHI::Null;
+                RHI::CPUFence   hCPUFence         = RHI::Null;
+                RHI::GPUFence   hExternalGPUFence = RHI::Null;
+                RHI::CPUFence   hExternalCpuFence = RHI::Null;
+                RHI::Fence      hFence            = RHI::Null;
+                RHI::FenceValue fenceValue        = 1;
                 /// <summary>
                 /// Index of this back buffer
                 /// </summary>
@@ -121,11 +121,11 @@ namespace VKE
             Result                           SwapBuffers();
             Result                           SwapBuffers( const RHI::GPUFence&, const RHI::CPUFence& );
             Result                           SwapBuffers( RHI::Fence hFrameFence );
-            Result Present( const SPresentInfo& Info );
-            void   NotifyPresent();
-            void   Invalidate();
+            Result                           Present( const SPresentInfo& Info );
+            void                             NotifyPresent();
+            void                             Invalidate();
 
-            TextureRefPtr              GetBackBufferTexture();
+            TextureRefPtr        GetBackBufferTexture();
             const RHI::GPUFence& GetBackBufferGPUFence() const;
 
             const SSwapChainDesc& GetDesc() const
@@ -195,6 +195,7 @@ namespace VKE
             }
 
             Result _CreateBackBuffers( uint32_t count, CommandBufferPtr );
+            void   _DestroyBackBuffers();
 
             BackBufferVec& _GetBackBuffers()
             {

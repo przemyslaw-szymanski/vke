@@ -90,6 +90,14 @@ namespace VKE
 
         void CDeviceMemoryManager::Destroy()
         {
+            for( uint32_t i = 0; i < m_PoolBuffer.vPool.GetCount(); i++ )
+            {
+                auto& Pool = m_PoolBuffer.vPool[ i ];
+                if( Pool.Data.hDDIMemory != RHI::Null )
+                {
+                    m_pCtx->RHI().Free( &m_PoolBuffer.vPool[ i ].Data.hDDIMemory );
+                }
+            }
         }
 
         handle_t CDeviceMemoryManager::_CreatePool( const SCreateMemoryPoolDesc& Desc )

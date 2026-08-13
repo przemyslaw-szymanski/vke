@@ -169,6 +169,7 @@ int main()
                 Sample.Start();
             }
         }
+        VKE_DELETE( apListeners[ 0 ] );
         Sample.Destroy();
     }
 

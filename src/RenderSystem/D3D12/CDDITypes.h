@@ -59,10 +59,10 @@ namespace VKE::RenderSystem::D3D12
                 HANDLE                 hEvent  = nullptr;
                 UINT64                 Value   = 0;
 
-                void Signal( UINT64 Value );
-                void Wait( UINT64 Value, DWORD timeout = INFINITE );
-                void Signal( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
-                void Wait( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
+                void        Signal( UINT64 Value );
+                VKE::Result Wait( UINT64 Value, DWORD timeout = INFINITE );
+                void        Signal( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
+                void        Wait( NativeAPI::D3D12CommandQueue* pQueue, UINT64 Value );
 
                 UINT64 GetCompletedValue();
                 UINT64 GetSignaledValue();
@@ -290,7 +290,7 @@ namespace VKE::RenderSystem::D3D12
                 SClear                                                           Clear;
 
                 // For pipeline states created with render passes
-                UINT        NumRenderTargetViews = 0;
+                UINT        NumRenderTargetViews                          = 0;
                 DXGI_FORMAT RenderTargetViewFormats[ MAX_RENDER_TARGETS ] = { DXGI_FORMAT_UNKNOWN };
                 DXGI_FORMAT DepthStencilRenderTargetFormat;
 
@@ -336,15 +336,13 @@ namespace VKE::RenderSystem::D3D12
 
             struct SPipelineStateObject
             {
-                enum PipelineStateObjectType : uint8_t
+                enum PipelineStateObjectType : uint16_t
                 {
                     GRAPHICS,
                     COMPUTE,
                     MESH,
                     RAYTRACING,
                 };
-
-                PipelineStateObjectType Type;
 
                 union
                 {
@@ -353,6 +351,10 @@ namespace VKE::RenderSystem::D3D12
                     NativeAPI::D3D12PipelineState* Mesh;
                     ID3D12StateObject*             Raytracing;
                 };
+
+                D3D_PRIMITIVE_TOPOLOGY  PrimitiveTopology;
+                PipelineStateObjectType Type;
+                uint16_t                VertexBufferStride;
             };
         }; // struct CustomTypes
 
@@ -409,7 +411,7 @@ namespace VKE::RenderSystem::D3D12
         };
 
         using Buffer                = D3D12Resource*;
-        using Pipeline              = D3D12PipelineState*;
+        using Pipeline              = CustomTypes::SPipelineStateObject*;
         using Texture               = D3D12Resource*;
         using Sampler               = D3D12_SAMPLER_DESC*;
         using RenderPass            = CustomTypes::SRenderPass*;
@@ -571,8 +573,11 @@ namespace VKE::RenderSystem::D3D12
 
         NativeAPI::Fence     m_pGlobalFence = nullptr;
 
+        void ReleaseDescriptorHeaps();
+
     private:
         Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
+
     };
 
 } // namespace VKE::RenderSystem::D3D12

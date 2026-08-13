@@ -106,6 +106,11 @@ namespace VKE::RenderSystem
 
     void CFrameGraphNode::_Destroy()
     {
+        if( m_hRHIRenderPass != RHI::Null )
+        {
+            m_pContext->GetDeviceContext()->DestroyRenderPass( &m_hRHIRenderPass );
+        }
+        
     }
 
     Result CFrameGraphNode::OnWorkloadBegin( uint8_t backBufferIndex )

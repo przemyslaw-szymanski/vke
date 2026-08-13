@@ -3399,9 +3399,19 @@ namespace VKE
         void CVulkanAPI::DestroyRenderPassImpl( RHI::RenderPass* phRenderPass, const void* pAllocator )
         {
             NativeAPI::RenderPass pPass = ToNative( *phRenderPass );
-            if( pPass != NativeAPI::Null && pPass->hNativeRenderPass != NativeAPI::Null )
+            if( pPass == NativeAPI::Null )
+            {
+                return;
+            }
+
+            if( pPass->hNativeRenderPass != NativeAPI::Null )
             {
                 m_pImplementation->m_ICD.vkDestroyRenderPass( m_pImplementation->m_hDevice, pPass->hNativeRenderPass, nullptr );
+                Memory::DestroyObject( &HeapAllocator, &pPass );
+                *phRenderPass = RHI::Null;
+            }
+            else
+            {
                 Memory::DestroyObject( &HeapAllocator, &pPass );
                 *phRenderPass = RHI::Null;
             }
@@ -5617,11 +5627,10 @@ namespace VKE
                                                             Info.aDynamicOffsets );
         }
 
-        void CVulkanAPI::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
-                         const uint32_t offset )
+        void CVulkanAPI::BindImpl( const SBindVertexBufferInfo& Info )
         {
-            VkDeviceSize ddiOffset = offset;
-            m_pImplementation->m_ICD.vkCmdBindVertexBuffers( ToNative( hDDICmdBuffer ), 0, 1, ToNativeArray( &hDDIBuffer ), &ddiOffset );
+            VkDeviceSize ddiOffset = Info.offset;
+            m_pImplementation->m_ICD.vkCmdBindVertexBuffers( ToNative( Info.hDDICommandBuffer ), 0, 1, ToNativeArray( &Info.hDDIBuffer ), &ddiOffset );
         }
 
         void CVulkanAPI::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,

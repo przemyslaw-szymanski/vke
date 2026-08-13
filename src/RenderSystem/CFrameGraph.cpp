@@ -492,6 +492,15 @@ namespace VKE::RenderSystem
             Pair.second->_Destroy();
             Memory::DestroyObject( &HeapAllocator, &Pair.second );
         }
+
+        for( uint32_t i = 0; i < MAX_BACKBUFFER_COUNT; ++i )
+        {
+            if( m_aFrameData[ i ].hFrameFence != RHI::Null )
+            {
+                m_Desc.pDevice->DestroyFence( &m_aFrameData[ i ].hFrameFence );
+            }
+        }
+
         m_mNodes.clear();
         Memory::DestroyObject( &HeapAllocator, &m_pLoadMgr );
     }

@@ -302,9 +302,9 @@ namespace VKE::RenderSystem
             return Reinterpret()->BindImpl( Info );
         }
 
-        void Bind( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer, const uint32_t offset )
+        void Bind( const SBindVertexBufferInfo& Info )
         {
-            return Reinterpret()->BindImpl( hDDICmdBuffer, hDDIBuffer, offset );
+            return Reinterpret()->BindImpl( Info );
         }
 
         void Bind( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer, const uint32_t offset,

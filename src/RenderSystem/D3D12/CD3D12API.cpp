@@ -16,6 +16,8 @@
 
 #include "RenderSystem/D3D12/CDDITypes.h"
 
+#include <dxgidebug.h>
+
 namespace VKE::RenderSystem::D3D12
 {
     template< typename T >
@@ -66,10 +68,10 @@ namespace VKE::RenderSystem::D3D12
     // Initialization of static members.
     NativeAPI::D3D12Factory* SImplementation::spFactory = NativeAPI::Null;
 
+    CD3D12API::AdapterArray CD3D12API::svAdapters = {};
+
     bool SImplementation::sDebugLayerEnabled                 = false;
     bool SImplementation::SDeviceFeatures::sTearingSupported = false;
-
-    CD3D12API::AdapterArray CD3D12API::svAdapters;
 
     typedef Utils::TCDynamicArray< D3D12_RESOURCE_BARRIER > DDIBarrierArray;
 
@@ -128,6 +130,17 @@ namespace VKE::RenderSystem::D3D12
         }
 
         return pDescriptorHeap;
+    }
+
+    void SImplementation::ReleaseDescriptorHeaps()
+    {
+        for( uint32_t i = 0; i < m_vDescriptorHeapPool.GetCount(); i++ )
+        {
+            m_vDescriptorHeapPool[ i ].pDescriptorHeap->Release();
+            m_vDescriptorHeapPool[ i ].pDescriptorHeap = NativeAPI::Null;
+        }
+
+        m_vDescriptorHeapPool.Clear();
     }
 
     uint32_t GetLastCompletedBreadcrumb( const D3D12_AUTO_BREADCRUMB_NODE1* pNode )
@@ -319,14 +332,15 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    void NativeAPI::CustomTypes::SFence::Wait( UINT64 value, DWORD timeout )
+    VKE::Result NativeAPI::CustomTypes::SFence::Wait( UINT64 value, DWORD timeout )
     {
         VKE_ASSERT( pObject != nullptr );
+        VKE::Result out = VKE::Result::OK;
 
         D3D12_RHI_LOG( "SFence::Wait: [CPU] " << GetFenceName() << "->Wait( " << value << " )" );
         if( pObject->GetCompletedValue() >= value )
         {
-            return;
+            return out;
         }
 
         HRESULT hr = pObject->SetEventOnCompletion( value, hEvent );
@@ -337,9 +351,29 @@ namespace VKE::RenderSystem::D3D12
                          << std::hex << hr << std::dec << " while waiting for fence value " << value
                          << ". Current value: " << pObject->GetCompletedValue() );
             ::CloseHandle( hEvent );
+            out = VKE::Result::FAIL;
         }
 
-        ::WaitForSingleObjectEx( hEvent, timeout, FALSE );
+        DWORD waitResult = ::WaitForSingleObjectEx( hEvent, timeout, FALSE );
+
+        switch( waitResult )
+        {
+            case WAIT_ABANDONED:
+            case WAIT_FAILED:
+                out = VKE::Result::FAIL;
+                break;
+
+            case WAIT_IO_COMPLETION:
+            case WAIT_OBJECT_0:
+                out = VKE::Result::OK;
+                break;
+
+            case WAIT_TIMEOUT:
+                out = VKE::Result::NOT_READY;
+                break;
+        }
+
+        return out;
     }
 
     void NativeAPI::CustomTypes::SFence::Signal( NativeAPI::D3D12CommandQueue* pQueue, UINT64 value )
@@ -700,6 +734,26 @@ namespace VKE::RenderSystem::D3D12
             static_assert( RENDER_TARGET_RENDER_PASS_OP::_MAX_COUNT == _countof( ascNativeMap ) );
 
             return ascNativeMap[ EngineOp ];
+        }
+
+        D3D_PRIMITIVE_TOPOLOGY GetPrimitiveTopology( PRIMITIVE_TOPOLOGY EngineTopology )
+        {
+            static const D3D_PRIMITIVE_TOPOLOGY ascNativeMap[] = {
+                D3D_PRIMITIVE_TOPOLOGY_POINTLIST,                 // POINT_LIST,
+                D3D_PRIMITIVE_TOPOLOGY_LINELIST,                  // LINE_LIST,
+                D3D_PRIMITIVE_TOPOLOGY_LINESTRIP,                 // LINE_STRIP,
+                D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,              // TRIANGLE_LIST,
+                D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,             // TRIANGLE_STRIP,
+                D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN,               // TRIANGLE_FAN,
+                D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ,              // LINE_LIST_WITH_ADJACENCY,
+                D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ,             // LINE_STRIP_WITH_ADJACENCY,
+                D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ,          // TRIANGLE_LIST_WITH_ADJACENCY,
+                D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ,         // TRIANGLE_STRIP_WITH_ADJACENCY,
+                D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST, // PATCH_LIST,
+            };
+
+            static_assert( PRIMITIVE_TOPOLOGY::_MAX_COUNT == _countof( ascNativeMap ) );
+            return ascNativeMap[ static_cast< size_t >( EngineTopology ) ];
         }
 
         D3D12_FILTER_TYPE GetFilter( SAMPLER_FILTER EngineFilter )
@@ -2178,12 +2232,46 @@ namespace VKE::RenderSystem::D3D12
 
     CD3D12API::CD3D12API()
     {
-        VKE::Memory::CreateObject( &HeapAllocator, &m_pImplementation );
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pImplementation ) ) )
+        {
+            VKE_LOG_ERR( "CD3D12API::CD3D12API: Out of memory" );
+        }
     }
 
     CD3D12API::~CD3D12API()
     {
-        VKE::Memory::DestroyObject( &HeapAllocator, &m_pImplementation );
+        if( SImplementation::spFactory != NativeAPI::Null )
+        {
+            SImplementation::spFactory->Release();
+            SImplementation::spFactory = NativeAPI::Null;
+        }
+
+        for( uint32_t i = 0; i < svAdapters.GetCount(); i++ )
+        {
+            auto& RHIAdapter     = svAdapters[ i ];
+            auto  pNativeAdapter = ToNative( RHIAdapter );
+
+            if( pNativeAdapter != NativeAPI::Null )
+            {
+                pNativeAdapter->Release();
+            }
+
+            svAdapters[ i ] = RHI::Null;
+        }
+
+        Memory::DestroyObject( &HeapAllocator, &m_pImplementation );
+
+        if( SImplementation::sDebugLayerEnabled )
+        {
+            IDXGIDebug1* pDebug;
+            if( SUCCEEDED( DXGIGetDebugInterface1( 0, IID_PPV_ARGS( &pDebug ) ) ) )
+            {
+                pDebug->ReportLiveObjects(
+                    DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS( DXGI_DEBUG_RLO_ALL | DXGI_DEBUG_RLO_IGNORE_INTERNAL ) );
+            }
+
+            pDebug->Release();
+        }
     }
 
     Result CD3D12API::QueryAdaptersImpl( AdapterInfoArray* pOut )
@@ -2219,6 +2307,11 @@ namespace VKE::RenderSystem::D3D12
                 VKE_LOG_ERR( "CD3D12API::QueryAdapters: Query RHI::Adapter failed" );
             }
 
+            // pAdapter1 was only needed to obtain the newer adapter interface (pAdapter).
+            // pAdapter keeps its own reference, so release the temporary here to avoid a DXGI leak.
+            pAdapter1->Release();
+            pAdapter1 = NativeAPI::Null;
+
             DXGI_ADAPTER_DESC3 AdapterDesc;
             if( FAILED( pAdapter->GetDesc3( &AdapterDesc ) ) )
             {
@@ -2232,6 +2325,7 @@ namespace VKE::RenderSystem::D3D12
             AdapterInfo.apiVersion =
                 static_cast< uint32_t >( Helper::GetMaxFeatureLevel( pAdapter ) ); // from: D3D_FEATURE_LEVEL
 
+            svAdapters.PushBack( FromNative< RHI::Adapter >( pAdapter ) );
             AdapterInfo.hDDIAdapter = reinterpret_cast< handle_t >( pAdapter );
 
             LARGE_INTEGER DriverVersion = {};
@@ -2481,19 +2575,46 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyDeviceImpl()
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        if( m_pImplementation->m_pGlobalFence != NativeAPI::Null )
+        {
+            RHI::Fence Fence = FromNative< RHI::Fence >( m_pImplementation->m_pGlobalFence );
+            DestroyFenceImpl( &Fence );
+        }
+
+        for( auto& QueueFamily: m_DeviceProperties.vQueueFamilies )
+        {
+            for( auto& hQueue: QueueFamily.vQueues )
+            {
+                auto pNativeQueue = ToNative( hQueue );
+                if( pNativeQueue != NativeAPI::Null )
+                {
+                    pNativeQueue->Release();
+                }
+                hQueue = RHI::Null;
+            }
+            QueueFamily.vQueues.Clear();
+        }
+
+        m_pImplementation->ReleaseDescriptorHeaps();
+
+        if( m_pImplementation->m_hDevice != NativeAPI::Null )
+        {
+            m_pImplementation->m_hDevice->Release();
+            m_pImplementation->m_hDevice = NativeAPI::Null;
+        }
     }
 
-    RHI::Queue CreateCommandQueue( ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE Type, bool Required = false )
+    RHI::Queue CreateCommandQueue( ID3D12Device* pNativeDevice, D3D12_COMMAND_LIST_TYPE NativeType,
+                                   bool Required = false )
     {
-        D3D12_COMMAND_QUEUE_DESC Desc = {};
-        Desc.Type                     = Type;
-        Desc.Priority                 = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        Desc.Flags                    = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        Desc.NodeMask                 = Helper::GetNodeMask();
+        D3D12_COMMAND_QUEUE_DESC NativeDesc;
+        NativeDesc.Type     = NativeType;
+        NativeDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
+        NativeDesc.Flags    = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        NativeDesc.NodeMask = Helper::GetNodeMask();
 
         ID3D12CommandQueue* pQueue = nullptr;
-        if( FAILED( pDevice->CreateCommandQueue( &Desc, IID_PPV_ARGS( &pQueue ) ) ) && Required )
+        if( FAILED( pNativeDevice->CreateCommandQueue( &NativeDesc, IID_PPV_ARGS( &pQueue ) ) ) && Required )
         {
             VKE_LOG_ERR( "CD3D12API::CreateCommandQueue: Failed to create command queue" );
         }
@@ -2637,13 +2758,19 @@ namespace VKE::RenderSystem::D3D12
             SetObjectDebugName( (const uint64_t)pBuffer, ApiObjectTypes::BUFFER, Desc.GetDebugName() );
         }
 
-        // return RHI::Buffer{ reinterpret_cast<handle_t>( pBuffer ) };
         return FromNative< RHI::Buffer >( pBuffer );
     }
 
     void CD3D12API::DestroyBufferImpl( RHI::Buffer* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeBuffer = ToNative( *pInOut );
+        if( pNativeBuffer != NativeAPI::Null )
+        {
+            pNativeBuffer->Release();
+            pNativeBuffer = NativeAPI::Null;
+
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::BufferView CD3D12API::CreateBufferViewImpl( const SBufferViewDesc& Desc, const void* pAllocator )
@@ -2693,7 +2820,13 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyTextureImpl( RHI::Texture* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeTexture = ToNative( *pInOut );
+        if( pNativeTexture != NativeAPI::Null )
+        {
+            pNativeTexture->Release();
+            pNativeTexture = NativeAPI::Null;
+            *pInOut        = RHI::Null;
+        }
     }
 
     namespace Map
@@ -2851,7 +2984,12 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyTextureViewImpl( RHI::TextureView* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeTextureView = ToNative( *pInOut );
+        if( pNativeTextureView != NativeAPI::Null )
+        {
+            Memory::DestroyObject( &HeapAllocator, &pNativeTextureView );
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::Framebuffer CD3D12API::CreateFramebufferImpl( const SFramebufferDesc& Desc, const void* pAllocator )
@@ -2870,7 +3008,10 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::CPUFence pFence = NativeAPI::Null;
-        Memory::CreateObject( &HeapAllocator, &pFence );
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
+        {
+            VKE_LOG_ERR( "CD3D12API::CreateFence: Out of memory" );
+        }
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
@@ -2888,7 +3029,10 @@ namespace VKE::RenderSystem::D3D12
     RHI::Fence CD3D12API::CreateFence2Impl( const SFenceDesc& Desc ) const
     {
         NativeAPI::Fence pFence = NativeAPI::Null;
-        Memory::CreateObject( &HeapAllocator, &pFence );
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
+        {
+            VKE_LOG_ERR( "CD3D12API::CreateFence2: Out of memory" );
+        }
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
@@ -2912,7 +3056,8 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyFenceImpl( RHI::CPUFence* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        // In CD3D12API all fences/semaphores are the same thing under the hood.
+        DestroyFenceImpl( reinterpret_cast< RHI::Fence* >( pInOut ) );
     }
 
     void CD3D12API::DestroyFenceImpl( RHI::Fence* pInOut )
@@ -2926,7 +3071,7 @@ namespace VKE::RenderSystem::D3D12
         }
 
         Memory::DestroyObject( &HeapAllocator, &pFence );
-        // *pInOut = nullptr;
+        *pInOut = RHI::Null;
     }
 
     RHI::GPUFence CD3D12API::CreateSemaphoreImpl( const SSemaphoreDesc& Desc, const void* pAllocator ) const
@@ -2934,7 +3079,10 @@ namespace VKE::RenderSystem::D3D12
         VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::GPUFence pFence = NativeAPI::Null;
-        Memory::CreateObject( &HeapAllocator, &pFence );
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
+        {
+            VKE_LOG_ERR( "CD3D12API::CreateSemaphore: Out of memory" );
+        }
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
 
@@ -2950,7 +3098,8 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroySemaphoreImpl( RHI::GPUFence* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        // In CD3D12API all fences/semaphores are the same thing under the hood.
+        DestroyFenceImpl( reinterpret_cast< RHI::Fence* >( pInOut ) );
     }
 
     RHI::RenderPass CD3D12API::CreateRenderPassImpl( const SRenderPassDesc& EngineRenderPassDesc,
@@ -2959,18 +3108,18 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::RenderPass pNativeRenderPass = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeRenderPass ) ) )
         {
-            VKE_LOG_ERR( "CD3D12API::CreateRenderPass: Unable to allocate memory for RenderPass: "
-                         << EngineRenderPassDesc.Name );
+            VKE_LOG_ERR( "CD3D12API::CreateRenderPass: Out of memory" );
             return RHI::Null;
         }
 
         bool createDefaultSubpass = EngineRenderPassDesc.vSubpasses.IsEmpty();
 
         NativeAPI::CustomTypes::SRenderPass::SSubpass* pDefaultSubpass = NativeAPI::Null;
-        if( createDefaultSubpass && VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pDefaultSubpass ) ) )
+        if( createDefaultSubpass )
         {
-            VKE_LOG_ERR( "CD3D12API::CreateRenderPass: Unable to allocate memory for subpass" );
-            return RHI::Null;
+            NativeAPI::CustomTypes::SRenderPass::SSubpass DefaultSubpass;
+            pNativeRenderPass->vSubpasses.PushBack( DefaultSubpass );
+            pDefaultSubpass = &pNativeRenderPass->vSubpasses.Back();
         }
 
         // TODO(szymansk): Currently we're having global descriptor heaps in SImplementation class. Right now they are
@@ -3211,15 +3360,11 @@ namespace VKE::RenderSystem::D3D12
                                          &pNativeRenderPass->EndBarriers );
         }
 
-        if( createDefaultSubpass )
-        {
-            pNativeRenderPass->vSubpasses.PushBack( *pDefaultSubpass );
-        }
-        else
+        if( !createDefaultSubpass )
         {
             for( const auto& Subpass: EngineRenderPassDesc.vSubpasses )
             {
-                VKE_LOG( "Subpass" << Subpass.GetDebugName() );
+                VKE_LOG( "Subpass: " << Subpass.GetDebugName() );
                 UNIMPLEMENTED_D3D12_METHOD();
             }
         }
@@ -3233,7 +3378,13 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyRenderPassImpl( RHI::RenderPass* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeRenderPass = ToNative( *pInOut );
+
+        if( pNativeRenderPass != NativeAPI::Null )
+        {
+            Memory::DestroyObject( &HeapAllocator, &pNativeRenderPass );
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::CommandBufferPool CD3D12API::CreateCommandBufferPoolImpl( const SCommandBufferPoolDesc& Desc,
@@ -3243,7 +3394,11 @@ namespace VKE::RenderSystem::D3D12
                      "CD3D12API::CreateCommandBufferPool: m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::CommandBufferPool pCommandBufferPool = NativeAPI::Null;
-        Memory::CreateObject( &HeapAllocator, &pCommandBufferPool );
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCommandBufferPool ) ) )
+        {
+            VKE_LOG_ERR( "CD3D12API::CreateCommandBufferPool: Out of memory" );
+            return RHI::Null;
+        }
 
         D3D12_COMMAND_LIST_TYPE type = Map::GetCommandListType( Desc.pContext->m_pQueue->GetType() );
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
@@ -3266,7 +3421,21 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyCommandBufferPoolImpl( RHI::CommandBufferPool* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        NativeAPI::CommandBufferPool pNativeCommandBufferPool = ToNative( *pInOut );
+        if( pNativeCommandBufferPool != NativeAPI::Null )
+        {
+            for( auto& NativeCommandListWithAllocator: pNativeCommandBufferPool->vCommandListsWithAllocators )
+            {
+                NativeCommandListWithAllocator.pCmdList->Release();
+                NativeCommandListWithAllocator.pCmdList = NativeAPI::Null;
+
+                NativeCommandListWithAllocator.pAllocator->Release();
+                NativeCommandListWithAllocator.pAllocator = NativeAPI::Null;
+            }
+
+            Memory::DestroyObject( &HeapAllocator, &pNativeCommandBufferPool );
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::DescriptorPool CD3D12API::CreateDescriptorPoolImpl( const SDescriptorPoolDesc& EngineDesc,
@@ -3287,7 +3456,7 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::DescriptorPool pPool = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPool ) ) )
         {
-            VKE_LOG_ERR( "CD3D12API::CreateDescriptorPool: Unable to allocate memory" );
+            VKE_LOG_ERR( "CD3D12API::CreateDescriptorPool: Out of memory" );
             return RHI::Null;
         }
 
@@ -3350,7 +3519,18 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyDescriptorPoolImpl( RHI::DescriptorPool* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeDescriptorPool = ToNative( *pInOut );
+
+        if( pNativeDescriptorPool != NativeAPI::Null )
+        {
+            pNativeDescriptorPool->DescriptorSetMemMgr.Destroy();
+
+            pNativeDescriptorPool->pHeap->Release();
+            pNativeDescriptorPool->pHeap = NativeAPI::Null;
+
+            Memory::DestroyObject( &HeapAllocator, &pNativeDescriptorPool );
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::DescriptorSetLayout CD3D12API::CreateDescriptorSetLayoutImpl( const SDescriptorSetLayoutDesc& Desc,
@@ -3373,7 +3553,7 @@ namespace VKE::RenderSystem::D3D12
         NativeAPI::DescriptorSetLayout pNativeDescriptorSetLayout = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDescriptorSetLayout ) ) )
         {
-            VKE_LOG_ERR( "CD3D12API::CreateDescriptorSetLayout: Unable to allocate memory" );
+            VKE_LOG_ERR( "CD3D12API::CreateDescriptorSetLayout: Out of memory" );
         }
 
         NativeAPI::D3D12RootParameter& rootParameter = pNativeDescriptorSetLayout->RootParameter;
@@ -3414,7 +3594,12 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyDescriptorSetLayoutImpl( RHI::DescriptorSetLayout* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeDescriptorSetLayout = ToNative( *pInOut );
+        if( pNativeDescriptorSetLayout != NativeAPI::Null )
+        {
+            Memory::DestroyObject( &HeapAllocator, &pNativeDescriptorSetLayout );
+            *pInOut = RHI::Null;
+        }
     }
 
     VKE::Result CD3D12API::CreateDescriptorSetsImpl( const AllocateDescs::SDescSet& EngineDescriptorSetInfo,
@@ -3436,7 +3621,7 @@ namespace VKE::RenderSystem::D3D12
 
             if( VKE_FAILED( Memory::CreateObject( &pNativePool->DescriptorSetMemMgr, &pCurrentSet ) ) )
             {
-                VKE_LOG_ERR( "CD3D12API::CreateDescriptorSets: Unable to allocate memory" );
+                VKE_LOG_ERR( "CD3D12API::CreateDescriptorSets: Out of memory" );
                 return VKE_FAIL;
             }
 
@@ -3659,14 +3844,30 @@ namespace VKE::RenderSystem::D3D12
             D3D12_PIPELINE_STATE_STREAM_DESC NativeStreamDesc =
                 Convert::GetPipelineStateStreamDesc( EngineDesc, PSOStream );
 
-            NativeAPI::D3D12PipelineState* pNativePSO;
-            if( FAILED( m_pImplementation->m_hDevice->CreatePipelineState( &NativeStreamDesc,
-                                                                           IID_PPV_ARGS( &pNativePSO ) ) ) )
+            NativeAPI::Pipeline pNativePipeline = NativeAPI::Null;
+            if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativePipeline ) ) )
+            {
+                VKE_LOG_ERR( "CD3D12API::CreatePipeline: Out of memory" );
+            }
+
+            // Find a stride for vertex buffer from InputLayout.
+            pNativePipeline->VertexBufferStride = 0;
+            for( uint32_t index = 0; index < EngineDesc.InputLayout.vVertexAttributes.GetCount(); index++ )
+            {
+                const auto& EngineVertexAttribute    = EngineDesc.InputLayout.vVertexAttributes[ index ];
+                pNativePipeline->VertexBufferStride += EngineVertexAttribute.stride;
+            }
+
+            // Get a topology for vertex buffers bound to pipeline.
+            pNativePipeline->PrimitiveTopology = Map::GetPrimitiveTopology( EngineDesc.InputLayout.topology );
+
+            if( FAILED( m_pImplementation->m_hDevice->CreatePipelineState(
+                    &NativeStreamDesc, IID_PPV_ARGS( &pNativePipeline->Graphics ) ) ) )
             {
                 VKE_LOG_ERR( "CD3D12API::CreatePipeline: PSO creation failed" );
             }
 
-            return FromNative< RHI::Pipeline >( pNativePSO );
+            return FromNative< RHI::Pipeline >( pNativePipeline );
         }
 
         return RHI::Null;
@@ -3674,7 +3875,16 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroyPipelineImpl( RHI::Pipeline* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativePipeline = ToNative( *pInOut );
+        if( pNativePipeline != NativeAPI::Null )
+        {
+            // TODO(blturkot): Handle different pipelines, eg.: raytracing
+            pNativePipeline->Graphics->Release();
+            pNativePipeline->Graphics = NativeAPI::Null;
+
+            Memory::DestroyObject( &HeapAllocator, &pNativePipeline );
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::PipelineLayout CD3D12API::CreatePipelineLayoutImpl( const SPipelineLayoutDesc& Desc, const void* pAllocator )
@@ -3735,18 +3945,40 @@ namespace VKE::RenderSystem::D3D12
             VKE_LOG_ERR( "CD3D12API::CreatePipelineLayout: Unable to create root signature." );
         }
 
+        // The serialization blobs are only needed to create the root signature; release them so
+        // they don't leak (they are not device children but still ref-counted COM objects).
+        if( pSignatureBlob != nullptr )
+        {
+            pSignatureBlob->Release();
+        }
+        if( pErrorBlob != nullptr )
+        {
+            pErrorBlob->Release();
+        }
+
         return FromNative< RHI::PipelineLayout >( pRootSignature );
     }
 
     void CD3D12API::DestroyPipelineLayoutImpl( RHI::PipelineLayout* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativePipelineLayout = ToNative( *pInOut );
+        if( pNativePipelineLayout != NativeAPI::Null )
+        {
+            pNativePipelineLayout->Release();
+            pNativePipelineLayout = NativeAPI::Null;
+
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::Shader CD3D12API::CreateShaderImpl( const SShaderData& Desc, const void* pAllocator )
     {
         NativeAPI::Shader shader;
-        Memory::CreateObject( &HeapAllocator, &shader );
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &shader ) ) )
+        {
+            VKE_LOG_ERR( "C3D12API::CreateShader: Out of memory" );
+            return RHI::Null;
+        }
 
         BYTE* pOwnedBytecode = nullptr;
         if( Desc.pCode != nullptr && Desc.codeSize > 0 )
@@ -3794,7 +4026,7 @@ namespace VKE::RenderSystem::D3D12
     RHI::Sampler CD3D12API::CreateSamplerImpl( const SSamplerDesc& Desc, const void* pAllocator )
     {
         NativeAPI::Sampler pNativeDesc = nullptr;
-        if( FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDesc ) ) )
+        if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDesc ) ) )
         {
             VKE_LOG_ERR( "CDDI::CreateSampler: Out of memory" );
             return RHI::Null;
@@ -3822,7 +4054,13 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroySamplerImpl( RHI::Sampler* pInOut, const void* pAllocator )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeSampler = ToNative( *pInOut );
+
+        if( pNativeSampler != NativeAPI::Null )
+        {
+            Memory::DestroyObject( &HeapAllocator, &pNativeSampler );
+            *pInOut = RHI::Null;
+        }
     }
 
     RHI::Event CD3D12API::CreateEventImpl( const SEventDesc& Desc, const void* pAllocator )
@@ -3938,21 +4176,22 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::BindImpl( const SBindPipelineInfo& Info )
     {
-        auto pNativeCmdBuffer = ToNative( Info.pCmdBuffer->GetDDIObject() );
-
+        auto pNativeCmdBuffer      = ToNative( Info.pCmdBuffer->GetDDIObject() );
         auto pNativePipelineLayout = ToNative( Info.pPipeline->GetLayout()->GetDDIObject() );
+        auto pNativePipelineState  = ToNative( Info.pPipeline->GetDDIObject() );
         VKE_ASSERT( pNativePipelineLayout != NativeAPI::Null );
 
         if( Info.pPipeline->GetType() == PIPELINE_TYPE::COMPUTE )
         {
             pNativeCmdBuffer->SetComputeRootSignature( pNativePipelineLayout );
+            pNativeCmdBuffer->SetPipelineState( pNativePipelineState->Compute );
         }
         else
         {
             pNativeCmdBuffer->SetGraphicsRootSignature( pNativePipelineLayout );
+            pNativeCmdBuffer->SetPipelineState( pNativePipelineState->Graphics );
+            pNativeCmdBuffer->IASetPrimitiveTopology( pNativePipelineState->PrimitiveTopology );
         }
-
-        pNativeCmdBuffer->SetPipelineState( ToNative( Info.pPipeline->GetDDIObject() ) );
     }
 
     void CD3D12API::BindImpl( const SBindDDIDescriptorSetsInfo& Info )
@@ -4035,15 +4274,24 @@ namespace VKE::RenderSystem::D3D12
         }
     }
 
-    /*void CD3D12API::Bind( const SBindRenderPassInfo& Info )
+    void CD3D12API::BindImpl( const SBindVertexBufferInfo& EngineInfo )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-    }*/
+        auto pNativeCommandBuffer = ToNative( EngineInfo.hDDICommandBuffer );
+        VKE_ASSERT( pNativeCommandBuffer != NativeAPI::Null );
 
-    void CD3D12API::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
-                              const uint32_t offset )
-    {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeBuffer = ToNative( EngineInfo.hDDIBuffer );
+        VKE_ASSERT( pNativeBuffer != NativeAPI::Null );
+
+        auto pNativePipeline = ToNative( EngineInfo.hDDIPipeline );
+        VKE_ASSERT( pNativePipeline != NativeAPI::Null );
+
+        const D3D12_RESOURCE_DESC NativeResourceDesc = pNativeBuffer->GetDesc();
+
+        D3D12_VERTEX_BUFFER_VIEW NativeVertexBufferView;
+        NativeVertexBufferView.BufferLocation = pNativeBuffer->GetGPUVirtualAddress() + EngineInfo.offset;
+        NativeVertexBufferView.StrideInBytes  = pNativePipeline->VertexBufferStride;
+        NativeVertexBufferView.SizeInBytes    = (UINT)NativeResourceDesc.Width - EngineInfo.offset;
+        pNativeCommandBuffer->IASetVertexBuffers( 0, 1, &NativeVertexBufferView );
     }
 
     void CD3D12API::BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
@@ -4064,7 +4312,29 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::FreeImpl( RHI::MemoryHeap* phMemory, const void* )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeMemory = ToNative( *phMemory );
+
+        if( pNativeMemory == NativeAPI::Null )
+        {
+            return;
+        }
+
+        // RHI::MemoryHeap must wrap a genuine ID3D12Heap* which is a COM object and therefore
+        // pointer-aligned. A sub-allocation handle (pool base + offset) is not aligned and must
+        // never reach here - releasing it would corrupt memory / crash. Guard against passing an
+        // allocation id instead of the owning heap.
+        if( ( reinterpret_cast< uintptr_t >( pNativeMemory ) % alignof( void* ) ) != 0 )
+        {
+            VKE_LOG_ERR( "CD3D12API::Free: RHI::MemoryHeap does not point to an ID3D12Heap. "
+                         "A pooled sub-allocation handle (heap base + offset) was passed instead "
+                         "of the owning heap. Only the pool that owns the heap may free it." );
+            VKE_ASSERT2( false, "CD3D12API::Free: invalid (unaligned) memory heap handle." );
+            *phMemory = RHI::Null;
+            return;
+        }
+
+        pNativeMemory->Release();
+        *phMemory = RHI::Null;
     }
 
     Result CD3D12API::AllocateImpl( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
@@ -4234,7 +4504,10 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::EndCommandBufferImpl( const RHI::CommandBuffer& hCommandBuffer )
     {
-        if( FAILED( ToNative( hCommandBuffer )->Close() ) )
+        auto pNativeCommandBuffer = ToNative( hCommandBuffer );
+        VKE_ASSERT( pNativeCommandBuffer != NativeAPI::Null );
+
+        if( FAILED( pNativeCommandBuffer->Close() ) )
         {
             VKE_LOG_ERR( "CD3D12API::EndCommandBuffer: Failed to close command buffer" );
         }
@@ -4304,7 +4577,10 @@ namespace VKE::RenderSystem::D3D12
                               const uint32_t& instanceCount, const uint32_t& firstVertex,
                               const uint32_t& firstInstance )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        auto pNativeCommandBuffer = ToNative( hCommandBuffer );
+        VKE_ASSERT( pNativeCommandBuffer != NativeAPI::Null );
+
+        pNativeCommandBuffer->DrawInstanced( vertexCount, instanceCount, firstVertex, firstInstance );
     }
 
     void CD3D12API::DrawIndexedImpl( const RHI::CommandBuffer& hCommandBuffer, const SDrawParams& Params )
@@ -4552,9 +4828,8 @@ namespace VKE::RenderSystem::D3D12
 
     Result CD3D12API::SubmitImpl( const SSubmitInfo& Info )
     {
-        auto pNativeQueue         = ToNative( Info.hDDIQueue );
-        auto pNativeCommandBuffer = ToNative( Info.pDDICommandBuffers[ 0 ] );
-
+        auto                                pNativeQueue         = ToNative( Info.hDDIQueue );
+        auto                                pNativeCommandBuffer = ToNative( Info.pDDICommandBuffers[ 0 ] );
         NativeAPI::D3D12CommandList* const* ppCommandLists = (NativeAPI::D3D12CommandList* const*)&pNativeCommandBuffer;
 
         auto pNativeWaitSemaphoreArray = ToNativeArray( Info.pDDIWaitSemaphores );
@@ -4615,6 +4890,7 @@ namespace VKE::RenderSystem::D3D12
         for( uint32_t index = 0; index < Info.vSwapchains.GetCount(); index++ )
         {
             auto pSwapChain = ToNative( Info.vSwapchains[ index ] );
+            VKE_ASSERT( pSwapChain != NativeAPI::Null );
 
             // TODO(blturkot): Support VSync but we don't have full information here.
             UINT syncInterval = 0;
@@ -4755,18 +5031,21 @@ namespace VKE::RenderSystem::D3D12
 
         for( UINT i = 0; i < backBufferCount; i++ )
         {
-            NativeAPI::Texture bbTexture = NativeAPI::Null;
+            NativeAPI::Texture NativeBackBufferTexture = NativeAPI::Null;
             // This is required when RHI::Texture is a custom object.
             // if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &bbTexture ) ) )
             //{
             //    VKE_LOG_ERR( "CD3D12API::CreateSwapChain: Failed to create back buffer texture object." );
             //}
 
-            pSwapChain->GetBuffer( i, IID_PPV_ARGS( &bbTexture ) );
+            pSwapChain->GetBuffer( i, IID_PPV_ARGS( &NativeBackBufferTexture ) );
+            std::stringstream ss;
+            ss << "BackBuffer: #" << i;
+            SetObjectDebugNameImpl( (uint64_t)NativeBackBufferTexture, ApiObjectTypes::TEXTURE, ss.str().c_str() );
 
             // Create swapchain already creates required resources but doesn't have views.
             // To cheat engine, we can store the texture in vImages and create null views.
-            pOut->vImages.PushBack( FromNative< RHI::Texture >( bbTexture ) );
+            pOut->vImages.PushBack( FromNative< RHI::Texture >( NativeBackBufferTexture ) );
             pOut->vImageViews.PushBack( RHI::Null );
         }
 
@@ -4783,7 +5062,33 @@ namespace VKE::RenderSystem::D3D12
 
     void CD3D12API::DestroySwapChainImpl( SDDISwapChain* pInOut, const void* )
     {
-        UNIMPLEMENTED_D3D12_METHOD();
+        VKE_ASSERT2( pInOut != nullptr, "CD3D12API::DestroySwapChain: pInOut can't be null." );
+
+        for( uint32_t index = 0; index < pInOut->vImages.GetCount(); index++ )
+        {
+            auto pNativeTexture = ToNative( pInOut->vImages[ index ] );
+            if( pNativeTexture != NativeAPI::Null )
+            {
+                pNativeTexture->Release();
+            }
+        }
+
+        pInOut->vImages.Clear();
+        pInOut->vImageViews.Clear();
+
+        auto pNativeSurface = ToNative( pInOut->hSurface );
+        if( pNativeSurface != NativeAPI::Null )
+        {
+            pNativeSurface->Release();
+            pInOut->hSurface = RHI::Null;
+        }
+
+        auto pNativeSwapChain = ToNative( pInOut->hSwapChain );
+        if( pNativeSwapChain != NativeAPI::Null )
+        {
+            pNativeSwapChain->Release();
+            pInOut->hSwapChain = RHI::Null;
+        }
     }
 
     Result CD3D12API::ReCreateSwapChainImpl( const SSwapChainDesc& Desc, SDDISwapChain* pOut )
@@ -4931,7 +5236,7 @@ namespace VKE::RenderSystem::D3D12
                 ( (NativeAPI::PipelineLayout)handle )->SetName( buffer );
                 break;
             case ApiObjectTypes::PIPELINE:
-                ( (NativeAPI::Pipeline)handle )->SetName( buffer );
+                ( (NativeAPI::Pipeline)handle )->Graphics->SetName( buffer );
                 break;
                 /* case ApiObjectTypes::DESCRIPTOR_SET:
                      ( (RHI::DescriptorSet)handle )->SetName( buffer );
@@ -4966,7 +5271,11 @@ namespace VKE::RenderSystem::D3D12
     {
         NativeAPI::Queue pQueue = (NativeAPI::Queue)handle;
         VKE_ASSERT2( pQueue != NativeAPI::Null, "CD3D12API::SetQueueDebugName: Queue is null" );
-        pQueue->SetName( (LPCWSTR)pName );
+
+        wchar_t buffer[ 256 ];
+        MultiByteToWideChar( CP_UTF8, 0, pName, -1, buffer, 256 );
+
+        pQueue->SetName( buffer );
     }
 
     bool CD3D12API::IsSignaledImpl( const RHI::CPUFence& hFence ) const
@@ -5029,18 +5338,31 @@ namespace VKE::RenderSystem::D3D12
         // Second option requires proper Signal() after each submission.
         UINT64 drainValue = pNativeFence->GetSignaledValue() + 1;
         pNativeFence->Signal( pNativeQueue, drainValue );
-        pNativeFence->Wait( drainValue );
+        out = pNativeFence->Wait( drainValue );
 
-        // TODO(blturkot): Result should come from Wait function.
-        out = Result::OK;
         return out;
     }
 
     Result CD3D12API::WaitForDeviceImpl()
     {
-        UNIMPLEMENTED_D3D12_METHOD();
-        // TODO(blturkot): Get all queues and wait for them.
-        return Result::OK;
+        Result out = Result::OK;
+
+        for( auto& QueueFamily: m_DeviceProperties.vQueueFamilies )
+        {
+            for( auto& hQueue: QueueFamily.vQueues )
+            {
+                if( hQueue != RHI::Null )
+                {
+                    Result queueResult = WaitForQueueImpl( hQueue );
+                    if( VKE_FAILED( queueResult ) )
+                    {
+                        out = queueResult;
+                    }
+                }
+            }
+        }
+
+        return out;
     }
 
 } // namespace VKE::RenderSystem::D3D12

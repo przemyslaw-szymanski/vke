@@ -581,7 +581,7 @@ struct SGfxContextListener
 };
 int main()
 {
-    //VKE_DETECT_MEMORY_LEAKS();
+    VKE_DETECT_MEMORY_LEAKS();
     //VKE::Platform::Debug::BreakAtAllocation( 277595 );
     {
         CSampleFramework Sample;

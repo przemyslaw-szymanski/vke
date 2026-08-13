@@ -34,6 +34,8 @@ namespace VKE
         void CSwapChain::Destroy()
         {
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
+
+            _DestroyBackBuffers();
             m_pCtx->GetDeviceContext()->RHI().DestroySwapChain( &m_DDISwapChain );
         }
 
@@ -240,6 +242,27 @@ namespace VKE
                 m_pCurrBackBuffer = _GetNextBackBuffer();
             }
             return ret;
+        }
+
+        void CSwapChain::_DestroyBackBuffers()
+        {
+            if( !m_vBackBuffers.IsEmpty() )
+            {
+                CRHI& RHI = m_pCtx->GetDeviceContext()->RHI();
+
+                const uint32_t imgCount = m_DDISwapChain.vImages.GetCount();
+                for( uint32_t i = 0; i < imgCount; i++ )
+                {
+                    RenderSystem::SBackBuffer& BackBuffer         = m_vBackBuffers[ i ];
+                    SBackBuffer&               InternalBackBuffer = m_vInternalBackBufers[ i ];
+
+                    RHI.DestroyGPUFence( &BackBuffer.hDDIPresentImageReadySemaphore );
+                    RHI.DestroyGPUFence( &BackBuffer.hDDIQueueFinishedSemaphore );
+                    RHI.DestroyGPUFence( &InternalBackBuffer.hGPUFence );
+                    RHI.DestroyFence( &InternalBackBuffer.hCPUFence );
+                    RHI.DestroyFence( &InternalBackBuffer.hFence );
+                }
+            }
         }
 
         Result CSwapChain::Resize( uint32_t width, uint32_t height )

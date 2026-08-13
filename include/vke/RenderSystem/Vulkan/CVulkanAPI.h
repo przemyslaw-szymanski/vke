@@ -95,8 +95,7 @@ namespace VKE::RenderSystem::Vulkan
         void   BindImpl( const SBindPipelineInfo& Info );
         void   BindImpl( const SBindDDIDescriptorSetsInfo& Info );
         void   BindImpl( const SBindRenderPassInfo& Info );
-        void   BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
-                     const uint32_t offset );
+        void   BindImpl( const SBindVertexBufferInfo& Info );
         void   BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer,
                      const uint32_t offset, const INDEX_TYPE& type );
         void   UnbindPipelineImpl( const RHI::CommandBuffer&, const RHI::Pipeline& );

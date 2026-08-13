@@ -123,6 +123,7 @@ namespace VKE
                 m_pDeviceMemMgr->Destroy();
                 Memory::DestroyObject( &HeapAllocator, &m_pDeviceMemMgr );
 
+                RHI().DestroyDevice();
                 // m_vGraphicsContexts.Clear()
                 // Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             }
