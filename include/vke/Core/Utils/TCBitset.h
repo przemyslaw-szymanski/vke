@@ -359,22 +359,19 @@ namespace VKE
                 return std::numeric_limits< T >::digits - CalcSetBitCount();
             }
 
-            friend std::ostream& operator<<( std::ostream& o, TCBitset< T > data );
+            friend std::ostream& operator<<( std::ostream& o, TCBitset< T > data )
+            {
+                constexpr auto bitCount = sizeof( T ) * 8;
+                for( uint32_t i = 0; i < bitCount; ++i )
+                {
+                    o << data.Bit( i );
+                }
+                return o;
+            }
 
         protected:
             T m_bits;
         };
-
-        template< typename T >
-        std::ostream& operator<<( std::ostream& o, TCBitset< T > data )
-        {
-            constexpr auto bitCount = sizeof( T ) * 8;
-            for( uint32_t i = 0; i < bitCount; ++i )
-            {
-                o << data.Bit( i );
-            }
-            return o;
-        }
 
     } // namespace Utils
 

@@ -1,6 +1,6 @@
 #include "RenderSystem/RHI.h"
 
-#if VKE_WINDOWS
+#if VKE_WINDOWS && VKE_COMPILE_D3D12_RHI
 
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"

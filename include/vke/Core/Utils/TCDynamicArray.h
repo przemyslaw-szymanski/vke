@@ -74,8 +74,8 @@ namespace VKE
             using Iterator      = TCArrayIterator< DataType >;
             using ConstIterator = TCArrayIterator< const DataType >;
 
-            template< uint32_t COUNT, class AllocatorType, class Policy >
-            using TCOtherSizeArray = TCDynamicArray< T, COUNT, AllocatorType, Policy >;
+            template< uint32_t COUNT, class _AllocatorType, class _Policy >
+            using TCOtherSizeArray = TCDynamicArray< T, COUNT, _AllocatorType, _Policy >;
 
         public:
             TCDynamicArray()

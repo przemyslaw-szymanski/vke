@@ -32,7 +32,7 @@ namespace VKE
             CPageAllocator( CPageAllocator&& Other );
 
             CPageAllocator( uint32_t elementCount, size_t elementSize ) :
-                m_elementCount( elementCount ), m_elementSize( elementSize )
+                m_elementSize( elementSize ), m_elementCount( elementCount )
             {
             }
 

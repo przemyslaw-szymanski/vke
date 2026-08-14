@@ -208,7 +208,7 @@ namespace VKE
                 // Need Resize
                 const auto lastCount = this->m_count;
                 const auto count     = Policy::PushBack::Calc( this->m_count );
-                if( TCArrayContainer::Resize( count ) )
+                if( Base::Resize( count ) )
                 {
                     this->m_count = lastCount;
                     return PushBack( El );

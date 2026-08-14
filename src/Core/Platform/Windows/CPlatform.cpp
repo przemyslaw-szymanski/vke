@@ -183,6 +183,18 @@ namespace VKE
             }
         }
 #endif
+        // TODO(blturkot): If we go for the option -fsanitize:
+        // if(VKE_COMPILER_GCC AND VKE_DEBUG)
+        //     target_compile_options(vke PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+        //     target_link_options( vke PRIVATE - fsanitize = address )
+        // endif()
+        //
+        // Then we can achieve something similar with:
+        // #if VKE_COMPILER_GCC && defined(__SANITIZE_ADDRESS__)
+        //     #include <sanitizer/lsan_interface.h>
+        //     __lsan_do_recoverable_leak_check(); // reports leaks so far, keeps running
+        // #endif
+
         return ret;
     }
 

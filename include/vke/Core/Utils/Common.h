@@ -48,9 +48,9 @@ namespace VKE
 
             static uint32_t FNV1A_Pippip_Yurii( const char* str, size_t wrdlen )
             {
-                const uint32_t PRIME = 591798841;
+                const uint32_t PRIME = 591798841u;
                 uint32_t       hash32;
-                uint64_t       hash64 = 14695981039346656037;
+                uint64_t       hash64 = 14695981039346656037u;
                 size_t         Cycles, NDhead;
                 if( wrdlen > 8 )
                 {

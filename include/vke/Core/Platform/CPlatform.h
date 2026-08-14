@@ -36,7 +36,7 @@ namespace VKE
             ARCHITECTURE architecture     = Architectures::UNKNOWN;
         };
 
-#if VKE_WINDOWS
+#if VKE_COMPILER_VISUAL_STUDIO
         static uint16_t CountBits( uint16_t v )
         {
             return __popcnt16( v );
@@ -59,7 +59,7 @@ namespace VKE
 #else
         static uint32_t CountBits( uint64_t v )
         {
-            return _builtin_popcount( v );
+            return __builtin_popcount( v );
         }
 #endif
 
@@ -111,10 +111,10 @@ namespace VKE
 
             protected:
                 cstr_t m_pName = nullptr;
-#if VKE_WINDOWS
+#if VKE_COMPILER_VISUAL_STUDIO
                 _CrtMemState m_BeginState;
                 _CrtMemState m_EndState;
-#endif // VKE_WINDOWS
+#endif // VKE_COMPILER_VISUAL_STUDIO
             };
         };
 

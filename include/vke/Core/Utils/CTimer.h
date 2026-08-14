@@ -8,7 +8,7 @@ namespace VKE
     {
         class VKE_API CTimer
         {
-        protected:
+        public:
             struct TimeUnits
             {
                 enum UNIT
@@ -21,57 +21,11 @@ namespace VKE
             };
 
             using TIME_UNIT = TimeUnits::UNIT;
-
-        public:
             using TimePoint = Platform::Time::TimePoint;
 
             template< typename T, TIME_UNIT Unit >
             struct TSTimeUnit
             {
-            };
-
-            template<>
-            struct TSTimeUnit< uint32_t, TimeUnits::NANOSECONDS >
-            {
-                uint32_t time;
-
-                static auto Calc( const TimePoint& t, const TimePoint& freq ) -> decltype( time )
-                {
-                    return static_cast< uint32_t >( t * 1000 * 1000 * 1000 / freq );
-                }
-            };
-
-            template<>
-            struct TSTimeUnit< float, TimeUnits::MICROSECONDS >
-            {
-                float time;
-
-                static auto Calc( const TimePoint& t, const TimePoint& freq ) -> decltype( time )
-                {
-                    return static_cast< decltype( time ) >( t * 1000 * 1000 ) / freq;
-                }
-            };
-
-            template<>
-            struct TSTimeUnit< float, TimeUnits::MILLISECONDS >
-            {
-                float time;
-
-                static auto Calc( const TimePoint& t, const TimePoint& freq ) -> decltype( time )
-                {
-                    return static_cast< float >( t * 1000.0f ) / freq;
-                }
-            };
-
-            template<>
-            struct TSTimeUnit< float, TimeUnits::SECONDS >
-            {
-                float time;
-
-                static auto Calc( const TimePoint& t, const TimePoint& freq ) -> decltype( time )
-                {
-                    return static_cast< float >( t ) / freq;
-                }
             };
 
             using Nanoseconds  = TSTimeUnit< uint32_t, TimeUnits::NANOSECONDS >;
@@ -110,6 +64,51 @@ namespace VKE
             TimePoint m_starTime;
             TimePoint m_stopTime;
             TimePoint m_frequency;
+        };
+
+        // Explicit specializations at namespace scope (standard-conformant)
+        template<>
+        struct CTimer::TSTimeUnit< uint32_t, CTimer::TimeUnits::NANOSECONDS >
+        {
+            uint32_t time;
+
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            {
+                return static_cast< uint32_t >( t * 1000 * 1000 * 1000 / freq );
+            }
+        };
+
+        template<>
+        struct CTimer::TSTimeUnit< float, CTimer::TimeUnits::MICROSECONDS >
+        {
+            float time;
+
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            {
+                return static_cast< float >( t * 1000 * 1000 ) / freq;
+            }
+        };
+
+        template<>
+        struct CTimer::TSTimeUnit< float, CTimer::TimeUnits::MILLISECONDS >
+        {
+            float time;
+
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            {
+                return static_cast< float >( t * 1000.0f ) / freq;
+            }
+        };
+
+        template<>
+        struct CTimer::TSTimeUnit< float, CTimer::TimeUnits::SECONDS >
+        {
+            float time;
+
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            {
+                return static_cast< float >( t ) / freq;
+            }
         };
 
     } // namespace Utils

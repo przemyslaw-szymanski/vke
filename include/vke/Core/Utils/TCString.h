@@ -3,7 +3,7 @@
 #include "TCDynamicContainerBase.h"
 #include "TCDynamicArray.h"
 #include "Core/Math/Math.h"
-#include <xhash>
+#include <functional>
 
 namespace VKE
 {

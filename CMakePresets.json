@@ -1,27 +1,97 @@
 {
-  "version": 3,
+  "version": 6,
   "configurePresets": [
     {
-      "name": "base",
+      "name": "common-base",
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}"
+    },
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "inherits": [ "common-base" ],
       "architecture": {
         "value": "x64",
         "strategy": "external"
+      },
+      "environment": {
+        "VK_ADD_LAYER_PATH": "${sourceDir}/out/build/${presetName}/vcpkg_installed/x64-windows/bin"
       },
       "cacheVariables": {
         "VKE_COMPILE_VULKAN_RHI": "ON",
         "VKE_COMPILE_D3D12_RHI": "ON"
       },
-      "environment": {
-        "VK_ADD_LAYER_PATH": "${sourceDir}/out/build/${presetName}/vcpkg_installed/x64-windows/bin"
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "inherits": [ "common-base" ],
+      "cacheVariables": {
+        "VKE_COMPILE_VULKAN_RHI": "ON",
+        "VKE_COMPILE_D3D12_RHI": "OFF"
       },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "msvc-env",
+      "hidden": true,
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
           "inheritedEnvironments": [ "msvc_x64_x64" ]
         }
+      }
+    },
+    {
+      "name": "msvc-d3d12",
+      "hidden": true,
+      "inherits": [ "msvc-env" ],
+      "cacheVariables": {
+        "VKE_RENDER_SYSTEM": "2",
+        "CMAKE_C_FLAGS": "/DWIN32 /D_WINDOWS /W4 /DVKE_RENDER_SYSTEM=VKE_D3D12",
+        "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /W4 /GR /EHsc /DVKE_RENDER_SYSTEM=VKE_D3D12"
+      }
+    },
+    {
+      "name": "msvc-vulkan",
+      "hidden": true,
+      "inherits": [ "msvc-env" ],
+      "cacheVariables": {
+        "VKE_RENDER_SYSTEM": "1",
+        "CMAKE_C_FLAGS": "/DWIN32 /D_WINDOWS /W4 /DVKE_RENDER_SYSTEM=VKE_VULKAN",
+        "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /W4 /GR /EHsc /DVKE_RENDER_SYSTEM=VKE_VULKAN"
+      }
+    },
+    {
+      "name": "gcc-d3d12",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "VKE_RENDER_SYSTEM": "2",
+        "CMAKE_C_FLAGS": "-Wall -Wfatal-errors -Wno-unused-function -Wno-unused-variable -DVKE_RENDER_SYSTEM=VKE_D3D12",
+        "CMAKE_CXX_FLAGS": "-Wall -Wfatal-errors -Wno-unused-function -Wno-unused-variable -DVKE_RENDER_SYSTEM=VKE_D3D12"
+      }
+    },
+    {
+      "name": "gcc-vulkan",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "VKE_RENDER_SYSTEM": "1",
+        "CMAKE_C_FLAGS": "-Wall -Wfatal-errors -Wno-unused-function -Wno-unused-variable -DVKE_RENDER_SYSTEM=VKE_VULKAN",
+        "CMAKE_CXX_FLAGS": "-Wall -Wfatal-errors -Wno-unused-function -Wno-unused-variable -DVKE_RENDER_SYSTEM=VKE_VULKAN"
       }
     },
     {
@@ -40,56 +110,92 @@
       }
     },
     {
-      "name": "d3d12",
-      "hidden": true,
-      "cacheVariables": {
-        "VKE_RENDER_SYSTEM": "2",
-        "CMAKE_C_FLAGS": "/DWIN32 /D_WINDOWS /W4 /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_D3D12",
-        "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /W4 /GR /EHsc /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_D3D12"
-      }
+      "name": "Windows-MSVC-D3D12-x64-Debug",
+      "inherits": [ "msvc-d3d12", "debug", "windows-base" ]
     },
     {
-      "name": "vulkan",
-      "hidden": true,
-      "cacheVariables": {
-        "VKE_RENDER_SYSTEM": "1",
-        "CMAKE_C_FLAGS": "/DWIN32 /D_WINDOWS /W4 /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_VULKAN",
-        "CMAKE_CXX_FLAGS": "/DWIN32 /D_WINDOWS /W4 /GR /EHsc /DVKE_VULKAN=1 /DVKE_D3D12=2 /DVKE_RENDER_SYSTEM=VKE_VULKAN"
-      }
+      "name": "Windows-MSVC-D3D12-x64-Release",
+      "inherits": [ "msvc-d3d12", "release", "windows-base" ]
     },
     {
-      "name": "D3D12-x64-Debug",
-      "inherits": [ "d3d12", "debug", "base" ]
+      "name": "Windows-MSVC-Vulkan-x64-Debug",
+      "inherits": [ "msvc-vulkan", "debug", "windows-base" ]
     },
     {
-      "name": "D3D12-x64-Release",
-      "inherits": [ "d3d12", "release", "base" ]
+      "name": "Windows-MSVC-Vulkan-x64-Release",
+      "inherits": [ "msvc-vulkan", "release", "windows-base" ]
     },
     {
-      "name": "Vulkan-x64-Debug",
-      "inherits": [ "vulkan", "debug", "base" ]
+      "name": "Windows-GCC-D3D12-x64-Debug",
+      "inherits": [ "gcc-d3d12", "debug", "windows-base" ]
     },
     {
-      "name": "Vulkan-x64-Release",
-      "inherits": [ "vulkan", "release", "base" ]
+      "name": "Windows-GCC-D3D12-x64-Release",
+      "inherits": [ "gcc-d3d12", "release", "windows-base" ]
+    },
+    {
+      "name": "Windows-GCC-Vulkan-x64-Debug",
+      "inherits": [ "gcc-vulkan", "debug", "windows-base" ]
+    },
+    {
+      "name": "Windows-GCC-Vulkan-x64-Release",
+      "inherits": [ "gcc-vulkan", "release", "windows-base" ]
+    },
+    {
+      "name": "Linux-GCC-Vulkan-x64-Debug",
+      "inherits": [ "gcc-vulkan", "debug", "linux-base" ]
+    },
+    {
+      "name": "Linux-GCC-Vulkan-x64-Release",
+      "inherits": [ "gcc-vulkan", "release", "linux-base" ]
     }
   ],
   "buildPresets": [
     {
-      "name": "D3D12-x64-Debug",
-      "configurePreset": "D3D12-x64-Debug"
+      "name": "Windows-MSVC-D3D12-x64-Debug",
+      "configurePreset": "Windows-MSVC-D3D12-x64-Debug"
     },
     {
-      "name": "D3D12-x64-Release",
-      "configurePreset": "D3D12-x64-Release"
+      "name": "Windows-MSVC-D3D12-x64-Release",
+      "configurePreset": "Windows-MSVC-D3D12-x64-Release"
     },
     {
-      "name": "Vulkan-x64-Debug",
-      "configurePreset": "Vulkan-x64-Debug"
+      "name": "Windows-MSVC-Vulkan-x64-Debug",
+      "configurePreset": "Windows-MSVC-Vulkan-x64-Debug"
     },
     {
-      "name": "Vulkan-x64-Release",
-      "configurePreset": "Vulkan-x64-Release"
+      "name": "Windows-MSVC-Vulkan-x64-Release",
+      "configurePreset": "Windows-MSVC-Vulkan-x64-Release"
+    },
+    {
+      "name": "Windows-GCC-D3D12-x64-Debug",
+      "configurePreset": "Windows-GCC-D3D12-x64-Debug",
+      "nativeToolOptions": [ "-k1" ]
+    },
+    {
+      "name": "Windows-GCC-D3D12-x64-Release",
+      "configurePreset": "Windows-GCC-D3D12-x64-Release",
+      "nativeToolOptions": [ "-k1" ]
+    },
+    {
+      "name": "Windows-GCC-Vulkan-x64-Debug",
+      "configurePreset": "Windows-GCC-Vulkan-x64-Debug",
+      "nativeToolOptions": [ "-k1" ]
+    },
+    {
+      "name": "Windows-GCC-Vulkan-x64-Release",
+      "configurePreset": "Windows-GCC-Vulkan-x64-Release",
+      "nativeToolOptions": [ "-k1" ]
+    },
+    {
+      "name": "Linux-GCC-Vulkan-x64-Debug",
+      "configurePreset": "Linux-GCC-Vulkan-x64-Debug",
+      "nativeToolOptions": [ "-k1" ]
+    },
+    {
+      "name": "Linux-GCC-Vulkan-x64-Release",
+      "configurePreset": "Linux-GCC-Vulkan-x64-Release",
+      "nativeToolOptions": [ "-k1" ]
     }
   ]
 }

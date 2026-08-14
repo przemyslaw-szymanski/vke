@@ -261,8 +261,8 @@ namespace VKE
             bool Copy( const CountType count, ConstDataTypePtr pData );
             void Move( TCArrayContainer* pOut );
 
-            template< TC_ARRAY_CONTAINER_TEMPLATE >
-            bool Compare( const TCArrayContainer< TC_ARRAY_CONTAINER_TEMPLATE_PARAMS >& Other ) const
+            TC_ARRAY_CONTAINER_TEMPLATE2
+            bool Compare( const TCArrayContainer< TC_ARRAY_CONTAINER_TEMPLATE_PARAMS2 >& Other ) const
             {
                 return Compare( Other.GetCount(), Other.GetData() );
             }
@@ -328,8 +328,8 @@ namespace VKE
                 return *this;
             }
 
-            template< TC_ARRAY_CONTAINER_TEMPLATE >
-            bool operator==( const TCArrayContainer< TC_ARRAY_CONTAINER_TEMPLATE_PARAMS >& Other ) const
+            TC_ARRAY_CONTAINER_TEMPLATE2
+            bool operator==( const TCArrayContainer< TC_ARRAY_CONTAINER_TEMPLATE_PARAMS2 >& Other ) const
             {
                 return Compare( Other );
             }
