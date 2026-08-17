@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10...3.31)
 
 # Try to find vcpkg in PATH if not already set.
 # This allows using a globally installed vcpkg instead of a submodule.
@@ -192,15 +192,6 @@ if(VKE_COMPILE_VULKAN_RHI)
 endif()
 
 if(VKE_COMPILE_D3D12_RHI)
-
-    # Workaround for missing D3D12.LIB in CMake GUI, which is required by Agility SDK in vcpkg.
-    if(NOT CMAKE_WINDOWS_KITS_10_DIR)
-        get_filename_component(CMAKE_WINDOWS_KITS_10_DIR "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SDKs\\Windows\\v10.0;InstallationFolder]" ABSOLUTE CACHE)
-    endif()
-
-    message(STATUS "[WINSDK]: Version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}" )
-    message(STATUS "[WINSDK]: Kits dir: ${CMAKE_WINDOWS_KITS_10_DIR}")
-
     # Lookout for D3D12 library. If not found then we need to add the Windows SDK Lib path to the search dirs.
     # This way CMake can find D3D12.LIB required by the DirectX12 Agility SDK without additional manual steps.
     find_library(D3D12_LIB NAMES d3d12)

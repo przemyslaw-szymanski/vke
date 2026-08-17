@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10...3.31)
 
 function(EnableOption option)
 	if( ${option} )
@@ -52,13 +52,21 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	set(MSVC 1)
 endif()
 
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 if(MSVC)
-	add_definitions("/MP /W4 /WX")
-    add_definitions("/std:c++latest")
+	add_definitions(-DVKE_COMPILER_VISUAL_STUDIO=1)
+
+	add_definitions("/MP /W4 /WX /EHsc")
+    # add_definitions("/std:c++latest")
+
     if(VKE_DEBUG_INFO)
         add_definitions("/Zi")
         add_definitions("/DEBUG")
     endif()
+
 	# ignore warnings
 	add_definitions("/wd4201") # nameless union/struct
 	add_definitions("/wd4127") # conditional expression is constant
@@ -66,6 +74,27 @@ if(MSVC)
 	add_definitions("/wd4100") # unreferenced formal parameter
 	add_definitions("/wd4505") # unreferenced local function has been removed
 	add_definitions("/wd4221") # This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
+
+elseif(GCC)
+
+	if(MINGW)
+		add_definitions("-DVKE_COMPILER_MINGW=1")
+	else()
+		add_definitions("-DVKE_COMPILER_GCC=1")
+	endif()
+	
+	add_definitions("-Wall") # Covers /W4
+	add_definitions("-Wextra") # Covers /W4
+	add_definitions("-Wfatal-errors") # Any warning/error/notice treat as fatal (fatal stops compilation)
+
+	if(VKE_DEBUG_INFO)
+		add_definitions("-g")
+	endif()
+
+	# ignore warnings
+	add_definitions("-Wno-unused-function")
+	add_definitions("-Wno-unused-variable")
+
 endif()
 
 set(PREPROCESSOR_DEFINITIONS IL_STATIC_LIB)

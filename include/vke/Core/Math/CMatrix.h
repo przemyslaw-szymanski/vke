@@ -6,7 +6,7 @@ namespace VKE
 {
     namespace Math
     {
-        VKE_ALIGN( 16 ) class VKE_API CMatrix4x4
+        class alignas( 16 ) VKE_API CMatrix4x4
         {
             friend class CVector3;
 
@@ -83,10 +83,10 @@ namespace VKE
             static const CMatrix4x4 IDENTITY;
 
         public:
-            VKE_ALIGN( 16 ) union
+            union alignas( 16 )
             {
-                VKE_ALIGN( 16 ) float m[ 16 ];
-                VKE_ALIGN( 16 ) float mm[ 4 ][ 4 ];
+                float alignas( 16 ) m[ 16 ];
+                float alignas( 16 ) mm[ 4 ][ 4 ];
                 NativeMatrix4x4 _Native;
             };
         };

@@ -215,7 +215,7 @@ namespace VKE
             };
         };
 
-        VKE_ALIGN( 16 ) class VKE_API CVector4
+        class alignas( 16 ) VKE_API CVector4
         {
         public:
 #if defined( VKE_SIMD )
@@ -423,16 +423,16 @@ namespace VKE
             static const CVector4 TRUE_INT;
             static const CVector4 FALSE_INT;
 
-            VKE_ALIGN( 16 ) union
+            union alignas( 16 )
             {
-                VKE_ALIGN( 16 ) struct
+                struct alignas( 16 )
                 {
                     float x, y, z, w;
                 };
 
-                VKE_ALIGN( 16 ) float floats[ 4 ];
-                VKE_ALIGN( 16 ) int32_t ints[ 4 ];
-                VKE_ALIGN( 16 ) uint32_t uints[ 4 ];
+                float alignas( 16 ) floats[ 4 ];
+                int32_t alignas( 16 ) ints[ 4 ];
+                uint32_t alignas( 16 ) uints[ 4 ];
                 NativeVector4 _Native;
             };
         };

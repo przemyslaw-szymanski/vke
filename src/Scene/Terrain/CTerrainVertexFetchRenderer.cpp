@@ -35,8 +35,7 @@ namespace VKE
             uint32_t       textureId;
         };
 
-        static cstr_t g_pGLSLTerrainVS = VKE_TO_STRING(
-#version 450 core\n
+        static cstr_t g_pGLSLTerrainVS = R"(#version 450 core
 
 #define BASE_TILE_SIZE 32.0
 #define TILE_VERTEX_COUNT 32.0
@@ -158,10 +157,9 @@ namespace VKE
                 // gl_Position = vec4(v2Texcoords.x, 0, v2Texcoords.y, 1.0);
                 oColor    = TileData.vec4Color;
                 oTexcoord = v2Texcoords / texSize;
-            } );
+            } )";
 
-        static cstr_t g_pGLSLTerrainPS = VKE_TO_STRING(
-#version 450 core\n
+        static cstr_t g_pGLSLTerrainPS = R"(#version 450 core
 
             // layout(set = 1, binding = 1) uniform sampler2D HeightmapTexture;
             layout( set = 1, binding = 1 ) uniform sampler   VertexFetchSampler;
@@ -174,11 +172,12 @@ namespace VKE
                 // oColor = texture( HeightmapTexture, iTexcoord );
                 oColor = texture( sampler2D( HeightmapTextures[ 0 ], VertexFetchSampler ), iTexcoord );
                 // oColor *= iColor;
-            } );
+            } )";
 
         static cstr_t g_pHLSLTerrainVS =
 #include "Shaders/VertexFetch.vs.hlsl.h"
-            static const char* g_pHLSLTerrainPS =
+
+        static const char* g_pHLSLTerrainPS =
 #include "Shaders/VertexFetch.ps.hlsl.h"
 
 #if VKE_USE_HLSL_SYNTAX
@@ -283,7 +282,7 @@ namespace VKE
             BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
             BuffDesc.Buffer.usage       = RenderSystem::BufferUsages::VERTEX_BUFFER;
-            //BuffDesc.Buffer.size        = vVertices.GetCount() * sizeof( SVertex );
+            // BuffDesc.Buffer.size        = vVertices.GetCount() * sizeof( SVertex );
             BuffDesc.Buffer.vRegions = { { sizeof( SVertex ), vVertices.GetCount() } };
             BuffDesc.Buffer.SetDebugName( "VKE_Scene_VertexFetchTerrain_VertexBuffer" );
             m_ahVertexBuffers[ DrawTypes::TRIANGLES ] =
@@ -555,7 +554,7 @@ namespace VKE
                     BuffDesc.Buffer.usage = RenderSystem::BufferUsages::INDEX_BUFFER;
                     BuffDesc.Buffer.memoryUsage =
                         RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
-                    //BuffDesc.Buffer.size      = vTriIndices.GetCount() * sizeof( IndexType );
+                    // BuffDesc.Buffer.size      = vTriIndices.GetCount() * sizeof( IndexType );
                     BuffDesc.Buffer.vRegions  = { { sizeof( IndexType ), vTriIndices.GetCount() } };
                     BuffDesc.Buffer.indexType = RenderSystem::IndexTypes::UINT16;
                     BuffDesc.Buffer.SetDebugName( "VKE_Scene_TerrainVertexFetch_IndexBuffer" );
@@ -571,7 +570,7 @@ namespace VKE
                         (RenderSystem::BufferHandle*)&m_ahIndexBuffers[ DrawTypes::TRIANGLES ] );
                 }
                 {
-                    //BuffDesc.Buffer.size = vQuadIndices.GetCount() * sizeof( IndexType );
+                    // BuffDesc.Buffer.size = vQuadIndices.GetCount() * sizeof( IndexType );
                     BuffDesc.Buffer.vRegions = { { sizeof( IndexType ), vQuadIndices.GetCount() } };
                     m_ahIndexBuffers[ DrawTypes::QUADS ] =
                         HandleCast< RenderSystem::IndexBufferHandle >( pCtx->CreateBuffer( BuffDesc ) );
@@ -605,7 +604,7 @@ namespace VKE
         Result CTerrainVertexFetchRenderer::_CreateBindings( RenderSystem::CommandBufferPtr pCommandBuffer )
         {
             Result ret = VKE_FAIL;
-            VKE_ASSERT2( m_pConstantBuffer!= nullptr, "" );
+            VKE_ASSERT2( m_pConstantBuffer != nullptr, "" );
             auto pCtx    = pCommandBuffer->GetContext();
             auto pDevice = pCtx->GetDeviceContext();
 
@@ -779,14 +778,14 @@ namespace VKE
             {
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
                 auto&                               hDescSet = m_ahPerInstancedDrawDescSets[ backBufferIndex ];
-                //uint32_t lodRangeSize = m_pInstacingDataBuffer->GetSize() / CTerrainQuadTree::MAX_LOD_COUNT;
+                // uint32_t lodRangeSize = m_pInstacingDataBuffer->GetSize() / CTerrainQuadTree::MAX_LOD_COUNT;
                 UpdateInfo.Reset();
                 UpdateInfo.AddBinding( 0,
-                                       m_pConstantBuffer->GetRegion(0),
+                                       m_pConstantBuffer->GetRegion( 0 ),
                                        m_pConstantBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 1,
-                                       m_pInstacingDataBuffer->GetRegion(0),
+                                       m_pInstacingDataBuffer->GetRegion( 0 ),
                                        m_pInstacingDataBuffer->GetHandle(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapSampler, 1 );
@@ -940,14 +939,14 @@ namespace VKE
             uint32_t maxTileCountInRoot  = m_pTerrain->m_Desc.TileSize.max / m_pTerrain->m_Desc.TileSize.min;
             maxTileCountInRoot          *= maxTileCountInRoot; // rows and cols
             uint32_t maxTileCount        = maxTileCountInRoot * m_pTerrain->m_TerrainInfo.RootCount.width *
-                                    m_pTerrain->m_TerrainInfo.RootCount.height;
+                                           m_pTerrain->m_TerrainInfo.RootCount.height;
             (void)maxTileCount;
             RenderSystem::SCreateBufferDesc Desc;
             Desc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::BUFFER;
             Desc.Buffer.usage       = RenderSystem::BufferUsages::CONSTANT_BUFFER;
 #if VKE_TERRAIN_INSTANCING_RENDERING
-            Desc.Buffer.vRegions = { RenderSystem::SBufferRegion( sizeof(SConstantBuffer), 1 ) };
+            Desc.Buffer.vRegions = { RenderSystem::SBufferRegion( sizeof( SConstantBuffer ), 1 ) };
 #else
             Desc.Buffer.vRegions = { // RenderSystem::SBufferRegion( 1u, (uint16_t)sizeof( SPerFrameConstantBuffer ) ),
                                      RenderSystem::SBufferRegion( (uint16_t)sizeof( SPerDrawConstantBufferData ),
@@ -1037,12 +1036,12 @@ namespace VKE
             Core::SLoadFileInfo FileDesc;
             FileDesc.FileInfo.FileName = "data/shaders/terrain-dev.hlsl";
             auto pFile                 = m_pTerrain->m_pScene->GetDeviceContext()
-                             ->GetRenderSystem()
-                             ->GetEngine()
-                             ->GetManagers()
-                             .pFileMgr->LoadFile( FileDesc );
-            g_pTerrainVS = (cstr_t)pFile->GetData();
-            g_pTerrainPS = g_pTerrainVS;
+                                             ->GetRenderSystem()
+                                             ->GetEngine()
+                                             ->GetManagers()
+                                             .pFileMgr->LoadFile( FileDesc );
+            g_pTerrainVS               = (cstr_t)pFile->GetData();
+            g_pTerrainPS               = g_pTerrainVS;
 #endif
 
             RenderSystem::SShaderData VsData, PsData, HsData, DsData;
@@ -1073,7 +1072,7 @@ namespace VKE
             VsDesc.Shader.type       = RenderSystem::ShaderTypes::VERTEX;
             VsDesc.Shader.vDefines   = {
                 { VKE_SHADER_COMPILER_STR( "INSTANCING_MODE" ),
-                    ShaderCompilerString( VKE_TERRAIN_INSTANCING_RENDERING ).GetData() },
+                  ShaderCompilerString( VKE_TERRAIN_INSTANCING_RENDERING ).GetData() },
                 { VKE_SHADER_COMPILER_STR( "BASE_TILE_SIZE" ), BaseTileSizeStr.GetData() },
                 { VKE_SHADER_COMPILER_STR( "TILE_VERTEX_COUNT" ), TileVertexCountStr.GetData() },
                 { VKE_SHADER_COMPILER_STR( "BASE_VERTEX_DISTANCE" ), BaseVertexDistanceStr.GetData() },
@@ -1081,11 +1080,11 @@ namespace VKE
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX" ), TessellationFactorMax.GetData() },
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_MAX_DISTANCE" ), TessellationMaxDistance.GetData() },
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED" ),
-                    TessellationFactorDistancePowFactorReductionSpeed.GetData() },
+                  TessellationFactorDistancePowFactorReductionSpeed.GetData() },
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_DISTANCE_POW_REDUCTION_SPEED_MULTIPLIER" ),
-                    ShaderCompilerString( Desc.Tesselation.lodReductionSpeed ).GetData() },
+                  ShaderCompilerString( Desc.Tesselation.lodReductionSpeed ).GetData() },
                 { VKE_SHADER_COMPILER_STR( "TESS_FACTOR_FLAT_SURFACE_REDUCTION" ),
-                    ShaderCompilerString( Desc.Tesselation.flatSurfaceReduction ).GetData() },
+                  ShaderCompilerString( Desc.Tesselation.flatSurfaceReduction ).GetData() },
             };
 
             if( tesselationEnabled )
@@ -1217,7 +1216,7 @@ namespace VKE
             PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
             pRet = pCtx->CreatePipeline( PipelineDesc );
 
-            if( pRet== nullptr )
+            if( pRet == nullptr )
             {
                 for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
                 {
@@ -1228,7 +1227,7 @@ namespace VKE
                 }
                 for( uint32_t i = 0; i < Desc.vRenderPasses.GetCount(); ++i )
                 {
-                    auto hPass                        = Desc.vRenderPasses[ i ];
+                    auto hPass = Desc.vRenderPasses[ i ];
                     // VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
                     PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
                     pRet = pCtx->CreatePipeline( PipelineDesc );
@@ -1390,9 +1389,9 @@ namespace VKE
                         PerDrawData.leftVertexDiff              = LODData.DrawData.leftVertexDiff;
                         PerDrawData.rightVertexDiff             = LODData.DrawData.rightVertexDiff;
                         PerDrawData.vertexDiff                  = Pack4BytesToUint( LODData.DrawData.topVertexDiff,
-                                                                   LODData.DrawData.bottomVertexDiff,
-                                                                   LODData.DrawData.leftVertexDiff,
-                                                                   LODData.DrawData.rightVertexDiff );
+                                                                                    LODData.DrawData.bottomVertexDiff,
+                                                                                    LODData.DrawData.leftVertexDiff,
+                                                                                    LODData.DrawData.rightVertexDiff );
                         PerDrawData.vecLodColor                 = aColors[ LODData.lod ];
                         PerDrawData.textureIdx                  = LODData.DrawData.rootIdx;
                         // Tile size depends on lod.
@@ -1507,9 +1506,9 @@ namespace VKE
                         PerDrawData.leftVertexDiff   = Curr.DrawData.leftVertexDiff;
                         PerDrawData.rightVertexDiff  = Curr.DrawData.rightVertexDiff;
                         PerDrawData.vertexDiff       = Pack4BytesToUint( Curr.DrawData.topVertexDiff,
-                                                                   Curr.DrawData.bottomVertexDiff,
-                                                                   Curr.DrawData.leftVertexDiff,
-                                                                   Curr.DrawData.rightVertexDiff );
+                                                                         Curr.DrawData.bottomVertexDiff,
+                                                                         Curr.DrawData.leftVertexDiff,
+                                                                         Curr.DrawData.rightVertexDiff );
                         PerDrawData.vecLodColor      = aColors[ Curr.lod ];
                         PerDrawData.textureIdx       = Curr.DrawData.rootIdx;
                         // Tile size depends on lod.

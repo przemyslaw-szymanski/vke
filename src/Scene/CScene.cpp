@@ -497,8 +497,7 @@ namespace VKE
 
         Result CScene::_CreateDebugView( RenderSystem::CommandBufferPtr pCmdBuff )
         {
-            static const cstr_t spGLSLInstancingVS = VKE_TO_STRING(
-#version 450 core\n
+            static const cstr_t spGLSLInstancingVS = R"(#version 450 core
 
                 layout( set = 0, binding = 0 ) uniform PerFrameConstantBuffer { mat4 mtxViewProj; };
 
@@ -517,10 +516,9 @@ namespace VKE
                     mat4 mtxMVP = mtxViewProj * aBuffers[ gl_InstanceIndex ].mtxTransform;
                     gl_Position = mtxMVP * vec4( iPosition, 1.0f );
                     oColor      = aBuffers[ gl_InstanceIndex ].vecColor;
-                } );
+                } )";
 
-            static cstr_t spHLSLInstancingVS = VKE_TO_STRING
-            (
+            static cstr_t spHLSLInstancingVS = R"(
                 struct SPerFrameConstants
                 {
                     float4x4 mtxViewProj;
@@ -552,19 +550,18 @@ namespace VKE
                     OUT.f4Position = mul( mtxMVP, float4( IN.f3Position, 1 ) );
                     OUT.f4Color = Data.f4Color;
                 }
-            );
+            )";
 
             cstr_t pInstancingVS = VKE_USE_HLSL_SYNTAX ? spHLSLInstancingVS : spGLSLInstancingVS;
 
-            static const cstr_t spGLSLInstancingPS = VKE_TO_STRING(
-#version 450 core\n
+            static const cstr_t spGLSLInstancingPS = R"(#version 450 core
 
                 layout( location = 0 ) in vec4 iColor; layout( location = 0 ) out vec4 oColor;
 
-                void main() { oColor = iColor; } );
+                void main() { oColor = iColor; } )";
 
             static cstr_t spHLSLInstancingPS =
-                VKE_TO_STRING( float4 main( in float4 color : COLOR0 ) : SV_TARGET0 { return color; } );
+                R"(float4 main( in float4 color : COLOR0 ) : SV_TARGET0 { return color; } )";
 
             cstr_t pGLSLInstancingPS = VKE_USE_HLSL_SYNTAX ? spHLSLInstancingPS : spGLSLInstancingPS;
 

@@ -61,20 +61,31 @@
 #define VKE_ARCHITECTURE VKE_ARCHITECTURE_32
 #endif
 
+// The compiler identity is normally provided by CMake (CompilerSettings.cmake)
+// as one of VKE_COMPILER_VISUAL_STUDIO / VKE_COMPILER_MINGW / VKE_COMPILER_GCC.
+// Only fall back to self-detection when CMake did not provide any of them
+// (e.g. IntelliSense or non-CMake builds).
+#if !defined( VKE_COMPILER_VISUAL_STUDIO ) && !defined( VKE_COMPILER_MINGW ) && !defined( VKE_COMPILER_GCC )
 #if defined( _MSC_VER )
 #define VKE_COMPILER_VISUAL_STUDIO 1
-#define VKE_COMPILER VKE_COMPILER_VISUAL_STUDIO
 #elif defined( __GNUC__ )
 #if defined( __MINGW32__ )
 #define VKE_COMPILER_MINGW 1
-#define VKE_COMPILER VKE_COMPILER_MINGW
 #else // defined(__MINGW32__)
 #define VKE_COMPILER_GCC 1
-#define VKE_COMPILER VKE_COMPILER_GCC
 #endif // defined(__MINGW32__)
 #else
 #error "Unsupported compiler"
 #endif // MSC_VER
+#endif // none defined
+
+#if defined( VKE_COMPILER_VISUAL_STUDIO )
+#define VKE_COMPILER VKE_COMPILER_VISUAL_STUDIO
+#elif defined( VKE_COMPILER_MINGW )
+#define VKE_COMPILER VKE_COMPILER_MINGW
+#elif defined( VKE_COMPILER_GCC )
+#define VKE_COMPILER VKE_COMPILER_GCC
+#endif
 
 #define VKE_NEW_NT new( std::nothrow )
 
@@ -83,13 +94,11 @@
 #define VKE_MALLOC_DBG( _size ) _malloc_dbg( ( _size ), _NORMAL_BLOCK, __FILE__, __LINE__ )
 #define VKE_REALLOC_DBG( _ptr, _size ) _realloc_dbg( ( _ptr ), ( _size ), _NORMAL_BLOCK, __FILE__, __LINE__ )
 #define VKE_FREE_DBG( _ptr ) _free_dbg( ( _ptr ), _NORMAL_BLOCK )
-#define VKE_ALIGN( _bytes ) __declspec( align( ( _bytes ) ) )
 #elif VKE_COMPILER_GCC
 #define VKE_NEW_DBG new
 #define VKE_MALLOC_DBG( _size ) malloc( ( _size ) )
 #define VKE_REALLOC_DBG( _ptr, _size ) realloc( ( _ptr ), ( _size ) )
 #define VKE_FREE_DBG free
-#define VKE_ALIGN( _bytes ) __attribute__( ( aligned( ( _bytes ) ) ) )
 #endif
 
 #if VKE_DEBUG

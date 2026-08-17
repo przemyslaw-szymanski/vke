@@ -29,7 +29,7 @@ namespace VKE
 
         union UObjectBits
         {
-            VKE_ALIGN( 1 ) struct
+            struct alignas( 1 )
             {
                 uint8_t invisible : 1;
                 uint8_t culled : 1;
@@ -59,7 +59,7 @@ namespace VKE
 
         union UObjectHandle
         {
-            VKE_ALIGN( 8 ) struct
+            struct alignas( 8 )
             {
                 handle_t layer : 5;
                 handle_t index : 20;
@@ -71,7 +71,7 @@ namespace VKE
 
         union UDrawcallHandle
         {
-            VKE_ALIGN( 4 ) struct
+            struct alignas( 4 )
             {
                 uint32_t reserved1 : 32;
             };

@@ -1,7 +1,11 @@
 #include "Core/Platform/CPlatform.h"
 #include "Core/Utils/CLogger.h"
 #if VKE_WINDOWS
+
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
+
 #include <windows.h>
 #include <shlwapi.h>
 #include <crtdbg.h>

@@ -24,7 +24,7 @@ namespace VKE
             friend class CShaderManager;
             friend class SShaderCompiler;
 
-            VKE_ALIGN( sizeof( uint64_t ) ) struct SHandle
+            struct alignas( sizeof( uint64_t ) ) SHandle
             {
                 union
                 {
@@ -89,7 +89,7 @@ namespace VKE
             VKE_DECL_BASE_OBJECT( handle_t );
 
         public:
-            CShaderProgram( CShaderManager* pMgr ); 
+            CShaderProgram( CShaderManager* pMgr );
             ~CShaderProgram();
             void operator delete( void* );
             void Init( const SShaderProgramDesc& Desc );

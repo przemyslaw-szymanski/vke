@@ -1032,12 +1032,11 @@ namespace VKE
             Result ret = VKE_OK;
 
             {
-                static cstr_t pGLSLShaderCode = VKE_TO_STRING(
-#version 450 core\r\n
-                    layout( location = 0 ) in vec4 pos; void main() { gl_Position = pos; } );
+                static cstr_t pGLSLShaderCode = R"(#version 450 core
+                    layout( location = 0 ) in vec4 pos; void main() { gl_Position = pos; } )";
 
                 static cstr_t pHLSLShaderCode =
-                    VKE_TO_STRING( float4 main( in float4 pos : SV_Position ) : SV_Position { return pos; } );
+                    R"(float4 main( in float4 pos : SV_Position ) : SV_Position { return pos; } )";
 
                 cstr_t pShaderCode = VKE_USE_HLSL_SYNTAX ? pHLSLShaderCode : pGLSLShaderCode;
 
