@@ -30,7 +30,7 @@ extern "C"
 #define VKE_INSTANCE_EXT_ICD( name ) VK_EXPORTED_FUNCTION( name )
 #define VKE_DEVICE_ICD( name ) VK_EXPORTED_FUNCTION( name )
 #define VKE_DEVICE_EXT_ICD( name ) VK_EXPORTED_FUNCTION( name )
-#define VKE_DEVICE_KHR_ICD( _baseName, _khrName ) PFN_##_khrName _khrName = nullptr
+#define VKE_DEVICE_KHR_ICD( _baseName, _khrName ) PFN_##_baseName _baseName = nullptr
 #define VKE_DECLARE_GLOBAL_ICD 1
 #define VKE_DECLARE_INSTANCE_ICD 1
 #define VKE_DECLARE_DEVICE_ICD 1

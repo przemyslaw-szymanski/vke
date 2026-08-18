@@ -88,7 +88,25 @@ namespace VKE
     T GetCommandLineParam( std::string_view name, T defaultValue )
     {
         const auto& v = CCommandLineArgs::GetInstance().GetArg( name );
-        return v.has_value() ? static_cast< T >( v.value() ) : defaultValue;
+        if constexpr( std::is_enum_v< T > )
+        {
+            if constexpr(std::is_signed_v< T > )
+            {
+                return v.has_value() ? static_cast< T >( (T)v.value().intValue ) : defaultValue;
+            }
+            else
+            {
+                return v.has_value() ? static_cast< T >( (T)v.value().uintValue ) : defaultValue;
+            }
+        }
+        else if constexpr( std::is_same_v< T, bool > )
+        {
+            return v.has_value() ? static_cast< T >( v.value().boolValue ) : defaultValue;
+        }
+        else
+        {
+            return v.has_value() ? static_cast< T >( v.value() ) : defaultValue;
+        }
     }
 
 } // namespace VKE

@@ -8,7 +8,7 @@
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
 
-#include "CCommandLineArgs.h"
+#include "RenderSystem/CRuntimeConfig.h"
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ShaderLang.h>
 
@@ -140,6 +140,7 @@ namespace VKE
                 { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, true, false },
 #endif
                 { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
+                { VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, true, false }, // forced by VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 
             };
             if( debug )
@@ -196,9 +197,14 @@ namespace VKE
                 return ret;
             }
 
-            VkFormat Format( uint32_t format )
+            VkFormat Format( RenderSystem::FORMAT format )
             {
-                return VKE::RenderSystem::g_aFormats[ format ];
+                constexpr uint16_t scMaxFormatCount = sizeof( g_aFormats ) / sizeof( g_aFormats[ 0 ] );
+                if( format < scMaxFormatCount )[ [likely] ]
+                {
+                    return g_aFormats[ format ];    
+                }
+                return g_aFormats[ 0 ];
             }
 
             auto Formats( const FORMAT* pFormats, uint32_t count )
@@ -1726,6 +1732,22 @@ namespace VKE
             return CheckRequiredExtensions( pmExtensionsInOut, pvRequired, pvOut );
         }
 
+        struct SVulkanVersion
+        {
+            uint32_t major : 8;
+            uint32_t minor : 8;
+            uint32_t patch : 16;
+        };
+
+        SVulkanVersion ConvertVulkanAPIVersion( uint32_t apiVer )
+        {
+            SVulkanVersion Ret;
+            Ret.major = VK_API_VERSION_MAJOR( apiVer );
+            Ret.minor = VK_API_VERSION_MINOR( apiVer );
+            Ret.patch = VK_API_VERSION_PATCH( apiVer );
+            return Ret;
+        }
+
         template< class T >
         void AddVulkanNext( T& Struct, void*** pppNext )
         {
@@ -1767,174 +1789,95 @@ namespace VKE
             {
                 auto& Struct = *pStruct;
                 Struct       = { type };
-                *ppNext      = &Struct;
-                ppNext       = (const void**) & Struct.pNext;
+                auto pNext   = *ppNext;
+                if( pNext != pStruct )
+                {
+                    *ppNext = &Struct;
+                    ppNext  = (const void**)&Struct.pNext;
+                    if( ppNext == *ppNext )
+                    {
+                        ppNext = nullptr;
+                    }
+                    if (Struct.pNext == pStruct)
+                    {
+                        Struct.pNext = nullptr;
+                    }
+                }
                 return *this;
             }
 
             template< class T >
             SVulkanNext& Add( T* pStruct )
             {
-                auto& Struct = *pStruct;
-                *ppNext      = &Struct;
-                ppNext       = (const void**)&Struct.pNext;
+                if( pStruct != nullptr )
+                {
+                    auto& Struct = *pStruct;
+                    *ppNext      = &Struct;
+                    ppNext       = (const void**)&Struct.pNext;
+                }
                 return *this;
             }
         };
 
-        Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter,
-                                       SImplementation* pOut )
+        struct SFeatureToEnable
         {
-            pOut->Properties.Memory = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 };
+            void*           pFeature;
+            cstr_t pExtName = nullptr;
+            uint32_t apiVer   = 0;
+            VkStructureType vkStructType;
+        };
 
-            pOut->Properties.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-            pOut->Features.Device   = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+        struct SVulkanNext2
+        {
+            SVulkanNext Next;
+            uint32_t                    ver;
+            NativeAPI::DDIExtMap* pmExtensions;
+            using FeatureMap = vke_hash_map< VkStructureType, SFeatureToEnable >;
+            FeatureMap mFeatureToEnable;
 
-            auto& Features   = pOut->Features;
-            auto& Properties = pOut->Properties;
-
-            SVulkanNext NextFeatures( pOut->Features.Device );
-            NextFeatures.Add( &pOut->Features.Device11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES )
-                .Add( &pOut->Features.DynamicRendering,
-                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR )
-                .Add( &pOut->Features.Device12, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES );
-
-            SVulkanNext NextProperties( pOut->Properties.Device );
-            NextProperties.Add( &pOut->Properties.Device11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES )
-                .Add( &pOut->Properties.Device12, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES )
-                .Add( &pOut->Properties.DescriptorIndexing,
-                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES );
-
-            if( pOut->m_mExtensions.find( VK_EXT_MESH_SHADER_EXTENSION_NAME ) != pOut->m_mExtensions.end() )
+            template<class T>
+            SVulkanNext2( T& Struct, uint32_t v, NativeAPI::DDIExtMap* pExtInOut ) :
+                Next( Struct ), ver( v ), pmExtensions( pExtInOut )
             {
-                NextFeatures.Add( &Features.MeshShaderNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV );
-                NextProperties.Add( &Properties.MeshShaderNV,
-                                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV );
 
-                NextFeatures.Add( &Features.MeshShaderEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT );
-                NextProperties.Add( &Properties.MeshShaderEXT,
-                                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT );
             }
 
-            if( pOut->m_mExtensions.find( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME ) != pOut->m_mExtensions.end() )
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <typeparam name="T"></typeparam>
+            /// <param name="pStruct"></param>
+            /// <param name="Type"></param>
+            /// <param name="extName">if null then ext will not be checked</param>
+            /// <param name="vkVer"></param>
+            /// <returns></returns>
+            template<class T>
+            SVulkanNext2& Add(T* pStruct, VkStructureType Type, cstr_t extName, uint32_t vkVer)
             {
-                NextFeatures
-                    .Add( &Features.Raytracing10, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR )
-                    .Add( &Features.Raytracing11, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR )
-                    .Add( &Features.Raytracing12,
-                          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MOTION_BLUR_FEATURES_NV );
-
-                NextProperties.Add( &Properties.Raytracing10,
-                                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR );
-            }
-
-            SImplementation::sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
-            SImplementation::sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter,
-                                                                                           &pOut->Properties.Memory );
-            SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter,
-                                                                                     &pOut->Properties.Device );
-
-            uint32_t propCount = 0;
-            SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(
-                hAdapter, &propCount, nullptr );
-            if( propCount == 0 )
-            {
-                VKE_LOG_ERR( "No device queue family properties" );
-                return VKE_FAIL;
-            }
-
-            vke_vector< VkQueueFamilyProperties > vProps( propCount );
-
-            //pOut->EngineDeviceProperties.vQueueFamilyProperties.Resize( propCount );
-            //auto& aProperties    = pOut->EngineDeviceProperties.vQueueFamilyProperties;
-            auto& vQueueFamilies = pOut->EngineDeviceProperties.vQueueFamilies;
-
-            SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(
-                hAdapter, &propCount, &vProps[ 0 ] );
-            // Choose a family index
-            for( uint32_t i = 0; i < propCount; ++i )
-            {
-                auto&    VkProp     = vProps[ i ];
-                uint32_t isCompute  = VkProp.queueFlags & VK_QUEUE_COMPUTE_BIT;
-                uint32_t isTransfer = VkProp.queueFlags & VK_QUEUE_TRANSFER_BIT;
-                uint32_t isSparse   = VkProp.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
-                uint32_t isGraphics = VkProp.queueFlags & VK_QUEUE_GRAPHICS_BIT;
-                uint32_t isVideoEncode = VkProp.queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT_KHR;
-                uint32_t isVideoDecode = VkProp.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR;
-                VkBool32 isPresent     = VK_FALSE;
-#if VKE_USE_VULKAN_WINDOWS
-                isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR(
-                    hAdapter, i );
-#elif VKE_USE_VULKAN_LINUX
-                isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
-                    hAdapter, i, xcb_connection, visual_id );
-#elif VKE_USE_VULKAN_ANDROID
-#error "implement"
-#endif
-                // Video not supported
-                if( isVideoEncode || isVideoDecode )
+                if( ver >= vkVer )
                 {
-                    continue;
+                    Next.Add( pStruct, Type );
+                    mFeatureToEnable[ Type ] = { .pFeature = pStruct, .apiVer = vkVer, .vkStructType = Type };
                 }
-
-                SQueueFamilyInfo Family;
-                Family.vQueues.Resize( vProps[ i ].queueCount );
-                Family.vPriorities.Resize( vProps[ i ].queueCount, 1.0f );
-                Family.index = i;
-                Family.type  = QueueTypes::GENERAL;
-                
-                if( isGraphics && isCompute && isTransfer && isPresent )
+                else if( extName != nullptr )
                 {
-                    Family.type  = QueueTypeBits::GENERAL;
-                    Family.Caps += QueueCaps::GRAPHICS;
-                }
-                if( isCompute )
-                {
-                    // It is async compute
-                    if( !isGraphics )
+                    auto Itr = pmExtensions->find( extName );
+                    if( Itr != pmExtensions->end() )
                     {
-                        Family.type = QueueTypeBits::COMPUTE;
+                        Next.Add( pStruct, Type );
+                        mFeatureToEnable[ Type ] = { .pFeature = pStruct, .pExtName = extName, .vkStructType = Type };
                     }
-                    Family.Caps += QueueCaps::COMPUTE;
                 }
-                if( isTransfer )
-                {
-                    // copy only
-                    if( !isGraphics && !isCompute )
-                    {
-                        Family.type = QueueTypeBits::TRANSFER;
-                    }
-                    Family.Caps += QueueCaps::TRANSFER;
-                }
-                
-                if( isSparse )
-                {
-                    //Family.type = QueueTypeBits::SPARSE;
-                    Family.Caps += QueueCaps::SPARSE;
-                }
-                if( isPresent )
-                {
-                    //Family.type = QueueTypeBits::PRESENT;
-                    Family.Caps += QueueCaps::PRESENT;
-                }
-
-                vQueueFamilies.PushBack( Family );
+                return *this;
             }
+        };
 
-            for( uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i )
-            {
-                const auto& fmt = RenderSystem::g_aFormats[ i ];
-                SImplementation::sInstanceICD.vkGetPhysicalDeviceFormatProperties(
-                    hAdapter, fmt, &pOut->Properties.aFormatProperties[ i ] );
-            }
-
-            return VKE_OK;
-        }
+     
 
         void CVulkanAPI::GetFormatFeaturesImpl( FORMAT fmt, STextureFormatFeatures* pOut ) const
         {
             VKE::Memory::Zero( pOut );
-            const auto&                             Props = m_pImplementation->Properties.aFormatProperties[ fmt ];
+            const auto&                             Props = m_pImplementation->DeviceProperties.aFormatProperties[ fmt ];
             Utils::TCBitset< VkFormatFeatureFlags > Bits( Props.optimalTilingFeatures );
 
             pOut->sampled                  = Bits == VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
@@ -2012,11 +1955,11 @@ namespace VKE
             return VKE_OK;
         }
 
-        Result EnableDeviceExtensions( const NativeAPI::DDIExtMap&                    mAllExtensions,
+        /*Result EnableDeviceExtensions( const NativeAPI::DDIExtMap&                    mAllExtensions,
                                        SImplementation::SDeviceFeatures* pFeatures,
                                        DDIExtNameArray*                             pExtToEnable )
         {
-            if( !pFeatures->Device12.timelineSemaphore )
+            if( !pFeatures->TimelineSemaphore.timelineSemaphore )
             {
                 auto Itr = mAllExtensions.find( VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME );
                 if( Itr != mAllExtensions.end() )
@@ -2025,12 +1968,12 @@ namespace VKE
                     if( Ext.supported )
                     {
                         pExtToEnable->PushBack( VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME );
-                        pFeatures->Device12.timelineSemaphore = true;
+                        pFeatures->TimelineSemaphore.timelineSemaphore = true;
                     }
                 }
             }
             return VKE_OK;
-        }
+        }*/
 
         FEATURE_LEVEL ConvertVulkanAPIToFeatureLevel( uint32_t apiVer )
         {
@@ -2108,14 +2051,18 @@ namespace VKE
                     NativeAPI::DDIExtArray vRequiredInstanceExts =
                         GetRequiredInstanceExtensions( Info.enableDebugMode );
                     NativeAPI::DDIExtArray vRequiredDeviceExts = GetRequiredDeviceExtensions( Info.enableDebugMode );
-                    const bool enableValidationKnob        = GetCommandLineParam< bool >( "rs.vk_validation", true );
-                    const bool enableRenderSystemDebugKnob = GetCommandLineParam< bool >( "rs.debug", true );
+                    const bool enableValidationKnob        = GetRuntimeConfig().ApiValidation; //GetCommandLineParam< bool >( "rs.vk_validation", true );
+                    const bool enableRenderSystemDebugKnob = GetRuntimeConfig().ApiDebug;
 
                     NativeAPI::DDIExtArray vRequiredLayers;
                     if( Info.enableDebugMode && enableValidationKnob && enableRenderSystemDebugKnob )
                     {
-                        //                          name,                          required,   supported,  enabled
-                        vRequiredLayers.PushBack( { "VK_LAYER_KHRONOS_validation", true, false, false } );
+                        vRequiredLayers =
+                        { 
+                            // name,                            required,                   supported,  enabled
+                            { "VK_LAYER_KHRONOS_validation",    VKE_RENDER_SYSTEM_DEBUG,    false,      false },
+                            { "VK_LAYER_KHRONOS_profiles",      VKE_RENDER_SYSTEM_DEBUG,    false,      false }
+                        };
                     }
 
                     CStrVec              vExtNames;
@@ -2288,6 +2235,237 @@ namespace VKE
             return sDummy;
         }
 
+           Result QueryAdapterProperties( const NativeAPI::Adapter& hAdapter,
+                                       SImplementation* pOut, SVulkanNext2::FeatureMap* pFeaturesToEnable )
+        {
+            // VK_KHR_get_physical_device_properties2 is obligatory
+
+            const auto IsExt = [ pOut ]( cstr_t pName ) -> bool {
+                return pOut->m_mExtensions.find( pName ) != pOut->m_mExtensions.end();
+            };
+
+            VkPhysicalDeviceProperties VkProp1;
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties( hAdapter, &VkProp1 );
+
+            pOut->MemoryProperties.Memory = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 };
+
+            pOut->DeviceProperties.Device = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+            pOut->Features.Device   = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+
+            auto& Features   = pOut->Features;
+            auto& DeviceProperties = pOut->DeviceProperties;
+            auto& MemProperties = pOut->MemoryProperties;
+
+            const uint32_t apiVer   = VkProp1.apiVersion;
+            const uint32_t apiVer11 = VK_MAKE_VERSION( 1, 1, 0 );
+            const uint32_t apiVer12 = VK_MAKE_VERSION( 1, 2, 0 );
+            const uint32_t apiVer13 = VK_MAKE_VERSION( 1, 3, 0 );
+            const uint32_t apiVer14 = VK_MAKE_VERSION( 1, 4, 0 );
+            const uint32_t apiVer20 = VK_MAKE_VERSION( 2, 0, 0 ); // 2.0 is used to avoid checking api ver if we know that a feature is enabled only by ext
+            (void)apiVer14;
+
+            SVulkanNext2 NextFeatures( pOut->Features.Device, apiVer, &pOut->m_mExtensions );
+            SVulkanNext2 NextProperties( pOut->DeviceProperties.Device, apiVer, &pOut->m_mExtensions );
+            SVulkanNext2 NextMemProperties( pOut->MemoryProperties.Memory, apiVer, &pOut->m_mExtensions );
+
+            NextFeatures
+                .Add( &Features.Buffer16Bit,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
+                      VK_KHR_16BIT_STORAGE_EXTENSION_NAME,
+                      apiVer11 )
+                .Add( &Features.ShaderDrawParameters,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES,
+                      VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
+                      apiVer11 )
+                .Add( &Features.DynamicRendering,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+                      VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+                      apiVer13 )
+                .Add( &Features.DescriptorIndexing,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
+                      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+                      apiVer12 )
+                .Add( &Features.SubgroupSizeControl,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_FEATURES_EXT,
+                      VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME,
+                      apiVer13 )
+                .Add( &Features.MeshShaderEXT,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+                      VK_EXT_MESH_SHADER_EXTENSION_NAME,
+                      apiVer20 )
+                .Add( &Features.Raytracing10,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
+                      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                      apiVer20 )
+                .Add( &Features.Raytracing11,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
+                      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                      apiVer20 )
+                .Add( &Features.Raytracing12NV,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_NV,
+                      VK_NV_RAY_TRACING_INVOCATION_REORDER_EXTENSION_NAME,
+                      apiVer20 )
+                .Add( &Features.TimelineSemaphore,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
+                      VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+                      apiVer12 );
+
+            NextProperties
+                .Add( &DeviceProperties.DescriptorIndexing,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT,
+                      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+                      apiVer12 )
+                .Add( &DeviceProperties.Subgroup,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES,
+                      nullptr,
+                      apiVer11 )
+                .Add( &DeviceProperties.Maintenance3,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES_KHR,
+                      VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+                      apiVer11 )
+                .Add( &DeviceProperties.DeviceID,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES,
+                      VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+                      apiVer11 )
+                .Add( &DeviceProperties.Driver,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+                      VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+                      apiVer12 )
+                .Add( &DeviceProperties.TimelineSemaphore,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES_KHR,
+                      VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+                      apiVer12 )
+                .Add( &DeviceProperties.SubgroupSizeControl,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES,
+                      VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME,
+                      apiVer13 )
+                .Add( &DeviceProperties.MeshShaderEXT,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT,
+                      VK_EXT_MESH_SHADER_EXTENSION_NAME,
+                      apiVer20 )
+                .Add( &DeviceProperties.Raytracing10,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
+                      VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                      apiVer20 )
+                .Add( &DeviceProperties.Raytracing12NV,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_NV,
+                      VK_NV_RAY_TRACING_INVOCATION_REORDER_EXTENSION_NAME,
+                      apiVer20 );
+
+            NextMemProperties
+                .Add( &MemProperties.Memory,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+                      VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+                      apiVer11 )
+                // https://vulkan.lunarg.com/doc/view/1.4.321.1/windows/antora/spec/latest/chapters/memory.html#VUID-VkPhysicalDeviceMemoryProperties2-pNext-pNext
+                // VUID-VkPhysicalDeviceMemoryProperties2-pNext-pNext
+                // pNext must be NULL or a pointer to a valid instance of VkPhysicalDeviceMemoryBudgetPropertiesEXT
+                .Add( &MemProperties.MemoryBudget,
+                      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
+                      VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
+                      apiVer11 );
+
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceFeatures2( hAdapter, &pOut->Features.Device );
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceMemoryProperties2( hAdapter, &pOut->MemoryProperties.Memory );
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceProperties2( hAdapter, &pOut->DeviceProperties.Device );
+
+            *pFeaturesToEnable = NextFeatures.mFeatureToEnable;
+
+            uint32_t propCount = 0;
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties( hAdapter, &propCount, nullptr );
+            if( propCount == 0 )
+            {
+                VKE_LOG_ERR( "No device queue family properties" );
+                return VKE_FAIL;
+            }
+
+            vke_vector< VkQueueFamilyProperties > vProps( propCount );
+
+            // pOut->EngineDeviceProperties.vQueueFamilyProperties.Resize( propCount );
+            // auto& aProperties    = pOut->EngineDeviceProperties.vQueueFamilyProperties;
+            auto& vQueueFamilies = pOut->EngineDeviceProperties.vQueueFamilies;
+
+            SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties(
+                hAdapter, &propCount, &vProps[ 0 ] );
+            // Choose a family index
+            for( uint32_t i = 0; i < propCount; ++i )
+            {
+                auto&    VkProp        = vProps[ i ];
+                uint32_t isCompute     = VkProp.queueFlags & VK_QUEUE_COMPUTE_BIT;
+                uint32_t isTransfer    = VkProp.queueFlags & VK_QUEUE_TRANSFER_BIT;
+                uint32_t isSparse      = VkProp.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+                uint32_t isGraphics    = VkProp.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+                uint32_t isVideoEncode = VkProp.queueFlags & VK_QUEUE_VIDEO_ENCODE_BIT_KHR;
+                uint32_t isVideoDecode = VkProp.queueFlags & VK_QUEUE_VIDEO_DECODE_BIT_KHR;
+                VkBool32 isPresent     = VK_FALSE;
+#if VKE_USE_VULKAN_WINDOWS
+                isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR( hAdapter, i );
+#elif VKE_USE_VULKAN_LINUX
+                isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
+                    hAdapter, i, xcb_connection, visual_id );
+#elif VKE_USE_VULKAN_ANDROID
+#error "implement"
+#endif
+                // Video not supported
+                if( isVideoEncode || isVideoDecode )
+                {
+                    continue;
+                }
+
+                SQueueFamilyInfo Family;
+                Family.vQueues.Resize( vProps[ i ].queueCount );
+                Family.vPriorities.Resize( vProps[ i ].queueCount, 1.0f );
+                Family.index = i;
+                Family.type  = QueueTypes::GENERAL;
+
+                if( isGraphics && isCompute && isTransfer && isPresent )
+                {
+                    Family.type  = QueueTypeBits::GENERAL;
+                    Family.Caps += QueueCaps::GRAPHICS;
+                }
+                if( isCompute )
+                {
+                    // It is async compute
+                    if( !isGraphics )
+                    {
+                        Family.type = QueueTypeBits::COMPUTE;
+                    }
+                    Family.Caps += QueueCaps::COMPUTE;
+                }
+                if( isTransfer )
+                {
+                    // copy only
+                    if( !isGraphics && !isCompute )
+                    {
+                        Family.type = QueueTypeBits::TRANSFER;
+                    }
+                    Family.Caps += QueueCaps::TRANSFER;
+                }
+
+                if( isSparse )
+                {
+                    // Family.type = QueueTypeBits::SPARSE;
+                    Family.Caps += QueueCaps::SPARSE;
+                }
+                if( isPresent )
+                {
+                    // Family.type = QueueTypeBits::PRESENT;
+                    Family.Caps += QueueCaps::PRESENT;
+                }
+
+                vQueueFamilies.PushBack( Family );
+            }
+
+            for( uint32_t i = 0; i < RenderSystem::Formats::_MAX_COUNT; ++i )
+            {
+                const auto fmt = Map::Format( (RenderSystem::FORMAT)i );
+                SImplementation::sInstanceICD.vkGetPhysicalDeviceFormatProperties(
+                    hAdapter, fmt, &pOut->DeviceProperties.aFormatProperties[ i ] );
+            }
+
+            return VKE_OK;
+        }
+
         Result LoadDeviceExtensions( VkPhysicalDevice vkPhysicalDevice, NativeAPI::DDIExtMap* pmAllExtensionsOut )
         {
             auto& sInstanceICD = SImplementation::sInstanceICD;
@@ -2312,6 +2490,35 @@ namespace VKE
             return VKE_OK;
         }
 
+        struct SEnableFeature
+        {
+            SVulkanNext&              Next;
+            SVulkanNext2::FeatureMap& mMap;
+            DDIExtNameArray*          pvExtOut;
+
+            SEnableFeature( SVulkanNext& N, SVulkanNext2::FeatureMap& M, DDIExtNameArray* pExtOut ) :
+                Next( N ), mMap( M ), pvExtOut( pExtOut )
+            {
+            }
+
+            template< typename StructT >
+            bool Add( StructT& VkStruct )
+            {
+                auto& Feature   = mMap[ VkStruct.sType ];
+                auto* pVkStruct = reinterpret_cast< StructT* >( Feature.pFeature );
+                const bool ret       = pVkStruct != nullptr;
+                if( ret )
+                {
+                    Next.Add( pVkStruct );
+                    if( Feature.pExtName )
+                    {
+                        pvExtOut->PushBack( Feature.pExtName );
+                    }
+                }
+                return ret;
+            }
+        };
+
         Result EnableDeviceFeatures( VkPhysicalDevice vkPhysicalDevice,
                                      SImplementation* pImpl, SSettings* pSettingsOut,
                                      VkDeviceCreateInfo* pOut,
@@ -2328,7 +2535,7 @@ namespace VKE
                          VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME };
 
             VKE::Memory::Zero( &pImpl->Features );
-            VKE::Memory::Zero( &pImpl->Properties );
+            VKE::Memory::Zero( &pImpl->DeviceProperties );
 
             Result ret = GetDeviceExtensions( vkPhysicalDevice, &pImpl->m_mExtensions );
             if( VKE_FAILED( ret ) )
@@ -2336,23 +2543,31 @@ namespace VKE
                 return ret;
             }
 
-            ret = QueryAdapterProperties( vkPhysicalDevice, pImpl );
+            auto& Device         = pImpl->DeviceProperties.Device;
+            auto& Features       = pImpl->Features;
+            auto& DeviceFeatures = pImpl->Features.Device.features;
+
+            SVulkanNext2::FeatureMap mFeaturesToEnable;
+            ret = QueryAdapterProperties( vkPhysicalDevice, pImpl, &mFeaturesToEnable );
             if( VKE_FAILED( ret ) )
             {
                 return ret;
             }
 
-            auto& Device         = pImpl->Properties.Device;
-            auto& Features       = pImpl->Features;
-            auto& Device11       = pImpl->Features.Device11;
-            auto& Device12       = pImpl->Features.Device12;
-            auto& DeviceFeatures = pImpl->Features.Device.features;
-            auto& Settings       = *pSettingsOut;
+            // If supported, must be enabled
+            if( pImpl->m_mExtensions.find("VK_KHR_portability_subset") != pImpl->m_mExtensions.end() )
+            {
+                pExtOut->PushBack( "VK_KHR_portability_subset" );
+            }
+            //auto& Settings       = *pSettingsOut;
 
-            Features.DynamicRendering.dynamicRendering = GetCommandLineParam< int >(
-                "renderer.vk.dynamicRendering", Features.DynamicRendering.dynamicRendering );
+            VkDeviceCreateInfo& Info = *pOut;
+            SVulkanNext         NextFeatures( Info );
 
-            const auto& featureLevelKnob = GetCommandLineParam< int >( "renderer.featureLevel", Settings.featureLevel );
+            SEnableFeature Enable( NextFeatures, mFeaturesToEnable, pExtOut );
+
+            //const auto& featureLevelKnob = GetCommandLineParam< int >( "renderer.featureLevel", Settings.featureLevel );
+            const auto& featureLevelKnob = GetRuntimeConfig().FeatureLevel;
 
             auto deviceFeatureLevel = ConvertVulkanAPIToFeatureLevel( Device.properties.apiVersion );
             auto requestedLevel     = featureLevelKnob;
@@ -2363,9 +2578,6 @@ namespace VKE
             }
 
             pEnableOut->Device.features.robustBufferAccess = VKE_RENDER_SYSTEM_DEBUG && DeviceFeatures.robustBufferAccess;
-
-            VkDeviceCreateInfo& Info = *pOut;
-            SVulkanNext         NextFeatures( Info );
 
             if( requestedLevel >= FeatureLevels::LEVEL_1_0 )
             {
@@ -2381,49 +2593,47 @@ namespace VKE
                 pEnableOut->Device.features.sparseResidencyImage2D = DeviceFeatures.sparseResidencyImage2D;
                 pEnableOut->Device.features.sparseResidencyImage3D = DeviceFeatures.sparseResidencyImage3D;
 
-                if( !Device11.shaderDrawParameters )
+                if( !Features.ShaderDrawParameters.shaderDrawParameters )
                 {
                     VKE_LOG_ERR( "Required device feature: 'Shader Draw Parameters' is not supported." );
                     ret = VKE_FAIL;
                 }
 
-                pEnableOut->Device11                      = {};
-                pEnableOut->Device11.sType                = Device11.sType;
-                pEnableOut->Device11.shaderDrawParameters = Device11.shaderDrawParameters;
-                NextFeatures.Add( &pEnableOut->Device11 );
+                Enable.Add( Features.ShaderDrawParameters );
+                Enable.Add( Features.SubgroupSizeControl );
+                Enable.Add( Features.Buffer16Bit );
+
+                if( GetRuntimeConfig().VkDynamicRendering )
+                {
+                    Enable.Add( Features.DynamicRendering );
+                }
+
+                if( GetRuntimeConfig().VkTimelineSemaphore )
+                {
+                    Enable.Add( Features.TimelineSemaphore );
+                }
+
+                if( GetRuntimeConfig().Bindless )
+                {
+                    Enable.Add( Features.DescriptorIndexing );
+                }
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_2 )
             {
-                pEnableOut->DynamicRendering = Features.DynamicRendering;
-                NextFeatures.Add( &pEnableOut->DynamicRendering );
-
-                pExtOut->PushBack( VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME );
-
-                if( !Device12.descriptorIndexing )
+                if( !Features.DescriptorIndexing.descriptorBindingPartiallyBound )
                 {
                     VKE_LOG_ERR( "Required device feature: 'Descriptor Indexing' is not supported." );
                     ret = VKE_FAIL;
-                    if( !Device12.runtimeDescriptorArray )
+                    if( !Features.DescriptorIndexing.runtimeDescriptorArray )
                     {
                         VKE_LOG_ERR( "Required device feature: 'Runtime Descriptor Array' is not supported." );
                         ret = VKE_FAIL;
                     }
                 }
-
-                pEnableOut->Device12                        = {};
-                pEnableOut->Device12.sType                  = Device12.sType;
-                pEnableOut->Device12.descriptorIndexing     = Device12.descriptorIndexing;
-                pEnableOut->Device12.runtimeDescriptorArray = Device12.runtimeDescriptorArray;
-                pEnableOut->Device12.timelineSemaphore      = Device12.timelineSemaphore;
-                NextFeatures.Add( &pEnableOut->Device12 );
-
-                pSettingsOut->Features.bindlessResourceAccess = (FEATURE_ENABLE_MODE)Device12.descriptorIndexing;
-                pSettingsOut->Features.dynamicRenderPass =
-                    (FEATURE_ENABLE_MODE)Features.DynamicRendering.dynamicRendering;
             }
             if( requestedLevel >= FeatureLevels::LEVEL_1_3 )
             {
-                if( GetCommandLineParam< bool >( "rs.raytracing", true ) )
+                if( GetRuntimeConfig().RayTracing )
                 {
                     if( !Features.Raytracing10.rayTracingPipeline )
                     {
@@ -2435,39 +2645,27 @@ namespace VKE
                         VKE_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
                         ret = VKE_FAIL;
                     }
-                    if( !Features.MeshShaderEXT.meshShader )
+                    
+                    if( Enable.Add( Features.Raytracing10 ) )
                     {
-                        VKE_LOG_ERR( "Required device feature: 'Mesh Shaders' is not supported." );
+                        pExtOut->PushBack( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
+                        pExtOut->PushBack( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
+                    }
+                    Enable.Add( Features.Raytracing11 );
+                    Enable.Add( Features.Raytracing12NV );
+                }
+
+                if( GetRuntimeConfig().MeshShaders )
+                {
+                    if( !Features.MeshShaderEXT.meshShader || !Features.MeshShaderEXT.taskShader )
+                    {
+                        VKE_LOG_ERR( "Required device feature: 'MeshShaders' is not supported." );
                         ret = VKE_FAIL;
                     }
-                    pEnableOut->Raytracing10 = Features.Raytracing10;
-                    pEnableOut->Raytracing11 = Features.Raytracing11;
-                    pEnableOut->Raytracing12 = Features.Raytracing12;
-                    NextFeatures.Add( &pEnableOut->Raytracing10 )
-                        .Add( &pEnableOut->Raytracing11 )
-                        .Add( &pEnableOut->Raytracing12 );
-                    pExtOut->PushBack( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );
-                    pExtOut->PushBack( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
-                    pExtOut->PushBack( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
-                    pExtOut->PushBack( VK_KHR_RAY_QUERY_EXTENSION_NAME );
-                }
-                const auto v = GetCommandLineParam< bool >( "rs.mesh_shaders", true );
-                if( v )
-                {
-                    if( Features.MeshShaderNV.meshShader && Features.MeshShaderNV.taskShader )
-                    {
-                        pEnableOut->MeshShaderNV = Features.MeshShaderNV;
-                        pExtOut->PushBack( VK_NV_MESH_SHADER_EXTENSION_NAME );
-                    }
-
-                    if( Features.MeshShaderEXT.meshShader && Features.MeshShaderEXT.taskShader )
-                    {
-                        pEnableOut->MeshShaderEXT                                        = Features.MeshShaderEXT;
-                        pEnableOut->MeshShaderEXT.multiviewMeshShader                    = VK_FALSE;
-                        pEnableOut->MeshShaderEXT.primitiveFragmentShadingRateMeshShader = VK_FALSE;
-                        NextFeatures.Add( &pEnableOut->MeshShaderEXT );
-                        pExtOut->PushBack( VK_EXT_MESH_SHADER_EXTENSION_NAME );
-                    }
+                    Features.MeshShaderEXT.multiviewMeshShader = 0; // do not enable/support multiview
+                    /// TODO: enable primitiveFragmentShadingRate
+                    Features.MeshShaderEXT.primitiveFragmentShadingRateMeshShader = 0; // primitiveFragmentShadingRate is not disable at the moment
+                    Enable.Add( Features.MeshShaderEXT );
                 }
             }
             if( requestedLevel >= FeatureLevels::LEVEL_ULTIMATE )
@@ -2477,7 +2675,7 @@ namespace VKE
             ret = CheckDeviceExtensions( pImpl->m_mExtensions, *pExtOut );
             if( VKE_SUCCEEDED( ret ) )
             {
-                ret = EnableDeviceExtensions( pImpl->m_mExtensions, pEnableOut, pExtOut );
+                //ret = EnableDeviceExtensions( pImpl->m_mExtensions, pEnableOut, pExtOut );
             }
             return ret;
         }
@@ -2521,10 +2719,10 @@ namespace VKE
                 return VKE_FAIL;
             }
 
-            for( uint32_t i = 0; i < m_pImplementation->Properties.Memory.memoryProperties.memoryHeapCount; ++i )
+            for( uint32_t i = 0; i < m_pImplementation->MemoryProperties.Memory.memoryProperties.memoryHeapCount; ++i )
             {
                 m_pImplementation->m_aHeapSizes[ i ] =
-                    m_pImplementation->Properties.Memory.memoryProperties.memoryHeaps[ i ].size;
+                    m_pImplementation->MemoryProperties.Memory.memoryProperties.memoryHeaps[ i ].size;
             }
 
             Utils::TCDynamicArray< VkDeviceQueueCreateInfo > vQis;
@@ -2640,7 +2838,7 @@ namespace VKE
         void CVulkanAPI::QueryDeviceInfoImpl( SDeviceInfo* pOut )
         {
             auto& Limits = pOut->Limits;
-            VkPhysicalDeviceLimits& VkLimits  = m_pImplementation->Properties.Device.properties.limits;
+            VkPhysicalDeviceLimits& VkLimits  = m_pImplementation->DeviceProperties.Device.properties.limits;
             auto& Alignment = Limits.Alignment;
             Alignment.constantBufferOffset =
                 static_cast< uint32_t >( VkLimits.minUniformBufferOffsetAlignment );
@@ -2659,13 +2857,13 @@ namespace VKE
             Binding.Stage.maxStorageTextureCount = VkLimits.maxPerStageDescriptorStorageImages;
             Binding.Stage.maxResourceCount       = VkLimits.maxPerStageResources;
             Binding.Stage.maxTextureCount        = VkLimits.maxPerStageDescriptorSampledImages;
-            auto& Memory                         = Limits.Memory;
-            Memory.maxAllocationCount            = VkLimits.maxMemoryAllocationCount;
-            Memory.minMapAlignment               = (uint32_t)VkLimits.minMemoryMapAlignment;
-            Memory.minTexelBufferOffsetAlignment = (uint32_t)VkLimits.minTexelBufferOffsetAlignment;
-            Memory.minConstantBufferOffsetAlignment =
+            auto& MemoryProperties                         = Limits.MemoryProperties;
+            MemoryProperties.maxAllocationCount            = VkLimits.maxMemoryAllocationCount;
+            MemoryProperties.minMapAlignment               = (uint32_t)VkLimits.minMemoryMapAlignment;
+            MemoryProperties.minTexelBufferOffsetAlignment = (uint32_t)VkLimits.minTexelBufferOffsetAlignment;
+            MemoryProperties.minConstantBufferOffsetAlignment =
                 (uint32_t)VkLimits.minUniformBufferOffsetAlignment;
-            Memory.minStorageBufferOffsetAlignment =
+            MemoryProperties.minStorageBufferOffsetAlignment =
                 (uint32_t)VkLimits.minStorageBufferOffsetAlignment;
             // Get heaps for GPU, CPU and Upload
 
@@ -2682,7 +2880,7 @@ namespace VKE
                 VkMemoryPropertyFlags vkPropertyFlags =
                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->MemoryProperties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU_COHERENT ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::CPU_COHERENT ] = INVALID_POSITION;
@@ -2697,7 +2895,7 @@ namespace VKE
                 VkMemoryPropertyFlags vkPropertyFlags =
                     VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->MemoryProperties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU_CACHED ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::CPU_CACHED ] = INVALID_POSITION;
@@ -2712,7 +2910,7 @@ namespace VKE
                 VkMemoryPropertyFlags vkPropertyFlags =
                     VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->MemoryProperties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::OTHER ] = 0;
                 // HeapMap.TypeToIndex[ MemoryHeapTypes::OTHER ] = idx;
@@ -2727,7 +2925,7 @@ namespace VKE
             {
                 VkMemoryPropertyFlags vkPropertyFlags =
                     Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS );
-                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->MemoryProperties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::GPU ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::GPU ] = INVALID_POSITION;
@@ -2741,7 +2939,7 @@ namespace VKE
             {
                 VkMemoryPropertyFlags vkPropertyFlags =
                     Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->MemoryProperties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 // Memory.aHeapSizes[ MemoryHeapTypes::CPU ] = 0;
                 HeapMap.TypeToIndex[ MemoryHeapTypes::CPU ] = INVALID_POSITION;
@@ -2757,7 +2955,7 @@ namespace VKE
                                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
                 // Convert::MemoryUsagesToVkMemoryPropertyFlags( MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS );
-                const auto&   VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
+                const auto&   VkMemProps = m_pImplementation->MemoryProperties.Memory.memoryProperties;
                 const int32_t idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
                 HeapMap.TypeToIndex[ MemoryHeapTypes::UPLOAD ] = INVALID_POSITION;
                 if( idx >= 0 )
@@ -3018,7 +3216,7 @@ namespace VKE
             
             if( VKE_SUCCEEDED( VKE::Memory::CreateObject( &HeapAllocator, &pFence ) ) )
             {
-                if( VKE_FAILED( pFence->Create( this, Desc, m_pImplementation->Features.Device12.timelineSemaphore ) ) )
+                if( VKE_FAILED( pFence->Create( this, Desc, m_pImplementation->Features.TimelineSemaphore.timelineSemaphore ) ) )
                 {
                     VKE::Memory::DestroyObject( &HeapAllocator, &pFence );
                 }
@@ -4323,7 +4521,7 @@ namespace VKE
         size_t CVulkanAPI::GetMemoryHeapTotalSizeImpl( MEMORY_HEAP_TYPE type ) const
         {
             const auto idx = HeapMap.TypeToIndex[ type ];
-            return m_pImplementation->Properties.Memory.memoryProperties.memoryHeaps[ idx ].size;
+            return m_pImplementation->MemoryProperties.Memory.memoryProperties.memoryHeaps[ idx ].size;
         }
 
         size_t CVulkanAPI::GetMemoryHeapCurrentSizeImpl( MEMORY_HEAP_TYPE type ) const
@@ -4355,7 +4553,7 @@ namespace VKE
         {
             MEMORY_HEAP_TYPE      ret             = MemoryHeapTypes::OTHER;
             VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( usage );
-            const auto&           VkMemProps      = m_pImplementation->Properties.Memory.memoryProperties;
+            const auto&           VkMemProps      = m_pImplementation->MemoryProperties.Memory.memoryProperties;
             const int32_t         idx             = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
             if( idx >= 0 )
             {
@@ -4382,7 +4580,7 @@ namespace VKE
             Result                ret             = VKE_FAIL;
             VkMemoryPropertyFlags vkPropertyFlags = Convert::MemoryUsagesToVkMemoryPropertyFlags( Desc.usage );
 
-            const auto& VkMemProps = m_pImplementation->Properties.Memory.memoryProperties;
+            const auto& VkMemProps = m_pImplementation->MemoryProperties.Memory.memoryProperties;
             int32_t     idx        = FindMemoryTypeIndex( &VkMemProps, UINT32_MAX, vkPropertyFlags );
             // const uint32_t idx = HeapMap.TypeToIndex[  ];
             NativeAPI::MemoryHeap hMemory;
@@ -5518,7 +5716,7 @@ namespace VKE
                 {
                     Convert::RenderSystemToVkRect2D( Info.RenderArea, &VkInfo.renderArea );
                 }
-                m_pImplementation->m_ICD.vkCmdBeginRenderingKHR( ToNative( hCommandBuffer ), &VkInfo );
+                m_pImplementation->m_ICD.vkCmdBeginRendering( ToNative( hCommandBuffer ), &VkInfo );
             }
         }
 
@@ -5594,7 +5792,7 @@ namespace VKE
 
             vkInfo.pColorAttachments = vVkAttachments.GetDataOrNull();
 
-            m_pImplementation->m_ICD.vkCmdBeginRenderingKHR( ToNative( hCommandBuffer ), &vkInfo );
+            m_pImplementation->m_ICD.vkCmdBeginRendering( ToNative( hCommandBuffer ), &vkInfo );
         }
 
         /*void CVulkanAPI::EndRenderPass( RHI::CommandBuffer hDDICommandBuffer )
@@ -5610,7 +5808,7 @@ namespace VKE
             }
             else
             {
-                m_pImplementation->m_ICD.vkCmdEndRenderingKHR( ToNative( hDDICommandBuffer ) );
+                m_pImplementation->m_ICD.vkCmdEndRendering( ToNative( hDDICommandBuffer ) );
             }
         }
 
@@ -5827,8 +6025,21 @@ namespace VKE
             message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
             auto str = std::regex_replace( message.str(), std::regex( " : " ), "\n" );
             str      = std::regex_replace( str, std::regex( ";" ), "\n" );
-            VKE_LOG( str );
-            VKE_ASSERT2( ( msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT ) == 0, message.str().c_str() );
+            //VKE_LOG( str );
+            //Platform::Debug::PrintOutput( str.data() );
+            //VKE_ASSERT2( ( msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT ) == 0, message.str().c_str() );
+            if( msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT )
+            {
+                VKE_LOG_ERR( str );
+            }
+            else if ( msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT )
+            {
+                VKE_LOG_WARN( str );
+            }
+            else
+            {
+                VKE_LOG( str );
+            }
 #ifdef _WIN32
             if( msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT )
             {

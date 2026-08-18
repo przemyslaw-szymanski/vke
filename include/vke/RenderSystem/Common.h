@@ -179,7 +179,7 @@ namespace VKE
 
         struct FeatureLevels
         {
-            enum LEVEL
+            enum LEVEL : uint8_t
             {
                 /// <summary>
                 /// Highest available
@@ -1266,7 +1266,7 @@ namespace VKE
 
         struct SRenderSystemDesc
         {
-            SRenderSystemMemoryInfo Memory;
+            SRenderSystemMemoryInfo MemoryProperties;
             TSArray< SWindowDesc >  Windows;
             SFrameGraphDesc         FrameGraph;
             bool                    debugMode = VKE_RENDER_SYSTEM_DEBUG;
@@ -3828,7 +3828,7 @@ namespace VKE
                     uint32_t minTexelBufferOffsetAlignment;
                     uint32_t minConstantBufferOffsetAlignment;
                     uint32_t minStorageBufferOffsetAlignment;
-                } Memory;
+                } MemoryProperties;
 
                 struct
                 {

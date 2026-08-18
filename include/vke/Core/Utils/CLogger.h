@@ -383,6 +383,7 @@ namespace VKE
 #if VKE_ASSERT_ON_ERROR_ENABLE
 #define VKE_LOG_ERR( _msg )                                                                                            \
     VKE_LOGGER_LOG_ERROR( VKE_FAIL, _msg );                                                                            \
+    VKE_LOGGER_END;                                                                                                    \
     VKE_ASSERT( 0 )
 #define VKE_LOG_ERRF( _fmt, ... )                                                                                      \
     VKE_LOGGER_LOG_ERRORF( VKE_FAIL, _fmt, __VA_ARGS__ );                                                              \

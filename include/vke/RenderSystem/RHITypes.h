@@ -41,7 +41,7 @@ namespace VKE::RenderSystem
         struct ImageType {};
         struct ImageLayout {};
         struct ImageUsageFlags {};
-        struct Memory {};
+        struct MemoryProperties {};
         struct PresentSurface {};
         struct SwapChain {};
         struct Adapter {};
@@ -135,7 +135,7 @@ namespace VKE::RenderSystem
         using ImageType             = TSHandle<NativeTagTypes::ImageType, handle_t>;
         using ImageLayout           = TSHandle<NativeTagTypes::ImageLayout, handle_t>;
         using ImageUsageFlags       = TSHandle<NativeTagTypes::ImageUsageFlags, handle_t>;
-        using MemoryHeap            = TSHandle<NativeTagTypes::Memory, handle_t>;
+        using MemoryHeap            = TSHandle<NativeTagTypes::MemoryProperties, handle_t>;
         using PresentSurface        = TSHandle<NativeTagTypes::PresentSurface, handle_t>;
         using SwapChain             = TSHandle<NativeTagTypes::SwapChain, handle_t>;
         using Adapter               = TSHandle<NativeTagTypes::Adapter, handle_t>;

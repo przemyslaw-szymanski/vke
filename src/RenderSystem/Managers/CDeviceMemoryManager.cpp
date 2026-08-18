@@ -82,7 +82,7 @@ namespace VKE
             for( uint32_t i = 0; i < MemoryHeapTypes::_MAX_COUNT; ++i )
             {
                 m_aHeapSizes[ i ]     = m_pCtx->RHI().GetMemoryHeapTotalSize( (MEMORY_HEAP_TYPE)i );
-                m_aMaxPoolCounts[ i ] = DeviceInfo.Limits.Memory.maxAllocationCount;
+                m_aMaxPoolCounts[ i ] = DeviceInfo.Limits.MemoryProperties.maxAllocationCount;
                 m_aMinAllocSizes[ i ] = m_aHeapSizes[ i ] / m_aMaxPoolCounts[ i ];
             }
             return ret;
@@ -191,14 +191,14 @@ namespace VKE
         handle_t CDeviceMemoryManager::_CreatePool( const SAllocateDesc&                    Desc,
                                                     const SAllocationMemoryRequirementInfo& MemReq )
         {
-            auto&            lastPoolSize = m_mLastPoolSizes[ Desc.Memory.memoryUsages ];
-            MEMORY_HEAP_TYPE heapType     = m_pCtx->RHI().GetMemoryHeapType( Desc.Memory.memoryUsages );
+            auto&            lastPoolSize = m_mLastPoolSizes[ Desc.MemoryProperties.memoryUsages ];
+            MEMORY_HEAP_TYPE heapType     = m_pCtx->RHI().GetMemoryHeapType( Desc.MemoryProperties.memoryUsages );
             lastPoolSize  = std::max< uint32_t >( lastPoolSize, (uint32_t)m_aMinAllocSizes[ heapType ] );
             auto poolSize = std::max< uint32_t >( lastPoolSize, MemReq.size );
             poolSize      = std::max< uint32_t >( poolSize, Desc.poolSize );
             // auto idx = CalcMemoryPoolIndex( Desc.Memory.memoryUsages );
             SCreateMemoryPoolDesc PoolDesc;
-            PoolDesc.usage     = Desc.Memory.memoryUsages;
+            PoolDesc.usage     = Desc.MemoryProperties.memoryUsages;
             PoolDesc.size      = poolSize;
             PoolDesc.alignment = MemReq.alignment;
             handle_t hPool     = _CreatePool( PoolDesc );

@@ -10,7 +10,7 @@
 
 namespace VKE
 {
-    namespace Memory
+    namespace MemoryProperties
     {
         class CFreeListPool;
     } // namespace Memory

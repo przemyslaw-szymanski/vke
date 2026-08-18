@@ -2731,7 +2731,7 @@ namespace VKE::RenderSystem::D3D12
         Binding.Stage.maxResourceCount       = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
         Binding.Stage.maxTextureCount        = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
 
-        auto& Memory                            = Limits.Memory;
+        auto& Memory                            = Limits.MemoryProperties;
         Memory.maxAllocationCount               = UINT32_MAX; // No documented limit
         Memory.minMapAlignment                  = 0;          // No documented limit
         Memory.minTexelBufferOffsetAlignment    = 0;          // No documented limit
