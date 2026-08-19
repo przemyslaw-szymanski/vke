@@ -196,6 +196,9 @@ namespace VKE
                             Device.usUsage     = static_cast< uint16_t >( Curr.HID.usage );
                             Device.usUsagePage = static_cast< uint16_t >( Curr.HID.usagePage );
                         }
+                        break;
+                        default:
+                            continue;
                     };
                     vRawDevices[ i ] = Device;
                 }

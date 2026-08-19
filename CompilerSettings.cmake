@@ -67,6 +67,9 @@ if(MSVC)
         add_definitions("/DEBUG")
     endif()
 
+	# Allows __VA_OPT__ use in macros
+	add_definitions("/Zc:preprocessor")
+	
 	# ignore warnings
 	add_definitions("/wd4201") # nameless union/struct
 	add_definitions("/wd4127") # conditional expression is constant
@@ -95,6 +98,7 @@ elseif(GCC)
 	add_definitions("-Wno-unused-function")
 	add_definitions("-Wno-unused-variable")
 	add_definitions("-Wno-unused-parameter")
+	add_definitions("-Wno-unused-but-set-variable")
 
 endif()
 

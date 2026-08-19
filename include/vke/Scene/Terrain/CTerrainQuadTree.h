@@ -7,6 +7,9 @@
 
 namespace VKE::Scene
 {
+    // Forward declaration
+    class CTerrain;
+
     class VKE_API CTerrainQuadTree
     {
         friend class CTerrain;

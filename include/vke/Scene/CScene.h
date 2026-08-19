@@ -23,9 +23,15 @@ namespace VKE
 
     namespace Scene
     {
+        // Forward declarations
         class CScene;
         class CCamera;
         class CTerrain;
+        class CWorld;
+        class CQuadTree;
+        class COctree;
+        class CBVH;
+
         using TerrainPtr = Utils::TCWeakPtr< CTerrain >;
 
         struct ObjectTypes

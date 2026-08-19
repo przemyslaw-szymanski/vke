@@ -23,7 +23,7 @@ namespace VKE
 
         class VKE_API CWorld
         {
-            friend class CVkEngine;
+            friend class VKE::CVkEngine;
             friend class CScene;
 
             struct SDesc

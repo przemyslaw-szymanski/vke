@@ -116,7 +116,7 @@ namespace VKE
                       ARGS... args )
             {
                 bool ret = Get( hash, pResOut, pItrOut );
-                if( !ret && VKE_SUCCEEDED( Memory::CreateObject( pAllocator, pResOut, args ) ) )
+                if( !ret && VKE_SUCCEEDED( Memory::CreateObject( pAllocator, pResOut, args... ) ) )
                 {
                     ret = true;
                 }

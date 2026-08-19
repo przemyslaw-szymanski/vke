@@ -225,9 +225,9 @@ namespace VKE
                 return *this;
             }
 
-            TCString& operator=( ConstDataTypePtr pData )
+            TCString& operator=( const char* Other )
             {
-                this->Copy( pData, _CalcLength( pData ) + 1 );
+                return this->operator=( TCString( Other ) );
             }
 
             TC_DYNAMIC_ARRAY_TEMPLATE2
@@ -498,7 +498,7 @@ namespace VKE
             }
 
         protected:
-            uint32_t _CalcLength( ConstDataTypePtr pData ) const;
+            static uint32_t _CalcLength( ConstDataTypePtr pData );
         };
 
         using CString = TCString< char >;
@@ -519,7 +519,7 @@ namespace VKE
         }
 
         TC_DYNAMIC_ARRAY_TEMPLATE
-        uint32_t TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >::_CalcLength( ConstDataTypePtr pData ) const
+        uint32_t TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >::_CalcLength( ConstDataTypePtr pData )
         {
             CountType c = 0;
             if( pData )

@@ -19,12 +19,21 @@ namespace VKE
         };
 
         template< typename T >
-        class TCFreeListIterator : public std::iterator< std::forward_iterator_tag, T*, T& >
+        class TCFreeListIterator
         {
-            template< typename T, uint32_t, class, class >
+            template< typename _T, uint32_t, class, class >
             friend class TCFreeList;
 
         public:
+            // Iterator (the CRTP-style base that injected iterator_category/value_type/etc.) was deprecated in C++17
+            // because it was error-prone and added little value. libstdc++ emits -Wdeprecated-declarations; MSVC's STL
+            // is quieter about it by default.
+            using iterator_category = std::forward_iterator_tag;
+            using value_type        = T*;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = T**;
+            using reference         = T&;
+
             using DataType    = T;
             using DataTypePtr = T*;
             using DataTypeRef = T&;
@@ -143,23 +152,23 @@ namespace VKE
             void _SetIdxs( uint32_t startIdx );
 
         public:
-            TCFreeList() : TCList()
+            TCFreeList() : Base()
             {
             }
 
-            TCFreeList( const TCFreeList& Other ) : TCList( Other ), TCFreeList()
+            TCFreeList( const TCFreeList& Other ) : Base( Other )
             {
             }
 
-            TCFreeList( TCFreeList&& Other ) : TCList( Other ), TCFreeList()
+            TCFreeList( TCFreeList&& Other ) : Base( Other )
             {
             }
 
-            explicit TCFreeList( CountType elemCount ) : TCList( elemCount ), TCFreeList()
+            explicit TCFreeList( CountType elemCount ) : Base( elemCount )
             {
             }
 
-            TCFreeList( CountType elemCount, const DataTypeRef Default = DataType );
+            TCFreeList( CountType elemCount, const DataTypeRef Default = DataType{} );
             TCFreeList( CountType elemCount, VisitCallback Callback );
 
         protected:

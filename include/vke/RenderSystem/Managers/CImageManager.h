@@ -81,7 +81,7 @@ namespace VKE
 
         class VKE_API CImageManager
         {
-            friend class CVkEngine;
+            friend class VKE::CVkEngine;
             friend class CImage;
             using ImageHandleType = uint32_t;
             using ImagePool       = Utils::TSFreePool< ImagePtr, ImageHandleType, 1 >;

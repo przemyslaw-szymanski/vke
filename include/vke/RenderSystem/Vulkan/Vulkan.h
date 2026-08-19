@@ -264,8 +264,9 @@ namespace VKE::RenderSystem::Vulkan
                 case VK_ERROR_VALIDATION_FAILED_EXT:
                     return VKE_TO_STRING( VK_ERROR_VALIDATION_FAILED_EXT );
                     break;
+                default:
+                    return "Unknown Error";
             }
-            return "Unknown Error";
         }
 
         Result LoadGlobalFunctions( handle_t hDll, VkICD::Global* );

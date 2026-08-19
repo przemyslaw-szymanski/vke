@@ -15,7 +15,7 @@ namespace VKE
             uint32_t line      = 0;
 
             SSimpleProfiler( cstr_t pFile, cstr_t pFunc, uint32_t line ) :
-                pFileName{ pFile }, pFuncName{ pFunc }, line{ line }
+                pFuncName{ pFunc }, pFileName{ pFile }, line{ line }
             {
                 Timer.Start();
             }

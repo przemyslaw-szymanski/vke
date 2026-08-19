@@ -24,7 +24,7 @@ namespace VKE
 
         class VKE_API CFileManager
         {
-            friend class CVKEngine;
+            friend class VKE::CVKEngine;
 
             using Desc  = SFileManagerDesc;
             using CFile = Core::CFile;

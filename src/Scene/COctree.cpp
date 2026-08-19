@@ -248,7 +248,7 @@ namespace VKE
                                                    const Math::CVector4& vecObjectCenter )
         {
             OCTREE_NODE_POSITION_INDEX ret;
-            // objectAABB.center <= OctreeAABB.center
+            // objectAABB.Data.Center <= OctreeAABB.Data.Center
             Math::CVector4 vecTmp1;
             Math::CVector4::LessOrEquals( vecObjectCenter, vecNodeCenter, &vecTmp1 );
             // Compare result is not a float value, make it 0-1 range
@@ -294,7 +294,7 @@ namespace VKE
 
             pCurrent->CalcAABB( Info, &CurrentAABB );*/
 
-            if( *pCurrLevel < m_Desc.maxDepth && CurrentAABB.Extents > ( m_Desc.vec3MinSize ) )
+            if( *pCurrLevel < m_Desc.maxDepth && CurrentAABB.Data.Extents > ( m_Desc.vec3MinSize ) )
             {
                 // Check which child node should constains the AABB
                 SOctreeNode::UNodeMask     NodeMask;

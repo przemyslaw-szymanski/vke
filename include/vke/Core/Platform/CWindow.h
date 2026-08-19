@@ -179,7 +179,7 @@ namespace VKE
 
         TASK_RESULT _UpdateTask( void* );
         friend Threads::TaskFunction;
-        friend class CVkEngine;
+        friend class VKE::CVkEngine;
 
     protected:
         SWindowDesc                    m_Desc;

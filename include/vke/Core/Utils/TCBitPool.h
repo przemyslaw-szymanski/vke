@@ -90,7 +90,7 @@ namespace VKE
             template< bool SetBitT >
             vke_force_inline void SetBit( SBitHandle Handle )
             {
-                m_vBitPool[ Handle.chunkIndex ].SetBit< SetBitT >( Handle.bitIndex );
+                m_vBitPool[ Handle.chunkIndex ].template SetBit< SetBitT >( Handle.bitIndex );
             }
 
             template< bool SetBitT >
@@ -103,7 +103,7 @@ namespace VKE
                 // Reset bits in current chunk
                 for( uint8_t b = BitHandle.bitIndex; currSlot < numBitsLeftInFirstChunk; ++b, ++currSlot )
                 {
-                    pChunk->SetBit< SetBitT >( b );
+                    pChunk->template SetBit< SetBitT >( b );
                 }
                 // Move to the next bit chunk
                 BitHandle.chunkIndex++;
@@ -122,7 +122,7 @@ namespace VKE
                 pChunk = &m_vBitPool[ BitHandle.chunkIndex ];
                 for( uint8_t b = 0; b < numRemainingSlots; ++b )
                 {
-                    pChunk->SetBit< SetBitT >( b );
+                    pChunk->template SetBit< SetBitT >( b );
                 }
             }
 

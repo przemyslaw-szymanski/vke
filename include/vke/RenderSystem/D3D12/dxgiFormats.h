@@ -1,5 +1,14 @@
 #pragma once
 
+// Some newer DXGI_FORMAT enumerators are not defined by older/MinGW dxgiformat.h.
+// Provide fallback values matching the official Windows SDK definitions.
+#ifndef DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE
+#   define DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE ( (DXGI_FORMAT)189 )
+#endif
+#ifndef DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE
+#   define DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE ( (DXGI_FORMAT)190 )
+#endif
+
 namespace VKE::RenderSystem::D3D12
 {
     static const DXGI_FORMAT g_aFormats[] = {

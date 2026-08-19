@@ -345,8 +345,8 @@ namespace VKE
             {
                 const auto& hDbgView = pDrawcall->m_hDbgView;
                 /*Math::CMatrix4x4 mtxTransform;
-                mtxTransform.Transform( Math::CVector4( NewAABB.Extents * 2 ), Math::CVector4::ZERO,
-                    Math::CQuaternion::UNIT, Math::CVector4( NewAABB.Center ) );
+                mtxTransform.Transform( Math::CVector4( NewAABB.Data.Extents * 2 ), Math::CVector4::ZERO,
+                    Math::CQuaternion::UNIT, Math::CVector4( NewAABB.Data.Center ) );
                 m_pDebugView->UpdateInstancing( SDebugView::INSTANCING_TYPE::AABB, hDbgView, mtxTransform );*/
                 m_pDebugView->UpdateBatchData( pCmdBuffer, SDebugView::BatchTypes::AABB, hDbgView, NewAABB );
             }

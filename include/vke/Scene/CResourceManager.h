@@ -887,7 +887,7 @@ namespace VKE
 
         class VKE_API CResourceManager
         {
-            friend class CVkEngine;
+            friend class VKE::CVkEngine;
 
             using FileQueue     = vke_queue< Core::SLoadFileInfo >;
             using TextureQueue  = FileQueue;

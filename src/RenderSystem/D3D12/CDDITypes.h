@@ -6,7 +6,34 @@
 #include "Core/Utils/TCBitPool.h"
 
 #include <directx/d3d12.h>
-#include <directx/d3dx12.h>
+
+// NOTE: We intentionally do NOT include the umbrella <directx/d3dx12.h> here.
+// That umbrella unconditionally pulls in <directx/d3dx12_property_format_table.h>,
+// which references internal D3D enums (D3D_FORMAT_LAYOUT, D3D_FORMAT_TYPE_LEVEL, ...)
+// that the vcpkg DirectX-Headers package does not define under MinGW/GCC.
+// We also avoid <directx/d3dx12_resource_helpers.h> for the same reason: it
+// transitively includes that broken table header. Only the CD3DX12 helpers we
+// actually use are included below (the project only uses CD3DX12FeatureSupport).
+#include <directx/d3dx12_core.h>
+#include <directx/d3dx12_barriers.h>
+#include <directx/d3dx12_pipeline_state_stream.h>
+#include <directx/d3dx12_root_signature.h>
+
+// The vcpkg DirectX-Headers advertise a recent D3D12_SDK_VERSION, so
+// d3dx12_check_feature_support.h references newer feature-level enumerators
+// (e.g. D3D_FEATURE_LEVEL_1_0_GENERIC) that MinGW's d3d12.h does not define.
+// Provide a guarded fallback matching the official Windows SDK value.
+#ifndef D3D_FEATURE_LEVEL_1_0_GENERIC
+#define D3D_FEATURE_LEVEL_1_0_GENERIC ( (D3D_FEATURE_LEVEL)0x100 )
+#endif
+
+// MinGW's d3dcommon.h may not define newer primitive-topology enumerators.
+// Provide guarded fallbacks matching the official Windows SDK values.
+#ifndef D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN
+#define D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN ( (D3D_PRIMITIVE_TOPOLOGY)18 )
+#endif
+
+#include <directx/d3dx12_check_feature_support.h>
 #include <dxgi1_6.h>
 #include <pix3.h>
 
@@ -14,6 +41,29 @@ namespace VKE::RenderSystem::D3D12
 {
     template< class ObjT >
     concept Nullable = std::is_pointer_v< ObjT >;
+
+    // ------------------------------------------------------------------------
+    // Portable COM "by-value return" call.
+    //
+    // Several D3D12 methods return a struct by value in the MSVC/Windows-SDK ABI
+    // (e.g. GetCPUDescriptorHandleForHeapStart, GetDesc, GetResourceAllocationInfo).
+    // The IDL-generated d3d12.h selects the signature with:
+    //     #if defined(_MSC_VER) || !defined(_WIN32)   // aggregate returned by value
+    //     #else                                       // aggregate via hidden first out-param
+    // i.e. the out-param form is used only for a non-MSVC compiler targeting Win32
+    // (mingw-w64). We gate on the exact same condition so this tracks the header
+    // ABI rather than guessing from the compiler identity.
+    //
+    //     VKE_D3D12_CALL_RET( OutVar, pObj, Method, args... );
+    // expands to:
+    //     by-value ABI : (OutVar) = pObj->Method( args... )
+    //     out-param ABI: pObj->Method( &(OutVar), args... )
+    // ------------------------------------------------------------------------
+#if defined( _MSC_VER ) || !defined( _WIN32 )
+#define VKE_D3D12_CALL_RET( OutVar, Obj, Method, ... ) ( ( OutVar ) = ( Obj )->Method( __VA_ARGS__ ) )
+#else
+#define VKE_D3D12_CALL_RET( OutVar, Obj, Method, ... ) ( Obj )->Method( &(OutVar)__VA_OPT__(, ) __VA_ARGS__ )
+#endif
 
     struct NativeAPI
     {
@@ -105,7 +155,8 @@ namespace VKE::RenderSystem::D3D12
                 wstr_t m_name;
 
             public:
-                NativeAPI::D3D12CommandAllocator* GetAllocator( NativeAPI::D3D12GraphicsCommandList* pNativeCommandList )
+                NativeAPI::D3D12CommandAllocator*
+                GetAllocator( NativeAPI::D3D12GraphicsCommandList* pNativeCommandList )
                 {
                     NativeAPI::D3D12CommandAllocator* out = nullptr;
                     for( auto& Pair: vNativeCommandListsWithAllocators )
@@ -154,14 +205,16 @@ namespace VKE::RenderSystem::D3D12
 
                 D3D12_CPU_DESCRIPTOR_HANDLE GetCpuDescriptorHandle( uint32_t slotIndexOffset ) const
                 {
-                    return { pPool->pHeap->GetCPUDescriptorHandleForHeapStart().ptr +
-                             ( PoolSlots.begin + slotIndexOffset ) * pPool->descriptorSize };
+                    D3D12_CPU_DESCRIPTOR_HANDLE Start{};
+                    VKE_D3D12_CALL_RET( Start, pPool->pHeap, GetCPUDescriptorHandleForHeapStart );
+                    return { Start.ptr + ( PoolSlots.begin + slotIndexOffset ) * pPool->descriptorSize };
                 }
 
                 D3D12_GPU_DESCRIPTOR_HANDLE GetGpuDescriptorHandle( uint32_t slotIndexOffset ) const
                 {
-                    return { pPool->pHeap->GetGPUDescriptorHandleForHeapStart().ptr +
-                             ( PoolSlots.begin + slotIndexOffset ) * pPool->descriptorSize };
+                    D3D12_GPU_DESCRIPTOR_HANDLE Start{};
+                    VKE_D3D12_CALL_RET( Start, pPool->pHeap, GetGPUDescriptorHandleForHeapStart );
+                    return { Start.ptr + ( PoolSlots.begin + slotIndexOffset ) * pPool->descriptorSize };
                 }
             };
 
@@ -396,13 +449,6 @@ namespace VKE::RenderSystem::D3D12
                 this->Color[ 3 ] = Other.Color[ 3 ];
                 return *this;
             }
-
-            operator const D3D12_CLEAR_VALUE&() const
-            {
-                /// @TODO: Do we need this assert?
-                VKE_ASSERT2( this->Format != DXGI_FORMAT_UNKNOWN, "Format must be set" );
-                return static_cast< const D3D12_CLEAR_VALUE& >( *this );
-            }
         };
 
         struct SDeviceLimits
@@ -550,7 +596,7 @@ namespace VKE::RenderSystem::D3D12
 
                 if( firstSlotIndex != UNDEFINED_U32 )
                 {
-                    Handle          = pDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                    VKE_D3D12_CALL_RET( Handle, pDescriptorHeap, GetCPUDescriptorHandleForHeapStart );
                     Handle.ptr     += firstSlotIndex * DescriptorSize;
                     NumDescriptors += numDescriptors;
                 }

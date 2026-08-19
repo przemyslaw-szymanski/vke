@@ -226,6 +226,8 @@ namespace VKE
                 {
                 }
 
+                CSpinlock& operator=( const CSpinlock& ) = default;
+
                 void Lock();
                 void Unlock();
                 bool TryLock();

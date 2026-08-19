@@ -182,8 +182,9 @@ namespace VKE
             RECT       desktop;
             const HWND hDesktop = ::GetDesktopWindow();
 
-            MONITORINFO MonitorInfo = { 0 };
-            MonitorInfo.cbSize      = sizeof( MonitorInfo );
+            MONITORINFO MonitorInfo;
+            Memory::Zero( &MonitorInfo );
+            MonitorInfo.cbSize = sizeof( MonitorInfo );
 
             GetWindowRect( hDesktop, &desktop );
 
@@ -207,8 +208,10 @@ namespace VKE
                 Mode.Size.height = static_cast< uint16_t >( desktop.bottom );
             }
 
-            WNDCLASS wc = { 0 };
-            RECT     rect;
+            WNDCLASS wc;
+            Memory::Zero( &wc );
+
+            RECT rect;
 
             const char* title = m_Desc.pTitle;
 
@@ -358,7 +361,8 @@ namespace VKE
         ::SetWindowLong( m_pPrivate->hWnd, GWL_EXSTYLE, exStyle );
 
         HMONITOR    hMon = ::MonitorFromWindow( m_pPrivate->hWnd, MONITOR_DEFAULTTONEAREST );
-        MONITORINFO mi   = { 0 };
+        MONITORINFO mi;
+        Memory::Zero( &mi );
         mi.cbSize        = sizeof( mi );
         if( !::GetMonitorInfoA( hMon, &mi ) )
         {
@@ -395,7 +399,8 @@ namespace VKE
                 ::SetWindowPos(
                     m_pPrivate->hWnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, width, height, swpFlags );
 
-                DEVMODE ScreenSettings      = { 0 };
+                DEVMODE ScreenSettings;
+                Memory::Zero( &ScreenSettings );
                 ScreenSettings.dmSize       = sizeof( ScreenSettings );
                 ScreenSettings.dmPelsWidth  = m_Desc.Size.width;
                 ScreenSettings.dmPelsHeight = m_Desc.Size.height;
@@ -453,8 +458,9 @@ namespace VKE
                 return true;
             }
             break;
+            default:
+                return false;
         }
-        return false;
     }
 
     void CWindow::IsVisible( bool isVisible )
@@ -606,6 +612,8 @@ namespace VKE
                     _OnSetMode( m_Desc.mode, m_Desc.Size.width, m_Desc.Size.height );
                 }
                 break;
+                default:
+                    break;
             }
             return msg;
         }
@@ -646,7 +654,9 @@ namespace VKE
         if( needUpdate )
         {
             assert( m_isDestroyed == false );
-            MSG  msg  = { 0 };
+            MSG  msg;
+            Memory::Zero( &msg );
+
             HWND hWnd = m_pPrivate->hWnd;
             // Peek all messages except WM_INPUT
             // VKE_LOG("before peek1: " << hWnd);
@@ -857,7 +867,7 @@ namespace VKE
         handle_t  handle  = reinterpret_cast< handle_t >( hWnd );
         WindowPtr pWnd    = pEngine->FindWindowTS( handle );
 
-        if( pWnd!= nullptr )
+        if( pWnd != nullptr )
         {
             return pWnd->WndProc( hWnd, msg, (uint64_t)wparam, (uint64_t)lparam );
         }

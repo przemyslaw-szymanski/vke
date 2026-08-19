@@ -110,13 +110,13 @@ namespace VKE
         template< typename T >
         static vke_inline void Set( T* pData, const T& tValue, const uint32_t& count = 1 )
         {
-            memset( pData, tValue, sizeof( T ) * count );
+            memset( static_cast< void* >( pData ), tValue, sizeof( T ) * count );
         }
 
         template< typename T >
         static vke_inline void Zero( T* pData, const uint32_t count = 1 )
         {
-            memset( pData, 0, sizeof( T ) * count );
+            memset( static_cast< void* >( pData ), 0, sizeof( T ) * count );
         }
 
         static vke_force_inline bool Copy( void* pDst, const size_t& dstSize, const void* pSrc,

@@ -258,12 +258,12 @@ bool CreateSimpleTriangle( ContextType* pCtx,
     Info.dstDataOffset = 0;
     pCtx->UpdateBuffer( Info, &pVb );
 
-    pLayout->vAttributes =
+    pLayout->vAttributes = VKE::RenderSystem::SVertexInputLayoutDesc::AttributeArray
     {
         { "Position", VKE::RenderSystem::Formats::R32G32B32_SFLOAT, 0u }
     };
 
-    return pVb!= nullptr;
+    return pVb != nullptr;
 }
 
 struct SSimpleDrawData

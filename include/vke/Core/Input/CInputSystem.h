@@ -65,7 +65,7 @@ namespace VKE
 
         class VKE_API CInputSystem
         {
-            friend class CVKEngine;
+            friend class VKE::CVKEngine;
             friend class CWindow;
 
             using DeviceArray = Utils::TCDynamicArray< SDevice >;

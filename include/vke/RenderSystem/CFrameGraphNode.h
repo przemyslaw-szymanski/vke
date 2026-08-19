@@ -16,6 +16,8 @@ namespace VKE::Scene
 
 namespace VKE::RenderSystem
 {
+    class CFrameGraphExecuteNode;
+
     struct SynchronizationObjectTypes
     {
         enum TYPE
@@ -74,6 +76,8 @@ namespace VKE::RenderSystem
                     break;
                 case SynchronizationObjectTypes::GPU_TO_GPU:
                     GPUToGPU = Obj.GPUToGPU;
+                    break;
+                default:
                     break;
             };
             return *this;

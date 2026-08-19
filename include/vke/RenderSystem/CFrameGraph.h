@@ -563,14 +563,14 @@ namespace VKE::RenderSystem
         return pNode;
     }
 
-    template< class T >
-    T* CFrameGraph::CreateCustomPass( const SFrameGraphNodeDesc& Desc, const void* pDesc )
-    {
-        T* pPass = _CreateNode( Desc );
-        if( pPass != nullptr )
-        {
-            pPass->Init( pDesc );
-        }
-        return pPass;
-    }
+    //template< class T >
+    //T* CFrameGraph::CreateCustomPass( const SFrameGraphNodeDesc& Desc, const void* pDesc )
+    //{
+    //    T* pPass = _CreateNode( Desc );
+    //    if( pPass != nullptr )
+    //    {
+    //        pPass->Init( pDesc );
+    //    }
+    //    return pPass;
+    //}
 } // namespace VKE::RenderSystem

@@ -117,12 +117,12 @@ namespace VKE
         void LoadAABB( const Math::CVector4 aCenters[ 3 ], const Math::CVector4 aExtents[ 2 ], uint32_t idx,
                        Math::CAABB* pOut )
         {
-            pOut->Center.x  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_X ].floats[ idx ];
-            pOut->Center.z  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_Z ].floats[ idx ];
-            pOut->Center.y  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_Y ].floats[ idx ];
-            pOut->Extents.x = aExtents[ CTerrainQuadTree::SNodeLevel::EXTENTS_X ].floats[ idx ];
-            pOut->Extents.y = aExtents[ CTerrainQuadTree::SNodeLevel::EXTENTS_Y ].floats[ idx ];
-            pOut->Extents.z = pOut->Extents.x;
+            pOut->Data.Center.x  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_X ].floats[ idx ];
+            pOut->Data.Center.z = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_Z ].floats[ idx ];
+            pOut->Data.Center.y  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_Y ].floats[ idx ];
+            pOut->Data.Extents.x = aExtents[ CTerrainQuadTree::SNodeLevel::EXTENTS_X ].floats[ idx ];
+            pOut->Data.Extents.y = aExtents[ CTerrainQuadTree::SNodeLevel::EXTENTS_Y ].floats[ idx ];
+            pOut->Data.Extents.z = pOut->Data.Extents.x;
         }
 
         void vke_force_inline CalcLenghts3( const Math::CVector4* aVectors, Math::CVector4* pOut )
@@ -552,13 +552,13 @@ namespace VKE
                         Node.AABB                 = Math::CAABB( vecRootNodeCenter, vecRootNodeExtents );
                         m_vAABBs[ Handle.index ]  = Node.AABB;
                         m_vBoundingSpheres[ Handle.index ] =
-                            Math::CBoundingSphere( Node.AABB.Center, Node.boundingSphereRadius );
+                            Math::CBoundingSphere( Node.AABB.Data.Center, Node.boundingSphereRadius );
                     }
                 }
                 const auto& TmpRoot                           = m_vNodes[ 0 ];
                 m_FirstLevelNodeBaseInfo.boundingSphereRadius = TmpRoot.boundingSphereRadius * 0.5f;
                 m_FirstLevelNodeBaseInfo.maxLODCount          = m_maxLODCount;
-                m_FirstLevelNodeBaseInfo.vecExtents           = TmpRoot.AABB.Extents * 0.5f;
+                m_FirstLevelNodeBaseInfo.vecExtents           = TmpRoot.AABB.Data.Extents * 0.5f;
                 m_FirstLevelNodeBaseInfo.vec4Extents          = m_FirstLevelNodeBaseInfo.vecExtents;
                 _ResetChildNodes();
                 const uint32_t rootCount = m_RootNodeCount.x * m_RootNodeCount.y;
@@ -568,9 +568,9 @@ namespace VKE
                     SCreateNodeData NodeData;
                     NodeData.boundingSphereRadius = Root.boundingSphereRadius * 0.5f;
                     NodeData.level                = 1;
-                    NodeData.vecExtents           = Root.AABB.Extents * 0.5f;
+                    NodeData.vecExtents           = Root.AABB.Data.Extents * 0.5f;
                     NodeData.vec4Extents          = NodeData.vecExtents;
-                    NodeData.vec4ParentCenter     = Root.AABB.Center;
+                    NodeData.vec4ParentCenter     = Root.AABB.Data.Center;
                     NodeData.hParent              = Root.Handle;
                     _SetDrawDataForNode( &Root );
                     // res = _CreateChildNodes( Root.Handle, NodeData,
@@ -600,9 +600,9 @@ namespace VKE
                 std::sort( &m_vVisibleRootNodes[ 0 ],
                            &m_vVisibleRootNodes[ 0 ] + m_vVisibleRootNodes.GetCount(),
                            [ & ]( const SNode& Left, const SNode& Right ) {
-                               const float leftDistance = Math::CVector3::Distance( Left.AABB.Center, vecViewPosition );
+                               const float leftDistance = Math::CVector3::Distance( Left.AABB.Data.Center, vecViewPosition );
                                const float rightDistance =
-                                   Math::CVector3::Distance( Right.AABB.Center, vecViewPosition );
+                                   Math::CVector3::Distance( Right.AABB.Data.Center, vecViewPosition );
                                return leftDistance < rightDistance;
                            } );
             }
@@ -622,9 +622,9 @@ namespace VKE
                     LevelInit.parentLevel                = 0;
                     LevelInit.parentBoundingSphereRadius = Root.boundingSphereRadius;
                     LevelInit.maxLODCount                = m_maxLODCount;
-                    LevelInit.vecParentSizes.x           = Root.AABB.Center.x;
-                    LevelInit.vecParentSizes.y           = Root.AABB.Center.z;
-                    LevelInit.vecParentSizes.z           = Root.AABB.Extents.x; // width == depth
+                    LevelInit.vecParentSizes.x           = Root.AABB.Data.Center.x;
+                    LevelInit.vecParentSizes.y           = Root.AABB.Data.Center.z;
+                    LevelInit.vecParentSizes.z           = Root.AABB.Data.Extents.x; // width == depth
                     LevelInit.parentLevel                = Root.Handle.level;
                     LevelInit.childLevelIndex            = _AcquireChildNodeLevel();
                     LevelInit.bindingIndex               = Root.DrawData.bindingIndex; // populate root binding for
@@ -837,9 +837,9 @@ namespace VKE
             auto pPipeline = this->m_pTerrain->_GetPipelineForLOD( pInOut->Handle.level );
             VKE_ASSERT2( pPipeline!= nullptr, "Pipeline must not be null at this stage" );
             pInOut->DrawData.pPipeline     = pPipeline;
-            pInOut->DrawData.vecPosition.x = pInOut->AABB.Center.x - pInOut->AABB.Extents.x;
-            pInOut->DrawData.vecPosition.y = pInOut->AABB.Center.y;
-            pInOut->DrawData.vecPosition.z = pInOut->AABB.Center.z + pInOut->AABB.Extents.z;
+            pInOut->DrawData.vecPosition.x = pInOut->AABB.Data.Center.x - pInOut->AABB.Data.Extents.x;
+            pInOut->DrawData.vecPosition.y = pInOut->AABB.Data.Center.y;
+            pInOut->DrawData.vecPosition.z = pInOut->AABB.Data.Center.z + pInOut->AABB.Data.Extents.z;
             /*const auto& p = pInOut->DrawData.vecPosition;
             VKE_LOG(p.x << ", " << p.z);*/
         }
@@ -961,7 +961,7 @@ namespace VKE
             const bool           hasChildNodes        = Root.childLevelIndex != UNDEFINED_U32;
             const float          boundingSphereRadius = Root.boundingSphereRadius;
             Math::CVector4       vec4NearestPoint;
-            const auto&          vec4Center = Math::CVector4{ Root.AABB.Center };
+            const auto&          vec4Center = Math::CVector4{ Root.AABB.Data.Center };
             float                err, distance;
             CalcNearestSpherePoint( vec4Center, boundingSphereRadius, vec4ViewPosition, &vec4NearestPoint );
             _CalcError( vec4NearestPoint, Root.Handle.level, View, &err, &distance );
@@ -974,7 +974,7 @@ namespace VKE
             {
                 SLODInfo LODInfo;
                 LODInfo.vec4Center       = vec4Center;
-                LODInfo.nodeExtents      = Root.AABB.Extents.x;
+                LODInfo.nodeExtents      = Root.AABB.Data.Extents.x;
                 LODInfo.nodeLevel        = Root.Handle.level;
                 LODInfo.bindingIndex     = Root.DrawData.bindingIndex;
                 LODInfo.vec3RootPosition = Root.vec3Position;
@@ -1247,7 +1247,7 @@ namespace VKE
             UNodeHandle Ret = Node.Handle;
             if( Ret.level < MAX_LOD_COUNT )
             {
-                const Math::CVector4 vecCenter( Node.AABB.Center );
+                const Math::CVector4 vecCenter( Node.AABB.Data.Center );
                 const auto           idx       = _CalcNodeIndex( vecCenter, vecPosition );
                 const auto&          hNode     = Node.ahChildren[ idx ];
                 const auto&          ChildNode = m_vNodes[ hNode.index ];
@@ -1371,21 +1371,21 @@ namespace VKE
 
         Rect2D MapAABBToImageSpace( const Math::CAABB& AABB, const Math::CAABB& RootAABB, const ImageSize& ImgSize )
         {
-            Math::CVector3 vecNodeTopLeftCorner = { AABB.Center.x - AABB.Extents.x, 1, AABB.Center.z + AABB.Extents.z };
-            Math::CVector3 vecRootTopLeftCorner = { RootAABB.Center.x - RootAABB.Extents.x,
+            Math::CVector3 vecNodeTopLeftCorner = { AABB.Data.Center.x - AABB.Data.Extents.x, 1, AABB.Data.Center.z + AABB.Data.Extents.z };
+            Math::CVector3 vecRootTopLeftCorner = { RootAABB.Data.Center.x - RootAABB.Data.Extents.x,
                                                     1,
-                                                    RootAABB.Center.z + RootAABB.Extents.z };
+                                                    RootAABB.Data.Center.z + RootAABB.Data.Extents.z };
             Math::CVector3 vecWSDistanceToRootTopLeftCorner = vecRootTopLeftCorner - vecNodeTopLeftCorner;
-            /*Math::CVector3 vecPixelSize = { ( RootAABB.Extents.x * 2 ) / ImgSize.width, 1,
-                                            ( RootAABB.Extents.z * 2 ) / ImgSize.height };*/
-            Math::CVector3 vecPixelSize = { ImgSize.width / ( RootAABB.Extents.x * 2 ),
+            /*Math::CVector3 vecPixelSize = { ( RootAABB.Data.Extents.x * 2 ) / ImgSize.width, 1,
+                                            ( RootAABB.Data.Extents.z * 2 ) / ImgSize.height };*/
+            Math::CVector3 vecPixelSize = { ImgSize.width / ( RootAABB.Data.Extents.x * 2 ),
                                             1,
-                                            ImgSize.height / ( RootAABB.Extents.z * 2 ) };
+                                            ImgSize.height / ( RootAABB.Data.Extents.z * 2 ) };
             Rect2D         Rect;
             Rect.Position.x = (int32_t)( vecWSDistanceToRootTopLeftCorner.x * vecPixelSize.x );
             Rect.Position.y = (int32_t)( vecWSDistanceToRootTopLeftCorner.y * vecPixelSize.y );
-            Rect.Size.x     = (uint32_t)( ( AABB.Extents.x * 2 ) * vecPixelSize.x );
-            Rect.Size.y     = (uint32_t)( ( AABB.Extents.y * 2 ) * vecPixelSize.y );
+            Rect.Size.x     = (uint32_t)( ( AABB.Data.Extents.x * 2 ) * vecPixelSize.x );
+            Rect.Size.y     = (uint32_t)( ( AABB.Data.Extents.y * 2 ) * vecPixelSize.y );
             return Rect;
         }
 
@@ -1423,10 +1423,10 @@ namespace VKE
                     MinMaxHeight.max = Math::Max( MinMaxHeight.max, MinMax.max );
                 }
                 float distance      = MinMaxHeight.max - MinMaxHeight.min;
-                Node.AABB.Extents.y = distance * 0.5f;
-                Node.AABB.Center.y  = ( MinMaxHeight.min + MinMaxHeight.max ) * 0.5f;
+                Node.AABB.Data.Extents.y = distance * 0.5f;
+                Node.AABB.Data.Center.y  = ( MinMaxHeight.min + MinMaxHeight.max ) * 0.5f;
             }
-            else if( Node.AABB.Extents.y <= 0 ) // bottom level nodes to calculate bounding boxes
+            else if( Node.AABB.Data.Extents.y <= 0 ) // bottom level nodes to calculate bounding boxes
             {
                 const uint8_t* pData = pImg->GetData();
                 // uint32_t bpp = pImg->GetBitsPerPixel();
@@ -1526,9 +1526,9 @@ namespace VKE
                 std::sort( &m_vVisibleRootNodes[ 0 ],
                            &m_vVisibleRootNodes[ 0 ] + m_vVisibleRootNodes.GetCount(),
                            [ & ]( const SNode& Left, const SNode& Right ) {
-                               const float leftDistance = Math::CVector3::Distance( Left.AABB.Center, vecViewPosition );
+                               const float leftDistance = Math::CVector3::Distance( Left.AABB.Data.Center, vecViewPosition );
                                const float rightDistance =
-                                   Math::CVector3::Distance( Right.AABB.Center, vecViewPosition );
+                                   Math::CVector3::Distance( Right.AABB.Data.Center, vecViewPosition );
                                return leftDistance < rightDistance;
                            } );
             }
@@ -1544,7 +1544,7 @@ namespace VKE
                 {
                     SNode& Root                       = m_vVisibleRootNodes[ i ];
                     ChildNodeInfo.hParent             = Root.Handle;
-                    ChildNodeInfo.vec4ParentCenter    = Root.AABB.Center;
+                    ChildNodeInfo.vec4ParentCenter    = Root.AABB.Data.Center;
                     ChildNodeInfo.childNodeStartIndex = _AcquireChildNodes();
                     Root.childLevelIndex              = ChildNodeInfo.childNodeStartIndex;
                     _InitChildNodes( ChildNodeInfo );
@@ -1601,7 +1601,7 @@ namespace VKE
                             VKE_PROFILE_SIMPLE2( "store child data" ); // 1.5 us
                             m_vAABBs[ Handle.index ] = Node.AABB;
                             m_vBoundingSpheres[ Handle.index ] =
-                                Math::CBoundingSphere( Node.AABB.Center, Node.boundingSphereRadius );
+                                Math::CBoundingSphere( Node.AABB.Data.Center, Node.boundingSphereRadius );
                             m_vChildNodeHandles[ parentIndex ][ i ] = Handle;
                         }
                         _SetDrawDataForNode( &Node );
@@ -1614,7 +1614,7 @@ namespace VKE
                     {
                         const auto& hNode                    = ahChildNodes[ i ];
                         auto&       Node                     = m_vNodes[ hNode.index ];
-                        ChildOfChildInfo.vec4ParentCenter    = Node.AABB.Center;
+                        ChildOfChildInfo.vec4ParentCenter    = Node.AABB.Data.Center;
                         ChildOfChildInfo.hParent             = Node.Handle;
                         ChildOfChildInfo.childNodeStartIndex = _AcquireChildNodes();
                         _InitChildNodes( ChildOfChildInfo );
@@ -1667,7 +1667,7 @@ namespace VKE
                     ahChildNodes[ i ]                         = Handle;
                     m_vAABBs[ Handle.index ]                  = Node.AABB;
                     m_vBoundingSpheres[ Handle.index ] =
-                        Math::CBoundingSphere( Node.AABB.Center, Node.boundingSphereRadius );
+                        Math::CBoundingSphere( Node.AABB.Data.Center, Node.boundingSphereRadius );
                     m_vChildNodeHandles[ hParent.index ][ i ] = Handle;
                     _SetDrawDataForNode( &Node );
                 }
@@ -1675,7 +1675,7 @@ namespace VKE
                 {
                     const auto& hNode              = ahChildNodes[ i ];
                     auto&       Node               = m_vNodes[ hNode.index ];
-                    ChildNodeData.vec4ParentCenter = Node.AABB.Center;
+                    ChildNodeData.vec4ParentCenter = Node.AABB.Data.Center;
                     ChildNodeData.hParent          = Node.Handle;
                     res                            = _CreateChildNodes( hNode, ChildNodeData, lodCount );
                 }
@@ -1688,16 +1688,16 @@ namespace VKE
         {
             const auto           hCurrNode = CurrNode.Handle;
             const auto&          AABB      = CurrNode.AABB;
-            const Math::CVector3 vecTmpPos = AABB.Center - AABB.Extents;
-            // const bool b = AABB.Center.x == 96 && AABB.Center.z == 96;
+            const Math::CVector3 vecTmpPos = AABB.Data.Center - AABB.Data.Extents;
+            // const bool b = AABB.Data.Center.x == 96 && AABB.Data.Center.z == 96;
             //  Instead of a regular bounding sphere radius use size of
-            //  AABB.Extents size This approach fixes wrong calculations for node
+            //  AABB.Data.Extents size This approach fixes wrong calculations for node
             //  containing the view point Note that a node is a quad
             Math::CVector4 vecPoint;
             // const float boundingSphereRadius2 = CurrNode.boundingSphereRadius;
-            const float boundingSphereRadius = AABB.Extents.x;
+            const float boundingSphereRadius = AABB.Data.Extents.x;
             CalcNearestSpherePoint(
-                Math::CVector4( AABB.Center ), boundingSphereRadius, Math::CVector4( View.vecPosition ), &vecPoint );
+                Math::CVector4( AABB.Data.Center ), boundingSphereRadius, Math::CVector4( View.vecPosition ), &vecPoint );
             float err, distance;
             _CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
             // float childErr, childDistance;
@@ -1717,7 +1717,7 @@ namespace VKE
                         const auto           hNode      = CurrNode.ahChildren[ i ];
                         const auto&          ChildNode  = m_vNodes[ hNode.index ];
                         const auto&          AABB2      = ChildNode.AABB;
-                        const Math::CVector3 vecTmpPos2 = AABB2.Center - AABB2.Extents;
+                        const Math::CVector3 vecTmpPos2 = AABB2.Data.Center - AABB2.Data.Extents;
                         if( m_vNodeVisibility[ hNode.index ] )
                         {
                             _CalcErrorLODs( ChildNode, textureIdx, View );
@@ -1729,8 +1729,8 @@ namespace VKE
             {
                 SLODInfo Info;
                 Info.nodeLevel   = (uint8_t)hCurrNode.level;
-                Info.vec4Center  = AABB.Center;
-                Info.nodeExtents = AABB.Extents.x;
+                Info.vec4Center  = AABB.Data.Center;
+                Info.nodeExtents = AABB.Data.Extents.x;
                 _AddLOD( Info );
             }
         }
@@ -1741,12 +1741,12 @@ namespace VKE
             const auto     hCurrNode = CurrNode.Handle;
             const auto&    AABB      = CurrNode.AABB;
             Math::CVector4 vecPoint;
-            CalcNearestSpherePoint( Math::CVector4( AABB.Center ),
+            CalcNearestSpherePoint( Math::CVector4( AABB.Data.Center ),
                                     CurrNode.boundingSphereRadius,
                                     Math::CVector4( View.vecPosition ),
                                     &vecPoint );
             //_CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
-            // float distance = _CalcDistanceToCenter( AABB.Center, View );
+            // float distance = _CalcDistanceToCenter( AABB.Data.Center, View );
             float distance = Math::CVector4::Distance( vecPoint, Math::CVector4( View.vecPosition ) );
             // float childErr, childDistance;
             static cstr_t indents[] = {
@@ -1755,11 +1755,11 @@ namespace VKE
             };
             /*VKE_DBG_LOG( "" << indents[ hCurrNode.level ] << "l: " <<
             hCurrNode.level << " idx: " << hCurrNode.index << " d: " << distance
-            << " e: " << err << " c: " << AABB.Center.x << ", " << AABB.Center.z
+            << " e: " << err << " c: " << AABB.Data.Center.x << ", " << AABB.Data.Center.z
             << " p: " << vecPoint.x << ", " << vecPoint.z << " vp: " <<
             CurrNode.DrawData.vecPosition.x << ", " <<
             CurrNode.DrawData.vecPosition.z <<
-            " s:" << CurrNode.AABB.Extents.x << ", " << CurrNode.AABB.Extents.z
+            " s:" << CurrNode.AABB.Data.Extents.x << ", " << CurrNode.AABB.Data.Extents.z
             << "\n" );*/
             const uint8_t highestLod = (uint8_t)( m_Desc.lodCount - 1 );
             // Smallest tiles has no children
@@ -1790,7 +1790,7 @@ namespace VKE
                     const auto hNode = CurrNode.ahChildren[ i ];
                     {
                     const auto& Node = m_vNodes[ hNode.index ];
-                    CalcNearestSpherePoint( Math::CVector4( Node.AABB.Center ),
+                    CalcNearestSpherePoint( Math::CVector4( Node.AABB.Data.Center ),
                     Node.boundingSphereRadius, Math::CVector4( View.vecPosition
                     ), &vecPoint ); _CalcError( vecPoint, hNode.level, View,
                     &childErr, &childDistance );
@@ -1798,7 +1798,7 @@ namespace VKE
                     VKE_DBG_LOG( "" << indents[ hNode.level ] << "l: " <<
                     hNode.level << " idx: " << hNode.index << " d: " <<
                     childDistance << " e: " << childErr << " c: " <<
-                    Node.AABB.Center.x << ", " << Node.AABB.Center.z << " p: "
+                    Node.AABB.Data.Center.x << ", " << Node.AABB.Data.Center.z << " p: "
                     << vecPoint.x << ", " << vecPoint.z << "\n" );
                     }
                     }*/

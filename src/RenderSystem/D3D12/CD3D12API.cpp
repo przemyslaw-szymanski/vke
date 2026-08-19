@@ -2036,7 +2036,8 @@ namespace VKE::RenderSystem::D3D12
 
             // Used when Texture was a custom struct.
             // const RHI::D3D12ResourceDesc& desc = Info.hDDITexture->Desc;
-            NativeAPI::D3D12ResourceDesc desc = ToNative( Info.hDDITexture )->GetDesc();
+            NativeAPI::D3D12ResourceDesc desc{};
+            VKE_D3D12_CALL_RET( desc, ToNative( Info.hDDITexture ), GetDesc );
 
             UINT textureMipLevels = ( desc.MipLevels > 0 ) ? desc.MipLevels : 1;
             UINT textureArraySize = ( desc.DepthOrArraySize > 0 ) ? desc.DepthOrArraySize : 1;
@@ -2924,7 +2925,8 @@ namespace VKE::RenderSystem::D3D12
         }
 
         pTextureView->pResource = ToNative( m_pCtx->GetTexture( TextureViewDesc.hTexture )->GetDDIObject() );
-        NativeAPI::D3D12ResourceDesc ResourceDesc = pTextureView->pResource->GetDesc();
+        NativeAPI::D3D12ResourceDesc ResourceDesc{};
+        VKE_D3D12_CALL_RET( ResourceDesc, pTextureView->pResource, GetDesc );
 
         if( ( ResourceDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE ) == 0 )
         {
@@ -3691,8 +3693,10 @@ namespace VKE::RenderSystem::D3D12
                 const auto&                      ViewDesc = pTexture->GetView()->GetDesc();
                 // const auto&                      NativeDesc = pTexture->GetDDIObject()->GetDesc();
                 const auto NativeTexture = ToNative( pTexture->GetDDIObject() );
-                UavDesc.Format           = NativeTexture->GetDesc().Format; /// TODO: handle typeless format
-                UavDesc.ViewDimension    = Map::DimmensionToUAVDimmension( NativeTexture->GetDesc().Dimension );
+                NativeAPI::D3D12ResourceDesc NativeTextureDesc{};
+                VKE_D3D12_CALL_RET( NativeTextureDesc, NativeTexture, GetDesc );
+                UavDesc.Format           = NativeTextureDesc.Format; /// TODO: handle typeless format
+                UavDesc.ViewDimension    = Map::DimmensionToUAVDimmension( NativeTextureDesc.Dimension );
                 Helper::CreateUnorderedAccessView( ViewDesc, &UavDesc );
 
                 D3D12_CPU_DESCRIPTOR_HANDLE hCpu = pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
@@ -3766,8 +3770,9 @@ namespace VKE::RenderSystem::D3D12
 
                     case BINDING_TYPE::READ_ONLY_TEXEL_BUFFER:
                     case BINDING_TYPE::READ_WRITE_TEXEL_BUFFER:
-                        D3D12_RESOURCE_DESC ResourceDesc;
-                        ResourceDesc = pNativeResource->GetDesc();
+                    {
+                        D3D12_RESOURCE_DESC ResourceDesc{};
+                        VKE_D3D12_CALL_RET( ResourceDesc, pNativeResource, GetDesc );
 
                         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc;
                         uavDesc.Format                      = ResourceDesc.Format;
@@ -3782,6 +3787,7 @@ namespace VKE::RenderSystem::D3D12
                             pNativeResource, nullptr, &uavDesc, hCpuDescriptorHandle );
                         VKE_LOG_ERR( "CD3D12API::Update: Unhandled buffer type" );
                         break;
+                    }
 
                     default:
                         VKE_LOG_ERR( "CD3D12API::Update: Invalid buffer type" );
@@ -4103,8 +4109,8 @@ namespace VKE::RenderSystem::D3D12
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateBuffer.
         NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( InDesc, m_pImplementation->Features );
 
-        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo =
-            m_pImplementation->m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo{};
+        VKE_D3D12_CALL_RET( AllocInfo, m_pImplementation->m_hDevice, GetResourceAllocationInfo, 0, 1, &ResourceDesc );
 
         pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
         pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
@@ -4126,8 +4132,8 @@ namespace VKE::RenderSystem::D3D12
 
         Convert::GetResourceDesc( Desc, m_pImplementation->Features, &ResourceDesc );
 
-        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo =
-            m_pImplementation->m_hDevice->GetResourceAllocationInfo( 0, 1, &ResourceDesc );
+        D3D12_RESOURCE_ALLOCATION_INFO AllocInfo{};
+        VKE_D3D12_CALL_RET( AllocInfo, m_pImplementation->m_hDevice, GetResourceAllocationInfo, 0, 1, &ResourceDesc );
 
         pOut->alignment = static_cast< uint32_t >( AllocInfo.Alignment );
         pOut->size      = static_cast< uint32_t >( AllocInfo.SizeInBytes );
@@ -4256,7 +4262,8 @@ namespace VKE::RenderSystem::D3D12
         auto pNativePipeline = ToNative( EngineInfo.hDDIPipeline );
         VKE_ASSERT( pNativePipeline != NativeAPI::Null );
 
-        const D3D12_RESOURCE_DESC NativeResourceDesc = pNativeBuffer->GetDesc();
+        D3D12_RESOURCE_DESC NativeResourceDesc{};
+        VKE_D3D12_CALL_RET( NativeResourceDesc, pNativeBuffer, GetDesc );
 
         D3D12_VERTEX_BUFFER_VIEW NativeVertexBufferView;
         NativeVertexBufferView.BufferLocation = pNativeBuffer->GetGPUVirtualAddress() + EngineInfo.offset;
@@ -4694,8 +4701,10 @@ namespace VKE::RenderSystem::D3D12
         auto pSrcTexture = ToNative( EngineInfo.pBaseInfo->hDDISrcTexture );
         auto pDstTexture = ToNative( EngineInfo.pBaseInfo->hDDIDstTexture );
 
-        NativeAPI::D3D12ResourceDesc srcDesc = pSrcTexture->GetDesc();
-        NativeAPI::D3D12ResourceDesc dstDesc = pDstTexture->GetDesc();
+        NativeAPI::D3D12ResourceDesc srcDesc{};
+        NativeAPI::D3D12ResourceDesc dstDesc{};
+        VKE_D3D12_CALL_RET( srcDesc, pSrcTexture, GetDesc );
+        VKE_D3D12_CALL_RET( dstDesc, pDstTexture, GetDesc );
 
         UINT srcMipLevels = ( srcDesc.MipLevels > 0 ) ? srcDesc.MipLevels : 1;
         UINT srcArraySize = ( srcDesc.DepthOrArraySize > 0 ) ? srcDesc.DepthOrArraySize : 1;
