@@ -37,7 +37,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         {
             auto pPass = pFrameGraph->GetPass( "CompileShaders" );
             pPass->AddTask(
-                [&]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t ) {
+                [&]( const VKE::RenderSystem::CFrameGraphNode* pNode, uint8_t ) -> VKE::Threads::TASK_RESULT {
                     auto pDevice = pNode->GetContext()->GetDeviceContext();
                     VKE::RenderSystem::SCreateShaderDesc TsDesc, MsDesc, PsDesc;
                     TsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
@@ -50,7 +50,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     pTs = pDevice->CreateShader( TsDesc );
                     pMs = pDevice->CreateShader( MsDesc );
                     pPs = pDevice->CreateShader( PsDesc );
-                    return true;
+                    return VKE::Threads::TaskResults::OK;
                 },
                 &ShaderCompiledResult );
         }
@@ -88,9 +88,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     Pipeline.hDDIRenderPass = pRenderPass->GetRHIRenderPass();
                     Pipeline.SetDebugName( "SimpleMS" );
                     pPSO = pDevice->CreatePipeline( PipelineDesc );
-                    return true;
+                    return VKE::Threads::TaskResults::OK;
                 }
-                return false;
+                return VKE::Threads::TaskResults::WAIT;
             },
             &UploadResult );
         }
@@ -102,7 +102,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         LoadShaders( pCtx );
 
         auto pFrameGraph = pCtx->GetRenderSystem()->GetFrameGraph();
-        auto pRenderFrame = pFrameGraph->CreatePass( { .pName = "RenderMS" } );
+        auto pRenderFrame = pFrameGraph->CreatePass( [](VKE::RenderSystem::CFrameGraphNode** ppNode)
+        {
+            VKE::RenderSystem::SFrameGraphNodeDesc Desc;
+            Desc.pName = "MeshShader";
+            return ( *ppNode )->Create( Desc );
+        } );
         pRenderFrame->SetWorkload( [&](
             VKE::RenderSystem::CFrameGraphNode* const pPass,
             uint8_t backBufferIdx )

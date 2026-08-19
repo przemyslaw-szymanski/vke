@@ -69,7 +69,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         pPipeline = pCtx->CreatePipeline( PipelineTemplate );
         
         auto pUploadPass = pFrameGraph->GetPass( "Upload" );
-        pUploadPass->AddTask( [this, pCtx](const VKE::RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIndex)
+        pUploadPass->AddTask( [this, pCtx](const VKE::RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIndex) -> VKE::Threads::TASK_RESULT
         {
             auto        pCmdBuffer = pPass->GetCommandBuffer( backBufferIndex );
             static bool uploaded = false;
@@ -95,7 +95,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                 pCmdBuffer->GetContext()->UpdateBuffer( pCmdBuffer, Info, &hVb );
                 uploaded = true;
             }
-            return true;
+            return VKE::Threads::TaskResults::OK;
         }, nullptr );
 
         auto pRenderFrame = pFrameGraph->CreatePass( [&]( VKE::RenderSystem::CFrameGraphNode** ppNode )
