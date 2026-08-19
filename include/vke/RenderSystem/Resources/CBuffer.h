@@ -9,6 +9,9 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        // Forward declaration
+        class CBufferManager;
+
         struct BufferLayoutDataTypes
         {
             enum TYPE : uint8_t

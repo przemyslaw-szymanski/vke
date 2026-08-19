@@ -68,7 +68,7 @@ namespace VKE
                 return m_pPtr;
             }
 
-            inline const T* const Get() const
+            inline const T* Get() const
             {
                 return m_pPtr;
             }

@@ -1853,12 +1853,11 @@ namespace VKE
             using AttachmentDescArray   = Utils::TCDynamicArray< SRenderTargetDesc, 8 >;
             using RenderTargetDescArray = Utils::TCDynamicArray< RenderSystem::SRenderTargetDesc, 8 >;
 
-            struct SRenderPassDesc()
+            SRenderPassDesc()
             {
             }
 
-            struct SRenderPassDesc( DEFAULT_CTOR_INIT ) : Size( 800, 600 )
-
+            SRenderPassDesc( DEFAULT_CTOR_INIT ) : Size( 800, 600 )
             {
             }
 
@@ -2647,13 +2646,13 @@ namespace VKE
                     }
 
                     SVertexAttribute( DEFAULT_CTOR_INIT ) :
-                        pName( "" ), format{ Formats::R32G32B32_SFLOAT }, vertexBufferBindingIndex{ 0 }, location{ 0 },
+                        pName( "" ), format{ Formats::R32G32B32_SFLOAT }, location{ 0 }, vertexBufferBindingIndex{ 0 },
                         offset{ 0 }, stride{ 3 * 4 }, inputRate{ VertexInputRates::VERTEX }
                     {
                     }
 
                     SVertexAttribute( cstr_t name, const FORMAT& fmt, uint16_t bindingLocation ) :
-                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ 0 }, location{ bindingLocation },
+                        pName{ name }, format{ fmt }, location{ bindingLocation }, vertexBufferBindingIndex{ 0 },
                         offset{ 0 }, stride{ CalcFormatSize( fmt ) }, inputRate{ VertexInputRates::VERTEX }
                     {
                     }
@@ -2661,8 +2660,8 @@ namespace VKE
                     SVertexAttribute( cstr_t name, const FORMAT& fmt, const uint16_t& bufferBindingIdx,
                                       const uint16_t& bindingLocation, const uint16_t& off, const uint16_t& strd,
                                       const VERTEX_INPUT_RATE& rate ) :
-                        pName{ name }, format{ fmt }, vertexBufferBindingIndex{ bufferBindingIdx },
-                        location{ bindingLocation }, offset{ off }, stride{ strd }, inputRate{ rate }
+                        pName{ name }, format{ fmt }, location{ bindingLocation }, vertexBufferBindingIndex{ 0 },
+                        offset{ off }, stride{ strd }, inputRate{ rate }
                     {
                     }
 
@@ -3544,7 +3543,7 @@ namespace VKE
         {
             enum FLAG : uint64_t
             {
-                NONE = 0,
+                NONE                    = 0,
                 START_FRAME             = VKE_BIT( 0 ),
                 END_FRAME               = VKE_BIT( 1 ),
                 UPLOAD                  = VKE_BIT( 2 ),
@@ -3579,15 +3578,15 @@ namespace VKE
         {
             using TextureDescArray = Utils::TCDynamicArray< SFrameGraphRenderTargetTextureDesc, 8 >;
 
-            cstr_t           pName;
-            cstr_t           pExecute       = "Main";
-            cstr_t           pThread        = "Main";
-            cstr_t           pCommandBuffer = "Main";
+            cstr_t                 pName;
+            cstr_t                 pExecute       = "Main";
+            cstr_t                 pThread        = "Main";
+            cstr_t                 pCommandBuffer = "Main";
             FrameGraphNodeFlagBits Flags          = FrameGraphNodeFlags::NONE;
-            CONTEXT_TYPE     contextType    = ContextTypes::GENERAL;
-            RENDER_PASS_SIZE size           = RenderPassSizes::_1_1;
-            uint16_t         gpuFenceValue  = 0;
-            TextureDescArray vRenderTargets;
+            CONTEXT_TYPE           contextType    = ContextTypes::GENERAL;
+            RENDER_PASS_SIZE       size           = RenderPassSizes::_1_1;
+            uint16_t               gpuFenceValue  = 0;
+            TextureDescArray       vRenderTargets;
         };
 
         using SFrameGraphPassDesc = SFrameGraphNodeDesc;
@@ -3962,16 +3961,17 @@ namespace VKE
         {
             enum CAPABILITY
             {
-                GRAPHICS = VKE_BIT(0),
-                COMPUTE = VKE_BIT(1),
-                TRANSFER = VKE_BIT(2),
-                SPARSE = VKE_BIT(3),
-                PRESENT = VKE_BIT(4),
-                VIDEO_ENCODE = VKE_BIT(5),
-                VIDEO_DECODE = VKE_BIT(6),
-                TIMESTMAP = VKE_BIT(7),
+                GRAPHICS     = VKE_BIT( 0 ),
+                COMPUTE      = VKE_BIT( 1 ),
+                TRANSFER     = VKE_BIT( 2 ),
+                SPARSE       = VKE_BIT( 3 ),
+                PRESENT      = VKE_BIT( 4 ),
+                VIDEO_ENCODE = VKE_BIT( 5 ),
+                VIDEO_DECODE = VKE_BIT( 6 ),
+                TIMESTMAP    = VKE_BIT( 7 ),
             };
         };
+
         using QueueCapsBits = Utils::TCBitset< QueueCaps::CAPABILITY >;
 
         struct SQueueFamilyInfo
@@ -3982,11 +3982,11 @@ namespace VKE
             /// <summary>
             /// Main queue type
             /// </summary>
-            QUEUE_TYPE         type;
+            QUEUE_TYPE type;
             /// <summary>
             /// Indicates all capabilities of the family
             /// </summary>
-            QueueCapsBits      Caps;
+            QueueCapsBits Caps;
         };
 
         using QueueFamilyInfoArray = Utils::TCDynamicArray< SQueueFamilyInfo >;

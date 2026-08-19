@@ -1,7 +1,8 @@
 #include "Core/Platform/CWindow.h"
 #include "Core/Input/EventListeners.h"
+
 #if VKE_WINDOWS
-#define NOMINMAX
+
 #include <windows.h>
 #include <windowsx.h>
 #include <iostream>

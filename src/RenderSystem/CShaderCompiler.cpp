@@ -45,9 +45,9 @@ namespace VKE
                 hDll = Platform::DynamicLibrary::Load( pDllName );
                 if( hDll != INVALID_HANDLE )
                 {
-                    DxcCreateInstance = static_cast< DxcCreateInstanceProc >(
+                    DxcCreateInstance = reinterpret_cast< DxcCreateInstanceProc >(
                         Platform::DynamicLibrary::GetProcAddress( hDll, "DxcCreateInstance" ) );
-                    DxcCreateInstance2 = static_cast< DxcCreateInstance2Proc >(
+                    DxcCreateInstance2 = reinterpret_cast< DxcCreateInstance2Proc >(
                         Platform::DynamicLibrary::GetProcAddress( hDll, "DxcCreateInstance2" ) );
                     if( DxcCreateInstance == nullptr )
                     {

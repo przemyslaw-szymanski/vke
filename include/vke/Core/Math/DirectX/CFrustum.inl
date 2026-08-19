@@ -118,8 +118,8 @@ namespace VKE
             assert( DirectX::MathInternal::XMQuaternionIsUnit( vOrientation ) );
 
             // Load the sphere.
-            DirectX::XMVECTOR vCenter = DirectX::XMLoadFloat3( &Sphere.Position._Native );
-            DirectX::XMVECTOR vRadius = DirectX::XMVectorReplicatePtr( &Sphere.radius );
+            DirectX::XMVECTOR vCenter = DirectX::XMLoadFloat3( &Sphere.Data.Position._Native );
+            DirectX::XMVECTOR vRadius = DirectX::XMVectorReplicatePtr( &Sphere.Data.radius );
 
             // Transform the center of the sphere into the local space of frustum.
             vCenter = DirectX::XMVector3InverseRotate( DirectX::XMVectorSubtract( vCenter, vOrigin ), vOrientation );

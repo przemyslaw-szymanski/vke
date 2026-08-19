@@ -139,7 +139,8 @@ namespace VKE
         {
             UHandle handle = { .handle = hMem };
             auto&   vPages = m_vvPageStates[ handle.poolIdx ];
-            for( uint32_t i = handle.pageIdx; i < handle.pageIdx + handle.pageCount; ++i )
+            const uint32_t endPage = static_cast< uint32_t >( handle.pageIdx ) + handle.pageCount;
+            for( uint32_t i = handle.pageIdx; i < endPage; ++i )
             {
                 VKE_ASSERT( vPages[ i ] != PageStates::FREE );
                 vPages[ i ] = PageStates::FREE;

@@ -68,8 +68,8 @@ namespace VKE
             using Iterator      = TCArrayIterator< DataType >;
             using ConstIterator = TCArrayIterator< const DataType >;
 
-            template< uint32_t COUNT, class AllocatorType, class Policy >
-            using TCOtherSizeArray = TCConstantArray< T, COUNT, AllocatorType, Policy >;
+            template< uint32_t COUNT, class _AllocatorType, class _Policy >
+            using TCOtherSizeArray = TCConstantArray< T, COUNT, _AllocatorType, _Policy >;
 
         public:
             TCConstantArray()
@@ -261,7 +261,7 @@ namespace VKE
         void TCConstantArray< TC_CONSTANT_ARRAY_TEMPLATE_PARAMS >::Destroy()
         {
             VKE_ASSERT2( this->m_pCurrPtr, "Data pinter should points to m_aData" );
-            TCArrayContainer::Destroy();
+            Base::Destroy();
             this->m_pCurrPtr = m_aData;
             this->m_capacity = sizeof( m_aData );
         }

@@ -29,7 +29,7 @@ namespace VKE
     {                                                                                                                  \
         ( _obj ).VKE_SCNEE_DEBUG_VAR_NAME = ( _text );                                                                 \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_SCENE_GET_DEBUG_NAME( _obj ) ( ( _obj ).VKE_SCNEE_DEBUG_VAR_NAME )
 #else
 #define VKE_SCENE_DEBUG_NAME_TYPE

@@ -85,8 +85,8 @@ namespace VKE
         public:
             union alignas( 16 )
             {
-                float alignas( 16 ) m[ 16 ];
-                float alignas( 16 ) mm[ 4 ][ 4 ];
+                float m[ 16 ];
+                float mm[ 4 ][ 4 ];
                 NativeMatrix4x4 _Native;
             };
         };

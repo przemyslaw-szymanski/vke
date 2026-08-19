@@ -33,7 +33,7 @@ namespace VKE
             using FileBuffer =
                 Core::TSUniqueResourceBuffer< FileRefPtr, hash_t, Config::Resource::File::DEFAULT_COUNT >;
 
-            friend class CFile;
+            friend class Core::CFile;
 
         public:
             CFileManager( /*CVKEngine* pEngine*/ );

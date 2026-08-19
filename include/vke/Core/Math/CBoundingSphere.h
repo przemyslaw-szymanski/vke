@@ -16,8 +16,10 @@ namespace VKE
             {
             }
 
-            CBoundingSphere( const CVector3& Center, float radius ) : Position( Center ), radius( radius )
+            CBoundingSphere( const CVector3& Center, float radius )
             {
+                Data.Position = Center;
+                Data.radius   = radius;
             }
 
             // CBoundingSphere(const CAABB& AABB);
@@ -60,7 +62,7 @@ namespace VKE
                 {
                     CVector3 Position;
                     float    radius;
-                };
+                } Data;
 
                 NativeBoundingSphere _Native;
             };

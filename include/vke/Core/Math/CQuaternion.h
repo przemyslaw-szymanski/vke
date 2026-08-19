@@ -1,12 +1,13 @@
 #pragma once
 
 #include "CVector.h"
-#include "CMatrix.h"
 
 namespace VKE
 {
     namespace Math
     {
+        class CMatrix4x4;
+
         class VKE_API CQuaternion : public CVector4
         {
         public:

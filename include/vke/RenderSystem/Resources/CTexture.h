@@ -13,6 +13,7 @@ namespace VKE::RenderSystem
     class CDeviceContext;
     class CTextureView;
     class CSampler;
+    class CTextureManager;
 
     /*struct STextureInitDesc
     {

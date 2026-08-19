@@ -118,7 +118,7 @@
     {                                                                                                                  \
         _exp                                                                                                           \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_DELETE( _ptr ) VKE_CODE( delete( _ptr ); ( _ptr ) = nullptr; )
 #define VKE_DELETE_ARRAY( _ptr ) VKE_CODE( delete[]( _ptr ); ( _ptr ) = nullptr; )
 
@@ -143,7 +143,7 @@
 #if VKE_COMPILER_VISUAL_STUDIO
 #define vke_force_inline __forceinline
 #elif VKE_COMPILER_GCC || VKE_COMPILER_MINGW
-#define vke_force_inline __attribute__( ( always_inline ) )
+#define vke_force_inline inline __attribute__( ( always_inline ) )
 #endif // COMPILER
 
 #if VKE_COMPILER_VISUAL_STUDIO

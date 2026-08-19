@@ -28,6 +28,8 @@ namespace VKE
         class CRenderingPipeline;
         class CDescriptorSetManager;
         class CBuffer;
+        class CAPIResourceManager;
+        class CDeviceMemoryManager;
 
         class VKE_API CDeviceContext final //: public CContextBase
         {

@@ -99,7 +99,7 @@ namespace VKE
         protected:
             vke_force_inline SCommandPool* _GetPool( const handle_t hPool )
             {
-                SCommandBufferPoolHandleDecoder Decoder = { (uint32_t)hPool };
+                SCommandBufferPoolHandleDecoder Decoder = { .value = (uint32_t)hPool };
                 return m_avpPools[ Decoder.Decode.threadId ][ Decoder.Decode.index ];
             }
 

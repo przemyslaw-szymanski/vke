@@ -13,6 +13,7 @@ namespace VKE
         class CDevice;
         class CCommandBufferBatch;
         class CContextBase;
+        class CCommandBufferManager;
 
         struct SCommandBufferInitInfo
         {
@@ -426,20 +427,24 @@ namespace VKE
             }
         }
 
-        template< CHECK_STATUS CheckState >
-        void CCommandBuffer::DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount,
-                                          const uint32_t& firstIndex, const uint32_t& vertexOffset,
-                                          const uint32_t& firstInstance )
-        {
-            if constexpr( CheckState )
-            {
-                DrawIndexedWithCheck( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
-            }
-            else
-            {
-                DrawIndexedFast( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
-            }
-        }
+        //template< CHECK_STATUS CheckState >
+        //void CCommandBuffer::DrawIndexed( const uint32_t& indexCount, const uint32_t& instanceCount,
+        //                                  const uint32_t& firstIndex, const uint32_t& vertexOffset,
+        //                                  const uint32_t& firstInstance )
+        //{
+        //    if constexpr( CheckState )
+        //    {
+        //        SDrawParams Params;
+        //        Params.Indexed.indexCount = indexCount;
+        //        Params.Indexed.instanceCount = instanceCount;
+        //        Params.Indexed.startIndex = 
+        //        DrawIndexedWithCheck( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+        //    }
+        //    else
+        //    {
+        //        DrawIndexedFast( indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
+        //    }
+        //}
 
         template< CHECK_STATUS CheckState >
         void CCommandBuffer::DrawIndexed( const SDrawParams& Params )

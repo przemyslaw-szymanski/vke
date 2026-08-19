@@ -7,6 +7,9 @@
 
 namespace VKE::RenderSystem
 {
+    // Forward declarations
+    class CPipelineManager;
+
     class VKE_API CPipelineLayout
     {
         friend class CPipelineManager;

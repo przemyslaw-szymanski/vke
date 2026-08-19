@@ -235,7 +235,7 @@ namespace VKE
             }
 
             STaskParams( const void* pIn, size_t inSize, STaskResult* pRes ) :
-                pInputParam( pIn ), inputParamSize( inSize ), pResult( pRes )
+                pInputParam( pIn ), pResult( pRes ), inputParamSize( inSize )
             {
             }
 

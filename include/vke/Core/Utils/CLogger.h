@@ -168,7 +168,7 @@ namespace VKE
                 m_pSeparator = pSeparator;
             }
 
-            const cstr_t GetSeparator() const
+            cstr_t GetSeparator() const
             {
                 return m_pSeparator;
             }
@@ -183,6 +183,7 @@ namespace VKE
             CLogger& _Log( const _T_& str )
             {
                 m_Stream << str;
+                return *this;
             }
 
             Result _FlushToConsole();
@@ -296,7 +297,7 @@ namespace VKE
                    << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << VKE_LOG_FUNC                       \
                    << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR;                                    \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_BEGIN_NO_SYNC( _type )                                                                              \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -305,21 +306,21 @@ namespace VKE
                    << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << VKE_LOG_FUNC                       \
                    << VKE_LOGGER_SEPARATOR << VKE_LOG_LINE << VKE_LOGGER_SEPARATOR;                                    \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_END                                                                                                 \
     do                                                                                                                 \
     {                                                                                                                  \
         VKE_LOGGER.Flush();                                                                                            \
         VKE_LOGGER.End();                                                                                              \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_END_NO_SYNC                                                                                         \
     do                                                                                                                 \
     {                                                                                                                  \
         VKE_LOGGER.Flush< false >();                                                                                   \
         VKE_LOGGER.End< false >();                                                                                     \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_LOG2( _type, _msg )                                                                                 \
     VKE_CODE( VKE_LOGGER.Begin();                                                                                      \
               VKE_LOGGER << _type << "[" << VKE_LOG_TID << "]" << VKE_LOGGER_SEPARATOR << VKE_LOG_FUNC                 \
@@ -333,15 +334,15 @@ namespace VKE
         VKE_LOGGER << _msg;                                                                                            \
         VKE_LOGGER_END;                                                                                                \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_LOGF( _type, _fmt, ... )                                                                            \
     do                                                                                                                 \
     {                                                                                                                  \
         VKE_LOGGER_BEGIN( _type );                                                                                     \
-        VKE_LOGGER << std::format( _fmt, __VA_ARGS__ );                                                                \
+        VKE_LOGGER << std::format( _fmt __VA_OPT__(, ) __VA_ARGS__ );                                                  \
         VKE_LOGGER_END;                                                                                                \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_LOG_NO_SYNC( _type, _msg )                                                                          \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -349,15 +350,15 @@ namespace VKE
         VKE_LOGGER << _msg;                                                                                            \
         VKE_LOGGER_END_NO_SYNC;                                                                                        \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_LOGF_NO_SYNC( _type, _fmt, ... )                                                                    \
     do                                                                                                                 \
     {                                                                                                                  \
         VKE_LOGGER_BEGIN_NO_SYNC( _type );                                                                             \
-        VKE_LOGGER << std::format( _fmt, __VA_ARGS__ );                                                                \
+        VKE_LOGGER << std::format( _fmt __VA_OPT__(, ) __VA_ARGS__ );                                                  \
         VKE_LOGGER_END_NO_SYNC;                                                                                        \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define VKE_LOGGER_LOG_BEGIN VKE_LOGGER_BEGIN( "[INFO]" )
 #define VKE_LOGGER_LOG_ERROR( _err, _msg ) VKE_LOGGER_LOG( "[ERROR]", _msg )
 #define VKE_LOGGER_LOG_ERRORF( _err, _fmt, ... ) VKE_LOGGER_LOGF( "[ERROR]", _fmt, __VA_ARGS__ )

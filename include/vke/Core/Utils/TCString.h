@@ -201,8 +201,8 @@ namespace VKE
                 this->Append( 0, _CalcLength( pData ) + 1, pData );
             }
 
-            TC_DYNAMIC_ARRAY_TEMPLATE
-            void operator+=( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Other )
+            TC_DYNAMIC_ARRAY_TEMPLATE2
+            void operator+=( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2 >& Other )
             {
                 this->Append( Other );
             }
@@ -225,15 +225,20 @@ namespace VKE
                 return *this;
             }
 
-            TC_DYNAMIC_ARRAY_TEMPLATE
-            TCString& operator=( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Other )
+            TCString& operator=( ConstDataTypePtr pData )
+            {
+                this->Copy( pData, _CalcLength( pData ) + 1 );
+            }
+
+            TC_DYNAMIC_ARRAY_TEMPLATE2
+            TCString& operator=( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2 >& Other )
             {
                 this->Insert( 0, Other );
                 return *this;
             }
 
-            TC_DYNAMIC_ARRAY_TEMPLATE
-            bool Compare( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Other ) const;
+            TC_DYNAMIC_ARRAY_TEMPLATE2
+            bool Compare( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2 >& Other ) const;
 
             bool Compare( std::nullptr_t ) const
             {
@@ -247,8 +252,8 @@ namespace VKE
             // bool Compare(const TCString<TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS>& Other) const { return Compare(
             // Other->GetData() ); }
 
-            TC_DYNAMIC_ARRAY_TEMPLATE
-            bool operator==( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Other ) const
+            TC_DYNAMIC_ARRAY_TEMPLATE2
+            bool operator==( const TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS2 >& Other ) const
             {
                 return Compare( Other );
             }
@@ -601,7 +606,7 @@ namespace std
     }
 
     template< typename DataType, uint32_t DEFAULT_ELEMENT_COUNT, class AllocatorType, class Policy, class Utils >
-    struct std::formatter< VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS > > : std::formatter< std::string_view >
+    struct formatter< VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS > > : std::formatter< std::string_view >
     {
         auto format( const VKE::Utils::TCString< TC_DYNAMIC_ARRAY_TEMPLATE_PARAMS >& Str, std::format_context& ctx ) const
         {

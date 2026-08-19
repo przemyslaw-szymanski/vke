@@ -87,7 +87,7 @@ namespace VKE
                 template< class T >
                 void UpdateCustomData( uint32_t backBufferIdx, uint32_t dataIdx, T* aData )
                 {
-                    UpdateCustomData( backBufferIdx, dataIdx, reinterpret_cast< uint8_t* >( aData ), sizeof( T ) );
+                    UpdateCustomData( backBufferIdx, dataIdx, reinterpret_cast< void* >( aData ) );
                 }
 
                 template< class T >

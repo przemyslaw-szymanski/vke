@@ -464,10 +464,10 @@ namespace VKE
 
         void CVector4::ConvertCompareToBools( bool* pOut ) const
         {
-            pOut[ 0 ] = static_cast< bool >( _Native.m128_u32[ 0 ] );
-            pOut[ 1 ] = static_cast< bool >( _Native.m128_u32[ 1 ] );
-            pOut[ 2 ] = static_cast< bool >( _Native.m128_u32[ 2 ] );
-            pOut[ 3 ] = static_cast< bool >( _Native.m128_u32[ 3 ] );
+            pOut[ 0 ] = DirectX::XMVectorGetIntByIndex( _Native, 0 ) != 0;
+            pOut[ 1 ] = DirectX::XMVectorGetIntByIndex( _Native, 1 ) != 0;
+            pOut[ 2 ] = DirectX::XMVectorGetIntByIndex( _Native, 2 ) != 0;
+            pOut[ 3 ] = DirectX::XMVectorGetIntByIndex( _Native, 3 ) != 0;
         }
 
         CVector4 vke_vectorcall CVector4::Equals( CVector4Ref Left, CVector4Ref Right )
@@ -585,10 +585,10 @@ namespace VKE
 
         void CVector4::ConvertToInts( int32_t* pInts ) const
         {
-            pInts[ 0 ] = _Native.m128_i32[ 0 ];
-            pInts[ 1 ] = _Native.m128_i32[ 1 ];
-            pInts[ 2 ] = _Native.m128_i32[ 2 ];
-            pInts[ 3 ] = _Native.m128_i32[ 3 ];
+            pInts[ 0 ] = DirectX::XMVectorGetIntByIndex( _Native, 0 );
+            pInts[ 1 ] = DirectX::XMVectorGetIntByIndex( _Native, 1 );
+            pInts[ 2 ] = DirectX::XMVectorGetIntByIndex( _Native, 2 );
+            pInts[ 3 ] = DirectX::XMVectorGetIntByIndex( _Native, 3 );
         }
 
         void CVector4::ConvertToUInts( uint32_t* pInts ) const

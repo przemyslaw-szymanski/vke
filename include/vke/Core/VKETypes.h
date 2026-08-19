@@ -34,6 +34,8 @@
 #include <format>
 #include <chrono>
 
+#include <queue>
+
 #include "VKEPreprocessor.h"
 
 #if VKE_COMPILER_VISUAL_STUDIO
@@ -58,15 +60,15 @@ namespace VKE
 
     static const std::string  EMPTY_STRING  = "";
     static const std::wstring EMPTY_WSTRING = L"";
-    static const uint32_t     UNDEFINED     = static_cast< const uint32_t >( ~0 );
-    static const uint32_t     UNKNOWN       = static_cast< const uint32_t >( ~0 );
-    static const uint32_t     NONE          = static_cast< const uint32_t >( ~0 );
+    static const uint32_t     UNDEFINED     = static_cast< uint32_t >( ~0 );
+    static const uint32_t     UNKNOWN       = static_cast< uint32_t >( ~0 );
+    static const uint32_t     NONE          = static_cast< uint32_t >( ~0 );
     static const uint8_t      UNDEFINED_U8  = static_cast< uint8_t >( -1 );
     static const uint16_t     UNDEFINED_U16 = static_cast< uint16_t >( -1 );
     static const uint32_t     UNDEFINED_U32 = static_cast< uint32_t >( -1 );
     static const uint64_t     UNDEFINED_U64 = static_cast< uint64_t >( -1 );
 
-    static const uint32_t INVALID_POSITION = static_cast< const uint32_t >( ~0 );
+    static const uint32_t INVALID_POSITION = static_cast< uint32_t >( ~0 );
 
     struct STribool
     {
@@ -562,13 +564,13 @@ namespace VKE
     {                                                                                                                  \
         ( _errOut ) = mbstowcs( ( _pDst ), ( _pDstSizeInWors ), ( _pSrc ), ( _pSrcSizeInBytes ) );                     \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #define vke_wcstombs( _errOut, _pDst, _pDstSizeInWors, _pSrc, _pSrcSizeInBytes )                                       \
     do                                                                                                                 \
     {                                                                                                                  \
         ( _errOut ) = wcstombs( ( _pDst ), ( _pDstSizeInWors ), ( _pSrc ), ( _pSrcSizeInBytes ) );                     \
     }                                                                                                                  \
-    while( 0, 0 )
+    while( 0 )
 #endif
 
 } // namespace VKE

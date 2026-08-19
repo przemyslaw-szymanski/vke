@@ -218,12 +218,12 @@ namespace VKE
                 return GetCount() == 0;
             }
 
-            const DataTypePtr GetData() const
+            DataTypePtr GetData() const
             {
                 return m_pCurrPtr;
             }
 
-            const DataTypePtr GetDataOrNull() const
+            DataTypePtr GetDataOrNull() const
             {
                 return ( this->m_count > 0 ) ? m_pCurrPtr : nullptr;
             }
@@ -286,7 +286,7 @@ namespace VKE
                 return Utils::Find( m_pCurrPtr, m_count, data );
             }
 
-            vke_force_inline static const uint32_t Npos()
+            vke_force_inline static uint32_t Npos()
             {
                 return NPOS;
             }

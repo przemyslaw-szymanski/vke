@@ -37,6 +37,8 @@ namespace VKE
                 static_assert( sizeof( T ) <= sizeof( uint64_t ), "Wrong template parameter" );
             }
 
+            TCBitset( const TCBitset& ) = default;
+
             template< typename U >
             TCBitset( const TCBitset< U >& Other ) : TCBitset( static_cast< T >( Other.m_bits ) )
             {
@@ -65,10 +67,6 @@ namespace VKE
                 static_assert( sizeof( T ) >= sizeof( uint64_t ),
                     "Could not set more bits for this type" );
             }*/
-
-            ~TCBitset()
-            {
-            }
 
             void Reset()
             {
@@ -168,7 +166,7 @@ namespace VKE
                 return (T)( 1 << idx );
             }
 
-            static const uint8_t GetBitCount()
+            static uint8_t GetBitCount()
             {
                 return sizeof( T ) * 8;
             }

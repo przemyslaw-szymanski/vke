@@ -62,7 +62,7 @@ namespace VKE
 
             bool vke_force_inline IsZero() const
             {
-                return Extents == ZERO.Extents;
+                return Data.Extents == ZERO.Data.Extents;
             }
 
             static void vke_force_inline Transform( const CMatrix4x4& Matrix, CAABB* pOut );
@@ -103,7 +103,7 @@ namespace VKE
                 {
                     CVector3 Center;
                     CVector3 Extents;
-                };
+                } Data;
 
                 NativeAABB _Native;
             };

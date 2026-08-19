@@ -94,6 +94,7 @@ elseif(GCC)
 	# ignore warnings
 	add_definitions("-Wno-unused-function")
 	add_definitions("-Wno-unused-variable")
+	add_definitions("-Wno-unused-parameter")
 
 endif()
 

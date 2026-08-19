@@ -546,8 +546,8 @@ namespace VKE
         {
             using ResourceType                    = ResourceT;
             using FreeResourceType                = FreeResourceT;
-            using ContainerType                   = typename TSHashMap< handle_t, ResourceType >;
-            using FreeContainerType               = typename TSHashMap< handle_t, FreeResourceType >;
+            using ContainerType                   = TSHashMap< handle_t, ResourceType >;
+            using FreeContainerType               = TSHashMap< handle_t, FreeResourceType >;
             using ResourceIterateCallbackType     = typename ContainerType::IterateCallbackType;
             using FreeResourceIterateCallbackType = typename FreeContainerType::IterateCallbackType;
 

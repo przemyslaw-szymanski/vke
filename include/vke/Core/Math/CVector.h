@@ -221,7 +221,7 @@ namespace VKE
 #if defined( VKE_SIMD )
             using CVector4Ref = CVector4;
 #else
-            using CVector4In = CVector4Ref;
+            using CVector4Ref = CVector4;
 #endif
         public:
             CVector4()
@@ -430,9 +430,9 @@ namespace VKE
                     float x, y, z, w;
                 };
 
-                float alignas( 16 ) floats[ 4 ];
-                int32_t alignas( 16 ) ints[ 4 ];
-                uint32_t alignas( 16 ) uints[ 4 ];
+                float floats[ 4 ];
+                int32_t ints[ 4 ];
+                uint32_t uints[ 4 ];
                 NativeVector4 _Native;
             };
         };

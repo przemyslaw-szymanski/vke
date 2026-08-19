@@ -2,10 +2,6 @@
 #include "Core/Utils/CLogger.h"
 #if VKE_WINDOWS
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
 #include <windows.h>
 #include <shlwapi.h>
 #include <crtdbg.h>
@@ -18,8 +14,6 @@
 #ifdef GetCommandLine
 #undef GetCommandLine
 #endif
-
-#pragma comment( lib, "dbghelp.lib" )
 
 // #if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
 // #   pragma push_macro(VKE_TO_STRING(LoadLibrary))
@@ -34,7 +28,7 @@
 // #   undef MemoryBarrier
 // #endif // MemoryBarrier
 
-#if _MSC_VER < 1920
+#if VKE_COMPILER_VISUAL_STUDIO && _MSC_VER < 1920
 #define std_filesystem std::experimental::filesystem::v1
 #else
 #define std_filesystem std::filesystem

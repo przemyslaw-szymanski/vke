@@ -79,7 +79,7 @@ namespace VKE
                         uint32_t size  = sizeof( Device.pName );
 
                         res = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICENAME, Device.pName, &size );
-                        if( res < 0 )
+                        if( res == ( (UINT)-1 ) )
                         {
                             err = true;
                             break;
@@ -87,7 +87,7 @@ namespace VKE
 
                         size = Rdi.cbSize;
                         res  = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICEINFO, &Rdi, &size );
-                        if( res < 0 )
+                        if( res == ( (UINT)-1 ) )
                         {
                             err = true;
                             break;

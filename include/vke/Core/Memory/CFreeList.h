@@ -36,7 +36,7 @@ namespace VKE
             CFreeList( CFreeList&& Other );
 
             CFreeList( uint32_t elementCount, size_t elementSize ) :
-                m_elementCount( elementCount ), m_elementSize( elementSize )
+                m_elementSize( elementSize ), m_elementCount( elementCount )
             {
             }
 

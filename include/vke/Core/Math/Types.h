@@ -41,10 +41,17 @@ namespace VKE
 
         using INTERSECT_RESULT = IntersectResults::RESULT;
 
-#if ( defined( _M_IX86 ) || defined( _M_ARM ) || defined( _M_ARM64 ) || _XM_VECTORCALL_ || __i386__ || __arm__ ||      \
-      __aarch64__ ) &&                                                                                                 \
+#if ( defined( _M_IX86 ) || defined( _M_X64 ) || defined( _M_ARM ) || defined( _M_ARM64 ) || _XM_VECTORCALL_ ||        \
+      __i386__ || __x86_64__ || __arm__ || __aarch64__ ) &&                                                            \
     !defined( _XM_NO_INTRINSICS_ )
 #define VKE_SIMD 1
+#else
+#undef VKE_SIMD
+#endif
+
+// __vectorcall is an MSVC-only calling convention. GCC/MinGW do not support it,
+// so only use it when the compiler actually provides it.
+#if VKE_SIMD && ( _XM_VECTORCALL_ || defined( _MSC_VER ) )
 #define vke_vectorcall __vectorcall
 #else
 #define vke_vectorcall

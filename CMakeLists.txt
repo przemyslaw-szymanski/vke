@@ -246,6 +246,11 @@ add_dependencies(vkEngine vkEngineRenderSystem vkEngineScene)
 #set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
 set(LINK_LIBS ${THIRD_PARTY_LIBS})
 
+# Handle libs that were previously in code used as #pragma comment lib.
+if(WIN32)
+    set(LINK_LIBS ${LINK_LIBS} dbghelp)
+endif()
+
 message("Linking vkEngine with libs:")
 foreach(LIB IN LISTS LINK_LIBS)
     message(" - ${LIB}")

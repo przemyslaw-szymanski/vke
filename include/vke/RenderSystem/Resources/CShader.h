@@ -15,6 +15,8 @@ namespace VKE
 {
     namespace RenderSystem
     {
+        class CShaderManager;
+
         struct SShaderInitInfo
         {
         };

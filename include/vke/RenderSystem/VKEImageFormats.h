@@ -267,39 +267,60 @@ namespace VKE
 
         static vke_force_inline bool IsDepthFormat( TEXTURE_FORMAT fmt )
         {
+            bool isDepth;
+
             switch( fmt )
             {
                 case Formats::D16_UNORM:
                 case Formats::X8_D24_UNORM_PACK32:
                 case Formats::D32_SFLOAT:
-                    return true;
+                    isDepth = true;
+                    break;
+
+                default:
+                    isDepth = false;
                     break;
             }
-            return false;
+
+            return isDepth;
         }
 
         static vke_force_inline bool IsStencilFormat( TEXTURE_FORMAT fmt )
         {
+            bool isStencil;
+
             switch( fmt )
             {
                 case Formats::S8_UINT:
-                    return true;
+                    isStencil = true;
+                    break;
+
+                default:
+                    isStencil = false;
                     break;
             }
-            return false;
+
+            return isStencil;
         }
 
         static vke_force_inline bool IsDepthStencilFormat( TEXTURE_FORMAT fmt )
         {
+            bool isDepthStencil;
+
             switch( fmt )
             {
                 case Formats::D16_UNORM_S8_UINT:
                 case Formats::D24_UNORM_S8_UINT:
                 case Formats::D32_SFLOAT_S8_UINT:
-                    return true;
+                    isDepthStencil = true;
+                    break;
+
+                default:
+                    isDepthStencil = false;
                     break;
             }
-            return false;
+
+            return isDepthStencil;
         }
 
         static vke_force_inline bool IsColorFormat( TEXTURE_FORMAT fmt )

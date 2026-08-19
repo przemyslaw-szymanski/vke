@@ -10,6 +10,8 @@ namespace VKE
     namespace RenderSystem
     {
 
+        class CDescriptorSetManager;
+
         class VKE_API CDescriptorSetLayout
         {
             friend class CDescriptorSetManager;

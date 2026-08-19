@@ -12,6 +12,9 @@ namespace VKE
 {
     namespace Core
     {
+        // Forward declaration
+        class CImageManager;
+
         struct BitsPerPixel
         {
             enum BPP : uint8_t

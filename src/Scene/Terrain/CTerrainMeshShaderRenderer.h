@@ -6,6 +6,8 @@ namespace VKE
 {
     namespace Scene
     {
+        class CTerrain;
+
         class CTerrainMeshShadingRenderer final : public ITerrainRenderer
         {
             struct STileData
