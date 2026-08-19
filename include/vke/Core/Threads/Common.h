@@ -275,6 +275,7 @@ namespace VKE
 
         using TASK_RESULT  = TaskResults::RESULT;
         using TaskFunction = std::function< TASK_RESULT( void* ) >;
+        using TaskResult = Utils::TCBitset< TaskResults::RESULT >;
 
         template< class T >
         struct TSSimpleTask

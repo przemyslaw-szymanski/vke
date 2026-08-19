@@ -80,7 +80,14 @@ namespace VKE
             {
                 if constexpr( sizeof( U ) > sizeof( T ) )
                 {
-                    VKE_ASSERT2( bits <= std::numeric_limits< T >::max(), "Bitset overflow" );
+                    if constexpr( std::is_enum_v< T > )
+                    {
+                        VKE_ASSERT2( ( bits ) <= std::numeric_limits< std::underlying_type_t< T > >::max(), "Bitset overflow" );
+                    }
+                    else
+                    {
+                        VKE_ASSERT2( bits <= std::numeric_limits< T >::max(), "Bitset overflow" );
+                    }
                 }
             }
 

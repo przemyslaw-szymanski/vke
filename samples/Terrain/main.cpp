@@ -251,7 +251,6 @@ struct SGfxContextListener
         pWindow->GetInputSystem().SetListener( pInputListener );
         auto pDevice = Sample.m_vpDeviceContexts[ 0 ];
         auto pCtx = pDevice->GetGraphicsContext( 0 );
-        auto pCmdBuffer = pCtx->GetCommandBuffer();
 
         VKE::RenderSystem::SSimpleRenderPassDesc PassDesc;
         {
@@ -306,35 +305,8 @@ struct SGfxContextListener
 
         }
 
-        //VKE::Scene::SSceneDesc SceneDesc;
-        ////SceneDesc.pDeviceContext = pDevice;
-        //SceneDesc.pCommandBuffer = pCmdBuffer;
-        auto pWorld = pDevice->GetRenderSystem()->GetEngine()->GetWorld();
-        pScene = pWorld->GetScene();
-        //pScene = pWorld->CreateScene( SceneDesc );
-        //pWorld->SetScene( pScene );
-        VKE::Scene::SCameraDesc CamDesc;
-        CamDesc.Name = "Debug";
-        CamDesc.ClipPlanes = { 1.0f, 10000.0f };
-        CamDesc.Viewport = pWindow->GetSwapChain()->GetSize();
-        CamDesc.vecPosition = {0, 0.1f, 0};
-        pDebugCamera = pScene->CreateCamera( CamDesc );
-        {
-            pDebugCamera->SetPosition( VKE::Math::CVector3( 4, 5.0f, -34 ) );
-            pDebugCamera->SetLookAt( { 0, -1.0f, 1 } );
-            pDebugCamera->Update( 0 );
-            pScene->SetViewCamera( pDebugCamera );
-        }
-        CamDesc.Name = "Render";
-        pCamera = pScene->CreateCamera( CamDesc );
-        {
-            pCamera->SetPosition( VKE::Math::CVector3( 0, 0.1f, -34 ) );
-            pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 1 ) );
-            pCamera->Update( 0 );
-            pScene->SetCamera( pCamera );
-            pScene->AddDebugView( pCmdBuffer, &pCamera );
-        }
-        pInputListener->pCamera = pDebugCamera;
+        
+       
         VKE::Scene::STerrainDesc TerrainDesc;
         {
             TerrainDesc.size = 16000;
@@ -344,7 +316,7 @@ struct SGfxContextListener
             TerrainDesc.TileSize = { 32, 2048 };
             TerrainDesc.vertexDistance = 1.0f;
             //TerrainDesc.lodCount = 3;
-            TerrainDesc.maxViewDistance = CamDesc.ClipPlanes.end;
+            TerrainDesc.maxViewDistance = 1000.0f;
             TerrainDesc.HeightmapOffset = { HEIGHTMAP_2PIX_BIGGER, HEIGHTMAP_2PIX_BIGGER };
             TerrainDesc.lodTreshold = 20;
             TerrainDesc.Tesselation.Factors = { 0, 0 };
@@ -407,10 +379,43 @@ struct SGfxContextListener
 
         auto pUploadPass = Sample.m_pFrameGraph->GetPass( "Upload" );
         pUploadPass->AddTask( [ & ](
-            const VKE::RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIndex )
+            const VKE::RenderSystem::CFrameGraphNode* pPass, uint8_t backBufferIndex ) -> VKE::Threads::TASK_RESULT
         {
-            bool ret = false;
-            auto pCmdBuffer = pPass->GetCommandBuffer( backBufferIndex );
+            VKE::Threads::TASK_RESULT ret        = VKE::Threads::TaskResults::FAIL;
+            auto                      pCmdBuffer = pPass->GetCommandBuffer( backBufferIndex );
+            
+            auto& World = VKE::World::GetInstance();
+            VKE::Scene::SSceneDesc SceneDesc;
+            pScene = World.CreateScene( SceneDesc );
+            if( pScene == nullptr || VKE_FAILED( pScene->Init(pCmdBuffer) ) )
+            {
+                return VKE::Threads::TaskResults::FAIL;
+            }
+            
+            VKE::Scene::SCameraDesc CamDesc;
+            CamDesc.Name        = "Debug";
+            CamDesc.ClipPlanes  = { 1.0f, 10000.0f };
+            CamDesc.Viewport    = pWindow->GetSwapChain()->GetSize();
+            CamDesc.vecPosition = { 0, 0.1f, 0 };
+            pDebugCamera        = pScene->CreateCamera( CamDesc );
+            {
+                pDebugCamera->SetPosition( VKE::Math::CVector3( 4, 5.0f, -34 ) );
+                pDebugCamera->SetLookAt( { 0, -1.0f, 1 } );
+                pDebugCamera->Update( 0 );
+                pScene->SetViewCamera( pDebugCamera );
+            }
+            CamDesc.Name = "Render";
+            pCamera      = pScene->CreateCamera( CamDesc );
+            {
+                pCamera->SetPosition( VKE::Math::CVector3( 0, 0.1f, -34 ) );
+                pCamera->SetLookAt( VKE::Math::CVector3( 0, 0, 1 ) );
+                pCamera->Update( 0 );
+                pScene->SetCamera( pCamera );
+                pScene->AddDebugView( pCmdBuffer, &pCamera );
+            }
+            pInputListener->pCamera                               = pDebugCamera;
+
+            
             VKE::Scene::STerrainMeshShaderRendererDesc MSTerrainDesc;
             VKE::Scene::STerrainDesc TerrainDesc;
             TerrainDesc.Height = { -200, 500 };
@@ -425,7 +430,7 @@ struct SGfxContextListener
                 TileInfo.Position = { 0, 0 };
                 if( VKE_SUCCEEDED( pTerrain->LoadTile( TileInfo, pCmdBuffer ) ) )
                 {
-                    ret = true;
+                    ret = VKE::Threads::TaskResults::OK;
                 }
                 TileInfo.Position = { -3, 1 };
                 pTerrain->LoadTile( TileInfo, pCmdBuffer );

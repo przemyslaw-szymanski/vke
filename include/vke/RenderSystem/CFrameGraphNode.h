@@ -8,12 +8,6 @@
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CShader.h"
 
-namespace VKE::Scene
-{
-    class CScene;
-    using ScenePtr = Utils::TCWeakPtr< class CScene >;
-} // namespace VKE::Scene
-
 namespace VKE::RenderSystem
 {
     struct SynchronizationObjectTypes
@@ -144,7 +138,7 @@ namespace VKE::RenderSystem
         };
 
     public:
-        using TaskFunc = std::function< bool( const CFrameGraphNode*, uint8_t ) >;
+        using TaskFunc = std::function< Threads::TASK_RESULT( const CFrameGraphNode*, uint8_t ) >;
 
         struct STaskResult
         {
@@ -286,8 +280,6 @@ namespace VKE::RenderSystem
 
         uint64_t GetFenceValue() const;
         uint64_t InitFenceValue(uint8_t backBufferIndex);
-
-        Scene::ScenePtr GetScene();
 
         RHI::RenderPass GetRHIRenderPass() const
         {

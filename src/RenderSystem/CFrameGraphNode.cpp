@@ -408,7 +408,8 @@ namespace VKE::RenderSystem
         uint32_t taskExecutedCount = 0;
         for( auto Itr = m_qTasks.begin(); Itr != m_qTasks.end(); ++Itr )
         {
-            bool taskExecuted            = Itr->Func( this, Desc.backBufferIndex );
+            Threads::TASK_RESULT Res           = Itr->Func( this, Desc.backBufferIndex );
+            const bool           taskExecuted  = Res != Threads::TaskResults::WAIT;
             taskExecutedCount           += taskExecuted;
             bool removeTask              = taskExecuted || Desc.forceRemove;
             Itr->pResult->executedOnCPU  = true;
@@ -543,11 +544,6 @@ namespace VKE::RenderSystem
         if( HasCommandBuffer() )
         {
         }
-    }
-
-    Scene::ScenePtr CFrameGraphNode::GetScene()
-    {
-        return m_pFrameGraph->GetScene();
     }
 
 } // namespace VKE::RenderSystem

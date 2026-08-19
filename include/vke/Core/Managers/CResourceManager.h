@@ -3,8 +3,6 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Memory/TCFreeListManager.h"
 
-#include "RenderSystem/Common.h"
-
 namespace VKE
 {
     enum
@@ -885,39 +883,6 @@ namespace VKE
             }
         };
 
-        class VKE_API CResourceManager
-        {
-            friend class CVkEngine;
-
-            using FileQueue     = vke_queue< Core::SLoadFileInfo >;
-            using TextureQueue  = FileQueue;
-            using BufferQueue   = FileQueue;
-            using ShaderQueue   = vke_queue< RenderSystem::SCreateShaderDesc >;
-            using PipelineQueue = vke_queue< RenderSystem::SPipelineCreateDesc >;
-
-        public:
-            CResourceManager( CVkEngine& );
-
-            RenderSystem::TextureRefPtr  LoadTexture( const Core::SLoadFileInfo& );
-            RenderSystem::BufferRefPtr   LoadBuffer( const Core::SLoadFileInfo& );
-            RenderSystem::ShaderRefPtr   LoadShader( const RenderSystem::SCreateShaderDesc& );
-            RenderSystem::PipelineRefPtr CreatePipeline( const RenderSystem::SPipelineCreateDesc& );
-
-            Result LoadDeferredShader();
-            Result CreateDeferredPipeline();
-
-        protected:
-            CVkEngine& m_Engine;
-
-            Threads::SyncObject m_TextureSyncObj;
-            TextureQueue        m_qTextures;
-            Threads::SyncObject m_BufferSyncObj;
-            BufferQueue         m_qBuffers;
-            Threads::SyncObject m_ShaderSyncObj;
-            ShaderQueue         m_qShaders;
-            Threads::SyncObject m_PipelineSyncObj;
-            PipelineQueue       m_qPipelines;
-        };
-
+     
     } // namespace Core
 } // namespace VKE

@@ -20,7 +20,10 @@ namespace VKE
 
         using ScenePtr    = Utils::TCWeakPtr< class CScene >;
         using DrawcallPtr = CDrawcall*;
+    }
 
+    namespace World
+    {
         class VKE_API CWorld
         {
             friend class CVkEngine;
@@ -30,38 +33,50 @@ namespace VKE
             {
             };
 
-            using CameraArray    = Utils::TCDynamicArray< CCamera, 8 >;
-            using SceneArray     = Utils::TCDynamicArray< CScene* >;
+            using CameraArray    = Utils::TCDynamicArray< Scene::CCamera, 8 >;
+            using SceneArray     = Utils::TCDynamicArray< Scene::CScene* >;
             using DrawcallMemMgr = Memory::CFreeListPool;
 
         public:
-            Result Init( RenderSystem::CommandBufferPtr );
 
-            CameraPtr GetCamera( uint32_t idx )
+            vke_force_inline static CWorld& GetInstance()
+            {
+                static CWorld World;
+                return World;
+            }
+
+            Result Create( RenderSystem::CommandBufferPtr );
+
+            Scene::CameraPtr GetCamera( uint32_t idx )
             {
                 return &m_vCameras[ idx ];
             }
 
-            ScenePtr CreateScene( const SSceneDesc& Desc );
-            void     SetScene( ScenePtr );
-            ScenePtr GetScene();
-            void     DestroyScene( ScenePtr* pInOut );
+            Scene::ScenePtr CreateScene( const Scene::SSceneDesc& Desc );
+            void     SetScene( Scene::ScenePtr );
+            Scene::ScenePtr GetScene();
+            void     DestroyScene( Scene::ScenePtr* pInOut );
 
-            RenderSystem::DrawcallPtr CreateDrawcall( const SDrawcallDesc& Desc );
+            RenderSystem::DrawcallPtr CreateDrawcall( const Scene::SDrawcallDesc& Desc );
 
         protected:
             Result _Create( const SDesc& Desc );
             void   _Destroy();
 
-            void _DestroyScene( CScene** ppInOut );
+            void _DestroyScene( Scene::CScene** ppInOut );
 
         protected:
             SDesc                         m_Desc;
             RenderSystem::CDeviceContext* m_pDevice = nullptr;
             CameraArray                   m_vCameras;
             SceneArray                    m_vpScenes;
-            ScenePtr                      m_pCurrScene;
+            Scene::ScenePtr               m_pCurrScene;
             DrawcallMemMgr                m_DrawcallMemMgr;
         };
-    } // namespace Scene
+
+        vke_force_inline static CWorld& GetInstance()
+        {
+            return CWorld::GetInstance();
+        }
+    } // namespace World
 } // namespace VKE
