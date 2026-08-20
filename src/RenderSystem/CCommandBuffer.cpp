@@ -182,10 +182,10 @@ namespace VKE
         {
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vMemoryBarriers.PushBack( Info );
+            m_needExecuteBarriers = true;
 #if VKE_RENDER_SYSTEM_DEBUG
             if( !GetRuntimeConfig().DeferBarriers )
             {
-                m_needExecuteBarriers = true;
                 ExecuteBarriers();
                 VKE_LOG_CB();
                 m_pMgr->_LogCommand( this, "Barrier" );
@@ -197,10 +197,10 @@ namespace VKE
         {
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vBufferBarriers.PushBack( Info );
+            m_needExecuteBarriers = true;
 #if VKE_RENDER_SYSTEM_DEBUG
             if( !GetRuntimeConfig().DeferBarriers )
             {
-                m_needExecuteBarriers = true;
                 ExecuteBarriers();
                 VKE_LOG_CB();
                 m_pMgr->_LogCommand( this, "Barrier" );
@@ -212,10 +212,10 @@ namespace VKE
         {
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vTextureBarriers.PushBack( Info );
+            m_needExecuteBarriers = true;
 #if VKE_RENDER_SYSTEM_DEBUG
             if( !GetRuntimeConfig().DeferBarriers )
             {
-                m_needExecuteBarriers = true;
                 ExecuteBarriers();
                 VKE_LOG_CB();
                 m_pMgr->_LogCommand( this, "Barrier" );
