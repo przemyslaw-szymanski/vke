@@ -30,7 +30,7 @@ namespace VKE
                  static const uint32_t MAX_PIXEL_SHADER_COUNT = 1024;
                  static const uint32_t MAX_COMPUTE_SHADER_COUNT = 1024;
                  static const uint32_t MAX_SHADER_PROGRAM_COUNT = 1024;*/
-                static const uint32_t MAX_SHADER_COUNT_PER_TYPE         = 1024;
+                static constexpr uint32_t MAX_SHADER_COUNT_PER_TYPE     = 1024;
                 static const uint32_t MAX_INCLUDE_PATH_LENGTH           = 64;
                 static const uint32_t MAX_PREPROCESSOR_DIRECTIVE_LENGTH = 32;
                 static const uint32_t MAX_ENTRY_POINT_NAME_LENGTH       = 32;
@@ -89,14 +89,14 @@ namespace VKE
                                                          MAX_INDEX_BUFFER_COUNT + MAX_INDEX_BUFFER_VIEW_COUNT +
                                                          MAX_UNIFORM_BUFFER_COUNT + MAX_UNIFORM_BUFFER_VIEW_COUNT;
 
-                static const uint32_t STAGING_BUFFER_PAGE_SIZE = VKE_KILOBYTES( 64 );
+                static constexpr uint32_t STAGING_BUFFER_PAGE_SIZE = VKE_KILOBYTES( 64 );
                 /// <summary>
                 /// Current implementation of StagingBufferManager has 12 bits max count of available page count
                 /// per staging buffer. This size indicate max size of a single allocation.
                 /// E.g. there is no way to upload more than STAGING_BUFFER_PAGE_SIZE * 4095 into a single buffer.
                 /// To increase this max buffer capacity STAGING_BUFFER_PAGE_SIZE must be increased.
                 /// </summary>
-                static const uint32_t STAGING_BUFFER_SIZE       = ( STAGING_BUFFER_PAGE_SIZE * 4095 );
+                static constexpr uint32_t STAGING_BUFFER_SIZE  = ( STAGING_BUFFER_PAGE_SIZE * 4095 );
                 static const uint32_t STAGING_BUFFER_CHUNK_SIZE = VKE_MEGABYTES( 4 );
             };
 

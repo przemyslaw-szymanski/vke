@@ -67,7 +67,6 @@ namespace VKE
                 if( res != ( (UINT)-1 ) )
                 {
                     count                 = res;
-                    bool              err = false;
                     ::RID_DEVICE_INFO Rdi;
                     Rdi.cbSize = sizeof( ::RID_DEVICE_INFO );
 
@@ -81,16 +80,16 @@ namespace VKE
                         res = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICENAME, Device.pName, &size );
                         if( res == ( (UINT)-1 ) )
                         {
-                            err = true;
-                            break;
+                            // Device name did not fit into the buffer (or query failed).
+                            // Skip this device instead of aborting enumeration of all devices.
+                            continue;
                         }
 
                         size = Rdi.cbSize;
                         res  = ::GetRawInputDeviceInfoA( Curr.hDevice, RIDI_DEVICEINFO, &Rdi, &size );
                         if( res == ( (UINT)-1 ) )
                         {
-                            err = true;
-                            break;
+                            continue;
                         }
 
                         switch( Rdi.dwType )
@@ -128,10 +127,7 @@ namespace VKE
                             break;
                         }
                     }
-                    if( !err )
-                    {
-                        ret = VKE_OK;
-                    }
+                    ret = VKE_OK;
                 }
             }
             return ret;

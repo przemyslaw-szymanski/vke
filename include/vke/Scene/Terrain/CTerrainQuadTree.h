@@ -376,7 +376,7 @@ namespace VKE::Scene::Terrain
 
     class CQuadTree
     {
-        friend class CTerrain;
+        friend class VKE::Scene::CTerrain;
 
         using MemoryAllocator = Memory::CFreeListPool;
 

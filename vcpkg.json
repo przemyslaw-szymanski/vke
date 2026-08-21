@@ -38,5 +38,11 @@
     {
       "name": "winpixevent"
     }
+  ],
+  "overrides": [
+    {
+      "name": "libdeflate",
+      "version": "1.19"
+    }
   ]
 }

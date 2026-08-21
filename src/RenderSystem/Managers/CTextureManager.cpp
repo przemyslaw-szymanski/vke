@@ -69,6 +69,9 @@ namespace VKE
                     *pIsStencilOut = true;
                     break;
                 }
+                default: {
+                    break;
+                }
             }
         }
 
@@ -219,7 +222,7 @@ namespace VKE
                 }
             }
             /// TODO: handle this hardcode
-            return VKE_MEGABYTES(128);
+            return VKE_MEGABYTES( 128 );
         }
 
         CTexture* CTextureManager::_AllocateTexture( hash_t hash, cstr_t pName )
@@ -273,10 +276,11 @@ namespace VKE
                     VKE_ASSERT( VKE_SUCCEEDED( res ) );
 #endif
                     SAllocationMemoryRequirementInfo AllocInfo;
-                    res     = m_pDevice->RHI().GetTextureMemoryRequirements( Desc, &AllocInfo );
+                    res = m_pDevice->RHI().GetTextureMemoryRequirements( Desc, &AllocInfo );
                     if( VKE_SUCCEEDED( res ) )
                     {
-                        /// TODO: pTex can store hash precalculated eariler. We can use that hash instead of re-calculate new on
+                        /// TODO: pTex can store hash precalculated eariler. We can use that hash instead of
+                        /// re-calculate new on
                         hash_t texDescHash = pTex->CalcHash( Desc );
                         AllocInfo.poolSize = _GetMemoryPoolSize( texDescHash );
                         SBindMemoryInfo BindInfo;
@@ -393,7 +397,7 @@ namespace VKE
 #endif
                                         CTexture* pTex = *ppTex;
 
-                                        if( pTex != nullptr && pTex->m_pImage!= nullptr )
+                                        if( pTex != nullptr && pTex->m_pImage != nullptr )
                                         {
                                             // const auto& Info = pTaskData->LoadFileInfo;
                                             StagingBufferFlags Flags = StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT;
@@ -569,7 +573,7 @@ namespace VKE
             TexDesc.Size        = ImgDesc.Size;
             TexDesc.type        = ImgDesc.type;
             TexDesc.usage       = TextureUsages::SAMPLED | TextureUsages::TRANSFER_DST | TextureUsages::TRANSFER_SRC |
-                            TextureUsages::FILE_IO;
+                                  TextureUsages::FILE_IO;
             STextureFormatFeatures Features;
             m_pDevice->GetFormatFeatures( TexDesc.format, &Features );
 
@@ -653,7 +657,8 @@ namespace VKE
                                 AllocationInfo.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
                                 AllocationInfo.poolSize     = _GetMemoryPoolSize( texDescHash );
                                 SBindMemoryInfo BindInfo;
-                                pTex->m_hMemory = m_pDevice->_GetDeviceMemoryManager().AllocateMemory( AllocationInfo, &BindInfo );
+                                pTex->m_hMemory =
+                                    m_pDevice->_GetDeviceMemoryManager().AllocateMemory( AllocationInfo, &BindInfo );
                                 pTex->m_hDDIObject = m_pDevice->RHI().CreateTexture( Desc, BindInfo );
                                 VKE_LOG_TMGR( "Created texture: " << pTex->GetDesc().Name << " " << pTex->m_hDDIObject
                                                                   << " hash: " << hash );
@@ -664,9 +669,9 @@ namespace VKE
                         {
 
                             //// Create memory for buffer
-                            //if( Desc.hNative == RHI::Null && pTex->m_hMemory == INVALID_HANDLE )
+                            // if( Desc.hNative == RHI::Null && pTex->m_hMemory == INVALID_HANDLE )
                             //{
-                            //    SAllocateDesc AllocDesc;
+                            //     SAllocateDesc AllocDesc;
 
                             //    AllocDesc.Memory.hDDITexture  = pTex->GetDDIObject();
                             //    AllocDesc.Memory.memoryUsages = Desc.memoryUsage | MemoryUsages::TEXTURE;
@@ -859,7 +864,7 @@ namespace VKE
 
             if( Features.blitDst && Features.blitSrc )
             {
-                
+
                 pTex->SetCommandBuffer( pCmdBuffer );
                 SBlitTextureInfo BlitInfo;
                 BlitInfo.hAPISrcTexture  = pTex->GetDDIObject();
@@ -1005,7 +1010,7 @@ namespace VKE
             // m_Textures.Free( static_cast< uint32_t >( hTex.handle ) );
             {
                 pTex = GetTexture( hTex );
-                if( pTex!= nullptr )
+                if( pTex != nullptr )
                 {
                     // CTexture* pTmp = pTex.Release();
                     m_Textures.AddFree( hTex.handle );
@@ -1085,7 +1090,7 @@ namespace VKE
                     {
                         auto              pView = GetTexture( hTex )->GetView();
                         TextureViewHandle hView;
-                        if( pView== nullptr )
+                        if( pView == nullptr )
                         {
                             ViewDesc.format                            = Desc.format;
                             ViewDesc.hTexture                          = hTex;
@@ -1138,7 +1143,7 @@ namespace VKE
         TextureRefPtr CTextureManager::GetTexture( TextureHandle hTexture )
         {
             auto pRet = TextureRefPtr{ m_Textures[ ( hTexture.handle ) ] };
-            VKE_ASSERT2( pRet!= nullptr, "" );
+            VKE_ASSERT2( pRet != nullptr, "" );
             return pRet;
         }
 

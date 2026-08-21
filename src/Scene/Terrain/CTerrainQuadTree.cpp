@@ -118,7 +118,7 @@ namespace VKE
                        Math::CAABB* pOut )
         {
             pOut->Data.Center.x  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_X ].floats[ idx ];
-            pOut->Data.Center.z = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_Z ].floats[ idx ];
+            pOut->Data.Center.z  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_Z ].floats[ idx ];
             pOut->Data.Center.y  = aCenters[ CTerrainQuadTree::SNodeLevel::CENTER_Y ].floats[ idx ];
             pOut->Data.Extents.x = aExtents[ CTerrainQuadTree::SNodeLevel::EXTENTS_X ].floats[ idx ];
             pOut->Data.Extents.y = aExtents[ CTerrainQuadTree::SNodeLevel::EXTENTS_Y ].floats[ idx ];
@@ -293,14 +293,14 @@ namespace VKE
             const auto&       aPlanes = Frustum.aPlanes;
             DirectX::XMVECTOR plx0x1x2x3, ply0y1y2y3, plz0z1z2z3, plw0w1w2w3;
             DirectX::XMVECTOR plx4x5x4x5, ply4y5y4y5, plz4z5z4z5, plw4w5w4w5;
-            plx0x1x2x3   = { aPlanes[ 0 ].x, aPlanes[ 1 ].x, aPlanes[ 2 ].x, aPlanes[ 3 ].x };
-            plx4x5x4x5   = { aPlanes[ 4 ].x, aPlanes[ 5 ].x, aPlanes[ 4 ].x, aPlanes[ 5 ].x };
-            ply0y1y2y3   = { aPlanes[ 0 ].y, aPlanes[ 1 ].y, aPlanes[ 2 ].y, aPlanes[ 3 ].y };
-            ply4y5y4y5   = { aPlanes[ 4 ].y, aPlanes[ 5 ].y, aPlanes[ 4 ].y, aPlanes[ 5 ].y };
-            plz0z1z2z3   = { aPlanes[ 0 ].z, aPlanes[ 1 ].z, aPlanes[ 2 ].z, aPlanes[ 3 ].z };
-            plz4z5z4z5   = { aPlanes[ 4 ].z, aPlanes[ 5 ].z, aPlanes[ 4 ].z, aPlanes[ 5 ].z };
-            plw0w1w2w3   = { aPlanes[ 0 ].w, aPlanes[ 1 ].w, aPlanes[ 2 ].w, aPlanes[ 3 ].w };
-            plw4w5w4w5   = { aPlanes[ 4 ].w, aPlanes[ 5 ].w, aPlanes[ 4 ].w, aPlanes[ 5 ].w };
+            plx0x1x2x3   = DirectX::XMVectorSet( aPlanes[ 0 ].x, aPlanes[ 1 ].x, aPlanes[ 2 ].x, aPlanes[ 3 ].x );
+            plx4x5x4x5   = DirectX::XMVectorSet( aPlanes[ 4 ].x, aPlanes[ 5 ].x, aPlanes[ 4 ].x, aPlanes[ 5 ].x );
+            ply0y1y2y3   = DirectX::XMVectorSet( aPlanes[ 0 ].y, aPlanes[ 1 ].y, aPlanes[ 2 ].y, aPlanes[ 3 ].y );
+            ply4y5y4y5   = DirectX::XMVectorSet( aPlanes[ 4 ].y, aPlanes[ 5 ].y, aPlanes[ 4 ].y, aPlanes[ 5 ].y );
+            plz0z1z2z3   = DirectX::XMVectorSet( aPlanes[ 0 ].z, aPlanes[ 1 ].z, aPlanes[ 2 ].z, aPlanes[ 3 ].z );
+            plz4z5z4z5   = DirectX::XMVectorSet( aPlanes[ 4 ].z, aPlanes[ 5 ].z, aPlanes[ 4 ].z, aPlanes[ 5 ].z );
+            plw0w1w2w3   = DirectX::XMVectorSet( aPlanes[ 0 ].w, aPlanes[ 1 ].w, aPlanes[ 2 ].w, aPlanes[ 3 ].w );
+            plw4w5w4w5   = DirectX::XMVectorSet( aPlanes[ 4 ].w, aPlanes[ 5 ].w, aPlanes[ 4 ].w, aPlanes[ 5 ].w );
             auto mulX    = DirectX::XMVectorMultiply( plx0x1x2x3, centerX._Native );
             auto mulY    = DirectX::XMVectorMultiply( ply0y1y2y3, centerY._Native );
             auto mulZ    = DirectX::XMVectorMultiply( plz0z1z2z3, centerZ._Native );
@@ -503,12 +503,12 @@ namespace VKE
             // nodeCount = CalcTileCountForLod( LODCount.min, LODCount.max );
             const uint32_t nodeCount     = Info.maxNodeCount;
             const bool     nodeDataReady = m_vNodes.Resize( nodeCount ) && m_vLODData.Reserve( nodeCount ) &&
-                                       m_vNodeVisibility.Resize( nodeCount, true ) &&
-                                       m_vBoundingSpheres.Resize( nodeCount ) && m_vAABBs.Resize( nodeCount ) &&
-                                       m_vChildNodeHandles.Resize( nodeCount ) &&
-                                       m_vVisibleRootNodes.Reserve( m_totalRootCount ) &&
-                                       m_vVisibleRootNodeHandles.Reserve( m_totalRootCount ) &&
-                                       m_vChildNodeLevels.Resize( Info.childLevelCountForRoot * MAIN_ROOT_COUNT );
+                                           m_vNodeVisibility.Resize( nodeCount, true ) &&
+                                           m_vBoundingSpheres.Resize( nodeCount ) && m_vAABBs.Resize( nodeCount ) &&
+                                           m_vChildNodeHandles.Resize( nodeCount ) &&
+                                           m_vVisibleRootNodes.Reserve( m_totalRootCount ) &&
+                                           m_vVisibleRootNodeHandles.Reserve( m_totalRootCount ) &&
+                                           m_vChildNodeLevels.Resize( Info.childLevelCountForRoot * MAIN_ROOT_COUNT );
             if( m_vvLODData.Resize( 8 ) )
             {
                 res = VKE_OK;
@@ -600,7 +600,8 @@ namespace VKE
                 std::sort( &m_vVisibleRootNodes[ 0 ],
                            &m_vVisibleRootNodes[ 0 ] + m_vVisibleRootNodes.GetCount(),
                            [ & ]( const SNode& Left, const SNode& Right ) {
-                               const float leftDistance = Math::CVector3::Distance( Left.AABB.Data.Center, vecViewPosition );
+                               const float leftDistance =
+                                   Math::CVector3::Distance( Left.AABB.Data.Center, vecViewPosition );
                                const float rightDistance =
                                    Math::CVector3::Distance( Right.AABB.Data.Center, vecViewPosition );
                                return leftDistance < rightDistance;
@@ -835,7 +836,7 @@ namespace VKE
         void CTerrainQuadTree::_SetDrawDataForNode( CTerrainQuadTree::SNode* pInOut )
         {
             auto pPipeline = this->m_pTerrain->_GetPipelineForLOD( pInOut->Handle.level );
-            VKE_ASSERT2( pPipeline!= nullptr, "Pipeline must not be null at this stage" );
+            VKE_ASSERT2( pPipeline != nullptr, "Pipeline must not be null at this stage" );
             pInOut->DrawData.pPipeline     = pPipeline;
             pInOut->DrawData.vecPosition.x = pInOut->AABB.Data.Center.x - pInOut->AABB.Data.Extents.x;
             pInOut->DrawData.vecPosition.y = pInOut->AABB.Data.Center.y;
@@ -1371,10 +1372,12 @@ namespace VKE
 
         Rect2D MapAABBToImageSpace( const Math::CAABB& AABB, const Math::CAABB& RootAABB, const ImageSize& ImgSize )
         {
-            Math::CVector3 vecNodeTopLeftCorner = { AABB.Data.Center.x - AABB.Data.Extents.x, 1, AABB.Data.Center.z + AABB.Data.Extents.z };
-            Math::CVector3 vecRootTopLeftCorner = { RootAABB.Data.Center.x - RootAABB.Data.Extents.x,
-                                                    1,
-                                                    RootAABB.Data.Center.z + RootAABB.Data.Extents.z };
+            Math::CVector3 vecNodeTopLeftCorner             = { AABB.Data.Center.x - AABB.Data.Extents.x,
+                                                                1,
+                                                                AABB.Data.Center.z + AABB.Data.Extents.z };
+            Math::CVector3 vecRootTopLeftCorner             = { RootAABB.Data.Center.x - RootAABB.Data.Extents.x,
+                                                                1,
+                                                                RootAABB.Data.Center.z + RootAABB.Data.Extents.z };
             Math::CVector3 vecWSDistanceToRootTopLeftCorner = vecRootTopLeftCorner - vecNodeTopLeftCorner;
             /*Math::CVector3 vecPixelSize = { ( RootAABB.Data.Extents.x * 2 ) / ImgSize.width, 1,
                                             ( RootAABB.Data.Extents.z * 2 ) / ImgSize.height };*/
@@ -1422,7 +1425,7 @@ namespace VKE
                     MinMaxHeight.min = Math::Min( MinMaxHeight.min, MinMax.min );
                     MinMaxHeight.max = Math::Max( MinMaxHeight.max, MinMax.max );
                 }
-                float distance      = MinMaxHeight.max - MinMaxHeight.min;
+                float distance           = MinMaxHeight.max - MinMaxHeight.min;
                 Node.AABB.Data.Extents.y = distance * 0.5f;
                 Node.AABB.Data.Center.y  = ( MinMaxHeight.min + MinMaxHeight.max ) * 0.5f;
             }
@@ -1526,7 +1529,8 @@ namespace VKE
                 std::sort( &m_vVisibleRootNodes[ 0 ],
                            &m_vVisibleRootNodes[ 0 ] + m_vVisibleRootNodes.GetCount(),
                            [ & ]( const SNode& Left, const SNode& Right ) {
-                               const float leftDistance = Math::CVector3::Distance( Left.AABB.Data.Center, vecViewPosition );
+                               const float leftDistance =
+                                   Math::CVector3::Distance( Left.AABB.Data.Center, vecViewPosition );
                                const float rightDistance =
                                    Math::CVector3::Distance( Right.AABB.Data.Center, vecViewPosition );
                                return leftDistance < rightDistance;
@@ -1696,8 +1700,10 @@ namespace VKE
             Math::CVector4 vecPoint;
             // const float boundingSphereRadius2 = CurrNode.boundingSphereRadius;
             const float boundingSphereRadius = AABB.Data.Extents.x;
-            CalcNearestSpherePoint(
-                Math::CVector4( AABB.Data.Center ), boundingSphereRadius, Math::CVector4( View.vecPosition ), &vecPoint );
+            CalcNearestSpherePoint( Math::CVector4( AABB.Data.Center ),
+                                    boundingSphereRadius,
+                                    Math::CVector4( View.vecPosition ),
+                                    &vecPoint );
             float err, distance;
             _CalcError( vecPoint, hCurrNode.level, View, &err, &distance );
             // float childErr, childDistance;
@@ -1931,25 +1937,34 @@ namespace VKE::Scene::Terrain
             ret      = _Resize( NewPos, newSize );
         }
 
-        SNodeDesc       RootDesc = { .Position = m_RootData.TopLeftCornerPosition,
-                                     .size     = m_RootData.size,
-                                     .hNode    = m_RootData.hNode };
-        SCreateNodeDesc Desc     = { .Parent = RootDesc, .Child = {}, .currDepth = 0, .maxDepth = m_maxDepth };
+        SNodeDesc RootDesc;
+        RootDesc.Position = m_RootData.TopLeftCornerPosition;
+        RootDesc.size     = m_RootData.size;
+        RootDesc.hNode    = m_RootData.hNode;
+
+        SCreateNodeDesc Desc;
+        Desc.Parent    = RootDesc;
+        Desc.Child     = {};
+        Desc.currDepth = 0;
+        Desc.maxDepth  = m_maxDepth;
+
         {
             VKE_PROFILE_SIMPLE2( "create tiles" );
             for( uint32_t i = 0; i < TileDesc.subTileCount; ++i )
             {
-                Desc.Child     = { .Position = TileDesc.pSubTiles[ i ].Position, .Data = TileDesc.pSubTiles[ i ].Data };
-                Desc.currDepth = 0;
-                Desc.Parent    = RootDesc;
-                _CreateNode( Desc.Child );
-            }
+                Desc.Child.Position = TileDesc.pSubTiles[ i ].Position;
+                Desc.Child.Data     = TileDesc.pSubTiles[ i ].Data;
+            };
+            Desc.currDepth = 0;
+            Desc.Parent    = RootDesc;
+            _CreateNode( Desc.Child );
         }
+
         ret = VKE_OK;
         return ret;
     }
 
-    vke_force_inline std::array< Math::CVector4, 4 > CalcChildrenPositions( Math::CVector4 Position, float size )
+    vke_force_inline std::array< VKE::Math::CVector4, 4 > CalcChildrenPositions( Math::CVector4 Position, float size )
     {
         const float                           half = size * 0.5f;
         const std::array< Math::CVector4, 4 > aRet = {

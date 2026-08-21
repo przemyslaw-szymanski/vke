@@ -362,7 +362,7 @@ namespace VKE
 
         bool IsCompressed( DXGI_FORMAT fmt )
         {
-            bool ret = false;
+            bool ret;
             switch( fmt )
             {
                 case DXGI_FORMAT_BC1_TYPELESS:
@@ -389,7 +389,12 @@ namespace VKE
                     ret = true;
                     break;
                 }
+
+                default:
+                    ret = false;
+                    break;
             };
+
             return ret;
         }
 #endif

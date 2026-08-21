@@ -61,7 +61,7 @@ namespace VKE
             SBitHandle GetNextBit( SBitHandle Handle )
             {
                 /// TODO: make it faster. This if check is probably redundant
-                if( Handle.bitIndex + 1 >= BitsPerChunk )
+                if( Handle.bitIndex + 1u >= BitsPerChunk )
                 {
                     Handle.bitIndex = 0;
                     Handle.chunkIndex++;

@@ -3,7 +3,7 @@
 
 #define NOMINMAX
 
-#if defined( DEBUG ) || defined( _DEBUG )
+#if defined( DEBUG ) || defined( _DEBUG ) || !defined( NDEBUG )
 #define VKE_DEBUG 1
 #define VKE_RELEASE 0
 #else
@@ -94,7 +94,7 @@
 #define VKE_MALLOC_DBG( _size ) _malloc_dbg( ( _size ), _NORMAL_BLOCK, __FILE__, __LINE__ )
 #define VKE_REALLOC_DBG( _ptr, _size ) _realloc_dbg( ( _ptr ), ( _size ), _NORMAL_BLOCK, __FILE__, __LINE__ )
 #define VKE_FREE_DBG( _ptr ) _free_dbg( ( _ptr ), _NORMAL_BLOCK )
-#elif VKE_COMPILER_GCC
+#elif VKE_COMPILER_GCC || VKE_COMPILER_MINGW
 #define VKE_NEW_DBG new
 #define VKE_MALLOC_DBG( _size ) malloc( ( _size ) )
 #define VKE_REALLOC_DBG( _ptr, _size ) realloc( ( _ptr ), ( _size ) )
@@ -191,7 +191,7 @@
 #if VKE_DEBUG
 #define VKE_DEBUG_CODE( _code ) _code
 #define VKE_DEBUG_TEXT                                                                                                 \
-    ResourceName _DbgText;                                                                                             \
+    ResourceName _DbgText = "";                                                                                        \
     void         SetDebugText( std::string_view pTxt )                                                                 \
     {                                                                                                                  \
         _DbgText = pTxt;                                                                                               \

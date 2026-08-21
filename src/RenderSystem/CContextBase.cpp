@@ -78,7 +78,8 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount, uint16_t space )
+        void SCreateBindingDesc::AddBuffer( uint8_t index, PIPELINE_STAGES stages, const uint16_t& arrayElementCount,
+                                            uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = arrayElementCount;
@@ -112,8 +113,7 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count,
-                                              uint16_t space )
+        void SCreateBindingDesc::AddTextures( uint8_t index, PIPELINE_STAGES stages, uint16_t count, uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = count;
@@ -124,8 +124,7 @@ namespace VKE
             LayoutDesc.vBindings.PushBack( BindInfo );
         }
 
-        void SCreateBindingDesc::AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count,
-                                              uint16_t space )
+        void SCreateBindingDesc::AddSamplers( uint8_t index, PIPELINE_STAGES stages, uint16_t count, uint16_t space )
         {
             SDescriptorSetLayoutDesc::SBinding BindInfo;
             BindInfo.count  = count;
@@ -137,8 +136,8 @@ namespace VKE
         }
 
         CContextBase::CContextBase( CDeviceContext* pCtx, cstr_t pName ) :
-            m_DDI( pCtx->RHI() ), m_pDeviceCtx( pCtx ), m_pName( pName ), m_pLastExecutedBatch( &g_sDummyBatch ),
-            m_CmdBuffMgr( this )
+            m_DDI( pCtx->RHI() ), m_pDeviceCtx( pCtx ), m_pName( pName ), m_CmdBuffMgr( this ),
+            m_pLastExecutedBatch( &g_sDummyBatch )
         {
         }
 
@@ -183,7 +182,7 @@ namespace VKE
         CCommandBuffer* CContextBase::_CreateCommandBuffer()
         {
             CCommandBuffer* pCb;
-            Result res = _GetCommandBufferManager().CreateCommandBuffers< VKE_NOT_THREAD_SAFE >( 1, &pCb );
+            Result          res = _GetCommandBufferManager().CreateCommandBuffers< VKE_NOT_THREAD_SAFE >( 1, &pCb );
             if( VKE_SUCCEEDED( res ) )
             {
                 SCommandBufferInitInfo Info;
@@ -205,7 +204,6 @@ namespace VKE
             CCommandBuffer* pCb;
             if( _GetCommandBufferManager().GetCommandBuffer( &pCb ) )
             {
-                
             }
             VKE_ASSERT2( pCb->GetState() != CCommandBuffer::States::END, "" );
             return pCb;
@@ -226,7 +224,8 @@ namespace VKE
 
             if( pCmdBuffer->m_state == CCommandBuffer::States::RESET )
             {
-                // VKE_LOG_WARN( "Command buffer is in RESET state, are you attempting to reset command buffer twice?" );
+                // VKE_LOG_WARN( "Command buffer is in RESET state, are you attempting to reset command buffer twice?"
+                // );
             }
             else
             {
@@ -242,7 +241,6 @@ namespace VKE
             VKE_ASSERT2( pCb && pCb->m_pBaseCtx, "pCb and context cannot be null" );
 
             _Reset( pCb );
-            pCb->m_hPool;
 
             m_pDeviceCtx->RHI().BeginCommandBuffer( pCb->GetDDIObject(), pCb->getNativeCmdBufferPool() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
@@ -288,7 +286,7 @@ namespace VKE
 
         Result CContextBase::UpdateBuffer( CommandBufferPtr pCb, const SUpdateMemoryInfo& Info, BufferPtr* ppInOut )
         {
-            VKE_ASSERT2( ppInOut != nullptr && ( *ppInOut )!= nullptr, "Buffer must be a valid pointer." );
+            VKE_ASSERT2( ppInOut != nullptr && ( *ppInOut ) != nullptr, "Buffer must be a valid pointer." );
             Result   ret     = VKE_FAIL;
             CBuffer* pBuffer = ( *ppInOut ).Get();
             ret              = m_pDeviceCtx->m_pBufferMgr->UpdateBuffer( pCb, Info, &pBuffer );

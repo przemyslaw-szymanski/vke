@@ -71,7 +71,7 @@ namespace VKE
                 Math::CVector4( -1.0f, -1.0f, -1.0f, 1.0f ), Math::CVector4( 1.0f, -1.0f, -1.0f, 1.0f ),
                 Math::CVector4( 0.0f, 0.0f, 0.0f, 0.0f )
             };
-            const OCTREE_NODE_POSITION_INDEX index = static_cast< const OCTREE_NODE_POSITION_INDEX >( Handle.bit );
+            const OCTREE_NODE_POSITION_INDEX index = static_cast< OCTREE_NODE_POSITION_INDEX >( Handle.bit );
             Math::CVector4                   vecCenter;
             const float                      size = CalcNodeSize( rootSize, Handle.level );
             Math::CVector4                   vecExtents( size );

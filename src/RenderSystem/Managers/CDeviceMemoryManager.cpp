@@ -177,6 +177,9 @@ namespace VKE
                         ret = lastPoolSize * 4;
                         break;
                     }
+                    default: {
+                        break;
+                    }
                 }
             }
             return ret;
@@ -246,17 +249,17 @@ namespace VKE
                     memory = View.Allocate( AllocInfo, &Data );
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )
                     {
-                        pBindInfoOut->reserved    = Info.reserved;
-                        pBindInfoOut->hDDIMemory  = (RHI::MemoryHeap)( Data.memory );
-                        pBindInfoOut->offset      = Data.offset;
-                        pBindInfoOut->hMemory     = poolIdx;
+                        pBindInfoOut->reserved   = Info.reserved;
+                        pBindInfoOut->hDDIMemory = (RHI::MemoryHeap)( Data.memory );
+                        pBindInfoOut->offset     = Data.offset;
+                        pBindInfoOut->hMemory    = poolIdx;
 
-                        UAllocationHandle     Handle;
+                        UAllocationHandle      Handle;
                         SSubAllocateMemoryInfo SubAllocInfo;
-                        SubAllocInfo.hMemory                  = Data.memory;
-                        SubAllocInfo.offset                   = Data.offset;
+                        SubAllocInfo.hMemory                 = Data.memory;
+                        SubAllocInfo.offset                  = Data.offset;
                         AllocInfo.size                       = Info.size;
-                        Handle.hAllocInfo                      = m_AllocBuffer.Add( SubAllocInfo );
+                        Handle.hAllocInfo                    = m_AllocBuffer.Add( SubAllocInfo );
                         Handle.hPool                         = static_cast< uint16_t >( poolIdx );
                         Handle.dedicated                     = false;
                         ret                                  = Handle.handle;
@@ -297,10 +300,10 @@ namespace VKE
                 if( memory == CMemoryPoolView::INVALID_ALLOCATION )
                 {
                     // Create new memory pool
-                    //SAllocateDesc NewDesc      = Desc;
+                    // SAllocateDesc NewDesc      = Desc;
                     SAllocationMemoryRequirementInfo NewInfo      = Info;
-                    auto&         lastPoolSize = m_mLastPoolSizes[ NewInfo.memoryUsages ];
-                    NewInfo.poolSize           = CalculateNewPoolSize( NewInfo.poolSize, lastPoolSize, m_Desc );
+                    auto&                            lastPoolSize = m_mLastPoolSizes[ NewInfo.memoryUsages ];
+                    NewInfo.poolSize = CalculateNewPoolSize( NewInfo.poolSize, lastPoolSize, m_Desc );
                     // const float sizeMB = NewDesc.poolSize / 1024.0f / 1024.0f;
                     VKE_LOG_WARN( "No device memory for allocation with requirements: "
                                   << VKE_LOG_MEM_SIZE( Info.size ) << ", " << Info.alignment
@@ -354,11 +357,11 @@ namespace VKE
                 Result res      = m_pCtx->RHI().Allocate( AllocDesc, &Data );
                 if( VKE_SUCCEEDED( res ) )
                 {
-                    auto& BindInfo       = *pOut;
-                    BindInfo.reserved    = Info.reserved;
-                    BindInfo.hDDIMemory  = Data.hDDIMemory;
-                    BindInfo.hMemory     = INVALID_HANDLE;
-                    BindInfo.offset      = 0;
+                    auto& BindInfo      = *pOut;
+                    BindInfo.reserved   = Info.reserved;
+                    BindInfo.hDDIMemory = Data.hDDIMemory;
+                    BindInfo.hMemory    = INVALID_HANDLE;
+                    BindInfo.offset     = 0;
 
                     SSubAllocateMemoryInfo AllocInfo;
                     AllocInfo.hMemory = (handle_t)( Data.hDDIMemory.ToUint64() );
@@ -385,7 +388,8 @@ namespace VKE
             return ret;
         }
 
-        /*Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo )
+        /*Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo, const SBindMemoryInfo& BindInfo
+        )
         {
             Result         ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
@@ -405,11 +409,11 @@ namespace VKE
 
         Result CDeviceMemoryManager::UpdateMemory( const SUpdateMemoryInfo& DataInfo )
         {
-            Result              ret    = VKE_ENOMEMORY;
+            Result            ret    = VKE_ENOMEMORY;
             UAllocationHandle Handle = DataInfo.hMemory;
-            //Threads::ScopedLock l( m_vSyncObjects[ Handle.hPool ] );
-            void*               pDst = MapMemory( DataInfo );
-            if(pDst != nullptr)
+            // Threads::ScopedLock l( m_vSyncObjects[ Handle.hPool ] );
+            void* pDst = MapMemory( DataInfo );
+            if( pDst != nullptr )
             {
                 Memory::Copy( pDst, DataInfo.dataSize, DataInfo.pData, DataInfo.dataSize );
                 UnmapMemory( DataInfo );
@@ -422,7 +426,7 @@ namespace VKE
             MapInfo.offset  = AllocInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             {
-                
+
                 void*               pDst = m_pCtx->RHI().MapMemory( MapInfo );
                 if( pDst != nullptr )
                 {

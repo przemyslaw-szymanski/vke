@@ -117,7 +117,7 @@ namespace VKE
 
                     Threads::TSSimpleTask< const SCreateBufferDesc > Task = { .Task =
                                                                                   [ this ]( void* pData ) {
-                                                                                      TASK_RESULT Res  = TaskResults::OK;
+                                                                                      TASK_RESULT Res = TaskResults::OK;
                                                                                       SCreateBufferDesc* pDesc =
                                                                                           (SCreateBufferDesc*)pData;
                                                                                       auto pBuffer = _CreateBufferTask(
@@ -205,10 +205,10 @@ namespace VKE
             if( ret == VKE_ENOMEMORY && ( Info.flags == StagingBufferFlagBits::OUT_OF_SPACE_FLUSH_AND_WAIT ) )
             {
                 VKE_LOG_WARN( "No memory in staging buffer. Requested size: " << VKE_LOG_MEM_SIZE( Info.dataSize ) );
-                SFenceDesc  FenceDesc;
+                SFenceDesc FenceDesc;
                 FenceDesc.SetDebugName( "FlushTransferMemory" );
                 FenceDesc.startValue = 0;
-                auto        hFence   = pDevice->CreateFence( FenceDesc );
+                auto hFence          = pDevice->CreateFence( FenceDesc );
 
                 SSubmitInfo SubmitInfo;
                 SubmitInfo.commandBufferCount = 1;
@@ -216,7 +216,7 @@ namespace VKE
                 SubmitInfo.signalFenceValue   = 1;
                 SubmitInfo.hSignalFence       = hFence;
                 pTransferCtx->Execute( SubmitInfo );
-                
+
                 ret = _GetStagingBuffer( Info, pDevice, phInOut, pOut, ppTransferCmdBufferOut );
             }
             else
@@ -387,7 +387,8 @@ namespace VKE
             ReqInfo.Requirements.alignment = 1;
             ReqInfo.Requirements.size      = maxSize;
 
-            m_pStagingBufferMgr->GetBuffer( ReqInfo, StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT, &hStagingBuffer, &Data );
+            m_pStagingBufferMgr->GetBuffer(
+                ReqInfo, StagingBufferFlagBits::OUT_OF_SPACE_DEFAULT, &hStagingBuffer, &Data );
             {
                 pTransferCmdBuffer->AddStagingBufferAllocation( hStagingBuffer );
             }
@@ -534,8 +535,7 @@ namespace VKE
             if( pBuffer->GetDDIObject() == RHI::Null )
             {
                 SAllocationMemoryRequirementInfo AllocationInfo;
-                if( VKE_SUCCEEDED(
-                        m_pCtx->RHI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
+                if( VKE_SUCCEEDED( m_pCtx->RHI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
                 {
                     AllocationInfo.memoryUsages = Desc.memoryUsage | MemoryUsages::BUFFER;
                     /// TODO: be smarter than 128mb hardcode!
@@ -551,8 +551,8 @@ namespace VKE
                     pBuffer->m_hMemory = m_pCtx->_GetDeviceMemoryManager().AllocateMemory( AllocationInfo, &BindInfo );
 
                     // Update size from requirements.
-                    //pBuffer->m_Desc.size = AllocationInfo.size;
-                    //pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
+                    // pBuffer->m_Desc.size = AllocationInfo.size;
+                    // pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
 
                     pBuffer->m_hDDIObject = m_pCtx->RHI().CreateBuffer( pBuffer->m_Desc, BindInfo );
 
@@ -576,7 +576,7 @@ namespace VKE
                 StagingDesc.SetDebugName( std::format( "{}_staging", Desc.GetDebugName() ).data() );
                 StagingDesc.memoryUsage = MemoryUsages::STAGING_BUFFER;
                 StagingDesc.usage       = BufferUsages::UPLOAD;
-                //StagingDesc.size        = 0;
+                // StagingDesc.size        = 0;
                 for( uint32_t i = 0; i < Desc.stagingBufferRegionCount; ++i )
                 {
                     StagingDesc.vRegions.Append( Desc.vRegions );

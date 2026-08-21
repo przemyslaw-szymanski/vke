@@ -73,10 +73,10 @@ namespace VKE
             {
                 RHI::DescriptorSetLayout hDDILayout;
                 SDescriptorSetLayoutDesc       Desc;
-                SetMap                         mFreeSets;
+                SetMap                   mFreeSets = {};
 
                 handle_t        hLastUsedPool = INVALID_HANDLE;
-                SetHandleArray* pLastUsedPool;
+                SetHandleArray* pLastUsedPool = nullptr;
             };
 
             using LayoutMap = vke_hash_map< hash_t, SLayout >;

@@ -44,6 +44,18 @@
       }
     },
     {
+      "name": "mingw-base",
+      "hidden": true,
+      "inherits": [ "windows-base" ],
+      "environment": {
+        "VK_ADD_LAYER_PATH": "${sourceDir}/out/build/${presetName}/vcpkg_installed/x64-mingw-dynamic/bin"
+      },
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-mingw-dynamic",
+        "VCPKG_HOST_TRIPLET": "x64-mingw-dynamic"
+      }
+    },
+    {
       "name": "msvc-env",
       "hidden": true,
       "vendor": {
@@ -127,19 +139,19 @@
     },
     {
       "name": "Windows-MinGW-D3D12-x64-Debug",
-      "inherits": [ "gcc-d3d12", "debug", "windows-base" ]
+      "inherits": [ "gcc-d3d12", "debug", "mingw-base" ]
     },
     {
       "name": "Windows-MinGW-D3D12-x64-Release",
-      "inherits": [ "gcc-d3d12", "release", "windows-base" ]
+      "inherits": [ "gcc-d3d12", "release", "mingw-base" ]
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Debug",
-      "inherits": [ "gcc-vulkan", "debug", "windows-base" ]
+      "inherits": [ "gcc-vulkan", "debug", "mingw-base" ]
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Release",
-      "inherits": [ "gcc-vulkan", "release", "windows-base" ]
+      "inherits": [ "gcc-vulkan", "release", "mingw-base" ]
     },
     {
       "name": "Linux-GCC-Vulkan-x64-Debug",
@@ -170,25 +182,21 @@
     {
       "name": "Windows-MinGW-D3D12-x64-Debug",
       "configurePreset": "Windows-MinGW-D3D12-x64-Debug",
-      "jobs": 1,
       "nativeToolOptions": [ "-k1" ]
     },
     {
       "name": "Windows-MinGW-D3D12-x64-Release",
       "configurePreset": "Windows-MinGW-D3D12-x64-Release",
-      "jobs": 1,
       "nativeToolOptions": [ "-k1" ]
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Debug",
       "configurePreset": "Windows-MinGW-Vulkan-x64-Debug",
-      "jobs": 1,
       "nativeToolOptions": [ "-k1" ]
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Release",
       "configurePreset": "Windows-MinGW-Vulkan-x64-Release",
-      "jobs": 1,
       "nativeToolOptions": [ "-k1" ]
     },
     {

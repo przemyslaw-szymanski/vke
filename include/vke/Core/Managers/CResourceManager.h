@@ -448,12 +448,12 @@ namespace VKE
 
             void Insert( const Iterator& Itr, const Key& key, const Value& value )
             {
-                Container.insert( Itr, ContainerType::value_type( key, value ) );
+                Container.insert( Itr, typename ContainerType::value_type( key, value ) );
             }
 
             bool Insert( const Key& key, const Value& value )
             {
-                return Container.insert( ContainerType::value_type( key, value ) ).second;
+                return Container.insert( typename ContainerType::value_type( key, value ) ).second;
             }
 
             bool TryPop( Value* pOut )

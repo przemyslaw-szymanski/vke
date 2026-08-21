@@ -73,6 +73,10 @@ namespace VKE
             return state;
         }
 
+        void ShaderManagerTasks::SCreateShadersTask::_OnGet( void** /*ppOut*/ )
+        {
+        }
+
         // TaskState ShaderManagerTasks::SCreateProgramTask::_OnStart(uint32_t /*tid*/)
         //{
         //     TaskState state = TaskStateBits::FAIL;

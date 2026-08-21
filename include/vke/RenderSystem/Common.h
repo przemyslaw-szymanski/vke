@@ -499,6 +499,8 @@ namespace VKE
             {
             }
 
+            SColor& operator=( const SColor& ) = default;
+
             void operator=( float v )
             {
                 r = g = b = a = v;
@@ -573,6 +575,8 @@ namespace VKE
             SClearValue( float d, uint32_t s ) : DepthStencil( d, s )
             {
             }
+
+            SClearValue& operator=( const SClearValue& V ) = default;
         };
 
         struct SViewportDesc

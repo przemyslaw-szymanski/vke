@@ -555,6 +555,10 @@ namespace VKE
                         m_isDepth   = true;
                         m_isStencil = true;
                         break;
+                    case TextureAspects::UNKNOWN:
+                    default:
+                        VKE_LOG_ERR( "CTexture::Init: Unknown TextureAspects" );
+                        break;
                 }
                 this->m_hDDIObject = m_Desc.hNative;
                 this->_AddResourceState( Core::ResourceStates::INITIALIZED );

@@ -103,10 +103,10 @@ namespace VKE
             ///*m_BaseCtx.*/m_pDeviceCtx( pCtx )
             //, /*m_BaseCtx.*/DDI( pCtx->_GetDDI() )
             ,
+            m_PipelineMgr( pCtx ),
             m_pEventListener( &g_sDefaultGCListener )
             //, m_CmdBuffMgr( pCtx )
-            ,
-            m_PipelineMgr( pCtx )
+            
         //, /*m_BaseCtx.*/SubmitMgr( pCtx )
         {
             static uint32_t instanceId = 0;

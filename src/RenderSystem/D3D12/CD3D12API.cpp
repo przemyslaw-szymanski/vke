@@ -1280,7 +1280,7 @@ namespace VKE::RenderSystem::D3D12
 
             static const MEMORY_USAGE vPreconfiguredHeaps[] = {
                 // D3D12_HEAP_TYPE_DEFAULT
-                MemoryUsages::GPU_ACCESS | !MemoryUsages::CPU_ACCESS,
+                MemoryUsages::GPU_ACCESS,
                 // D3D12_HEAP_TYPE_UPLOAD
                 MemoryUsages::GPU_ACCESS | MemoryUsages::CPU_ACCESS | MemoryUsages::CPU_NO_FLUSH,
                 // D3D12_HEAP_TYPE_READBACK
@@ -1560,6 +1560,15 @@ namespace VKE::RenderSystem::D3D12
                 case BORDER_COLOR::INT_OPAQUE_BLACK:
                     NativeColor[ 3 ] = 1.0f;
                     break;
+
+                case BORDER_COLOR::FLOAT_TRANSPARENT_BLACK:
+                case BORDER_COLOR::INT_TRANSPARENT_BLACK:
+                    // Same as initialized, DX only passes floats.
+                    break;
+
+                default:
+                    VKE_LOG_ERR( "CD3D12API::GetBorderColor: Unhandled BORDER_COLOR" );
+                    break;
             }
 
             size_t byteSize = sizeof( NativeColor );
@@ -1793,9 +1802,10 @@ namespace VKE::RenderSystem::D3D12
         void GetViewInstancing( const SPipelineDesc::SViewport& EngineViewport,
                                 D3D12_VIEW_INSTANCING_DESC*     pOutViewInstancingDesc )
         {
-            pOutViewInstancingDesc->ViewInstanceCount;
-            pOutViewInstancingDesc->pViewInstanceLocations;
-            pOutViewInstancingDesc->Flags;
+            // Not implemented
+            (void)pOutViewInstancingDesc->ViewInstanceCount;
+            (void)pOutViewInstancingDesc->pViewInstanceLocations;
+            (void)pOutViewInstancingDesc->Flags;
         }
 
         D3D12_PIPELINE_STATE_STREAM_DESC GetPipelineStateStreamDesc( const SPipelineDesc&         EngineDesc,
@@ -2839,7 +2849,7 @@ namespace VKE::RenderSystem::D3D12
 
         if( pBuffer != NativeAPI::Null )
         {
-            SetObjectDebugName( (const uint64_t)pBuffer, ApiObjectTypes::BUFFER, Desc.GetDebugName() );
+            SetObjectDebugName( (uint64_t)pBuffer, ApiObjectTypes::BUFFER, Desc.GetDebugName() );
         }
 
         return FromNative< RHI::Buffer >( pBuffer );
@@ -2896,7 +2906,7 @@ namespace VKE::RenderSystem::D3D12
 
         if( pTexture != NativeAPI::Null )
         {
-            SetObjectDebugName( (const uint64_t)pTexture, ApiObjectTypes::TEXTURE, Desc.Name.GetData() );
+            SetObjectDebugName( (uint64_t)pTexture, ApiObjectTypes::TEXTURE, Desc.Name.GetData() );
         }
 
         return FromNative< RHI::Texture >( pTexture );
@@ -4922,7 +4932,9 @@ namespace VKE::RenderSystem::D3D12
             return Result::NOT_SUPPORTED;
         }
 
-        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { .Format = dxgiFormat };
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport;
+        formatSupport.Format = dxgiFormat;
+
         m_pImplementation->m_hDevice->CheckFeatureSupport(
             D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof( formatSupport ) );
 
