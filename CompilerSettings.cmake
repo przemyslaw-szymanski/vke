@@ -54,7 +54,7 @@ endif()
 
 if(MSVC)
 	add_definitions("/MP /W4 /WX")
-    add_definitions("/std:c++latest")
+    add_definitions("/std:c++20 /Zc:__cplusplus /permissive /volatile:iso /utf-8")
     if(VKE_DEBUG_INFO)
         add_definitions("/Zi")
         add_definitions("/DEBUG")
