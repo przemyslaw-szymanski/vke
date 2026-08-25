@@ -138,6 +138,7 @@ add_library(vkEngineRenderSystem STATIC
     ${SOURCE_FILES}
     "${VKE_ENUM_STRINGS_OUTPUT}")
 
+# Register CommonEnumStrings generation on PRE_BUILD.
 add_custom_command(
     TARGET vkEngineRenderSystem PRE_BUILD
     COMMAND ${Python3_EXECUTABLE}
@@ -147,6 +148,16 @@ add_custom_command(
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating CommonEnumStrings.h from Common.h"
     VERBATIM
+)
+
+# Execute CommonEnumStrings generation on configuration. If this step is omitted then CMake
+# will never find CommonEnumStrings.h on configure, ending with CMake complaining on missing file.
+execute_process(
+    COMMAND ${Python3_EXECUTABLE}
+            "${VKE_ENUM_STRINGS_SCRIPT}"
+            "${VKE_ENUM_STRINGS_INPUT}"
+            "${VKE_ENUM_STRINGS_OUTPUT}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
 add_dependencies(vkEngineRenderSystem vkEngineCore)

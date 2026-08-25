@@ -197,8 +197,19 @@ if(VKE_COMPILE_D3D12_RHI)
     find_library(D3D12_LIB NAMES d3d12)
 
     if("${D3D12_LIB}" STREQUAL "D3D12_LIB-NOTFOUND")
-        set(_WIN_SDK_INCLUDE_PATH "${CMAKE_WINDOWS_KITS_10_DIR}/Lib/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/um/x64")
-        message(STATUS "[WINSDK]: Adding Lib dir to include path: ${_WIN_SDK_INCLUDE_PATH}")
+        # Resolve the Windows Kits 10 root. The Visual Studio generator provides the SDK version
+        # (CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION) but not the root, and CMAKE_WINDOWS_KITS_10_DIR
+        # is often empty. The SDK registers its root under the 32-bit WOW6432Node registry key, so
+        # read that (a 64-bit CMake reading the plain key returns the wrong location).
+        set(_WIN_KITS_ROOT "${CMAKE_WINDOWS_KITS_10_DIR}")
+        if(NOT _WIN_KITS_ROOT)
+            get_filename_component(_WIN_KITS_ROOT
+                "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot10]"
+                ABSOLUTE)
+        endif()
+
+        set(_WIN_SDK_INCLUDE_PATH "${_WIN_KITS_ROOT}/Lib/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/um/x64")
+        message(STATUS "[WINSDK]: Adding Lib dir to library search path: ${_WIN_SDK_INCLUDE_PATH}")
 
         # Add _WIN_SDK_INCLUDE_PATH to the library search path
         list(APPEND CMAKE_LIBRARY_PATH "${_WIN_SDK_INCLUDE_PATH}")
