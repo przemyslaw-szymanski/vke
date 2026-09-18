@@ -646,11 +646,11 @@ namespace VKE
         // Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();
         const bool needUpdate  = !needDestroy && m_needUpdate;
-        if( needDestroy )
-        {
-            bool b = false;
-            b      = b;
-        }
+        //if( needDestroy )
+        //{
+        //    bool b = false;
+        //    b      = b;
+        //}
         if( needUpdate )
         {
             assert( m_isDestroyed == false );

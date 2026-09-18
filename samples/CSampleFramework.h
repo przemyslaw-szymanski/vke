@@ -243,7 +243,7 @@ bool CreateSimpleTriangle( ContextType* pCtx,
     BuffDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
     BuffDesc.Buffer.usage = VKE::RenderSystem::BufferUsages::VERTEX_BUFFER;
     BuffDesc.Buffer.memoryUsage = VKE::RenderSystem::MemoryUsages::GPU_ACCESS;
-    BuffDesc.Buffer.vRegions    = { ( sizeof( float ) * 4 ) * 3 };
+    BuffDesc.Buffer.vRegions    = { VKE::RenderSystem::SBufferRegion( ( sizeof( float ) * 4 ) * 3 ) };
     auto hVb = pCtx->GetDeviceContext()->CreateBuffer( BuffDesc );
     pVb = pCtx->GetDeviceContext()->GetBuffer( hVb );
     const float vb[ 4 * 3 ] =
@@ -260,7 +260,7 @@ bool CreateSimpleTriangle( ContextType* pCtx,
 
     pLayout->vAttributes = VKE::RenderSystem::SVertexInputLayoutDesc::AttributeArray
     {
-        { "Position", VKE::RenderSystem::Formats::R32G32B32_SFLOAT, 0u }
+        { "Position", VKE::RenderSystem::VertexAttributeTypes::POSITION3, 0u }
     };
 
     return pVb != nullptr;

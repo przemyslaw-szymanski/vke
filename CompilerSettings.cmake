@@ -56,7 +56,79 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(MSVC)
+if(CLANG)
+	add_definitions("-DVKE_COMPILER_CLANG=1")
+
+	if(VKE_DEBUG_INFO)
+		add_definitions("-g")
+	endif()
+
+	if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+		# clang-cl: MSVC-compatible driver, use MSVC-style flags
+		add_definitions("/W4 /WX /EHsc")
+
+		# ignore warnings
+		add_definitions("/wd4201") # nameless union/struct
+		add_definitions("/wd4127") # conditional expression is constant
+		add_definitions("/wd4533") # initialization of '' skipped by goto
+		add_definitions("/wd4100") # unreferenced formal parameter
+		add_definitions("/wd4505") # unreferenced local function has been removed
+		add_definitions("/wd4221") # This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
+
+	else()
+		# GNU-style clang driver
+		add_definitions("-Wall") # Covers /W4
+		add_definitions("-Wextra") # Covers /W4
+		add_definitions("-Wfatal-errors") # Any warning/error/notice treat as fatal (fatal stops compilation)
+
+	endif()
+
+	# ignore warnings to match MSVC ignore by default
+	add_definitions("-Wno-unused-function")
+	add_definitions("-Wno-unused-variable")
+	add_definitions("-Wno-unused-parameter")
+	add_definitions("-Wno-unused-but-set-variable")
+	add_definitions("-Wno-ignored-reference-qualifiers")
+	add_definitions("-Wno-tautological-undefined-compare")
+	add_definitions("-Wno-unused-template")
+	add_definitions("-Wno-pessimizing-move")
+	add_definitions("-Wno-microsoft-unqualified-friend")
+	add_definitions("-Wno-nonportable-include-path")
+	add_definitions("-Wno-tautological-constant-out-of-range-compare")
+	add_definitions("-Wno-deprecated-copy-with-user-provided-copy")
+	add_definitions("-Wno-extern-c-compat")
+	add_definitions("-Wno-missing-braces")
+	add_definitions("-Wno-unused-lambda-capture")
+	add_definitions("-Wno-logical-not-parentheses")
+	add_definitions("-Wno-missing-field-initializers")
+	add_definitions("-Wno-switch")
+	add_definitions("-Wno-unused-local-typedef")
+	add_definitions("-Wno-self-assign")
+	add_definitions("-Wno-tautological-overlap-compare")
+	add_definitions("-Wno-braced-scalar-init")
+
+elseif(GCC)
+	if(MINGW)
+		add_definitions("-DVKE_COMPILER_MINGW=1")
+	else()
+		add_definitions("-DVKE_COMPILER_GCC=1")
+	endif()
+	
+	add_definitions("-Wall") # Covers /W4
+	add_definitions("-Wextra") # Covers /W4
+	add_definitions("-Wfatal-errors") # Any warning/error/notice treat as fatal (fatal stops compilation)
+
+	if(VKE_DEBUG_INFO)
+		add_definitions("-g")
+	endif()
+
+	# ignore warnings
+	add_definitions("-Wno-unused-function")
+	add_definitions("-Wno-unused-variable")
+	add_definitions("-Wno-unused-parameter")
+	add_definitions("-Wno-unused-but-set-variable")
+
+elseif(MSVC)
 	add_definitions(-DVKE_COMPILER_VISUAL_STUDIO=1)
 
 	add_definitions("/MP /W4 /WX /EHsc")
@@ -77,28 +149,6 @@ if(MSVC)
 	add_definitions("/wd4100") # unreferenced formal parameter
 	add_definitions("/wd4505") # unreferenced local function has been removed
 	add_definitions("/wd4221") # This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
-
-elseif(GCC)
-
-	if(MINGW)
-		add_definitions("-DVKE_COMPILER_MINGW=1")
-	else()
-		add_definitions("-DVKE_COMPILER_GCC=1")
-	endif()
-	
-	add_definitions("-Wall") # Covers /W4
-	add_definitions("-Wextra") # Covers /W4
-	add_definitions("-Wfatal-errors") # Any warning/error/notice treat as fatal (fatal stops compilation)
-
-	if(VKE_DEBUG_INFO)
-		add_definitions("-g")
-	endif()
-
-	# ignore warnings
-	add_definitions("-Wno-unused-function")
-	add_definitions("-Wno-unused-variable")
-	add_definitions("-Wno-unused-parameter")
-	add_definitions("-Wno-unused-but-set-variable")
 
 endif()
 

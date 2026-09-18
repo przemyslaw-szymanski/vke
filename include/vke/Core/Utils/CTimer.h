@@ -72,7 +72,7 @@ namespace VKE
         {
             uint32_t time;
 
-            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> uint32_t
             {
                 return static_cast< uint32_t >( t * 1000 * 1000 * 1000 / freq );
             }
@@ -83,7 +83,7 @@ namespace VKE
         {
             float time;
 
-            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> float
             {
                 return static_cast< float >( t * 1000 * 1000 ) / freq;
             }
@@ -94,7 +94,7 @@ namespace VKE
         {
             float time;
 
-            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> float
             {
                 return static_cast< float >( t * 1000.0f ) / freq;
             }
@@ -105,7 +105,7 @@ namespace VKE
         {
             float time;
 
-            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> decltype( time )
+            static auto Calc( const CTimer::TimePoint& t, const CTimer::TimePoint& freq ) -> float
             {
                 return static_cast< float >( t ) / freq;
             }
