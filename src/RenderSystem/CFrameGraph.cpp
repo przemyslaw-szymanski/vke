@@ -4,12 +4,11 @@
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/Helper.h"
 
+/// TODO: FraemGraph should be moved to Scene/World
 #include "Scene/CScene.h"
 #include "CVkEngine.h"
 #include "Scene/CWorld.h"
-
-#include "CVkEngine.h"
-#include "Core/Managers/CResourceManager.h"
+#include "Scene/CResourceManager.h"
 
 #define VKE_LOG_FRAMEGRAPH 0
 
@@ -299,8 +298,11 @@ namespace VKE::RenderSystem
                         Result ret = pPass->OnWorkloadBegin( backBufferIndex );
                         if( VKE_SUCCEEDED( ret ) )
                         {
-                            pPass->GetScene()->Update(
-                                { .pCommandBuffer = pPass->GetCommandBuffer( backBufferIndex ) } );
+                            if( World::GetInstance().GetScene() != nullptr )
+                            {
+                                World::GetInstance().GetScene()->Update(
+                                    { .pCommandBuffer = pPass->GetCommandBuffer( backBufferIndex ) } );
+                            }
                         }
                         ret = pPass->OnWorkloadEnd( ret );
                         return ret;
@@ -310,17 +312,8 @@ namespace VKE::RenderSystem
                         Result ret = pPass->OnWorkloadBegin( backBufferIndex );
                         if( VKE_SUCCEEDED( ret ) )
                         {
-                            auto pResMgr = pPass->GetContext()
-                                               ->GetDeviceContext()
-                                               ->GetRenderSystem()
-                                               ->GetEngine()
-                                               ->GetResourceManager();
-                            while( VKE_SUCCEEDED( pResMgr->LoadDeferredShader() ) )
-                            {
-                            }
-                            while( VKE_SUCCEEDED( pResMgr->CreateDeferredPipeline() ) )
-                            {
-                            }
+                            World::CResourceManager::GetInstance().LoadDeferredShader();
+                            World::CResourceManager::GetInstance().CreateDeferredPipeline();
                         }
                         if( VKE_SUCCEEDED( ret ) )
                         {
@@ -363,7 +356,10 @@ namespace VKE::RenderSystem
                             Result ret = pPass->OnWorkloadBegin( backBufferIdx );
                             if( VKE_SUCCEEDED( ret ) )
                             {
-                                pPass->GetScene()->Render( pPass->GetCommandBuffer( backBufferIdx ) );
+                                if( World::GetInstance().GetScene() != nullptr )
+                                {
+                                    World::GetInstance().GetScene()->Render( pPass->GetCommandBuffer( backBufferIdx ) );
+                                }
                             }
                             return pPass->OnWorkloadEnd( ret );
                         } );
@@ -439,11 +435,15 @@ namespace VKE::RenderSystem
                     };
 
                     pBeginFramePass->AddTask(
-                        [ & ]( const RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIndex ) {
+                        [ & ]( const RenderSystem::CFrameGraphNode* pNode, uint8_t backBufferIndex )
+                        {
                             // One time initializations
-                            bool ret        = false;
+                            Threads::TASK_RESULT ret        = Threads::TaskResults::OK;
                             auto pCmdBuffer = pNode->GetCommandBuffer( backBufferIndex );
-                            VKEGetEngine()->GetWorld()->Init( pCmdBuffer );
+                            if( VKE_FAILED( World::GetInstance().Create( pCmdBuffer ) ) )
+                            {
+                                ret = Threads::TaskResults::FAIL;
+                            }
                             return ret;
                         },
                         nullptr );
@@ -836,7 +836,7 @@ namespace VKE::RenderSystem
     Result CFrameGraph::Run()
     {
         Result ret = VKE_FAIL;
-        m_pScene   = m_Desc.pDevice->GetRenderSystem()->GetEngine()->GetWorld()->GetScene().Get();
+        m_pScene   = World::GetInstance().GetScene().Get();
         if( VKE_SUCCEEDED( _BeginFrame() ) )
         {
             if( VKE_SUCCEEDED( Build() ) )

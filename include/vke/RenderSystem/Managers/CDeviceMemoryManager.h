@@ -9,7 +9,7 @@ namespace VKE
     {
         struct SAllocateDesc
         {
-            AllocateDescs::SMemory Memory;
+            AllocateDescs::SMemory MemoryProperties;
             uint32_t                     poolSize = 0; /// 0 for default settings
 #if VKE_RENDER_SYSTEM_MEMORY_DEBUG
             union

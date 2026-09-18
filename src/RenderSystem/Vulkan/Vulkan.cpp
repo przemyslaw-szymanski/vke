@@ -170,14 +170,16 @@ namespace VKE::RenderSystem
         VKE_LOG_WARN( "Unable to load EXT function: " << #_name );                                                     \
     }
 
-#define VKE_EXPORT_KHR_FUNC( _baseName, _khrName, _handle, _getProcAddr )                                                            \
-    if( pOut->_baseName == nullptr ) \
+#define VKE_EXPORT_KHR_FUNC( _baseName, _khrName, _handle, _getProcAddr )                                              \
+    if( pOut->_baseName == nullptr )                                                                                   \
     {                                                                                                                  \
-        pOut->_baseName = ( PFN_##_khrName )( _getProcAddr( ( _handle ), #_khrName ) ); \
-        if( !pOut->_baseName ) \
-        { \
-            VKE_LOG_WARN( "Unable to load KHR function: " << #_khrName ); \
-        } \
+        pOut->_baseName = ( PFN_##_baseName )( _getProcAddr( ( _handle ), #_baseName ) );                              \
+        if( !pOut->_baseName )                                                                                         \
+        {                                                                                                              \
+            pOut->_baseName = ( PFN_##_khrName )( _getProcAddr( ( _handle ), #_khrName ) );                            \
+            if( !pOut->_baseName )                                                                                     \
+                VKE_LOG_WARN( "Unable to load KHR function: " << #_khrName );                                          \
+        }                                                                                                              \
     }
 
         Result LoadGlobalFunctions( handle_t hLib, VkICD::Global* pOut )

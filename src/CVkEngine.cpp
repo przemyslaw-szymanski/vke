@@ -107,18 +107,13 @@ namespace VKE
             VKE_DELETE( pWnd );
             m_WindowSyncObj.Unlock();
         }
-        if( m_pWorld )
-        {
-            m_pWorld->_Destroy();
-            Memory::DestroyObject( &HeapAllocator, &m_pWorld );
-        }
+
         Memory::DestroyObject( &HeapAllocator, &m_Managers.pImgMgr );
         Memory::DestroyObject( &HeapAllocator, &m_Managers.pFileMgr );
         m_WindowSyncObj.Lock();
         m_pPrivate->mWindows.clear();
         m_pCurrentWindow = nullptr;
         m_WindowSyncObj.Unlock();
-        VKE_DELETE( m_pResMgr );
         VKE_DELETE( m_pRS );
         VKE_DELETE( m_pThreadPool );
         // VKE_LOG("thread pool deleted.");
@@ -183,17 +178,7 @@ namespace VKE
                 goto ERR;
             }
         }
-        {
-            if (VKE_SUCCEEDED(err = Memory::CreateObject(&HeapAllocator, &m_pResMgr, *this)))
-            {
-            
-            }
-            else
-            {
-                VKE_LOG_ERR( "Unable to allocate memory for CResourceManager." );
-                goto ERR;
-            }
-        }
+
         VKE_LOG_PROG( "VKEngine file manager created" );
         {
             
@@ -206,26 +191,6 @@ namespace VKE
 ERR:
         Destroy();
         return err;
-    }
-
-    Scene::CWorld* CVkEngine::GetWorld()
-    {
-        if( m_pWorld == nullptr )
-        {
-            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &m_pWorld ) ) )
-            {
-                Scene::CWorld::SDesc WorldDesc;
-                if( VKE_FAILED( m_pWorld->_Create( WorldDesc ) ) )
-                {
-                    Memory::DestroyObject( &HeapAllocator, &m_pWorld );
-                }
-            }
-            else
-            {
-                VKE_LOG_ERR( "Unable to create memory for CWorld." );
-            }
-        }
-        return m_pWorld;
     }
 
     WindowPtr CVkEngine::CreateRenderWindow( const SWindowDesc& Desc )

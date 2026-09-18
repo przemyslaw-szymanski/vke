@@ -66,7 +66,7 @@ namespace VKE::RenderSystem
                 /// </summary>
                 uint32_t bufferLoadStagingBuffer =
                     Config::RenderSystem::FrameBudget::MAX_BUFFER_LOAD_STAGING_BUFFER_MEMORY_SIZE;
-            } Memory;
+            } MemoryProperties;
         };
 
     public:

@@ -129,6 +129,7 @@ set(SRC_DIRS ${SRC_DIRS}
     "${SOURCE_DIR}/RenderSystem/FrameGraph/*"
     "${SOURCE_DIR}/RenderSystem/CShaderCompiler.cpp"
     "${SOURCE_DIR}/RenderSystem/CShaderCompiler.h"
+    "${SOURCE_DIR}/RenderSystem/CRuntimeConfig.cpp"
 )
 
 include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)

@@ -44,7 +44,7 @@ namespace VKE
             using DDIImageViewType                = VkImageViewType;
             using DDIImageLayout                  = VkImageLayout;
             using DDIImageUsageFlags              = VkImageUsageFlags;
-            using RHI::Memory               = VkDeviceMemory;
+            using RHI::MemoryProperties               = VkDeviceMemory;
             using RHI::PresentSurface       = VkSurfaceKHR;
             using DDISwapChain                    = VkSwapchainKHR;
             using RHI::Adapter              = VkPhysicalDevice;
@@ -79,7 +79,7 @@ namespace VKE
                 using ImageViewType       = VkImageViewType;
                 using ImageLayout         = VkImageLayout;
                 using ImageUsageFlags     = VkImageUsageFlags;
-                using Memory              = VkDeviceMemory;
+                using MemoryProperties              = VkDeviceMemory;
                 using PresentSurface      = VkSurfaceKHR;
                 using SwapChain           = VkSwapchainKHR;
                 using Adapter             = VkPhysicalDevice;

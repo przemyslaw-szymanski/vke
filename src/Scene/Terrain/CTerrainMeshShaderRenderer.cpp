@@ -7,7 +7,7 @@
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CDeviceContext.h"
 #include "CVkEngine.h"
-#include "Core/Managers/CResourceManager.h"
+#include "Scene/CResourceManager.h"
 #include "RenderSystem/CRenderSystem.h"
 
 namespace VKE::Scene
@@ -322,7 +322,7 @@ namespace VKE::Scene
             };
 
             auto pDevice = pCmdBuff->GetContext()->GetDeviceContext();
-            auto pResMgr = pDevice->GetRenderSystem()->GetEngine()->GetResourceManager();
+            auto& ResMgr = World::CResourceManager::GetInstance();
             if( m_pMeshShader == nullptr )
             {
                 RenderSystem::SCreateShaderDesc Desc = { .Create = { .stages = Core::ResourceStages::FULL_LOAD,
@@ -335,7 +335,7 @@ namespace VKE::Scene
                                                              .Name       = "TerrainMeshShader",
                                                              .vDefines   = vDefines } };
                 // m_pMeshShader = pDevice->CreateShader( Desc );
-                m_pMeshShader = pResMgr->LoadShader( Desc );
+                m_pMeshShader = ResMgr.LoadShader( Desc );
             }
             if( m_pTaskShader == nullptr )
             {
@@ -347,7 +347,7 @@ namespace VKE::Scene
                 Desc.Shader.Name              = "TerrainTaskShader";
                 Desc.Shader.EntryPoint        = "TerrainTS";
                 Desc.Shader.vDefines          = vDefines;
-                m_pTaskShader                 = pResMgr->LoadShader( Desc );
+                m_pTaskShader                 = ResMgr.LoadShader( Desc );
             }
             if( m_pPixelShader == nullptr )
             {
@@ -359,7 +359,7 @@ namespace VKE::Scene
                 Desc.Shader.Name              = "TerrainPixelShader";
                 Desc.Shader.EntryPoint        = "TerrainPS";
                 Desc.Shader.vDefines          = vDefines;
-                m_pPixelShader                = pResMgr->LoadShader( Desc );
+                m_pPixelShader                = ResMgr.LoadShader( Desc );
             }
             if( ( m_pMeshShader != nullptr ) && ( m_pPixelShader != nullptr ) && ( m_pTaskShader != nullptr ) )
             {
@@ -388,7 +388,7 @@ namespace VKE::Scene
                 Desc.Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::TASK ]  = m_pTaskShader;
                 Desc.Pipeline.Shaders.apShaders[ RenderSystem::ShaderTypes::PIXEL ] = m_pPixelShader;
                 Desc.Pipeline.SetDebugName( "MeshShaderTerrain" );
-                m_pColorPipeline = pResMgr->CreatePipeline( Desc );
+                m_pColorPipeline = ResMgr.CreatePipeline( Desc );
                 m_pCurrPipeline  = m_pColorPipeline;
                 if( m_pColorPipeline != nullptr )
                 {

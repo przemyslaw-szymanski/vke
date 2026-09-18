@@ -126,29 +126,43 @@ namespace VKE::RenderSystem::Vulkan
 
         struct SDeviceFeatures
         {
-            VkPhysicalDeviceFeatures2                      Device;
-            VkPhysicalDeviceVulkan11Features               Device11;
-            VkPhysicalDeviceVulkan12Features               Device12;
-            VkPhysicalDeviceMeshShaderFeaturesEXT          MeshShaderEXT;
-            VkPhysicalDeviceMeshShaderFeaturesNV           MeshShaderNV;
-            VkPhysicalDeviceRayTracingPipelineFeaturesKHR  Raytracing10;
-            VkPhysicalDeviceRayQueryFeaturesKHR            Raytracing11;
-            VkPhysicalDeviceRayTracingMotionBlurFeaturesNV Raytracing12;
-            VkPhysicalDeviceDynamicRenderingFeaturesKHR    DynamicRendering;
+            VkPhysicalDeviceFeatures2                             Device;
+            VkPhysicalDeviceMeshShaderFeaturesEXT                 MeshShaderEXT;
+            VkPhysicalDeviceRayTracingPipelineFeaturesKHR         Raytracing10;
+            VkPhysicalDeviceRayQueryFeaturesKHR                   Raytracing11;
+            VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV Raytracing12NV;
+            VkPhysicalDeviceDynamicRenderingFeaturesKHR           DynamicRendering;
+            VkPhysicalDeviceDescriptorIndexingFeatures            DescriptorIndexing;
+            VkPhysicalDevice16BitStorageFeatures                  Buffer16Bit;
+            VkPhysicalDeviceShaderDrawParametersFeatures          ShaderDrawParameters;
+            VkPhysicalDeviceSubgroupSizeControlFeatures           SubgroupSizeControl;
+            VkPhysicalDeviceTimelineSemaphoreFeatures             TimelineSemaphore;
         } Features; // struct SDeviceFeatures
 
         struct SDeviceProperties
         {
             VkPhysicalDeviceProperties2                     Device;
-            VkPhysicalDeviceVulkan11Properties              Device11;
-            VkPhysicalDeviceVulkan12Properties              Device12;
-            VkPhysicalDeviceMemoryProperties2               Memory;
             VkPhysicalDeviceMeshShaderPropertiesEXT         MeshShaderEXT;
-            VkPhysicalDeviceMeshShaderPropertiesNV          MeshShaderNV;
             VkPhysicalDeviceRayTracingPipelinePropertiesKHR Raytracing10;
+            VkPhysicalDeviceRayTracingInvocationReorderPropertiesNV Raytracing12NV;
             VkPhysicalDeviceDescriptorIndexingProperties    DescriptorIndexing;
+            VkPhysicalDeviceSubgroupProperties              Subgroup;
+            VkPhysicalDeviceSubgroupSizeControlProperties   SubgroupSizeControl;
+            VkPhysicalDeviceMaintenance3Properties          Maintenance3;
+            VkPhysicalDeviceIDProperties                    DeviceID;
+            VkPhysicalDeviceDriverProperties                Driver;
+            //VkPhysicalDeviceFloatControlsProperties         FloatControl;
+            VkPhysicalDeviceTimelineSemaphoreProperties     TimelineSemaphore;
+            //VkPhysicalDeviceDepthStencilResolveProperties   DepthStencilResolve;
+            //VkPhysicalDeviceSamplerFilterMinmaxProperties   SamplerMinMax;
             VkFormatProperties                              aFormatProperties[ Formats::_MAX_COUNT ];
-        } Properties; // struct SDeviceProperties
+        } DeviceProperties; // struct SDeviceProperties
+
+        struct SMemoryProperties
+        {
+            VkPhysicalDeviceMemoryProperties2         Memory;
+            VkPhysicalDeviceMemoryBudgetPropertiesEXT MemoryBudget;
+        } MemoryProperties;
 
         VkPhysicalDeviceLimits Limits;
 

@@ -287,6 +287,7 @@ namespace VKE
 
         CameraPtr CScene::CreateCamera( const SCameraDesc& Desc )
         {
+            VKE_ASSERT( Desc.Name.IsEmpty() == false );
             const uint32_t hCam = m_vCameras.PushBack( {} );
             CCamera*       pCam = &m_vCameras[ hCam ];
             pCam->_Init( Desc );

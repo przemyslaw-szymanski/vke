@@ -1,11 +1,11 @@
 #pragma once
 
-namespace VKE
+#include <vulkan/vulkan.h>
+
+namespace VKE::RenderSystem::Vulkan
 {
-    namespace RenderSystem
-    {
         // Vulkan header ver 148
-        static const VkFormat g_aFormats[ /*VK_FORMAT_END_RANGE+1*/ ] = { VK_FORMAT_UNDEFINED,
+        static const VkFormat g_aFormats[ ] = { VK_FORMAT_UNDEFINED,
                                                                           VK_FORMAT_R4G4_UNORM_PACK8,
                                                                           VK_FORMAT_R4G4B4A4_UNORM_PACK16,
                                                                           VK_FORMAT_B4G4R4A4_UNORM_PACK16,
@@ -190,5 +190,4 @@ namespace VKE
                                                                           VK_FORMAT_ASTC_12x10_SRGB_BLOCK,
                                                                           VK_FORMAT_ASTC_12x12_UNORM_BLOCK,
                                                                           VK_FORMAT_ASTC_12x12_SRGB_BLOCK };
-    } // namespace RenderSystem
 } // namespace VKE

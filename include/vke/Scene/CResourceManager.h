@@ -7,13 +7,7 @@
 
 namespace VKE
 {
-    enum
-    {
-        RB_ADD_TO_BUFFER        = true,
-        RB_DO_NOT_ADD_TO_BUFFER = false
-    };
-
-    namespace Core
+    namespace World
     {
 
         template< class ResourceType, class FreeResourceType, uint32_t BASE_RESOURCE_COUNT = 32 >
@@ -885,9 +879,15 @@ namespace VKE
             }
         };
 
+        struct SResourceManagerDesc
+        {
+            RenderSystem::CDeviceContext* pDevice = nullptr;
+        };
+
         class VKE_API CResourceManager
         {
             friend class VKE::CVkEngine;
+            friend class CWorld;
 
             using FileQueue     = vke_queue< Core::SLoadFileInfo >;
             using TextureQueue  = FileQueue;
@@ -896,7 +896,14 @@ namespace VKE
             using PipelineQueue = vke_queue< RenderSystem::SPipelineCreateDesc >;
 
         public:
-            CResourceManager( CVkEngine& );
+            CResourceManager();
+            ~CResourceManager();
+
+            static CResourceManager& GetInstance()
+            {
+                static CResourceManager Instance;
+                return Instance;
+            }
 
             RenderSystem::TextureRefPtr  LoadTexture( const Core::SLoadFileInfo& );
             RenderSystem::BufferRefPtr   LoadBuffer( const Core::SLoadFileInfo& );
@@ -907,8 +914,12 @@ namespace VKE
             Result CreateDeferredPipeline();
 
         protected:
-            CVkEngine& m_Engine;
 
+            Result _Create(const SResourceManagerDesc&);
+            void   _Destroy();
+
+        protected:
+            SResourceManagerDesc m_Desc;
             Threads::SyncObject m_TextureSyncObj;
             TextureQueue        m_qTextures;
             Threads::SyncObject m_BufferSyncObj;
@@ -919,5 +930,5 @@ namespace VKE
             PipelineQueue       m_qPipelines;
         };
 
-    } // namespace Core
+    } // namespace World
 } // namespace VKE

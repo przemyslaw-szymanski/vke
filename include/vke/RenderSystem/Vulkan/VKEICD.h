@@ -262,14 +262,8 @@ struct VkICD
         VKE_DEVICE_EXT_ICD( vkCmdSetCheckpointNV );
         VKE_DEVICE_EXT_ICD( vkGetQueueCheckpointDataNV );
 
-        // VK 1.2
-        VKE_DEVICE_ICD( vkSignalSemaphore );
-        VKE_DEVICE_ICD( vkWaitSemaphores );
-        VKE_DEVICE_ICD( vkGetSemaphoreCounterValue );
-
-        // VULKAN 1.3
-        VKE_DEVICE_ICD( vkCmdBeginRenderingKHR );
-        VKE_DEVICE_ICD( vkCmdEndRenderingKHR );
+        VKE_DEVICE_KHR_ICD( vkCmdBeginRendering, vkCmdBeginRenderingKHR );
+        VKE_DEVICE_KHR_ICD( vkCmdEndRendering, vkCmdEndRenderingKHR );
 
         // EXT
         VKE_DEVICE_EXT_ICD( vkCmdDrawMeshTasksEXT );

@@ -21,6 +21,11 @@ namespace VKE
         class CDeviceContext;
     } // namespace RenderSystem
 
+    namespace World
+    {
+        class CWorld;
+    }
+
     namespace Scene
     {
         // Forward declarations
@@ -139,7 +144,7 @@ namespace VKE
 
         class VKE_API CScene : public Core::CObject
         {
-            friend class CWorld;
+            friend class World::CWorld;
             friend class COctree;
             friend class CQuadTree;
             friend class CBVH;
@@ -432,7 +437,7 @@ namespace VKE
             };
 
         public:
-            CScene( CWorld* pWorld ) : m_pWorld{ pWorld }
+            CScene( World::CWorld* pWorld ) : m_pWorld{ pWorld }
             {
             }
 
@@ -520,7 +525,7 @@ namespace VKE
             void _SortLights();
 
         protected:
-            CWorld*                       m_pWorld      = nullptr;
+            World::CWorld*                m_pWorld      = nullptr;
             COctree*                      m_pOctree     = nullptr;
             CQuadTree*                    m_pQuadTree   = nullptr;
             CBVH*                         m_pBVH        = nullptr;

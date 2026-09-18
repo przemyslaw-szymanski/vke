@@ -1,9 +1,10 @@
 #include "Scene/CWorld.h"
 #include "Scene/CScene.h"
+#include "Scene/CResourceManager.h"
 
 namespace VKE
 {
-    namespace Scene
+    namespace World
     {
         void CWorld::_Destroy()
         {
@@ -14,6 +15,7 @@ namespace VKE
                 Memory::DestroyObject( &HeapAllocator, &pCurr );
             }
             m_vpScenes.Clear();
+            CResourceManager::GetInstance()._Destroy();
         }
 
         Result CWorld::_Create( const SDesc& Desc )
@@ -33,7 +35,7 @@ namespace VKE
             if( VKE_SUCCEEDED( m_DrawcallMemMgr.Create( maxDrawcallCountPerPool, size, poolCount ) ) )
             {
                 // Create default scene
-                SSceneDesc Scene;
+                Scene::SSceneDesc Scene;
                 auto       pScene = CreateScene( Scene );
                 if( pScene!= nullptr )
                 {
@@ -45,27 +47,33 @@ namespace VKE
             return ret;
         }
 
-        Result CWorld::Init( RenderSystem::CommandBufferPtr pCmdBuffer )
+        Result CWorld::Create( RenderSystem::CommandBufferPtr pCmdBuffer )
         {
             Result ret = VKE_FAIL;
             if( m_pDevice == nullptr )
             {
                 m_pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
-                ret       = m_pCurrScene->Init( pCmdBuffer );
+                {
+                    SResourceManagerDesc Desc;
+                    Desc.pDevice = m_pDevice;
+                    ret = CResourceManager::GetInstance()._Create( Desc );
+                }
+                //ret       = m_pCurrScene->Init( pCmdBuffer );
             }
             return ret;
         }
 
-        ScenePtr CWorld::CreateScene( const SSceneDesc& Desc )
+        Scene::ScenePtr CWorld::CreateScene( const Scene::SSceneDesc& Desc )
         {
-            CScene*  pScene;
-            ScenePtr pRet;
+            Scene::CScene* pScene;
+            Scene::ScenePtr pRet;
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pScene, this ) ) )
             {
                 if( VKE_SUCCEEDED( pScene->_Create( Desc ) ) )
                 {
                     m_vpScenes.PushBack( pScene );
-                    pRet = ScenePtr{ pScene };
+                    pRet = Scene::ScenePtr{ pScene };
+                    m_pCurrScene = pScene;
                 }
             }
             else
@@ -80,20 +88,20 @@ namespace VKE
             return pRet;
         }
 
-        void CWorld::_DestroyScene( CScene** ppInOut )
+        void CWorld::_DestroyScene( Scene::CScene** ppInOut )
         {
-            CScene* pScene = *ppInOut;
+            Scene::CScene* pScene = *ppInOut;
             pScene->_Destroy();
             Memory::DestroyObject( &HeapAllocator, ppInOut );
         }
 
-        void CWorld::DestroyScene( ScenePtr* pInOut )
+        void CWorld::DestroyScene( Scene::ScenePtr* pInOut )
         {
-            CScene* pScnee = ( *pInOut ).Release();
+            Scene::CScene* pScnee = ( *pInOut ).Release();
             _DestroyScene( &pScnee );
         }
 
-        RenderSystem::DrawcallPtr CWorld::CreateDrawcall( const SDrawcallDesc& Desc )
+        RenderSystem::DrawcallPtr CWorld::CreateDrawcall( const Scene::SDrawcallDesc& Desc )
         {
             RenderSystem::DrawcallPtr pRet;
             if( VKE_SUCCEEDED( Memory::CreateObject( &m_DrawcallMemMgr, &pRet ) ) )
@@ -102,12 +110,12 @@ namespace VKE
             return pRet;
         }
 
-        void CWorld::SetScene( ScenePtr pScene )
+        void CWorld::SetScene( Scene::ScenePtr pScene )
         {
             m_pCurrScene = pScene;
         }
 
-        ScenePtr CWorld::GetScene()
+        Scene::ScenePtr CWorld::GetScene()
         {
             return m_pCurrScene;
         }

@@ -132,7 +132,7 @@ elseif(MSVC)
 	add_definitions(-DVKE_COMPILER_VISUAL_STUDIO=1)
 
 	add_definitions("/MP /W4 /WX /EHsc")
-    # add_definitions("/std:c++latest")
+    add_definitions("/Zc:__cplusplus /permissive /volatile:iso /utf-8")
 
     if(VKE_DEBUG_INFO)
         add_definitions("/Zi")

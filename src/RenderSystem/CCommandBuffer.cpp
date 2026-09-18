@@ -12,6 +12,7 @@
 #include "RenderSystem/Managers/CStagingBufferManager.h"
 #include "RenderSystem/Managers/CPipelineManager.h"
 #include "RenderSystem/Managers/CSubmitManager.h"
+#include "RenderSystem/CRuntimeConfig.h"
 
 #define VKE_LOG_CB_ENABLE 0
 
@@ -182,9 +183,14 @@ namespace VKE
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vMemoryBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
-            ExecuteBarriers();
-            VKE_LOG_CB();
-            m_pMgr->_LogCommand( this, "Barrier" );
+#if VKE_RENDER_SYSTEM_DEBUG
+            if( !GetRuntimeConfig().DeferBarriers )
+            {
+                ExecuteBarriers();
+                VKE_LOG_CB();
+                m_pMgr->_LogCommand( this, "Barrier" );
+            }
+#endif
         }
 
         void CCommandBuffer::Barrier( const SBufferBarrierInfo& Info )
@@ -192,8 +198,14 @@ namespace VKE
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vBufferBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
-            ExecuteBarriers();
-            VKE_LOG_CB();
+#if VKE_RENDER_SYSTEM_DEBUG
+            if( !GetRuntimeConfig().DeferBarriers )
+            {
+                ExecuteBarriers();
+                VKE_LOG_CB();
+                m_pMgr->_LogCommand( this, "Barrier" );
+            }
+#endif
         }
 
         void CCommandBuffer::Barrier( const STextureBarrierInfo& Info )
@@ -201,8 +213,14 @@ namespace VKE
             VKE_ASSERT2( m_state == States::BEGIN, "Command buffer must Begun" );
             m_BarrierInfo.vTextureBarriers.PushBack( Info );
             m_needExecuteBarriers = true;
-            VKE_LOG_CB();
-            ExecuteBarriers();
+#if VKE_RENDER_SYSTEM_DEBUG
+            if( !GetRuntimeConfig().DeferBarriers )
+            {
+                ExecuteBarriers();
+                VKE_LOG_CB();
+                m_pMgr->_LogCommand( this, "Barrier" );
+            }
+#endif
         }
 
         void CCommandBuffer::SetState( TEXTURE_STATE state, TextureHandle* phTexInOut )

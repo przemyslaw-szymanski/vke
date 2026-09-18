@@ -3,8 +3,6 @@
 #include "Core/Utils/TCDynamicArray.h"
 #include "Core/Memory/TCFreeListManager.h"
 
-#include "RenderSystem/Common.h"
-
 namespace VKE
 {
     enum
