@@ -12,19 +12,10 @@
       "name": "devil"
     },
     {
-      "name": "directx-headers"
-    },
-    {
-      "name": "directx12-agility"
-    },
-    {
       "name": "directx-dxc"
     },
     {
       "name": "directxtex"
-    },
-    {
-      "name": "directxtk12"
     },
     {
       "name": "glslang"
@@ -36,7 +27,20 @@
       "name": "zlib"
     },
     {
-      "name": "winpixevent"
+      "name": "directx-headers",
+      "platform": "windows"
+    },
+    {
+      "name": "directx12-agility",
+      "platform": "windows"
+    },
+    {
+      "name": "directxtk12",
+      "platform": "windows"
+    },
+    {
+      "name": "winpixevent",
+      "platform": "windows"
     }
   ],
   "overrides": [

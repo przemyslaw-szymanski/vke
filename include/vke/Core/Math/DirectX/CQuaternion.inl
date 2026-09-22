@@ -7,16 +7,16 @@ namespace VKE
 
     namespace Math
     {
-        constexpr CQuaternion::CQuaternion( const float x, const float y, const float z, const float w ) :
+        VKE_SIMD_CONSTEXPR CQuaternion::CQuaternion( const float x, const float y, const float z, const float w ) :
             CVector4( x, y, z, w )
         {
         }
 
-        constexpr CQuaternion::CQuaternion( const CVector4& V ) : CVector4( V )
+        VKE_SIMD_CONSTEXPR CQuaternion::CQuaternion( const CVector4& V ) : CVector4( V )
         {
         }
 
-        constexpr CQuaternion::CQuaternion( const NativeQuaternion& Q ) : CVector4( Q )
+        VKE_SIMD_CONSTEXPR CQuaternion::CQuaternion( const NativeQuaternion& Q ) : CVector4( Q )
         {
         }
 

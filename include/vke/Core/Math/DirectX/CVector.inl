@@ -5,11 +5,11 @@ namespace VKE
 {
     namespace Math
     {
-        constexpr CVector3::CVector3( float f ) : _Native{ f, f, f }
+        VKE_SIMD_CONSTEXPR CVector3::CVector3( float f ) : _Native{ f, f, f }
         {
         }
 
-        constexpr CVector3::CVector3( float x, float y, float z ) : _Native{ x, y, z }
+        VKE_SIMD_CONSTEXPR CVector3::CVector3( float x, float y, float z ) : _Native{ x, y, z }
         {
         }
 
@@ -311,19 +311,19 @@ namespace VKE
 #endif
         }
 
-        constexpr CVector4::CVector4( float x, float y, float z, float w ) : _Native{ x, y, z, w }
+        VKE_SIMD_CONSTEXPR CVector4::CVector4( float x, float y, float z, float w ) : _Native{ x, y, z, w }
         {
         }
 
-        constexpr CVector4::CVector4( const CVector4& Other ) : _Native{ Other._Native }
+        VKE_SIMD_CONSTEXPR CVector4::CVector4( const CVector4& Other ) : _Native{ Other._Native }
         {
         }
 
-        constexpr CVector4::CVector4( NativeVector4Ref Other ) : _Native{ Other }
+        VKE_SIMD_CONSTEXPR CVector4::CVector4( NativeVector4Ref Other ) : _Native{ Other }
         {
         }
 
-        constexpr CVector4::CVector4( const CVector3& Other ) : _Native{ Other.x, Other.y, Other.z, 0.0f }
+        VKE_SIMD_CONSTEXPR CVector4::CVector4( const CVector3& Other ) : _Native{ Other.x, Other.y, Other.z, 0.0f }
         {
         }
 

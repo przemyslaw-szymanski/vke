@@ -73,8 +73,10 @@ namespace VKE
 
 #if VKE_SIMD
         using NativeVector4Ref = NativeVector4;
+        #define VKE_SIMD_CONSTEXPR
 #else
         using NativeVector4Ref = const NativeVector4&;
+        #define VKE_SIMD_CONSTEXPR constexpr
 #endif
 
 #define VKE_XMLOADF3( _float3 ) DirectX::XMLoadFloat3( &( _float3 ) )

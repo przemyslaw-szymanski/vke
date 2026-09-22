@@ -1,6 +1,7 @@
 #include "RenderSystem/Vulkan/CShaderCompiler.h"
 #if VKE_USE_GLSL_COMPILER
-#include "ThirdParty/glslang/SPIRV/GlslangToSpv.h"
+#include <glslang/SPIRV/GlslangToSpv.h>
+#include <glslang/Public/ShaderLang.h>
 
 namespace VKE
 {

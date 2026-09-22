@@ -1,5 +1,6 @@
 #include "VKE.h"
 
+#if VKE_WINDOWS
 #include <directx/d3d12.h>
 
 extern "C"
@@ -10,6 +11,7 @@ extern "C"
 {
     _declspec( dllexport ) extern const char* D3D12SDKPath = ".\\D3D12\\";
 }
+#endif // VKE_WINDOWS
 
 struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphicsContext
 {

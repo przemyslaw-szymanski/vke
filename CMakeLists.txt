@@ -178,7 +178,7 @@ find_package(DevIL REQUIRED)
 if(VKE_USE_DIRECTXTEX)
     set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} Microsoft::DirectXTex)
 elseif(VKE_USE_DEVIL)
-    set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} DevIL::ILU DevIL::ILUT)
+    set(THIRD_PARTY_LIBS ${THIRD_PARTY_LIBS} DevIL::IL DevIL::ILU)
 endif()
 
 find_package(directxmath CONFIG REQUIRED)
@@ -246,8 +246,12 @@ add_library(vkEngine SHARED
     include/vke/CRuntimeOptions.h
     src/CVkEngine.cpp
     src/CCommandLineArgs.cpp
-    src/DllMain.cpp
     .clang-format)
+
+# DllMain is the Windows DLL entry point and includes <windows.h>; only build it on Windows.
+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+    target_sources(vkEngine PRIVATE src/DllMain.cpp)
+endif()
 
 add_dependencies(vkEngine vkEngineRenderSystem vkEngineScene)
 

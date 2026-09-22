@@ -14,10 +14,10 @@ namespace VKE
             CQuaternion()                     = default;
             CQuaternion( const CQuaternion& ) = default;
             CQuaternion( CQuaternion&& )      = default;
-            vke_force_inline explicit constexpr CQuaternion( const float x, const float y, const float z,
+            vke_force_inline explicit VKE_SIMD_CONSTEXPR CQuaternion( const float x, const float y, const float z,
                                                              const float w );
-            vke_force_inline explicit constexpr CQuaternion( const CVector4& V );
-            vke_force_inline explicit constexpr CQuaternion( const NativeQuaternion& Q );
+            vke_force_inline explicit VKE_SIMD_CONSTEXPR CQuaternion( const CVector4& V );
+            vke_force_inline explicit VKE_SIMD_CONSTEXPR CQuaternion( const NativeQuaternion& Q );
 
             ~CQuaternion()
             {

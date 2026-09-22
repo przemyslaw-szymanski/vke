@@ -51,7 +51,7 @@ namespace VKE
         {
             float ret = angleRadians / Math::PI_MUL_2;
             float intPart;
-            ret = std::modff( ret, &intPart ) * Math::PI_MUL_2;
+            ret = std::modf( ret, &intPart ) * Math::PI_MUL_2;
             return ret;
         }
 
@@ -134,7 +134,7 @@ namespace VKE
 
         static float vke_force_inline Cot( const float v )
         {
-            return 1.0f / std::tanf( v );
+            return 1.0f / std::tan( v );
         }
 
         static uint32_t vke_force_inline Map2DArrayIndexTo1DArrayIndex( const uint32_t& x, const uint32_t& y,

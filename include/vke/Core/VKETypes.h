@@ -556,19 +556,19 @@ namespace VKE
 #else
 #define vke_sprintf( _pBuff, _buffSize, _pFormat, ... ) snprintf( ( _pBuff ), ( _buffSize ), ( _pFormat ), __VA_ARGS__ )
 #define vke_wsprintf( _pBuff, _buffSize, _pFormat, ... )                                                               \
-    wnwprintf( ( _pBuff ), ( _buffSize ), ( _pFormat ), __VA_ARGS__ )
+    swprintf( ( _pBuff ), ( _buffSize ), ( _pFormat ), __VA_ARGS__ )
 #define vke_strcpy( _pDst, _dstSize, _pSrc ) strncpy( ( _pDst ), ( _pSrc ), ( _dstSize ) )
-#define vke_wstrcpy( _pDst, _dstSize, _pSrc ) std::wcscpy( ( _pDst ), ( _dstSize ), ( _pSrc ) )
+#define vke_wstrcpy( _pDst, _dstSize, _pSrc ) std::wcsncpy( ( _pDst ), ( _pSrc ), ( _dstSize ) )
 #define vke_mbstowcs( _errOut, _pDst, _pDstSizeInWors, _pSrc, _pSrcSizeInBytes )                                       \
     do                                                                                                                 \
     {                                                                                                                  \
-        ( _errOut ) = mbstowcs( ( _pDst ), ( _pDstSizeInWors ), ( _pSrc ), ( _pSrcSizeInBytes ) );                     \
+        ( _errOut ) = mbstowcs( ( _pDst ), ( _pSrc ), ( _pDstSizeInWors ) );                     \
     }                                                                                                                  \
     while( 0 )
 #define vke_wcstombs( _errOut, _pDst, _pDstSizeInWors, _pSrc, _pSrcSizeInBytes )                                       \
     do                                                                                                                 \
     {                                                                                                                  \
-        ( _errOut ) = wcstombs( ( _pDst ), ( _pDstSizeInWors ), ( _pSrc ), ( _pSrcSizeInBytes ) );                     \
+        ( _errOut ) = wcstombs( ( _pDst ), ( _pSrc ), ( _pDstSizeInWors ) );                     \
     }                                                                                                                  \
     while( 0 )
 #endif

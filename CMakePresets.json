@@ -36,11 +36,6 @@
       "cacheVariables": {
         "VKE_COMPILE_VULKAN_RHI": "ON",
         "VKE_COMPILE_D3D12_RHI": "OFF"
-      },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
       }
     },
     {

@@ -15,12 +15,12 @@ namespace VKE
 
         public:
             CVector3() = default;
-            vke_force_inline constexpr CVector3( float f );
-            vke_force_inline constexpr CVector3( float x, float y, float z );
+            vke_force_inline VKE_SIMD_CONSTEXPR CVector3( float f );
+            vke_force_inline VKE_SIMD_CONSTEXPR CVector3( float x, float y, float z );
             vke_force_inline CVector3( const CVector3& Other ) = default;
             vke_force_inline CVector3( CVector3&& )            = default;
 
-            vke_force_inline explicit constexpr CVector3( const NativeVector3& V ) : _Native{ V }
+            vke_force_inline explicit VKE_SIMD_CONSTEXPR CVector3( const NativeVector3& V ) : _Native{ V }
             {
             }
 
@@ -229,10 +229,10 @@ namespace VKE
             }
 
             explicit vke_force_inline CVector4( float f );
-            vke_force_inline constexpr CVector4( float x, float y, float z, float w );
-            vke_force_inline constexpr CVector4( const CVector4& Other );
-            explicit vke_force_inline constexpr CVector4( NativeVector4Ref Other );
-            explicit vke_force_inline constexpr CVector4( const CVector3& Other );
+            vke_force_inline VKE_SIMD_CONSTEXPR CVector4( float x, float y, float z, float w );
+            vke_force_inline VKE_SIMD_CONSTEXPR CVector4( const CVector4& Other );
+            explicit vke_force_inline VKE_SIMD_CONSTEXPR CVector4( NativeVector4Ref Other );
+            explicit vke_force_inline VKE_SIMD_CONSTEXPR CVector4( const CVector3& Other );
 
             ~CVector4()
             {

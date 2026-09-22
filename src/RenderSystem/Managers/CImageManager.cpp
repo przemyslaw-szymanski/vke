@@ -7,7 +7,7 @@
 #if VKE_USE_DEVIL
 #include <IL/il.h>
 #include <IL/ilu.h>
-#include <IL/ilut.h
+// #include <IL/ilut.h
 #endif
 
 #if VKE_USE_DIRECTXTEX
