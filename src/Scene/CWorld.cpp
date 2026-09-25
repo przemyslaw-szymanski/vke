@@ -6,6 +6,18 @@ namespace VKE
 {
     namespace World
     {
+        CWorld& CWorld::GetInstance()
+        {
+            static CWorld World;
+            return World;
+        }
+
+        CResourceManager& CResourceManager::GetInstance()
+        {
+            static CResourceManager Instance;
+            return Instance;
+        }
+
         void CWorld::_Destroy()
         {
             for( uint32_t i = 0; i < m_vpScenes.GetCount(); ++i )

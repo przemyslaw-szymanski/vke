@@ -39,11 +39,7 @@ namespace VKE
 
         public:
 
-            vke_force_inline static CWorld& GetInstance()
-            {
-                static CWorld World;
-                return World;
-            }
+            static CWorld& GetInstance();
 
             Result Create( RenderSystem::CommandBufferPtr );
 

@@ -899,11 +899,7 @@ namespace VKE
             CResourceManager();
             ~CResourceManager();
 
-            static CResourceManager& GetInstance()
-            {
-                static CResourceManager Instance;
-                return Instance;
-            }
+            static CResourceManager& GetInstance();
 
             RenderSystem::TextureRefPtr  LoadTexture( const Core::SLoadFileInfo& );
             RenderSystem::BufferRefPtr   LoadBuffer( const Core::SLoadFileInfo& );
