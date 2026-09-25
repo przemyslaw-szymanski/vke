@@ -70,59 +70,6 @@ namespace VKE
 
     static const uint32_t INVALID_POSITION = static_cast< uint32_t >( ~0 );
 
-    struct STribool
-    {
-        enum VALUE : uint8_t
-        {
-            UNDEFINED = (uint8_t)~0,
-            FALSE     = 0,
-            TRUE      = 1,
-            _MAX_COUNT
-        };
-
-        STribool()
-        {
-        }
-
-        STribool( VALUE v ) : value{ v }
-        {
-        }
-
-        STribool( bool v ) : value( (VALUE)v )
-        {
-        }
-
-        VALUE value;
-
-        void Reset()
-        {
-            value = UNDEFINED;
-        }
-
-        operator bool() const
-        {
-            assert( value != UNDEFINED );
-            return value;
-        }
-
-        void operator=( bool b )
-        {
-            value = (VALUE)b;
-        }
-
-        bool operator==( uint32_t v ) const
-        {
-            return value == (uint8_t)v;
-        }
-
-        bool operator!=( uint32_t v ) const
-        {
-            return !operator==( v );
-        }
-    };
-
-    using tribool_t = STribool;
-
     template< typename T, typename U >
     concept ConvertibleExtent = requires( U v ) {
         { v.x } -> std::convertible_to< T >;

@@ -85,7 +85,6 @@ namespace VKE
             using DDISemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
             using UintArray         = Utils::TCDynamicArray< uint32_t >;
             using HandleArray       = Utils::TCDynamicArray< handle_t >;
-            using TriboolArray      = Utils::TCDynamicArray< tribool_t* >;
             using BoolPtrVec        = Utils::TCDynamicArray< bool* >;
             using StringArray       = Utils::TCDynamicArray< vke_string, 1024 >;
             using TexturePtrArray   = Utils::TCDynamicArray< TexturePtr, 8 >;

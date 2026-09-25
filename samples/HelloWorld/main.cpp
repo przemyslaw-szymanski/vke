@@ -5,11 +5,8 @@
 
 extern "C"
 {
-    _declspec( dllexport ) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
-}
-extern "C"
-{
-    _declspec( dllexport ) extern const char* D3D12SDKPath = ".\\D3D12\\";
+    VKE_DLL_EXPORT extern const UINT  D3D12SDKVersion = D3D12_SDK_VERSION;
+    VKE_DLL_EXPORT extern const char* D3D12SDKPath    = ".\\D3D12\\";
 }
 #endif // VKE_WINDOWS
 

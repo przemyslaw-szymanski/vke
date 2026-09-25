@@ -1,7 +1,9 @@
 #ifndef __VKE_PREPROCESSOR_H__
 #define __VKE_PREPROCESSOR_H__
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 
 #if defined( DEBUG ) || defined( _DEBUG ) || !defined( NDEBUG )
 #define VKE_DEBUG 1
@@ -149,11 +151,13 @@
 #if VKE_COMPILER_VISUAL_STUDIO
 #define VKE_DLL_EXPORT __declspec( dllexport )
 #define VKE_DLL_IMPORT __declspec( dllimport )
+#define VKE_DLL_USED
 #define VKE_TEMPLATE_EXPORT( _type ) template _type VKE_API
 #define VKE_TEMPLATE_IMPORT( _type ) extern template _type VKE_API
 #else
-#define VKE_DLL_EXPORT
+#define VKE_DLL_EXPORT __declspec( dllexport )
 #define VKE_DLL_IMPORT
+#define VKE_DLL_USED __attribute__( ( used ) )
 #define VKE_TEMPLATE_EXPORT( _type )
 #define VKE_TEMPLATE_IMPORT( _type )
 #endif // CPMPILER

@@ -9,7 +9,7 @@ namespace VKE
     {
         class CFreeList;
 
-        class CFreeListPool
+        class VKE_API CFreeListPool
         {
             using FreeListVec = std::vector< CFreeList* >;
             using MemRange    = TSExtent< memptr_t >;

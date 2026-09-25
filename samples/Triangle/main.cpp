@@ -1,4 +1,14 @@
+#include "VKE.h"
 
+#if VKE_WINDOWS
+#include <directx/d3d12.h>
+
+extern "C"
+{
+    VKE_DLL_EXPORT VKE_DLL_USED extern const UINT  D3D12SDKVersion = D3D12_SDK_VERSION;
+    VKE_DLL_EXPORT VKE_DLL_USED extern const char* D3D12SDKPath    = ".\\D3D12\\";
+}
+#endif // VKE_WINDOWS
 
 #include "../CSampleFramework.h"
 
