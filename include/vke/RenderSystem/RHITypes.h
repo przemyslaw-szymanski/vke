@@ -5,16 +5,6 @@
 
 namespace VKE::RenderSystem
 {
-//#if VKE_VULKAN_RENDER_SYSTEM || VKE_COMPILE_VULKAN_RHI
-//    using RHI = VKE::RenderSystem::Vulkan::RHI;
-//    //using namespace VKE::RenderSystem::Vulkan;
-//#elif VKE_D3D12_RENDER_SYSTEM || VKE_COMPILE_D3D12_RHI
-//    using RHI = VKE::RenderSystem::D3D12::RHI;
-//    //using namespace VKE::RenderSystem::D3D12;
-//#else
-//#error "Unsupported 3D API"
-//#endif
-
     namespace NativeTagTypes
     {
         struct Null{};

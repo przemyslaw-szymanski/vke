@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.h"
+#include "Core/Input/Common.h"
 
 #ifdef GetCommandLine
 #undef GetCommandLine
@@ -254,6 +255,17 @@ namespace VKE
         };
 
         using ThisThread = Thread;
+
+        struct VKE_API KeyMap
+        {
+            static constexpr uint32_t MAP_SIZE = 256;
+            static const VKE::Input::KEY s_aKeyMap[ MAP_SIZE ];
+
+            static VKE::Input::KEY GetMappedKey( const uint16_t platformKey )
+            {
+                return s_aKeyMap[ platformKey & 0xFF ];
+            }
+        };
     };
 
 } // namespace VKE

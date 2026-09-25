@@ -802,11 +802,6 @@ namespace VKE
         }
     }
 
-    Input::KEY ConvertVirtualKeyToInput( const uint64_t& idx )
-    {
-        return SKeyMapping::GetInstance()[ idx ];
-    }
-
     uint64_t CWindow::WndProc( void* pWnd, uint32_t msg, uint64_t wParam, uint64_t lParam )
     {
         // if(msg != 15 ) printf("msg: %d, %p\n", msg, hWnd);

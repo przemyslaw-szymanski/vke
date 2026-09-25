@@ -15,7 +15,7 @@ namespace VKE
 
         static Input::KEY vke_force_inline ConvertRawKeyToKey( const uint16_t virtualKey )
         {
-            return static_cast< Input::KEY >( virtualKey );
+            return VKE::Platform::KeyMap::GetMappedKey( virtualKey );
         }
 
         struct SDefaultInputListener : public Input::EventListeners::IInput
