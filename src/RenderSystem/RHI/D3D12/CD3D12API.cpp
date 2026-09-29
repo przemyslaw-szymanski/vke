@@ -14,7 +14,7 @@
 
 #include "RenderSystem/RHI/D3D12/dxgiFormats.h"
 
-#include "RenderSystem/RHI/D3D12/CDDITypes.h"
+#include "RenderSystem/RHI/D3D12/D3D12RHITypes.h"
 
 #include <dxgidebug.h>
 

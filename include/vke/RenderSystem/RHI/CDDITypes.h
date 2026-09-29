@@ -1,12 +1,12 @@
 #pragma once
 
 #if VKE_COMPILE_VULKAN_RHI
-#include "RenderSystem/RHI/Vulkan/CDDITypes.h"
+#include "RenderSystem/RHI/Vulkan/VulkanRHITypes.h"
 #define VKE_ANY_API_SELECTED
 // VKE_COMPILE_VULKAN_RHI
 
 #elif VKE_COMPILE_D3D12_RHI
-#include "RenderSystem/RHI/D3D12/CDDITypes.h"
+#include "RenderSystem/RHI/D3D12/D3D12RHITypes.h"
 #define VKE_ANY_API_SELECTED
 // VKE_COMPILE_D3D12_RHI
 #endif

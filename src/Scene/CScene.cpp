@@ -89,7 +89,7 @@ namespace VKE
         void CScene::_Destroy()
         {
             _DestroyDebugView();
-            if( m_pTerrain!= nullptr )
+            if( m_pTerrain != nullptr )
             {
                 m_pTerrain->_Destroy();
                 auto pTmp = m_pTerrain.Release();
@@ -108,8 +108,6 @@ namespace VKE
 
             m_vpDrawcalls.Clear();
         }
-
-
 
         Result CScene::Init( RenderSystem::CommandBufferPtr pCmdBuffer )
         {
@@ -145,7 +143,7 @@ namespace VKE
             auto swapchainElCount = m_pDeviceCtx->GetGraphicsContext( 0 )->GetSwapChain()->GetBackBufferCount();
             {
                 RenderSystem::SCreateBufferDesc BuffDesc;
-                //BuffDesc.Buffer.size = 0;
+                // BuffDesc.Buffer.size = 0;
                 BuffDesc.Buffer.vRegions.Resize( swapchainElCount + 2,
                                                  RenderSystem::SBufferRegion( sizeof( SConstantBuffer ), 1 ) );
                 BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STAGING_BUFFER;
@@ -157,7 +155,7 @@ namespace VKE
                     m_pConstantBufferCPU = m_pDeviceCtx->GetBuffer( hBuffer );
                 }
             }
-            if( m_pConstantBufferCPU!= nullptr && m_pConstantBufferGPU!= nullptr )
+            if( m_pConstantBufferCPU != nullptr && m_pConstantBufferGPU != nullptr )
             {
                 ret = VKE_OK;
             }
@@ -168,7 +166,7 @@ namespace VKE
                 BindingDesc.SetDebugName( "VKE_Scene_ConstantBuffer" );
                 BindingDesc.LayoutDesc.SetDebugName( BindingDesc.GetDebugName() );
                 BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::ALL, 1u );
-                //uint32_t cbSize = m_pConstantBufferGPU->GetSize();
+                // uint32_t cbSize = m_pConstantBufferGPU->GetSize();
                 for( uint32_t i = 0; i < swapchainElCount + 1; ++i )
                 {
                     m_ahBindings[ i ] = m_pDeviceCtx->CreateResourceBindings( BindingDesc );
@@ -176,7 +174,7 @@ namespace VKE
                     {
                         RenderSystem::SUpdateBindingsHelper UpdateInfo;
                         UpdateInfo.AddBinding( 0u,
-                                               m_pConstantBufferGPU->GetRegion(0),
+                                               m_pConstantBufferGPU->GetRegion( 0 ),
                                                m_pConstantBufferGPU->GetHandle(),
                                                RenderSystem::BindingTypes::CONSTANT_BUFFER );
                         m_pDeviceCtx->UpdateDescriptorSet( UpdateInfo, &m_ahBindings[ i ] );
@@ -200,8 +198,8 @@ namespace VKE
             auto backBufferIndex = pCmdBuffer->GetBackBufferIndex();
             /// TODO: rework handling of lights
             SLightDesc LightDesc;
-            LightDesc.vecPosition = { 0, 10, 0 };
-            LightDesc.radius      = 100.0f;
+            LightDesc.vecPosition  = { 0, 10, 0 };
+            LightDesc.radius       = 100.0f;
             LightDesc.vecDirection = { 0, -1, 0 };
             LightDesc.attenuation  = 100.0f;
             LightDesc.Color        = RenderSystem::SColor::ONE;
@@ -229,8 +227,7 @@ namespace VKE
 
             m_pConstantBufferCPU->Unmap();
             RenderSystem::SCopyBufferInfo CopyInfo;
-            CopyInfo.hRHISrcBuffer = m_pConstantBufferCPU->GetRHIObject();
-            // CopyInfo.hRHIDstBuffer = m_pConstantBufferGPU->GetRHIObject();
+            CopyInfo.hRHISrcBuffer          = m_pConstantBufferCPU->GetRHIObject();
             CopyInfo.pDstBuffer             = m_pConstantBufferGPU.Get();
             CopyInfo.Region.dstBufferOffset = 0;
             CopyInfo.Region.srcBufferOffset = m_pConstantBufferCPU->CalcAbsoluteOffset( backBufferIndex, 0 );
@@ -250,7 +247,7 @@ namespace VKE
 
         TerrainPtr CScene::CreateTerrain( const STerrainDesc& Desc, RenderSystem::CommandBufferPtr pCmdBuff )
         {
-            if( m_pTerrain!= nullptr )
+            if( m_pTerrain != nullptr )
             {
                 DestroyTerrain( &m_pTerrain );
             }
@@ -271,7 +268,7 @@ namespace VKE
 
             return m_pTerrain;
         ERR:
-            if( m_pTerrain!= nullptr )
+            if( m_pTerrain != nullptr )
             {
                 DestroyTerrain( &m_pTerrain );
             }
@@ -390,7 +387,6 @@ namespace VKE
 
             for( uint32_t lt = 0; lt < LightTypes::_MAX_COUNT; ++lt )
             {
-
             }
         }
 
@@ -405,7 +401,7 @@ namespace VKE
 
         void CScene::Update( const SUpdateSceneInfo& Info )
         {
-            VKE_ASSERT2( Info.pCommandBuffer!= nullptr, "Command buffer must be a valid pointer." );
+            VKE_ASSERT2( Info.pCommandBuffer != nullptr, "Command buffer must be a valid pointer." );
             m_pCurrentCamera->Update( 0 );
             if( m_pCurrentCamera != m_pViewCamera )
             {
@@ -414,7 +410,7 @@ namespace VKE
             _UpdateConstantBuffers( Info.pCommandBuffer );
             const Math::CFrustum& Frustum = m_pCurrentCamera->GetFrustum();
             _FrustumCullDrawcalls( Frustum );
-            if( m_pTerrain!= nullptr )
+            if( m_pTerrain != nullptr )
             {
                 m_pTerrain->Update( Info.pCommandBuffer );
             }
@@ -423,7 +419,7 @@ namespace VKE
         void CScene::Render( VKE::RenderSystem::CommandBufferPtr pCmdBuff )
         {
             _Draw( pCmdBuff );
-            if( m_pTerrain!= nullptr )
+            if( m_pTerrain != nullptr )
             {
                 m_pTerrain->Render( pCmdBuff );
             }
@@ -603,7 +599,7 @@ namespace VKE
 
                 auto pPS = m_pDeviceCtx->CreateShader( PSDesc );
 
-                while( pVS== nullptr || pPS== nullptr )
+                while( pVS == nullptr || pPS == nullptr )
                 {
                 }
                 while( !pVS->IsResourceReady() || !pPS->IsResourceReady() )
@@ -683,7 +679,7 @@ namespace VKE
                 BuffDesc.Buffer.memoryUsage =
                     RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::BUFFER;
                 BuffDesc.Buffer.usage = RenderSystem::BufferUsages::VERTEX_BUFFER;
-                //BuffDesc.Buffer.size  = sizeof( aVertices );
+                // BuffDesc.Buffer.size  = sizeof( aVertices );
                 BuffDesc.Buffer.vRegions = { { sizeof( aVertices ), 1 } };
                 BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
                 auto hVB = m_pDeviceCtx->CreateBuffer( BuffDesc );
@@ -732,7 +728,6 @@ namespace VKE
 
         void CScene::_SortLights( LIGHT_TYPE type )
         {
-            
         }
 
         void CScene::_SortLights()
@@ -753,7 +748,7 @@ namespace VKE
         {
             bool ret = false;
             // Create per frame constant buffer
-            if( pPerFrameConstantBuffer== nullptr )
+            if( pPerFrameConstantBuffer == nullptr )
             {
                 RenderSystem::SCreateBufferDesc BuffDesc;
                 BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
@@ -771,11 +766,11 @@ namespace VKE
             BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::STATIC | RenderSystem::MemoryUsages::BUFFER;
             BuffDesc.Buffer.usage       = RenderSystem::BufferUsages::BUFFER;
             BuffDesc.Buffer.vRegions    = { RenderSystem::SBufferRegion( sizeof( SInstancingShaderData ),
-                                                                      MAX_INSTANCING_DATA_PER_BUFFER ) };
+                                                                         MAX_INSTANCING_DATA_PER_BUFFER ) };
             BuffDesc.Buffer.SetDebugName( "VKE_Scene_DebugView" );
             RenderSystem::BufferHandle hInstanceDataBuffer = pCtx->CreateBuffer( BuffDesc );
 
-            if( pPerFrameConstantBuffer!= nullptr && hInstanceDataBuffer != INVALID_HANDLE )
+            if( pPerFrameConstantBuffer != nullptr && hInstanceDataBuffer != INVALID_HANDLE )
             {
                 // auto pCBuffer = pCtx->GetBuffer( hPerFrameConstantBuffer );
                 auto pSBuffer = pCtx->GetBuffer( hInstanceDataBuffer );
@@ -797,11 +792,11 @@ namespace VKE
                             pOut->hDescSet = this->hPerFrameDescSet;
                             RenderSystem::SUpdateBindingsHelper Update;
                             Update.AddBinding( 0u,
-                                               pPerFrameConstantBuffer->GetRegion(0),
+                                               pPerFrameConstantBuffer->GetRegion( 0 ),
                                                pPerFrameConstantBuffer->GetHandle(),
                                                RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                             Update.AddBinding( 1u,
-                                               pSBuffer->GetRegion(0),
+                                               pSBuffer->GetRegion( 0 ),
                                                hInstanceDataBuffer,
                                                RenderSystem::BindingTypes::DYNAMIC_BUFFER );
                             pCtx->UpdateDescriptorSet( Update, &this->hPerFrameDescSet );
@@ -1110,16 +1105,17 @@ namespace VKE
             auto pDevice = pCtx->GetDeviceContext();
 
             RenderSystem::SCreateBufferDesc Desc;
-            Desc.Create.flags = Core::CreateResourceFlags::DEFAULT;
-            Desc.Buffer.usage = RenderSystem::BUFFER_USAGE( RenderSystem::BufferUsages::VERTEX_BUFFER | RenderSystem::BufferUsages::INDEX_BUFFER );
+            Desc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
+            Desc.Buffer.usage       = RenderSystem::BUFFER_USAGE( RenderSystem::BufferUsages::VERTEX_BUFFER |
+                                                                  RenderSystem::BufferUsages::INDEX_BUFFER );
             Desc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
             Desc.Buffer.indexType   = RenderSystem::IndexTypes::UINT16;
             /*Desc.Buffer.size        = MAX_INSTANCING_DATA_PER_BUFFER * sizeof( SBatch::SVertex ) * vertexCount +
                                MAX_INSTANCING_DATA_PER_BUFFER * sizeof( uint16_t ) * indexCount;*/
             Desc.Buffer.vRegions = { { sizeof( SBatch::SVertex ) * vertexCount, MAX_INSTANCING_DATA_PER_BUFFER },
                                      { sizeof( uint16_t ) * indexCount, MAX_INSTANCING_DATA_PER_BUFFER } };
-            auto hBuff = pDevice->CreateBuffer( Desc );
-            auto pBuff = pDevice->GetBuffer( hBuff );
+            auto hBuff           = pDevice->CreateBuffer( Desc );
+            auto pBuff           = pDevice->GetBuffer( hBuff );
 
             SBatch::SBuffer Data;
             Data.pBuffer                          = pBuff;
@@ -1150,16 +1146,16 @@ namespace VKE
 
             if( hPerFrameDescSet == INVALID_HANDLE )
             {
-                if( pPerFrameConstantBuffer== nullptr )
+                if( pPerFrameConstantBuffer == nullptr )
                 {
                     RenderSystem::SCreateBufferDesc BuffDesc;
                     BuffDesc.Create.flags       = Core::CreateResourceFlags::DEFAULT;
                     BuffDesc.Buffer.usage       = RenderSystem::BufferUsages::CONSTANT_BUFFER;
                     BuffDesc.Buffer.memoryUsage = RenderSystem::MemoryUsages::GPU_ACCESS;
-                    //BuffDesc.Buffer.size        = sizeof( SPerFrameShaderData );
-                    BuffDesc.Buffer.vRegions    = { RenderSystem::SBufferRegion( sizeof( SPerFrameShaderData ), 1 ) };
-                    hBuff                       = pDevice->CreateBuffer( BuffDesc );
-                    pPerFrameConstantBuffer     = pDevice->GetBuffer( hBuff );
+                    // BuffDesc.Buffer.size        = sizeof( SPerFrameShaderData );
+                    BuffDesc.Buffer.vRegions = { RenderSystem::SBufferRegion( sizeof( SPerFrameShaderData ), 1 ) };
+                    hBuff                    = pDevice->CreateBuffer( BuffDesc );
+                    pPerFrameConstantBuffer  = pDevice->GetBuffer( hBuff );
                 }
                 RenderSystem::SCreateBindingDesc BindingDesc;
                 BindingDesc.AddConstantBuffer( 0, RenderSystem::PipelineStages::VERTEX, 1u );
@@ -1167,7 +1163,7 @@ namespace VKE
                 RenderSystem::SUpdateBindingsHelper UpdateHelper;
                 hBuff = pPerFrameConstantBuffer->GetHandle();
                 UpdateHelper.AddBinding( 0u,
-                                         pPerFrameConstantBuffer->GetRegion(0),
+                                         pPerFrameConstantBuffer->GetRegion( 0 ),
                                          hBuff,
                                          RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 pDevice->UpdateDescriptorSet( UpdateHelper, &hPerFrameDescSet );
@@ -1371,13 +1367,13 @@ namespace VKE
                         pCtx->UpdateBuffer( pCmdBuffer, UpdateInfo, &CB.pStorageBuffer );
                     }
                 }
-                Curr.UpdateBufferMask.Set( static_cast<uint16_t>( 0u ) );
+                Curr.UpdateBufferMask.Set( static_cast< uint16_t >( 0u ) );
             }
         }
 
         void CScene::SDebugView::UploadBatchData( RenderSystem::CommandBufferPtr pCmdBuffer, const CCamera* pCamera )
         {
-            VKE_ASSERT2( pPerFrameConstantBuffer!= nullptr, "" );
+            VKE_ASSERT2( pPerFrameConstantBuffer != nullptr, "" );
             SPerFrameShaderData Data;
             Data.mtxViewProj = pCamera->GetViewProjectionMatrix();
 
@@ -1413,14 +1409,14 @@ namespace VKE
                         }
                     }
                     auto& Batch = aBatches[ BatchTypes::AABB ];
-                    if( Batch.pPipeline== nullptr || needNewPipeline )
+                    if( Batch.pPipeline == nullptr || needNewPipeline )
                     {
                         BatchPipelineTemplate.Pipeline.hRHIRenderPass = CurrState.RenderPass.hNativeRenderPass;
                         Batch.pPipeline =
                             pCmdBuff->GetContext()->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
                     }
 
-                    if( Batch.pPipeline!= nullptr && Batch.pPipeline->IsResourceReady() )
+                    if( Batch.pPipeline != nullptr && Batch.pPipeline->IsResourceReady() )
                     {
                         pCmdBuff->Bind( Batch.pPipeline );
                         const uint32_t descSetOffset = 0;
@@ -1482,7 +1478,7 @@ namespace VKE
                                 RenderSystem::SPipelineLayoutDesc LayoutDesc;
                                 LayoutDesc.vDescriptorSetLayouts = { pDevCtx->GetDescriptorSetLayout( hDescSet ) };
                                 const auto& pLayout              = pDevCtx->CreatePipelineLayout( LayoutDesc );
-                                if( pLayout!= nullptr )
+                                if( pLayout != nullptr )
                                 {
                                     InstancingPipelineTemplate.Pipeline.hLayout = pLayout->GetHandle();
                                 }
@@ -1495,7 +1491,7 @@ namespace VKE
                             pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
                         }
 
-                        if( pPipeline!= nullptr && pPipeline->IsResourceReady() )
+                        if( pPipeline != nullptr && pPipeline->IsResourceReady() )
                         {
                             pCmdBuff->Bind( pPipeline );
 

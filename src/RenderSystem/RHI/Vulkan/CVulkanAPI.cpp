@@ -12,7 +12,7 @@
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ShaderLang.h>
 
-#include "RenderSystem/RHI/Vulkan/CDDITypes.h"
+#include "RenderSystem/RHI/Vulkan/VulkanRHITypes.h"
 
 namespace VKE
 {
