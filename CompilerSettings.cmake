@@ -56,11 +56,15 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(CLANG)
-	add_definitions("-DVKE_COMPILER_CLANG=1")
 
-	if(VKE_DEBUG_INFO)
-		add_definitions("-g")
+if(CLANG OR GCC)
+
+	if(CLANG)
+		add_definitions("-DVKE_COMPILER_CLANG=1")
+	elseif(MINGW)
+		add_definitions("-DVKE_COMPILER_MINGW=1")
+	else()
+		add_definitions("-DVKE_COMPILER_GCC=1")
 	endif()
 
 	if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
@@ -74,13 +78,15 @@ if(CLANG)
 		add_definitions("/wd4100") # unreferenced formal parameter
 		add_definitions("/wd4505") # unreferenced local function has been removed
 		add_definitions("/wd4221") # This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
-
 	else()
 		# GNU-style clang driver
 		add_definitions("-Wall") # Covers /W4
 		add_definitions("-Wextra") # Covers /W4
 		add_definitions("-Wfatal-errors") # Any warning/error/notice treat as fatal (fatal stops compilation)
+	endif()
 
+	if(VKE_DEBUG_INFO)
+		add_definitions("-g")
 	endif()
 
 	# ignore warnings to match MSVC ignore by default
@@ -88,45 +94,24 @@ if(CLANG)
 	add_definitions("-Wno-unused-variable")
 	add_definitions("-Wno-unused-parameter")
 	add_definitions("-Wno-unused-but-set-variable")
-	add_definitions("-Wno-ignored-reference-qualifiers")
-	add_definitions("-Wno-tautological-undefined-compare")
-	add_definitions("-Wno-unused-template")
-	add_definitions("-Wno-pessimizing-move")
-	add_definitions("-Wno-microsoft-unqualified-friend")
-	add_definitions("-Wno-nonportable-include-path")
-	add_definitions("-Wno-tautological-constant-out-of-range-compare")
-	add_definitions("-Wno-deprecated-copy-with-user-provided-copy")
-	add_definitions("-Wno-extern-c-compat")
-	add_definitions("-Wno-missing-braces")
-	add_definitions("-Wno-unused-lambda-capture")
-	add_definitions("-Wno-logical-not-parentheses")
-	add_definitions("-Wno-missing-field-initializers")
-	add_definitions("-Wno-switch")
-	add_definitions("-Wno-unused-local-typedef")
-	add_definitions("-Wno-self-assign")
-	add_definitions("-Wno-tautological-overlap-compare")
-	add_definitions("-Wno-braced-scalar-init")
-
-elseif(GCC)
-	if(MINGW)
-		add_definitions("-DVKE_COMPILER_MINGW=1")
-	else()
-		add_definitions("-DVKE_COMPILER_GCC=1")
-	endif()
 	
-	add_definitions("-Wall") # Covers /W4
-	add_definitions("-Wextra") # Covers /W4
-	add_definitions("-Wfatal-errors") # Any warning/error/notice treat as fatal (fatal stops compilation)
+	add_definitions("-Wno-switch")                     # When switch(myEnumType) doesn't cover all ENUM values in 'case' or use 'default'.
+	add_definitions("-Wno-missing-field-initializers") # Ignore incomplete initializers eg.: struct foo { int a, int b, int c }, foo x = { 1, 2 } // no c;
+	add_definitions("-Wno-unused-local-typedefs")      # Defined but never used typedefs
 
-	if(VKE_DEBUG_INFO)
-		add_definitions("-g")
+	if(CLANG)
+		# Clang (GCC frontend) specific flags to match GCC and MinGW
+		add_definitions("-Wno-ignored-reference-qualifiers")               # Excessive const (when 'const' keyword has no effect)
+		add_definitions("-Wno-tautological-undefined-compare")             # Logical: obvious conditions (this != nullptr, true == true)
+		add_definitions("-Wno-tautological-constant-out-of-range-compare") # Logical: conditions that never reach, eg.: UINT32_MAX > UINT8_MAX
+		add_definitions("-Wno-unused-template")                            # Defined template function, never used
+		add_definitions("-Wno-unused-lambda-capture")                      # Defined lambda, never used
+		add_definitions("-Wno-pessimizing-move")                           # Moving a temporary object prevents copy elision
+		add_definitions("-Wno-microsoft-unqualified-friend")               # Unqualified friend declaration referring to type outside of the nearest enclosing namespace is a Microsoft extension
+		add_definitions("-Wno-deprecated-copy-with-user-provided-copy")    # Overloaded operator= on class/struct with copy constructor
+		add_definitions("-Wno-extern-c-compat")                            # Empty struct has size 0 in C, size 1 in C++
+		add_definitions("-Wno-missing-braces")                             # Allows myVec3D = { 0, 0, 0 } instead of myVec3D = Vector3D{ 0, 0, 0 }
 	endif()
-
-	# ignore warnings
-	add_definitions("-Wno-unused-function")
-	add_definitions("-Wno-unused-variable")
-	add_definitions("-Wno-unused-parameter")
-	add_definitions("-Wno-unused-but-set-variable")
 
 elseif(MSVC)
 	add_definitions(-DVKE_COMPILER_VISUAL_STUDIO=1)

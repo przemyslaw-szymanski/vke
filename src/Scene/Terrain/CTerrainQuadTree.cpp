@@ -165,9 +165,9 @@ namespace VKE
 
         void LoadVec3( const Math::CVector4& V, Math::CVector4 aOut[ 3 ] )
         {
-            aOut[ 0 ] = { V.x };
-            aOut[ 1 ] = { V.z };
-            aOut[ 2 ] = { V.y };
+            aOut[ 0 ] = V.x;
+            aOut[ 1 ] = V.z;
+            aOut[ 2 ] = V.y;
         }
 
 #define VKE_LOAD_VEC4_XZY( _vec4 )                                                                                     \
@@ -1216,7 +1216,7 @@ namespace VKE
                                            const ExtentF32& TopLeftCorner )
         {
             auto& Parent = m_vNodes[ hParent.index ];
-            if( Parent.hParent.index != UNDEFINED_U32 )
+            if( Parent.hParent.index != UNodeHandle::MAX_NODE_INDEX )
             {
                 _NotifyLOD( Parent.hParent, hNode, TopLeftCorner );
             }

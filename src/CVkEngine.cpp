@@ -126,7 +126,6 @@ namespace VKE
     }
     void CVkEngine::GetEngineLimits( SEngineLimits* pLimitsOut )
     {
-        pLimitsOut = pLimitsOut;
     }
     Result CVkEngine::Init( const SEngineInfo& Info )
     {

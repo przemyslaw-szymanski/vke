@@ -95,7 +95,7 @@ namespace VKE
 
             RESOURCE_STAGES       stages = ResourceStages::FULL_LOAD;
             CREATE_RESOURCE_FLAGS flags  = CreateResourceFlags::DEFAULT;
-            CallbackFunc          OnCreate;
+            CallbackFunc          OnCreate = nullptr;
         };
 
         struct SLoadFileInfo

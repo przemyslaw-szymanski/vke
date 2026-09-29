@@ -78,7 +78,7 @@ namespace VKE
                 // Below 1.0 acceptable values are 0.125, 0.25, 0.5
                 // because next LODs must go to 1, 2, 4, 8 etc values to be
                 // power of 2
-                if( Desc.vertexDistance != 0.125f || Desc.vertexDistance != 0.25f || Desc.vertexDistance != 0.5f )
+                if( Desc.vertexDistance != 0.125f && Desc.vertexDistance != 0.25f && Desc.vertexDistance != 0.5f )
                 {
                     ret = false;
                 }

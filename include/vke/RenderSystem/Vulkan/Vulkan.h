@@ -34,7 +34,7 @@ extern "C"
 #define VKE_DECLARE_GLOBAL_ICD 1
 #define VKE_DECLARE_INSTANCE_ICD 1
 #define VKE_DECLARE_DEVICE_ICD 1
-#include "RenderSystem/vulkan/VKEICD.h"
+#include "RenderSystem/Vulkan/VKEICD.h"
 #undef VKE_DEVICE_ICD
 #undef VKE_DEVICE_EXT_ICD
 #undef VKE_DEVICE_KHR_ICD

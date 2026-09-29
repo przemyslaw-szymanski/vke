@@ -111,6 +111,8 @@ namespace VKE::RenderSystem
 
         bool IsColorImage( VkFormat format )
         {
+            bool isColorImage;
+
             switch( format )
             {
                 case VK_FORMAT_UNDEFINED:
@@ -121,13 +123,22 @@ namespace VKE::RenderSystem
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_X8_D24_UNORM_PACK32:
                 case VK_FORMAT_S8_UINT:
-                    return false;
+                    isColorImage = false;
+                    break;
+
+                default:
+                    isColorImage = true;
+                    break;
+
             }
-            return true;
+
+            return isColorImage;
         }
 
         bool IsDepthImage( VkFormat format )
         {
+            bool isDepthImage;
+
             switch( format )
             {
                 case VK_FORMAT_D16_UNORM:
@@ -137,22 +148,36 @@ namespace VKE::RenderSystem
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_X8_D24_UNORM_PACK32:
                 case VK_FORMAT_S8_UINT:
-                    return true;
+                    isDepthImage = true;
+                    break;
+
+                default:
+                    isDepthImage = false;
+                    break;
             }
-            return false;
+            
+            return isDepthImage;
         }
 
         bool IsStencilImage( VkFormat format )
         {
+            bool isStencilImage;
+
             switch( format )
             {
                 case VK_FORMAT_D16_UNORM_S8_UINT:
                 case VK_FORMAT_D24_UNORM_S8_UINT:
                 case VK_FORMAT_D32_SFLOAT_S8_UINT:
                 case VK_FORMAT_S8_UINT:
-                    return true;
+                    isStencilImage = true;
+                    break;
+
+                default:
+                    isStencilImage = false;
+                    break;
             }
-            return false;
+
+            return isStencilImage;
         }
 
 #define VKE_EXPORT_FUNC( _name, _handle, _getProcAddr )                                                                \

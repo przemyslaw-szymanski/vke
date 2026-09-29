@@ -124,7 +124,7 @@
 #define VKE_DELETE( _ptr ) VKE_CODE( delete( _ptr ); ( _ptr ) = nullptr; )
 #define VKE_DELETE_ARRAY( _ptr ) VKE_CODE( delete[]( _ptr ); ( _ptr ) = nullptr; )
 
-#define VKE_SUCCEEDED( _exp ) ( _exp ) == VKE::VKE_OK
+#define VKE_SUCCEEDED( _exp ) ( ( _exp ) == VKE::VKE_OK )
 #define VKE_FAILED( _exp ) ( ( _exp ) >= VKE::VKE_FAIL )
 #define VKE_RETURN_IF_FAILED( _exp ) VKE_CODE( Result err = ( _exp ); if( VKE_FAILED( err ) ) { return err; } )
 
