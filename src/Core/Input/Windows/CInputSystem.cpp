@@ -26,11 +26,12 @@ namespace VKE
 
         struct SRawInputData
         {
-            using RawBuffer = Utils::TCDynamicArray< uint8_t, 1024 >;
+            // Changed from uint8_t, 1024. GCC on x64 compiles this aligned to 1B but spec requires RAWINPUT alignment to 8B.
+            using RawBuffer = Utils::TCDynamicArray< uint64_t, 128 >;
 
-            ::PRAWINPUT pRawInput    = nullptr;
+            ::PRAWINPUT pRawInput = nullptr;
             uint32_t    rawInputSize = 0;
-            RawBuffer   vBuffer;
+            RawBuffer vBuffer;
         };
 
         static SRawInputData g_sRAwInputData;
@@ -66,7 +67,7 @@ namespace VKE
                 res = ::GetRawInputDeviceList( &vDevices[ 0 ], &count, sizeof( ::RAWINPUTDEVICELIST ) );
                 if( res != ( (UINT)-1 ) )
                 {
-                    count                 = res;
+                    count = res;
                     ::RID_DEVICE_INFO Rdi;
                     Rdi.cbSize = sizeof( ::RID_DEVICE_INFO );
 
@@ -232,15 +233,28 @@ namespace VKE
                 uint32_t            size         = 0;
                 static const size_t scHeaderSize = sizeof( ::RAWINPUTHEADER );
                 auto                res          = ::GetRawInputBuffer( nullptr, &size, scHeaderSize );
-                if( res == 0 )
+                if( res == 0 && size > 0 )
                 {
                     SRawInputData* pData = reinterpret_cast< SRawInputData* >( m_pData );
                     pData->rawInputSize  = size * 16;
                     size                 = pData->rawInputSize;
-                    pData->vBuffer.Resize( pData->rawInputSize );
+                    pData->vBuffer.Resize( ( pData->rawInputSize + sizeof( uint64_t ) - 1 ) / sizeof( uint64_t ) );
                     ::RAWINPUT* pRawInput = reinterpret_cast< ::RAWINPUT* >( pData->vBuffer.GetData() );
                     auto        count     = ::GetRawInputBuffer( pRawInput, &size, scHeaderSize );
-                    if( count != ( (UINT)-1 ) && count > 0 )
+                    if( count == ( (UINT)-1 ) )
+                    {
+                        const auto errorMessageID      = ::GetLastError();
+                        char       errorMessage[ 512 ] = {};
+                        ::FormatMessageA( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                                          nullptr,
+                                          errorMessageID,
+                                          MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
+                                          errorMessage,
+                                          sizeof( errorMessage ),
+                                          nullptr );
+                        VKE_LOG_ERR( "GetRawInputBuffer() returned " << errorMessageID << ": " << errorMessage );
+                    }
+                    else if( count > 0 )
                     {
                         ::PRAWINPUT pCurr = pRawInput;
                         for( uint32_t i = 0; i < count; ++i )
@@ -260,6 +274,9 @@ namespace VKE
                         }
                         ::DefRawInputProc( &pRawInput, count, scHeaderSize );
                     }
+                    else
+                    {
+                    }
                 }
             }
         }
@@ -274,7 +291,7 @@ namespace VKE
             if( res == 0 )
             {
                 SRawInputData* pData = reinterpret_cast< SRawInputData* >( m_pData );
-                pData->vBuffer.Resize( size );
+                pData->vBuffer.Resize( ( size + sizeof( uint64_t ) - 1 ) / sizeof( uint64_t ) );
                 res = ::GetRawInputData( (::HRAWINPUT)lParam, RID_INPUT, &pData->vBuffer[ 0 ], &size, scHeaderSize );
                 if( res == size )
                 {

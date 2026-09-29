@@ -135,7 +135,7 @@
 #define VKE_FILE __FILE__
 #if VKE_COMPILER_VISUAL_STUDIO
 #define VKE_FUNCTION __FUNCTION__
-#elif VKE_COMPILER_GCC
+#elif VKE_COMPILER_GCC || VKE_COMPILER_MINGW
 #define VKE_FUNCTION __func__
 #else
 #define VKE_FUNCTION "unknown"
