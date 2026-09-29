@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Core/VKECommon.h"
-// #include "RenderSystem/Vulkan/Common.h"
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "RenderSystem/Resources/CTexture.h"
 
@@ -30,18 +29,18 @@ namespace VKE
         {
             struct SAcquireElement
             {
-                RHI::Texture     hDDITexture     = RHI::Null;
-                RHI::TextureView hDDITextureView = RHI::Null;
+                RHI::Texture     hRHITexture     = RHI::Null;
+                RHI::TextureView hRHITextureView = RHI::Null;
                 TEXTURE_STATE    currentState    = TextureStates::UNDEFINED;
                 TEXTURE_STATE    oldState        = TextureStates::UNDEFINED;
-                RHI::Framebuffer hDDIFramebuffer = RHI::Null;
+                RHI::Framebuffer hRHIFramebuffer = RHI::Null;
             };
 
             Threads::SyncObject SyncObj;
             SAcquireElement*    pAcquiredElement               = nullptr;
-            RHI::GPUFence       hDDIPresentImageReadySemaphore = RHI::Null;
-            RHI::GPUFence       hDDIQueueFinishedSemaphore     = RHI::Null;
-            RHI::CPUFence       hDDIPresentImageReadyFence     = RHI::Null;
+            RHI::GPUFence       hRHIPresentImageReadySemaphore = RHI::Null;
+            RHI::GPUFence       hRHIQueueFinishedSemaphore     = RHI::Null;
+            RHI::CPUFence       hRHIPresentImageReadyFence     = RHI::Null;
             RenderTargetHandle  hRenderTarget                  = INVALID_HANDLE;
             uint32_t            ddiBackBufferIdx               = 0;
             bool                presentDone                    = true;
@@ -149,9 +148,9 @@ namespace VKE
             }
 
             // RenderTargetHandle GetRenderTarget() const { return m_pCurrAcquireElement->hRenderTarget; }
-            const RHI::RenderPass& GetDDIRenderPass() const
+            const RHI::RenderPass& GetRHIRenderPass() const
             {
-                return m_DDISwapChain.hDDIRenderPass;
+                return m_RHISwapChain.hRHIRenderPass;
             }
 
             CGraphicsContext* GetGraphicsContext() const
@@ -171,9 +170,9 @@ namespace VKE
                 return m_pCurrBackBuffer->hRenderTarget;
             }
 
-            const RHI::SwapChain& GetDDIObject() const
+            const RHI::SwapChain& GetRHIObject() const
             {
-                return m_DDISwapChain.hSwapChain;
+                return m_RHISwapChain.hSwapChain;
             }
 
             bool NeedRecreate() const
@@ -207,7 +206,7 @@ namespace VKE
 
         protected:
             SSwapChainDesc    m_Desc;
-            SDDISwapChainDesc m_DDIDesc;
+            SRHISwapChainDesc m_RHIDesc;
             AcquireElementVec m_vAcquireElements;
             BackBufferVec     m_vBackBuffers;
             SSwapChainBuffer  m_aSwapChainBuffers[ Config::RenderSystem::SwapChain::MAX_BACK_BUFFER_COUNT ];
@@ -222,11 +221,11 @@ namespace VKE
             RenderSystem::SBackBuffer* m_pCurrBackBuffer = nullptr;
             CGraphicsContext*          m_pCtx            = nullptr;
             Threads::SyncObject        m_SyncObj;
-            SDDISwapChain              m_DDISwapChain;
+            SRHISwapChain              m_RHISwapChain;
             SViewportDesc              m_CurrViewport;
             SScissorDesc               m_CurrScissor;
             // SPresentSurfaceCaps         m_PresentSurfaceCaps;
-            // RHI::RenderPass               m_hDDIRenderPass;
+            // RHI::RenderPass               m_hRHIRenderPass;
             std::atomic< uint32_t > m_acquireCount = 0;
             // uint32_t                    m_currBackBufferIdx = 0;
             bool m_needPresent  = false;

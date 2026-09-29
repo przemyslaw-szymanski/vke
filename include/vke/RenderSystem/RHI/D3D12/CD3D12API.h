@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/TCRHI.h"
+#include "RenderSystem/RHI/TCRHI.h"
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Memory/CMemoryPoolManager.h"
 
@@ -30,7 +30,7 @@ namespace VKE::RenderSystem::D3D12
     private:
         // Static methods
         static Result QueryAdaptersImpl( AdapterInfoArray* pOut );
-        static Result LoadImpl( const SDDILoadInfo& Info, SDriverInfo* pOut );
+        static Result LoadImpl( const SRHILoadInfo& Info, SDriverInfo* pOut );
 
         // Object methods
         Result CreateDeviceImpl( const SCreateDeviceDesc& Info, CDeviceContext* pCtx );
@@ -87,8 +87,8 @@ namespace VKE::RenderSystem::D3D12
         void   FreeObjectsImpl( const FreeDescs::SDescSet& );
         void   UpdateImpl( const SUpdateBufferDescriptorSetInfo& Info );
         void   UpdateImpl( const SUpdateTextureDescriptorSetInfo& Info );
-        void   UpdateImpl( const RHI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info );
-        void   UpdateImpl( const RHI::DescriptorSet& hDDISrcSet, RHI::DescriptorSet* phDDIDstOut );
+        void   UpdateImpl( const RHI::DescriptorSet& hRHISet, const SUpdateBindingsHelper& Info );
+        void   UpdateImpl( const RHI::DescriptorSet& hRHISrcSet, RHI::DescriptorSet* phRHIDstOut );
 
         Result CreateCommandBuffersImpl( const SAllocateCommandBufferInfo& Info, RHI::CommandBuffer* pBuffers );
         void   FreeObjectsImpl( const SFreeCommandBufferInfo& );
@@ -100,9 +100,9 @@ namespace VKE::RenderSystem::D3D12
         void GetFormatFeaturesImpl( FORMAT fmt, STextureFormatFeatures* pOut ) const;
 
         void BindImpl( const SBindPipelineInfo& Info );
-        void BindImpl( const SBindDDIDescriptorSetsInfo& Info );
+        void BindImpl( const SBindRHIDescriptorSetsInfo& Info );
         void BindImpl( const SBindVertexBufferInfo& Info );
-        void BindImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer, const uint32_t offset,
+        void BindImpl( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Buffer& hRHIBuffer, const uint32_t offset,
                        const INDEX_TYPE& type );
         void UnbindPipelineImpl( const RHI::CommandBuffer&, const RHI::Pipeline& );
         void UnbindRenderPassImpl( const RHI::CommandBuffer&, const RHI::RenderPass& );
@@ -139,35 +139,35 @@ namespace VKE::RenderSystem::D3D12
         void EndRenderPassImpl( RHI::CommandBuffer, RHI::RenderPass );
 
         // Copy
-        void CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info );
+        void CopyImpl( const RHI::CommandBuffer& hRHICmdBuffer, const SCopyTextureInfoEx& Info );
         void CopyImpl( const RHI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info );
-        void CopyImpl( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info );
+        void CopyImpl( const RHI::CommandBuffer& hRHICmdBuffer, const SCopyBufferToTextureInfo& Info );
         void BlitImpl( const RHI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info );
 
         // Events
-        void SetEventImpl( const RHI::Event& hDDIEvent );
-        void SetEventImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
+        void SetEventImpl( const RHI::Event& hRHIEvent );
+        void SetEventImpl( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Event& hRHIEvent,
                            const PIPELINE_STAGES& stages );
-        void ResetImpl( const RHI::Event& hDDIInOut );
-        void ResetImpl( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Event& hDDIEvent,
+        void ResetImpl( const RHI::Event& hRHIInOut );
+        void ResetImpl( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Event& hRHIEvent,
                         const PIPELINE_STAGES& stages );
-        bool IsSetImpl( const RHI::Event& hDDIEvent );
+        bool IsSetImpl( const RHI::Event& hRHIEvent );
 
         Result SubmitImpl( const SSubmitInfo& Info );
         Result PresentImpl( const SPresentData& Info );
 
-        Result CreateSwapChainImpl( const SSwapChainDesc& Desc, const void*, SDDISwapChain* pInOut );
-        void   DestroySwapChainImpl( SDDISwapChain* pInOut, const void* = nullptr );
-        Result ReCreateSwapChainImpl( const SSwapChainDesc& Desc, SDDISwapChain* pOut );
+        Result CreateSwapChainImpl( const SSwapChainDesc& Desc, const void*, SRHISwapChain* pInOut );
+        void   DestroySwapChainImpl( SRHISwapChain* pInOut, const void* = nullptr );
+        Result ReCreateSwapChainImpl( const SSwapChainDesc& Desc, SRHISwapChain* pOut );
         Result QueryPresentSurfaceCapsImpl( const RHI::PresentSurface& hSurface, SPresentSurfaceCaps* pOut );
-        Result GetCurrentBackBufferIndexImpl( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
+        Result GetCurrentBackBufferIndexImpl( const SRHISwapChain& SwapChain, const SRHIGetBackBufferInfo& Info,
                                               uint32_t* pOut );
 
         // static void Convert( const SClearValue& In, RHI::ClearValue* pOut );
 
         // Debug
-        void BeginDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo );
-        void EndDebugInfoImpl( const RHI::CommandBuffer& hDDICmdBuff );
+        void BeginDebugInfoImpl( const RHI::CommandBuffer& hRHICmdBuff, const SDebugInfo* pInfo );
+        void EndDebugInfoImpl( const RHI::CommandBuffer& hRHICmdBuff );
         void SetObjectDebugNameImpl( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const;
         void SetQueueDebugNameImpl( uint64_t, cstr_t ) const;
 

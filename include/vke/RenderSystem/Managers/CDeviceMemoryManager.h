@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Memory/CMemoryPoolManager.h"
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 
 namespace VKE
 {

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/CPipeline.h"
 
 namespace VKE
@@ -75,14 +75,14 @@ namespace VKE
             friend class CContextBase;
 
             VKE_DECL_OBJECT_TS_REF_COUNT( 1 );
-            VKE_ADD_DDI_OBJECT( RHI::CommandBuffer );
+            VKE_ADD_RHI_OBJECT( RHI::CommandBuffer );
 
             using States = CommandBufferStates;
 
         public:
             using DescSetArray      = Utils::TCDynamicArray< DescriptorSetHandle >;
-            using DDIDescSetArray   = Utils::TCDynamicArray< RHI::DescriptorSet >;
-            using DDISemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
+            using RHIDescSetArray   = Utils::TCDynamicArray< RHI::DescriptorSet >;
+            using RHISemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
             using UintArray         = Utils::TCDynamicArray< uint32_t >;
             using HandleArray       = Utils::TCDynamicArray< handle_t >;
             using BoolPtrVec        = Utils::TCDynamicArray< bool* >;
@@ -102,10 +102,7 @@ namespace VKE
             }
 
             bool IsExecuted();
-            void AddWaitOnSemaphore( const RHI::GPUFence& hDDISemaphore );
-
-            // RenderPassRefPtr        GetCurrentRenderPass() const { return m_pCurrentRenderPass; }
-            // const RHI::RenderPass&    GetCurrentDDIRenderPass() const { return m_hDDICurrentRenderPass; }
+            void AddWaitOnSemaphore( const RHI::GPUFence& hRHISemaphore );
 
             void   Begin();
             Result End();
@@ -192,7 +189,7 @@ namespace VKE
             void Bind( VertexBufferPtr pBuffer, const uint32_t offset = 0 );
             void Bind( const VertexBufferHandle& hBuffer, const uint32_t offset = 0 );
             void Bind( const IndexBufferHandle& hBuffer, const uint32_t offset = 0 );
-            //void Bind( const SDDISwapChain& SwapChain );
+            
             void Bind( CSwapChain* );
             void Bind( PipelinePtr pPipeline );
             void Bind( const DescriptorSetHandle& hSet, const uint32_t offset );
@@ -205,7 +202,7 @@ namespace VKE
 
             void Bind( const uint32_t index, const DescriptorSetHandle& hDescSet, const uint32_t* pOffsets,
                        const uint16_t& offsetCount );
-            void Bind( const SBindDDIDescriptorSetsInfo& Info );
+            void Bind( const SBindRHIDescriptorSetsInfo& Info );
             // State
             void SetState( const SPipelineDesc::SDepthStencil& DepthStencil );
             void SetState( const SPipelineDesc::SRasterization& Rasterization );
@@ -233,9 +230,9 @@ namespace VKE
             void Blit( const SBlitTextureInfo& Info );
             void GenerateMipmaps( TexturePtr );
 
-            void SetEvent( const RHI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
+            void SetEvent( const RHI::Event& hRHIEvent, const PIPELINE_STAGES& stages );
             void SetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
-            void ResetEvent( const RHI::Event& hDDIEvent, const PIPELINE_STAGES& stages );
+            void ResetEvent( const RHI::Event& hRHIEvent, const PIPELINE_STAGES& stages );
             void ResetEvent( const EventHandle& hEvent, const PIPELINE_STAGES& stages );
 
             // Debug
@@ -297,7 +294,7 @@ namespace VKE
 #if VKE_RENDER_SYSTEM_DEBUG
                 for( uint32_t i = 0; i < m_vDebugMarkerTexts.GetCount(); ++i )
                 {
-                    VKE_LOG( this << "(" << this->GetDDIObject() << "): " << m_vDebugMarkerTexts[ i ] );
+                    VKE_LOG( this << "(" << this->GetRHIObject() << "): " << m_vDebugMarkerTexts[ i ] );
                 }
                 m_vDebugMarkerTexts.Clear();
 #endif
@@ -336,9 +333,6 @@ namespace VKE
             Result _UpdateCurrentPipeline();
             Result _UpdateCurrentRenderPass();
 
-            // void    _SetCPUSyncObject(const RHI::CPUFence& hDDIFence) { m_hDDIFence = hDDIFence; }
-            // void    _SetGPUSyncObject(RHI::GPUFence hApi) { m_hApiGPUSyncObject = hApi; }
-
             /// <summary>
             /// Command buffer manager notifies CommandBuffer that is was executed.
             /// </summary>
@@ -352,7 +346,7 @@ namespace VKE
 
             const RHI::CommandBufferPool& getNativeCmdBufferPool() const
             {
-                return m_hDDICmdBufferPool;
+                return m_hRHICmdBufferPool;
             }
 
         protected:
@@ -362,10 +356,10 @@ namespace VKE
             // CResourceBarrierManager     m_BarrierMgr;
             SBarrierInfo      m_BarrierInfo;
             DescSetArray      m_vBindings;
-            DDIDescSetArray   m_vDDIBindings;
+            RHIDescSetArray   m_vRHIBindings;
             UintArray         m_vBindingOffsets;
             DescSetArray      m_vUsedSets;
-            DDISemaphoreArray m_vDDIWaitOnSemaphores;
+            RHISemaphoreArray m_vRHIWaitOnSemaphores;
             HandleArray       m_vStagingBufferAllocations;
             BufferPtrArray    m_vpBuffers;
             TexturePtrArray   m_vpTextures;
@@ -380,23 +374,17 @@ namespace VKE
             SPipelineCreateDesc       m_CurrentPipelineDesc;
             SPipelineLayoutDesc       m_CurrentPipelineLayoutDesc;
             PipelineLayoutRefPtr      m_pCurrentPipelineLayout;
-            RHI::PipelineLayout m_hDDILastUsedLayout = RHI::Null;
+            RHI::PipelineLayout m_hRHILastUsedLayout = RHI::Null;
             SRenderPassDesc           m_CurrentRenderPassDesc;
 #endif
             SCommandBufferState m_CurrentState;
-            // PipelineRefPtr              m_pCurrentPipeline;
-            // RenderPassHandle            m_hCurrentdRenderPass = INVALID_HANDLE;
-            // RenderPassRefPtr            m_pCurrentRenderPass;
-            // RHI::RenderPass               m_hDDICurrentRenderPass = RHI::Null;
             RHI::CPUFence          m_hApiCpuFence      = RHI::Null;
             RHI::GPUFence          m_hApiGpuFence      = RHI::Null;
-            RHI::CommandBufferPool m_hDDICmdBufferPool = RHI::Null;
+            RHI::CommandBufferPool m_hRHICmdBufferPool = RHI::Null;
             void*                        m_pExecuteBatch     = nullptr;
             uint32_t                     m_currViewportHash  = 0;
             uint32_t                     m_currScissorHash   = 0;
             handle_t                     m_hStagingBuffer    = UNDEFINED_U64;
-            // SViewportDesc               m_CurrViewport;
-            // SScissorDesc                m_CurrScissor;
             EXECUTE_COMMAND_BUFFER_FLAGS m_executeFlags      = 0;
             uint32_t                     m_currBackBufferIdx = 0;
             uint32_t                     m_needNewPipeline : 1;

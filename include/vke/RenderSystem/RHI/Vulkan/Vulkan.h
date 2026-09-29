@@ -34,7 +34,7 @@ extern "C"
 #define VKE_DECLARE_GLOBAL_ICD 1
 #define VKE_DECLARE_INSTANCE_ICD 1
 #define VKE_DECLARE_DEVICE_ICD 1
-#include "RenderSystem/Vulkan/VKEICD.h"
+#include "RenderSystem/RHI/Vulkan/VKEICD.h"
 #undef VKE_DEVICE_ICD
 #undef VKE_DEVICE_EXT_ICD
 #undef VKE_DEVICE_KHR_ICD
@@ -49,7 +49,7 @@ extern "C"
 } // extern "C"
 #endif
 #include "RenderSystem/VKEImageFormats.h"
-#include "RenderSystem/Vulkan/vkFormatList.h"
+#include "RenderSystem/RHI/Vulkan/vkFormatList.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Common.h"
 

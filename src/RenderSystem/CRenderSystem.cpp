@@ -17,7 +17,7 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 
 #include "RenderSystem/Managers/CFrameGraphManager.h"
 #include "RenderSystem/CFrameGraph.h"
@@ -123,7 +123,7 @@ namespace VKE
         Result CRenderSystem::_InitAPI()
         {
             VKE_LOG_PROG( "VKEngine API initialization" );
-            SDDILoadInfo LoadInfo;
+            SRHILoadInfo LoadInfo;
             const auto&  EngineInfo = m_pEngine->GetInfo();
 
             LoadInfo.AppInfo.engineVersion      = EngineInfo.version;

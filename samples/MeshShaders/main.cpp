@@ -85,7 +85,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     Pipeline.hLayout = hPipelineLayout->GetHandle();
                     Pipeline.vColorRenderTargetFormats = vColorFormaats;
                     Pipeline.depthRenderTargetFormat = depthFormat;
-                    Pipeline.hDDIRenderPass = pRenderPass->GetRHIRenderPass();
+                    Pipeline.hRHIRenderPass = pRenderPass->GetRHIRenderPass();
                     Pipeline.SetDebugName( "SimpleMS" );
                     pPSO = pDevice->CreatePipeline( PipelineDesc );
                     return VKE::Threads::TaskResults::OK;

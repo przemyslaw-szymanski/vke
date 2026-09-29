@@ -212,7 +212,7 @@ namespace VKE
 
                 SSubmitInfo SubmitInfo;
                 SubmitInfo.commandBufferCount = 1;
-                SubmitInfo.pDDICommandBuffers = &pTransferCmdBuffer->GetDDIObject();
+                SubmitInfo.pRHICommandBuffers = &pTransferCmdBuffer->GetRHIObject();
                 SubmitInfo.signalFenceValue   = 1;
                 SubmitInfo.hSignalFence       = hFence;
                 pTransferCtx->Execute( SubmitInfo );
@@ -280,7 +280,7 @@ namespace VKE
                 StagingBufferInfo.dataSize      = Info.dataSize;
                 StagingBufferInfo.dstDataOffset = pOut->offset;
                 StagingBufferInfo.pData         = Info.pData;
-                StagingBufferInfo.hBuffer       = pOut->hDDIBuffer;
+                StagingBufferInfo.hBuffer       = pOut->hRHIBuffer;
                 StagingBufferInfo.hMemory       = pOut->hMemory;
 
                 auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
@@ -321,22 +321,22 @@ namespace VKE
                         StagingBufferInfo.dataSize      = Info.dataSize;
                         StagingBufferInfo.dstDataOffset = Data.offset;
                         StagingBufferInfo.pData         = Info.pData;
-                        StagingBufferInfo.hBuffer       = Data.hDDIBuffer;
+                        StagingBufferInfo.hBuffer       = Data.hRHIBuffer;
                         StagingBufferInfo.hMemory       = Data.hMemory;
                         if( VKE_SUCCEEDED( MemMgr.UpdateMemory( StagingBufferInfo ) ) )
                         {
                             // VKE_RENDER_SYSTEM_BEGIN_DEBUG_INFO( pCmdbuffer, Info );
-                            pCmdbuffer->BeginDebugInfo( Info.pDebugInfo );
+                            pCmdbuffer->BeginDebugInfo( Info.GetDebugInfo() );
                             {
                                 SCopyBufferInfo CopyInfo;
-                                CopyInfo.hDDISrcBuffer = Data.hDDIBuffer;
-                                // CopyInfo.hDDIDstBuffer = pDstBuffer->GetDDIObject();
+                                CopyInfo.hRHISrcBuffer = Data.hRHIBuffer;
+                                // CopyInfo.hRHIDstBuffer = pDstBuffer->GetRHIObject();
                                 CopyInfo.pDstBuffer             = pDstBuffer;
                                 CopyInfo.Region.size            = Info.dataSize;
                                 CopyInfo.Region.srcBufferOffset = Data.offset;
                                 CopyInfo.Region.dstBufferOffset = Info.dstDataOffset;
                                 SBufferBarrierInfo BarrierInfo;
-                                BarrierInfo.hDDIBuffer      = pDstBuffer->GetDDIObject();
+                                BarrierInfo.hRHIBuffer      = pDstBuffer->GetRHIObject();
                                 BarrierInfo.size            = CopyInfo.Region.size;
                                 BarrierInfo.offset          = Info.dstDataOffset;
                                 BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
@@ -396,7 +396,7 @@ namespace VKE
             StagingBufferInfo.dataSize      = maxSize;
             StagingBufferInfo.dstDataOffset = Data.offset;
             StagingBufferInfo.pData         = nullptr;
-            StagingBufferInfo.hBuffer       = Data.hDDIBuffer;
+            StagingBufferInfo.hBuffer       = Data.hRHIBuffer;
             StagingBufferInfo.hMemory       = Data.hMemory;
 
             auto& MemMgr = m_pCtx->_GetDeviceMemoryManager();
@@ -410,7 +410,7 @@ namespace VKE
                 Info.pDeviceMemory  = (uint8_t*)pMem;
                 Info.size           = Data.alignedSize;
                 Info.offset         = Data.offset;
-                Info.hDDIBuffer     = Data.hDDIBuffer;
+                Info.hRHIBuffer     = Data.hRHIBuffer;
                 Info.hMemory        = Data.hMemory;
                 ret                 = m_vUpdateBufferInfos.PushBack( Info );
             }
@@ -449,7 +449,7 @@ namespace VKE
             uint32_t sizeUsed = Math::Max( UnlockInfo.totalSize, Info.sizeUsed );
             m_pStagingBufferMgr->_UpdateBufferInfo( Info.hStagingBuffer, sizeUsed );
             SUpdateMemoryInfo UnmapInfo;
-            UnmapInfo.hBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
+            UnmapInfo.hBuffer = UnlockInfo.pDstBuffer->GetRHIObject();
             UnmapInfo.hMemory = Info.hMemory;
             auto& MemMgr      = m_pCtx->_GetDeviceMemoryManager();
             MemMgr.UnmapMemory( UnmapInfo );
@@ -458,16 +458,16 @@ namespace VKE
                 p = p;
             }*/
             VKE_ASSERT2( UnlockInfo.pDstBuffer != nullptr, "" );
-            const auto&     hDDIDstBuffer = UnlockInfo.pDstBuffer->GetDDIObject();
+            const auto&     hRHIDstBuffer = UnlockInfo.pDstBuffer->GetRHIObject();
             SCopyBufferInfo CopyInfo;
-            CopyInfo.hDDISrcBuffer = Info.hDDIBuffer;
-            // CopyInfo.hDDIDstBuffer = hDDIDstBuffer;
+            CopyInfo.hRHISrcBuffer = Info.hRHIBuffer;
+            // CopyInfo.hRHIDstBuffer = hRHIDstBuffer;
             CopyInfo.pDstBuffer             = UnlockInfo.pDstBuffer;
             CopyInfo.Region.size            = sizeUsed;
             CopyInfo.Region.srcBufferOffset = Info.offset;
             CopyInfo.Region.dstBufferOffset = UnlockInfo.dstBufferOffset;
             SBufferBarrierInfo BarrierInfo;
-            BarrierInfo.hDDIBuffer      = hDDIDstBuffer;
+            BarrierInfo.hRHIBuffer      = hRHIDstBuffer;
             BarrierInfo.size            = CopyInfo.Region.size;
             BarrierInfo.offset          = UnlockInfo.dstBufferOffset;
             BarrierInfo.srcMemoryAccess = MemoryAccessTypes::DATA_TRANSFER_READ;
@@ -492,8 +492,8 @@ namespace VKE
         void CBufferManager::_DestroyBuffer( CBuffer** ppInOut )
         {
             CBuffer* pBuffer = *ppInOut;
-            auto&    hDDIObj = pBuffer->m_hDDIObject;
-            m_pCtx->RHI().DestroyBuffer( &hDDIObj );
+            auto&    hRHIObj = pBuffer->m_hRHIObject;
+            m_pCtx->RHI().DestroyBuffer( &hRHIObj );
             pBuffer->_Destroy();
             if( pBuffer->m_pStagingBuffer != nullptr )
             {
@@ -532,7 +532,7 @@ namespace VKE
                 }
             }
 
-            if( pBuffer->GetDDIObject() == RHI::Null )
+            if( pBuffer->GetRHIObject() == RHI::Null )
             {
                 SAllocationMemoryRequirementInfo AllocationInfo;
                 if( VKE_SUCCEEDED( m_pCtx->RHI().GetBufferMemoryRequirements( pBuffer->m_Desc, &AllocationInfo ) ) )
@@ -554,14 +554,14 @@ namespace VKE
                     // pBuffer->m_Desc.size = AllocationInfo.size;
                     // pBuffer->m_alignment = (uint16_t)AllocationInfo.alignment;
 
-                    pBuffer->m_hDDIObject = m_pCtx->RHI().CreateBuffer( pBuffer->m_Desc, BindInfo );
+                    pBuffer->m_hRHIObject = m_pCtx->RHI().CreateBuffer( pBuffer->m_Desc, BindInfo );
 
-                    if( pBuffer->m_hDDIObject == RHI::Null )
+                    if( pBuffer->m_hRHIObject == RHI::Null )
                     {
-                        VKE_LOG_ERR( "Unable to create buffer DDI object: " << pBuffer->GetDesc().GetDebugName() );
+                        VKE_LOG_ERR( "Unable to create buffer RHI object: " << pBuffer->GetDesc().GetDebugName() );
                         goto ERR;
                     }
-                    VKE_LOG( "Created buffer: " << pBuffer->GetDesc().GetDebugName() << " " << pBuffer->m_hDDIObject );
+                    VKE_LOG( "Created buffer: " << pBuffer->GetDesc().GetDebugName() << " " << pBuffer->m_hRHIObject );
                     pBuffer->_AddResourceState( Core::ResourceStates::CREATED );
                 }
                 else

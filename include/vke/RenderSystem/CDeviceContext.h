@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/VKEPreprocessor.h"
-#include "RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Resources/CShader.h"
@@ -86,10 +86,10 @@ namespace VKE
             using GraphicsContextPool      = Utils::TSFreePool< CGraphicsContext* >;
             using QueueArray               = Utils::TCDynamicArray< CQueue >;
             using TransferContextArray     = Utils::TCDynamicArray< CTransferContext* >;
-            using DDISemaphoreQueue        = Utils::TCFifo< RHI::GPUFence >;
-            using DDISemaphoreArray        = Utils::TCDynamicArray< RHI::GPUFence >;
-            using DDIEventPool             = Utils::TSFreePool< RHI::Event >;
-            using DDISemaphoreBoolMap      = vke_hash_map< RHI::GPUFence, bool >;
+            using RHISemaphoreQueue        = Utils::TCFifo< RHI::GPUFence >;
+            using RHISemaphoreArray        = Utils::TCDynamicArray< RHI::GPUFence >;
+            using RHIEventPool             = Utils::TSFreePool< RHI::Event >;
+            using RHISemaphoreBoolMap      = vke_hash_map< RHI::GPUFence, bool >;
 
             // using QUEUE_TYPE = QueueTypes::TYPE;
 
@@ -188,7 +188,7 @@ namespace VKE
 
             RHI::Event GetEvent( const EventHandle& hEvent )
             {
-                return m_DDIEventPool[ static_cast< uint16_t >( hEvent.handle ) ];
+                return m_RHIEventPool[ static_cast< uint16_t >( hEvent.handle ) ];
             }
 
             void DestroyEvent( EventHandle* phEvent );
@@ -351,10 +351,10 @@ namespace VKE
             CCommandBuffer*      m_pCurrentCommandBuffer = nullptr;
             SDeviceInfo          m_DeviceInfo;
             Threads::SyncObject  m_SignaledSemaphoreSyncObj;
-            DDISemaphoreArray    m_vDDISignaledSemaphores[ QueueTypes::_MAX_COUNT ];
+            RHISemaphoreArray    m_vRHISignaledSemaphores[ QueueTypes::_MAX_COUNT ];
             Threads::SyncObject  m_EventSyncObj;
-            DDIEventPool         m_DDIEventPool;
-            DDISemaphoreBoolMap  m_mLockedGPUFences;
+            RHIEventPool         m_RHIEventPool;
+            RHISemaphoreBoolMap  m_mLockedGPUFences;
             CAPIResourceManager* m_pAPIResMgr  = nullptr;
             CShaderManager*      m_pShaderMgr  = nullptr;
             CBufferManager*      m_pBufferMgr  = nullptr;

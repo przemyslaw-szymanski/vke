@@ -11,7 +11,7 @@
 #include "RenderSystem/Managers/CSubmitManager.h"
 #include "RenderSystem/Managers/CPipelineManager.h"
 #include "RenderSystem/Tasks/GraphicsContext.h"
-#include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
+#include "RenderSystem/RHI/Vulkan/Wrappers/CCommandBuffer.h"
 
 namespace VKE
 {
@@ -137,8 +137,6 @@ namespace VKE
                 return /*m_BaseCtx.*/ m_backBufferIdx;
             }
 
-            // Result                  ExecuteCommandBuffers( RHI::GPUFence* phDDISignalSemaphore );
-
             void SetTextureState( CommandBufferPtr pCmdBuffer, CSwapChain* pSwapChain, const TEXTURE_STATE& state );
             // void                    SetTextureState( const TEXTURE_STATE& state, RenderTargetHandle* phRT ) {
             // CContextBase::SetTextureState( state, phRT ); } void                    SetTextureState( const
@@ -170,7 +168,7 @@ namespace VKE
         protected:
             SGraphicsContextDesc m_Desc;
             // CDeviceContext*             m_CommonCtx.pDeviceCtx = nullptr;
-            // CAPI&                       m_DDI;
+            // CAPI&                       m_RHI;
             // CContextBase                m_BaseCtx;
             CPipelineManager m_PipelineMgr;
             // CSubmitManager              m_SubmitMgr;

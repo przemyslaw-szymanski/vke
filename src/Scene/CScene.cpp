@@ -229,8 +229,8 @@ namespace VKE
 
             m_pConstantBufferCPU->Unmap();
             RenderSystem::SCopyBufferInfo CopyInfo;
-            CopyInfo.hDDISrcBuffer = m_pConstantBufferCPU->GetDDIObject();
-            // CopyInfo.hDDIDstBuffer = m_pConstantBufferGPU->GetDDIObject();
+            CopyInfo.hRHISrcBuffer = m_pConstantBufferCPU->GetRHIObject();
+            // CopyInfo.hRHIDstBuffer = m_pConstantBufferGPU->GetRHIObject();
             CopyInfo.pDstBuffer             = m_pConstantBufferGPU.Get();
             CopyInfo.Region.dstBufferOffset = 0;
             CopyInfo.Region.srcBufferOffset = m_pConstantBufferCPU->CalcAbsoluteOffset( backBufferIndex, 0 );
@@ -1398,12 +1398,12 @@ namespace VKE
                 {
                     const bool needNewPipeline =
                         renderPassHash != CurrState.RenderPass.hash ||
-                        BatchPipelineTemplate.Pipeline.hDDIRenderPass != CurrState.RenderPass.hNativeRenderPass;
+                        BatchPipelineTemplate.Pipeline.hRHIRenderPass != CurrState.RenderPass.hNativeRenderPass;
                     if( needNewPipeline )
                     {
                         if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::RHI::Null )
                         {
-                            BatchPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::RHI::Null;
+                            BatchPipelineTemplate.Pipeline.hRHIRenderPass = RenderSystem::RHI::Null;
                             BatchPipelineTemplate.Pipeline.vColorRenderTargetFormats =
                                 CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
                             BatchPipelineTemplate.Pipeline.depthRenderTargetFormat =
@@ -1415,7 +1415,7 @@ namespace VKE
                     auto& Batch = aBatches[ BatchTypes::AABB ];
                     if( Batch.pPipeline== nullptr || needNewPipeline )
                     {
-                        BatchPipelineTemplate.Pipeline.hDDIRenderPass = CurrState.RenderPass.hNativeRenderPass;
+                        BatchPipelineTemplate.Pipeline.hRHIRenderPass = CurrState.RenderPass.hNativeRenderPass;
                         Batch.pPipeline =
                             pCmdBuff->GetContext()->GetDeviceContext()->CreatePipeline( BatchPipelineTemplate );
                     }
@@ -1441,7 +1441,7 @@ namespace VKE
             }
             // Instancing
             {
-                // const bool needNewPipeline = InstancingPipelineTemplate.Pipeline.hDDIRenderPass != hDDICurrPass;
+                // const bool needNewPipeline = InstancingPipelineTemplate.Pipeline.hRHIRenderPass != hRHICurrPass;
 
                 pCmdBuff->Bind( hInstancingVB, 0 );
                 pCmdBuff->Bind( hInstancingIB, 0 );
@@ -1454,13 +1454,13 @@ namespace VKE
                         auto& pPipeline = DrawData.pPipeline;
 
                         const bool needNewPipeline = renderPassHash != CurrState.RenderPass.hash ||
-                                                     InstancingPipelineTemplate.Pipeline.hDDIRenderPass !=
+                                                     InstancingPipelineTemplate.Pipeline.hRHIRenderPass !=
                                                          CurrState.RenderPass.hNativeRenderPass;
                         if( needNewPipeline )
                         {
                             if( CurrState.RenderPass.hNativeRenderPass == RenderSystem::RHI::Null )
                             {
-                                InstancingPipelineTemplate.Pipeline.hDDIRenderPass = RenderSystem::RHI::Null;
+                                InstancingPipelineTemplate.Pipeline.hRHIRenderPass = RenderSystem::RHI::Null;
                                 InstancingPipelineTemplate.Pipeline.vColorRenderTargetFormats =
                                     CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
                                 InstancingPipelineTemplate.Pipeline.depthRenderTargetFormat =
@@ -1489,8 +1489,8 @@ namespace VKE
                             }
 
                             InstancingPipelineTemplate.Create.flags            = Core::CreateResourceFlags::DEFAULT;
-                            InstancingPipelineTemplate.Pipeline.hDDIRenderPass = CurrState.RenderPass.hNativeRenderPass;
-                            Curr.hDDIRenderPass                                = CurrState.RenderPass.hNativeRenderPass;
+                            InstancingPipelineTemplate.Pipeline.hRHIRenderPass = CurrState.RenderPass.hNativeRenderPass;
+                            Curr.hRHIRenderPass                                = CurrState.RenderPass.hNativeRenderPass;
 
                             pPipeline = pDevCtx->CreatePipeline( InstancingPipelineTemplate );
                         }

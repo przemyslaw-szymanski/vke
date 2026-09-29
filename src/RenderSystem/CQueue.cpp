@@ -24,7 +24,7 @@ namespace VKE
             Result ret = VKE_OK;
             VKE_ASSERT2( Info.pContext != nullptr, "Device context must be initialized." );
             m_Desc               = Info;
-            m_PresentData.hQueue = Info.hDDIQueue;
+            m_PresentData.hQueue = Info.hRHIQueue;
             m_familyIndex        = Info.familyIndex;
             m_type               = Info.type;
             m_pCtx               = Info.pContext;
@@ -58,12 +58,12 @@ namespace VKE
                 VKE_LOGGER << m_Desc.GetDebugName() << "\n\tsignal gpu fences [" << Info.signalSemaphoreCount << "]:";
                 for( uint32_t i = 0; i < Info.signalSemaphoreCount; ++i )
                 {
-                    VKE_LOGGER << (void*)Info.pDDISignalSemaphores[ i ] << ",";
+                    VKE_LOGGER << (void*)Info.pRHISignalSemaphores[ i ] << ",";
                 }
                 VKE_LOGGER << "\n\twait for gpu fences [" << Info.waitSemaphoreCount << "]:";
                 for( uint32_t i = 0; i < Info.waitSemaphoreCount; ++i )
                 {
-                    VKE_LOGGER << (void*)Info.pDDIWaitSemaphores[ i ] << ",";
+                    VKE_LOGGER << (void*)Info.pRHIWaitSemaphores[ i ] << ",";
                 }
                 VKE_LOGGER_END;
 #endif
@@ -97,7 +97,7 @@ namespace VKE
                 m_presentCount++;
                 m_isPresentDone = false;
 #if VKE_EXECUTE_DEBUG_ENABLE
-                VKE_LOG( "\n\tWait gpu fence: " << (void*)Info.hDDIWaitSemaphore
+                VKE_LOG( "\n\tWait gpu fence: " << (void*)Info.hRHIWaitSemaphore
                                                 << "\n\timage index: " << Info.imageIndex );
 #endif
                 /*VKE_LOG( "m_presentCount = " << m_presentCount << " swapchainRefCount = " <<
@@ -135,7 +135,7 @@ namespace VKE
         void CQueue::SetDebugName( cstr_t pName )
         {
             m_Desc.SetDebugName( pName );
-            m_pCtx->RHI().SetQueueDebugName( (uint64_t)GetDDIObject().ToUint64(), pName );
+            m_pCtx->RHI().SetQueueDebugName( (uint64_t)GetRHIObject().ToUint64(), pName );
         }
 
     } // namespace RenderSystem

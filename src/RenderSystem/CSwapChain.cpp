@@ -9,10 +9,6 @@
 #include "RenderSystem/CRenderSystem.h"
 #include "RenderSystem/CSwapChain.h"
 
-// #include "RenderSystem/Vulkan/Vulkan.h"
-// #include "RenderSystem/Vulkan/PrivateDescs.h"
-// #include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
-
 #include "RenderSystem/Managers/CBackBufferManager.h"
 
 #include <iostream>
@@ -36,14 +32,14 @@ namespace VKE
             Memory::DestroyObject( &HeapAllocator, &m_pBackBufferMgr );
 
             _DestroyBackBuffers();
-            m_pCtx->GetDeviceContext()->RHI().DestroySwapChain( &m_DDISwapChain );
+            m_pCtx->GetDeviceContext()->RHI().DestroySwapChain( &m_RHISwapChain );
         }
 
         Result CSwapChain::Create( const SSwapChainDesc& Desc, CommandBufferPtr pCmdBuffer )
         {
             Result ret      = VKE_OK;
             m_Desc          = Desc;
-            m_Desc.pPrivate = &m_DDIDesc;
+            m_Desc.pPrivate = &m_RHIDesc;
 
             if( m_Desc.pWindow == nullptr )
             {
@@ -52,13 +48,13 @@ namespace VKE
             }
             // const SWindowDesc& WndDesc = m_Desc.pWindow->GetDesc();
 
-            ret = m_pCtx->GetDeviceContext()->RHI().CreateSwapChain( m_Desc, &m_DDISwapChain );
+            ret = m_pCtx->GetDeviceContext()->RHI().CreateSwapChain( m_Desc, &m_RHISwapChain );
             if( VKE_FAILED( ret ) )
             {
                 goto ERR;
             }
 
-            m_Desc.backBufferCount = static_cast< uint16_t >( m_DDISwapChain.vImages.GetCount() );
+            m_Desc.backBufferCount = static_cast< uint16_t >( m_RHISwapChain.vImages.GetCount() );
 
             /// @todo check for fullscreen if format is 32bit
 
@@ -87,7 +83,7 @@ namespace VKE
             ret = _CreateBackBuffers( m_Desc.backBufferCount, pCmdBuffer );
             if( VKE_SUCCEEDED( ret ) )
             {
-                VKE_ASSERT2( m_DDISwapChain.Size == m_Desc.Size,
+                VKE_ASSERT2( m_RHISwapChain.Size == m_Desc.Size,
                              "Initialization Swapchain size must be the same as window" );
                 ret = Resize( m_Desc.Size.width, m_Desc.Size.height );
                 if( VKE_SUCCEEDED( ret ) )
@@ -131,9 +127,9 @@ namespace VKE
                     /*CommandBufferPtr pCmdBuffer = m_pCtx->CreateCommandBuffer();
                     pCmdBuffer->Begin();*/
 
-                    const uint32_t imgCount    = m_DDISwapChain.vImages.GetCount();
-                    const auto&    vImages     = m_DDISwapChain.vImages;
-                    const auto&    vImageViews = m_DDISwapChain.vImageViews;
+                    const uint32_t imgCount    = m_RHISwapChain.vImages.GetCount();
+                    const auto&    vImages     = m_RHISwapChain.vImages;
+                    const auto&    vImageViews = m_RHISwapChain.vImageViews;
 
                     for( uint32_t i = 0; i < imgCount; ++i )
                     {
@@ -142,24 +138,24 @@ namespace VKE
                         InternalBackBuffer.index                      = i;
 
                         SAcquireElement& Element = m_vAcquireElements[ i ];
-                        Element.hDDITexture      = vImages[ i ];
-                        Element.hDDITextureView  = vImageViews[ i ];
+                        Element.hRHITexture      = vImages[ i ];
+                        Element.hRHITextureView  = vImageViews[ i ];
 
                         {
                             SSemaphoreDesc Desc;
                             SFenceDesc     FenceDesc;
                             Desc.SetDebugName( std::format( "VKE_SwapChain_GPUFence{}", i ).data() );
                             FenceDesc.SetDebugName( std::format( "VKE_SwapChain_Fence{}", i ).data() );
-                            BackBuffer.hDDIPresentImageReadySemaphore =
+                            BackBuffer.hRHIPresentImageReadySemaphore =
                                 m_pCtx->GetDeviceContext()->RHI().CreateGPUFence( Desc );
-                            BackBuffer.hDDIQueueFinishedSemaphore =
+                            BackBuffer.hRHIQueueFinishedSemaphore =
                                 m_pCtx->GetDeviceContext()->RHI().CreateGPUFence( Desc );
                             InternalBackBuffer.hGPUFence = m_pCtx->GetDeviceContext()->CreateGPUFence( Desc );
                             InternalBackBuffer.hCPUFence = m_pCtx->GetDeviceContext()->CreateCPUFence( FenceDesc );
 
                             InternalBackBuffer.hFence = m_pCtx->GetDeviceContext()->CreateFence( FenceDesc );
-                            if( BackBuffer.hDDIPresentImageReadySemaphore == RHI::Null ||
-                                BackBuffer.hDDIQueueFinishedSemaphore == RHI::Null ||
+                            if( BackBuffer.hRHIPresentImageReadySemaphore == RHI::Null ||
+                                BackBuffer.hRHIQueueFinishedSemaphore == RHI::Null ||
                                 InternalBackBuffer.hFence == RHI::Null )
                             {
                                 ret = VKE_FAIL;
@@ -175,7 +171,7 @@ namespace VKE
                             ImgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
                             ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                             ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.hDDITexture;
+                            ImgBarrier.image = Element.hRHITexture;
                             ImgBarrier.subresourceRange = SubresRange;
                         }
                         {
@@ -187,24 +183,24 @@ namespace VKE
                             ImgBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
                             ImgBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                             ImgBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                            ImgBarrier.image = Element.hDDITexture;
+                            ImgBarrier.image = Element.hRHITexture;
                             ImgBarrier.subresourceRange = SubresRange;
                         }*/
 
                         SCreateTextureDesc CreateTexDesc;
                         CreateTexDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
                         auto& TexDesc              = CreateTexDesc.Texture;
-                        TexDesc.format             = m_DDISwapChain.Format.format;
+                        TexDesc.format             = m_RHISwapChain.Format.format;
                         TexDesc.arrayElementCount  = 1;
                         TexDesc.memoryUsage        = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
                         TexDesc.mipmapCount        = 1;
                         TexDesc.multisampling      = SampleCounts::SAMPLE_1;
-                        TexDesc.Size               = m_DDISwapChain.Size;
+                        TexDesc.Size               = m_RHISwapChain.Size;
                         TexDesc.sliceCount         = 1;
                         TexDesc.type               = TextureTypes::TEXTURE_2D;
                         TexDesc.usage              = TextureUsages::COLOR_RENDER_TARGET;
-                        TexDesc.hNative            = Element.hDDITexture;
-                        TexDesc.hNativeView        = Element.hDDITextureView;
+                        TexDesc.hNative            = Element.hRHITexture;
+                        TexDesc.hNativeView        = Element.hRHITextureView;
                         TexDesc.Name               = std::format( "SwapchainTexture_{}", i ).data();
                         TexDesc.SetDebugName( std::format( "SwapchainTexture_{}", i ).data() );
                         auto hTexture     = m_pCtx->GetDeviceContext()->CreateTexture( CreateTexDesc );
@@ -219,12 +215,12 @@ namespace VKE
                         RTDesc.beginState      = TextureStates::COLOR_RENDER_TARGET;
                         RTDesc.endState        = TextureStates::PRESENT;
                         RTDesc.ClearValue      = { 0.5, 0.5, 0.5, 1 };
-                        RTDesc.format          = m_DDISwapChain.Format.format;
+                        RTDesc.format          = m_RHISwapChain.Format.format;
                         RTDesc.memoryUsage     = MemoryUsages::GPU_ACCESS | MemoryUsages::TEXTURE;
                         RTDesc.mipmapCount     = 1;
                         RTDesc.multisampling   = SampleCounts::SAMPLE_1;
                         RTDesc.renderPassUsage = RenderTargetRenderPassOperations::COLOR_CLEAR_STORE;
-                        RTDesc.Size            = m_DDISwapChain.Size;
+                        RTDesc.Size            = m_RHISwapChain.Size;
                         RTDesc.type            = TextureTypes::TEXTURE_2D;
                         RTDesc.usage           = TextureUsages::COLOR_RENDER_TARGET;
                         RTDesc.hTexture        = hTexture;
@@ -250,14 +246,14 @@ namespace VKE
             {
                 CRHI& RHI = m_pCtx->GetDeviceContext()->RHI();
 
-                const uint32_t imgCount = m_DDISwapChain.vImages.GetCount();
+                const uint32_t imgCount = m_RHISwapChain.vImages.GetCount();
                 for( uint32_t i = 0; i < imgCount; i++ )
                 {
                     RenderSystem::SBackBuffer& BackBuffer         = m_vBackBuffers[ i ];
                     SBackBuffer&               InternalBackBuffer = m_vInternalBackBufers[ i ];
 
-                    RHI.DestroyGPUFence( &BackBuffer.hDDIPresentImageReadySemaphore );
-                    RHI.DestroyGPUFence( &BackBuffer.hDDIQueueFinishedSemaphore );
+                    RHI.DestroyGPUFence( &BackBuffer.hRHIPresentImageReadySemaphore );
+                    RHI.DestroyGPUFence( &BackBuffer.hRHIQueueFinishedSemaphore );
                     RHI.DestroyGPUFence( &InternalBackBuffer.hGPUFence );
                     RHI.DestroyFence( &InternalBackBuffer.hCPUFence );
                     RHI.DestroyFence( &InternalBackBuffer.hFence );
@@ -269,12 +265,12 @@ namespace VKE
         {
             Result ret = VKE_OK;
             // Do nothing if size is not changed
-            if( m_DDISwapChain.Size.width != width || m_DDISwapChain.Size.height != height )
+            if( m_RHISwapChain.Size.width != width || m_RHISwapChain.Size.height != height )
             {
                 m_Desc.Size.width  = static_cast< uint16_t >( width );
                 m_Desc.Size.height = static_cast< uint16_t >( height );
 
-                ret = m_pCtx->GetDeviceContext()->RHI().ReCreateSwapChain( m_Desc, &m_DDISwapChain );
+                ret = m_pCtx->GetDeviceContext()->RHI().ReCreateSwapChain( m_Desc, &m_RHISwapChain );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     m_CurrViewport.Size = m_Desc.Size;
@@ -297,11 +293,11 @@ namespace VKE
             m_backBufferIdx = 0;
             // Get new texture present index
             /*auto& Buffer = m_vInternalBackBufers[ m_backBufferIdx ];
-            SDDIGetBackBufferInfo Info;
+            SRHIGetBackBufferInfo Info;
             Info.hSignalGPUFence = Buffer.hGPUFence;
             Info.waitTimeout = 0;
 
-            m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex( m_DDISwapChain, Info,
+            m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex( m_RHISwapChain, Info,
                                                                                       &Buffer.swapChainBufferIndex );*/
         }
 
@@ -351,11 +347,11 @@ namespace VKE
                     }*/
                 }
 
-                SDDIGetBackBufferInfo Info;
-                Info.hSignalGPUFence = m_pCurrBackBuffer->hDDIPresentImageReadySemaphore;
+                SRHIGetBackBufferInfo Info;
+                Info.hSignalGPUFence = m_pCurrBackBuffer->hRHIPresentImageReadySemaphore;
                 Info.waitTimeout     = 0;
                 Result res           = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
+                    m_RHISwapChain, Info, &m_pCurrBackBuffer->ddiBackBufferIdx );
 
                 if( VKE_SUCCEEDED( res ) )
                 {
@@ -398,7 +394,7 @@ namespace VKE
             Buffer.hExternalCpuFence = hCPUFence;
             Buffer.hExternalGPUFence = hGPUFence;
             // Get new texture present index
-            SDDIGetBackBufferInfo Info;
+            SRHIGetBackBufferInfo Info;
             Info.hSignalGPUFence = hGPUFence;
             Info.hSignalCPUFence = hCPUFence;
             Info.waitTimeout     = ( hCPUFence == RHI::Null && hGPUFence == RHI::Null ) ? UINT64_MAX : 0;
@@ -410,7 +406,7 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
+                    m_RHISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             // VKE_LOG( "Result: " << ret << ", signal gpu fence: " << ( void* )Info.hSignalGPUFence );
             // In case when there are more frames rendered than it can be presented
@@ -421,7 +417,7 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
+                    m_RHISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             VKE_ASSERT( VKE_SUCCEEDED( ret ) );
             if( VKE_SUCCEEDED( ret ) )
@@ -429,7 +425,7 @@ namespace VKE
                 // VKE_LOG( "Acquire with m_qAcquiredBuffers: " << m_qAcquiredBuffers.size()
                 //                                              << " img idx: " << Buffer.swapChainBufferIndex );
                 m_qAcquiredBuffers.push( m_backBufferIdx );
-                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetDDIObject(),
+                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetRHIObject(),
                                               Buffer.swapChainBufferIndex );*/
             }
             return ret;
@@ -453,15 +449,15 @@ namespace VKE
             auto& Buffer    = m_vInternalBackBufers[ m_backBufferIdx ];
             Buffer.hFence   = hFrameFence != RHI::Null ? hFrameFence : Buffer.hFence;
             // Get new texture present index
-            SDDIGetBackBufferInfo Info;
+            SRHIGetBackBufferInfo Info;
             Info.hSignalFence     = Buffer.hFence;
             Info.waitTimeout      = UINT64_MAX;
             Info.signalFenceValue = Buffer.fenceValue++;
-            Info.hQueue           = m_pCtx->_GetQueue()->GetDDIObject();
+            Info.hQueue           = m_pCtx->_GetQueue()->GetRHIObject();
 
             Buffer.PresentInfo.hWaitForFence     = Info.hSignalFence;
             Buffer.PresentInfo.waitForFenceValue = Info.signalFenceValue;
-            Buffer.PresentInfo.hSwapChain        = this->GetDDIObject();
+            Buffer.PresentInfo.hSwapChain        = this->GetRHIObject();
             // std::unique_lock<std::mutex> l( m_mutex );
             //  This sync is workaround of validation error when swapchain is
             //  used in more threads.
@@ -471,7 +467,7 @@ namespace VKE
             {
                 Threads::ScopedLock l( m_SyncObj );
                 ret = m_pCtx->GetDeviceContext()->RHI().GetCurrentBackBufferIndex(
-                    m_DDISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
+                    m_RHISwapChain, Info, &Buffer.PresentInfo.presentImageIndex );
             }
             while( ret == VKE_ENOTREADY );
 
@@ -487,7 +483,7 @@ namespace VKE
                 // VKE_LOG( "Acquire with m_qAcquiredBuffers: " << m_qAcquiredBuffers.size()
                 //                                              << " img idx: " << Buffer.swapChainBufferIndex );
                 m_qAcquiredBuffers.push( m_backBufferIdx );
-                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetDDIObject(),
+                /*Platform::Debug::PrintOutput( "Swap %d %d\n", GetBackBufferTexture()->GetRHIObject(),
                                               Buffer.swapChainBufferIndex );*/
             }
             return ret;
@@ -554,7 +550,7 @@ namespace VKE
         {
             // ExtentU32 Size = { m_vkSurfaceCaps.currentExtent.width, m_vkSurfaceCaps.currentExtent.height };
             // return Size;
-            return m_DDISwapChain.Size;
+            return m_RHISwapChain.Size;
         }
 
         void CSwapChain::BeginFrame( CommandBufferPtr pCb )
@@ -564,7 +560,7 @@ namespace VKE
             STextureBarrierInfo Info;
             Info.currentState                      = TextureStates::PRESENT;
             Info.newState                          = TextureStates::COLOR_RENDER_TARGET;
-            Info.hDDITexture                       = pElement->hDDITexture;
+            Info.hRHITexture                       = pElement->hRHITexture;
             Info.srcMemoryAccess                   = MemoryAccessTypes::GPU_MEMORY_READ;
             Info.dstMemoryAccess                   = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
             Info.SubresourceRange.aspect           = TextureAspects::COLOR;
@@ -587,7 +583,7 @@ namespace VKE
             STextureBarrierInfo Info;
             Info.currentState                      = TextureStates::COLOR_RENDER_TARGET;
             Info.newState                          = TextureStates::PRESENT;
-            Info.hDDITexture                       = pElement->hDDITexture;
+            Info.hRHITexture                       = pElement->hRHITexture;
             Info.srcMemoryAccess                   = MemoryAccessTypes::COLOR_RENDER_TARGET_WRITE;
             Info.dstMemoryAccess                   = MemoryAccessTypes::CPU_MEMORY_READ;
             Info.SubresourceRange.aspect           = TextureAspects::COLOR;
@@ -604,13 +600,13 @@ namespace VKE
 
         // void CSwapChain::BeginPass( CommandBufferPtr pCb )
         //{
-        //     pCb->Bind( m_DDISwapChain );
+        //     pCb->Bind( m_RHISwapChain );
         // }
 
         // void CSwapChain::EndPass( CommandBufferPtr pCb )
         //{
         //     // m_VkDevice.GetICD().vkCmdEndRenderPass(vkCb);
-        //     // m_pCtx->GetDeviceContext()->_GetDDI().EndRenderPass( vkCb );
+        //     // m_pCtx->GetDeviceContext()->_GetRHI().EndRenderPass( vkCb );
         //     // m_pCurrAcquireElement->pRenderPass->End( vkCb );
         //     pCb->Bind( (RHI::RenderPass)RHI::Null );
         // }

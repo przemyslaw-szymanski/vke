@@ -68,7 +68,7 @@ namespace VKE
                 VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
                 return INVALID_HANDLE;
             }
-            if( !pPool->vDDICommandBuffers.Reserve( Desc.commandBufferCount ) )
+            if( !pPool->vRHICommandBuffers.Reserve( Desc.commandBufferCount ) )
             {
                 VKE_LOG_ERR( "Unable to resize vCommandBuffers. No memory." );
                 return INVALID_HANDLE;
@@ -81,7 +81,7 @@ namespace VKE
                 tid = Desc.threadIndex;
             }
 
-            pPool->hDDIPool = m_pCtx->_GetDDI().CreateCommandBufferPool( Desc );
+            pPool->hRHIPool = m_pCtx->_GetRHI().CreateCommandBufferPool( Desc );
             auto idx        = m_avpPools[ tid ].PushBack( pPool );
 
             SCommandBufferPoolHandleDecoder Decoder;
@@ -98,7 +98,7 @@ namespace VKE
             }
             else
             {
-                m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool );
+                m_pCtx->_GetRHI().DestroyCommandBufferPool( &pPool->hRHIPool );
             }
             // auto pCbs = &pPool->vCommandBuffers[ 0 ];
             //  $TID AllocCmdBuffers: mgr={(void*)this}, pool={(void*)pPool}, cbs={pCbs, 64}
@@ -106,7 +106,7 @@ namespace VKE
         }
 
         Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-                                                        RHI::GPUFence* phDDISemaphore, CCommandBuffer** ppInOut )
+                                                        RHI::GPUFence* phRHISemaphore, CCommandBuffer** ppInOut )
         {
             auto pCb = *ppInOut;
             // SCommandBufferPoolHandleDecoder Decoder{ (uint32_t)pCb->m_hPool };
@@ -119,12 +119,12 @@ namespace VKE
         }
 
         /*Result CCommandBufferManager::EndCommandBuffer( EXECUTE_COMMAND_BUFFER_FLAGS flags,
-            RHI::GPUFence* phDDISemaphore)
+            RHI::GPUFence* phRHISemaphore)
         {
             auto tid = _GetThreadId();
             auto pCb = m_apCurrentCommandBuffers[ tid ];
             VKE_ASSERT2( pCb != nullptr, "" );
-            return EndCommandBuffer( flags, phDDISemaphore, &pCb );
+            return EndCommandBuffer( flags, phRHISemaphore, &pCb );
         }*/
 
         bool CCommandBufferManager::GetCommandBuffer( CCommandBuffer** ppOut )
@@ -154,7 +154,7 @@ namespace VKE
             auto pPool = *ppPool;
             pPool->vCommandBuffers.ClearFull();
             pPool->vpFreeCommandBuffers.ClearFull();
-            m_pCtx->_GetDDI().DestroyCommandBufferPool( &pPool->hDDIPool );
+            m_pCtx->_GetRHI().DestroyCommandBufferPool( &pPool->hRHIPool );
             Memory::DestroyObject( &HeapAllocator, &pPool );
         }
 
@@ -169,16 +169,16 @@ namespace VKE
         {
             auto pPool = _GetPool( hPool );
             // All command buffers must be freed
-            VKE_ASSERT2( pPool->vDDICommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount(),
+            VKE_ASSERT2( pPool->vRHICommandBuffers.GetCount() == pPool->vpFreeCommandBuffers.GetCount(),
                          "All command buffers must be freed" );
             // const auto& ICD = m_VkDevice.GetICD();
             const auto             count = pPool->vCommandBuffers.GetCount();
             SFreeCommandBufferInfo Info;
-            Info.hDDIPool           = pPool->hDDIPool;
-            Info.pDDICommandBuffers = &pPool->vDDICommandBuffers[ 0 ];
+            Info.hRHIPool           = pPool->hRHIPool;
+            Info.pRHICommandBuffers = &pPool->vRHICommandBuffers[ 0 ];
             Info.count              = count;
-            m_pCtx->_GetDDI().FreeObjects( Info );
-            pPool->vDDICommandBuffers.Clear();
+            m_pCtx->_GetRHI().FreeObjects( Info );
+            pPool->vRHICommandBuffers.Clear();
             pPool->vpFreeCommandBuffers.Clear();
             pPool->vCommandBuffers.Clear();
         }
@@ -193,7 +193,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR( "Max command buffer for pool:" << pPool->hDDIPool << " reached." );
+                VKE_LOG_ERR( "Max command buffer for pool:" << pPool->hRHIPool << " reached." );
                 assert( 0 && "Command buffer resize is not supported now." );
                 return nullptr;
             }
@@ -221,24 +221,24 @@ namespace VKE
             {
                 Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT > vTmps( count );
 
-                auto& DDI = m_pCtx->_GetDDI();
+                auto& RHI = m_pCtx->_GetRHI();
 
                 SAllocateCommandBufferInfo Info;
                 Info.count    = count;
-                Info.hDDIPool = pPool->hDDIPool;
+                Info.hRHIPool = pPool->hRHIPool;
                 Info.level    = CommandBufferLevels::PRIMARY;
-                ret           = DDI.CreateCommandBuffers( Info, &vTmps[ 0 ] );
+                ret           = RHI.CreateCommandBuffers( Info, &vTmps[ 0 ] );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                     // SSemaphoreDesc SemaphoreDesc;
                     //  $TID CreateCommandBuffers: cbmgr={(void*)this}, pool={pPool->m_hPool}, cbs={vTmps}
-                    pPool->vDDICommandBuffers.Append( vTmps.GetCount(), &vTmps[ 0 ] );
+                    pPool->vRHICommandBuffers.Append( vTmps.GetCount(), &vTmps[ 0 ] );
                     for( uint32_t i = 0; i < count; ++i )
                     {
                         CCommandBuffer Cb;
-                        Cb.m_hDDIObject        = vTmps[ i ];
+                        Cb.m_hRHIObject        = vTmps[ i ];
                         Cb.m_hPool.value       = pPool->handle;
-                        Cb.m_hDDICmdBufferPool = pPool->hDDIPool;
+                        Cb.m_hRHICmdBufferPool = pPool->hRHIPool;
                         Cb.m_pBaseCtx          = m_pCtx;
                         Cb.m_pMgr              = this;
                         pPool->vCommandBuffers.PushBack( Cb );

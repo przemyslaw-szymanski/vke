@@ -18,7 +18,7 @@
 #endif // VKE_WINDOWS
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/RHI/Vulkan/Vulkan.h"
 #include <vulkan/vulkan.h>
 
 namespace VKE::RenderSystem::Vulkan
@@ -69,7 +69,7 @@ namespace VKE::RenderSystem::Vulkan
         using Result                = VkResult;
         using FenceValue = uint64_t;
 
-        struct VKE_API SDDIExtension
+        struct VKE_API SNativeExtension
         {
             vke_string name;
 
@@ -78,10 +78,10 @@ namespace VKE::RenderSystem::Vulkan
             bool enabled   = false;
         };
 
-        using DDIExtArray = Utils::TCDynamicArray< SDDIExtension, 1 >;
-        using DDIExtMap   = vke_hash_map< vke_string, SDDIExtension >;
+        using NativeExtArray = Utils::TCDynamicArray< SNativeExtension, 1 >;
+        using NativeExtMap   = vke_hash_map< vke_string, SNativeExtension >;
 
-        struct VKE_API SDDIExtensionLayer
+        struct VKE_API SNativeExtensionLayer
         {
             vke_string name;
 
@@ -90,7 +90,7 @@ namespace VKE::RenderSystem::Vulkan
             bool enabled   = false;
         };
 
-        using DDIExtLayerArray = Utils::TCDynamicArray< SDDIExtensionLayer, 1 >;
+        using NativeExtLayerArray = Utils::TCDynamicArray< SNativeExtensionLayer, 1 >;
 
        
 
@@ -104,8 +104,8 @@ namespace VKE::RenderSystem::Vulkan
         using InstanceICD = VkICD::Instance;
         using DeviceICD   = VkICD::Device;
 
-        static NativeAPI::DDIExtArray      svExtensions;
-        static NativeAPI::DDIExtLayerArray svLayers;
+        static NativeAPI::NativeExtArray      svExtensions;
+        static NativeAPI::NativeExtLayerArray svLayers;
 
         static GlobalICD   sGlobalICD;
         static InstanceICD sInstanceICD;
@@ -120,7 +120,7 @@ namespace VKE::RenderSystem::Vulkan
         VkPhysicalDevice m_hAdapter;
         VkDeviceSize     m_aHeapSizes[ MAX_MEMORY_HEAPS ];
         uint32_t         m_instanceVersion = 0;
-        NativeAPI::DDIExtMap        m_mExtensions;
+        NativeAPI::NativeExtMap        m_mExtensions;
 
         VKE::RenderSystem::SDeviceProperties EngineDeviceProperties;
 
@@ -166,7 +166,7 @@ namespace VKE::RenderSystem::Vulkan
 
         VkPhysicalDeviceLimits Limits;
 
-        const NativeAPI::SDDIExtension& GetExtensionInfo( cstr_t pName ) const;
+        const NativeAPI::SNativeExtension& GetExtensionInfo( cstr_t pName ) const;
 
     }; // struct SImplementation
 

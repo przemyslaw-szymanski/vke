@@ -74,7 +74,7 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         Pipeline.Shaders.apShaders[ VKE::RenderSystem::ShaderTypes::PIXEL ] = pPS;
         // VKE_RENDER_SYSTEM_SET_DEBUG_NAME( Pipeline, "VKE_DebugView_Batch" );
         Pipeline.SetDebugName( "VKE_Triangle_Simple" );
-        Pipeline.hDDIRenderPass = pPass->GetRHIRenderPass();
+        Pipeline.hRHIRenderPass = pPass->GetRHIRenderPass();
 
         pPipeline = pCtx->CreatePipeline( PipelineTemplate );
         

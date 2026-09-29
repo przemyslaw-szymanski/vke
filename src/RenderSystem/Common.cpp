@@ -1,7 +1,7 @@
 #include "RenderSystem/Common.h"
 
 #if VKE_COMPILE_VULKAN_RHI
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/RHI/Vulkan/Vulkan.h"
 #endif
 
 namespace VKE

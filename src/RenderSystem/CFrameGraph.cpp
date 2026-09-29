@@ -379,8 +379,8 @@ namespace VKE::RenderSystem
                             auto pRenderTargetTex = pLastPass->GetColorRenderTarget( 0 );
                             pRenderTargetTex->SetState( TextureStates::TRANSFER_SRC, &Barrier );
                             pCmdBuffer->Barrier( Barrier );
-                            SCopyTextureInfo   CopyInfo   = { .hDDISrcTexture = pRenderTargetTex->GetDDIObject(),
-                                                              .hDDIDstTexture = pTex->GetDDIObject(),
+                            SCopyTextureInfo   CopyInfo   = { .hRHISrcTexture = pRenderTargetTex->GetRHIObject(),
+                                                              .hRHIDstTexture = pTex->GetRHIObject(),
                                                               .Size           = pTex->GetDesc().Size,
                                                               .depth          = 0,
                                                               .SrcOffset      = { 0, 0 },
@@ -411,7 +411,7 @@ namespace VKE::RenderSystem
                                 // ret = EndFrame();
                                 //  VKE_LOG_NO_SYNC( "end frame " << pCmdBuffer.Get() );
                                 /*Platform::Debug::PrintOutput( "end %llx, %d, %d\n",
-                                    pCmdBuffer.Get(), pCmdBuffer->GetState(), Barrier.hDDITexture );*/
+                                    pCmdBuffer.Get(), pCmdBuffer->GetState(), Barrier.hRHITexture );*/
                             }
                             ret = pPass->OnWorkloadEnd( ret );
                             return ret;
@@ -604,7 +604,7 @@ namespace VKE::RenderSystem
     {
         // auto pContext = pBatch->pContext;
         // auto pDevice = pContext->m_pDeviceCtx;
-        // auto& API = pDevice->DDI();
+        // auto& API = pDevice->RHI();
         // bool signaled = API.IsSignaled( pBatch->hSignalCPUFence );
         // bool executed = pBatch->executionResult == Results::OK;
         // bool hasCmdBuffers = !pBatch->vpCommandBuffers.IsEmpty();

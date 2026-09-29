@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RenderSystem/Vulkan/CVulkanAPI.h"
-#include "RenderSystem/D3D12/CD3D12API.h"
+#include "RenderSystem/RHI/Vulkan/CVulkanAPI.h"
+#include "RenderSystem/RHI/D3D12/CD3D12API.h"
 
 namespace VKE::RenderSystem
 {

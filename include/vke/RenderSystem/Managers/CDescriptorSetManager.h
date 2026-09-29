@@ -42,9 +42,9 @@ namespace VKE
 
             using SetArray =
                 Utils::TCDynamicArray< SDescriptorSet, Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
-            using DDISetArray = Utils::TCDynamicArray< RHI::DescriptorSet,
+            using RHISetArray = Utils::TCDynamicArray< RHI::DescriptorSet,
                                                        Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
-            using DDISetPool  = Utils::TSFreePool< RHI::DescriptorSet, SetHandle,
+            using RHISetPool  = Utils::TSFreePool< RHI::DescriptorSet, SetHandle,
                                                    Config::RenderSystem::Pipeline::MAX_DESCRIPTOR_SET_COUNT >;
 
             struct SPool
@@ -53,17 +53,17 @@ namespace VKE
                 {
                 }
 
-                SPool( RHI::DescriptorPool hDDI ) : hDDIObject{ hDDI }
+                SPool( RHI::DescriptorPool hRHI ) : hRHIObject{ hRHI }
                 {
                     SetPool.Add( {} );
                 }
 
-                RHI::DescriptorPool hDDIObject;
-                DDISetPool                SetPool;
+                RHI::DescriptorPool hRHIObject;
+                RHISetPool                SetPool;
             };
 
             using PoolDescArray  = Utils::TCDynamicArray< SDescriptorPoolDesc >;
-            using DDIPoolBuffer  = Utils::TSFreePool< RHI::DescriptorPool, uint16_t >;
+            using RHIPoolBuffer  = Utils::TSFreePool< RHI::DescriptorPool, uint16_t >;
             using PoolBuffer     = Utils::TSFreePool< SPool, PoolHandle >;
             using SetHandleArray = Utils::TCDynamicArray< DescriptorSetHandle >;
 
@@ -71,7 +71,7 @@ namespace VKE
 
             struct SLayout
             {
-                RHI::DescriptorSetLayout hDDILayout;
+                RHI::DescriptorSetLayout hRHILayout;
                 SDescriptorSetLayoutDesc       Desc;
                 SetMap                   mFreeSets = {};
 

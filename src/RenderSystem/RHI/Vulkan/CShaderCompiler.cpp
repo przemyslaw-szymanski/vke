@@ -1,4 +1,4 @@
-#include "RenderSystem/Vulkan/CShaderCompiler.h"
+#include "RenderSystem/RHI/Vulkan/CShaderCompiler.h"
 #if VKE_USE_GLSL_COMPILER
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <glslang/Public/ShaderLang.h>

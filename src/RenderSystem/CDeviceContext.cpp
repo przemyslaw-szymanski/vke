@@ -3,7 +3,7 @@
 #include "RenderSystem/CGraphicsContext.h"
 #include "Core/Utils/CLogger.h"
 #include "Core/Utils/Common.h"
-#include "RenderSystem/Vulkan/PrivateDescs.h"
+#include "RenderSystem/RHI/Vulkan/PrivateDescs.h"
 #include "CVkEngine.h"
 #include "Core/Threads/ITask.h"
 #include "Core/Threads/CThreadPool.h"
@@ -439,13 +439,13 @@ namespace VKE
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
                     const uint32_t   currentQueueCount = m_vQueues.GetCount();
                     const uint32_t   idx               = ( currentQueueCount ) % Family.vQueues.GetCount();
-                    RHI::Queue hDDIQueue         = Family.vQueues[ idx ];
+                    RHI::Queue hRHIQueue         = Family.vQueues[ idx ];
                     CQueue*          pQueue            = nullptr;
 
                     // Find if this queue is already being used
                     for( uint32_t j = 0; j < currentQueueCount; ++j )
                     {
-                        if( m_vQueues[ j ].GetDDIObject() == hDDIQueue )
+                        if( m_vQueues[ j ].GetRHIObject() == hRHIQueue )
                         {
                             pQueue = &m_vQueues[ j ];
                             break;
@@ -455,14 +455,14 @@ namespace VKE
                     {
                         CQueue         Queue;
                         SQueueInitInfo Info;
-                        Info.hDDIQueue   = Family.vQueues[ idx ]; // get next queue
+                        Info.hRHIQueue   = Family.vQueues[ idx ]; // get next queue
                         Info.familyIndex = Family.index;
                         Info.type        = Family.type;
                         Info.pContext    = this;
                         Queue.Init( Info );
                         m_vQueues.PushBack( Queue );
                         pQueue = &m_vQueues.Back();
-                        VKE_LOG( "Acquire Queue: " << Info.hDDIQueue << " of type: " << type );
+                        VKE_LOG( "Acquire Queue: " << Info.hRHIQueue << " of type: " << type );
 
                         // Result res = VKE_OK;
                         {
@@ -753,16 +753,16 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&                        hSet    = *phInOut;
-            const RHI::DescriptorSet&             hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet&             hRHISet = m_pDescSetMgr->GetSet( hSet );
             SUpdateBufferDescriptorSetInfo              Info;
             SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
             const auto&                                 BindInfo = pBuffer->GetBindingInfo();
-            BuffInfo.hDDIBuffer                                  = pBuffer->GetDDIObject();
+            BuffInfo.hRHIBuffer                                  = pBuffer->GetRHIObject();
             BuffInfo.offset                                      = BindInfo.offset;
             BuffInfo.range                                       = BindInfo.range;
             Info.count                                           = BindInfo.count;
             Info.binding                                         = BindInfo.index;
-            Info.hDDISet                                         = hDDISet;
+            Info.hRHISet                                         = hRHISet;
             Info.vBufferInfos.PushBack( BuffInfo );
             RHI().Update( Info );
         }
@@ -770,7 +770,7 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( const RenderTargetHandle& hRT, DescriptorSetHandle* phInOut )
         {
             // DescriptorSetHandle& hSet = *phInOut;
-            // const RHI::DescriptorSet& hDDISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
+            // const RHI::DescriptorSet& hRHISet = m_pDeviceCtx->m_pDescSetMgr->GetSet( hSet );
             // TexturePtr pTex = m_pDeviceCtx->GetTexture( hRT );
         }
 
@@ -778,7 +778,7 @@ namespace VKE
                                                   DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&            hSet    = *phInOut;
-            const RHI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet& hRHISet = m_pDescSetMgr->GetSet( hSet );
             RenderTargetPtr                 pRT     = GetRenderTarget( hRT );
             SSamplerTextureBinding          Binding;
             Binding.hSampler     = hSampler;
@@ -787,10 +787,10 @@ namespace VKE
             SUpdateTextureDescriptorSetInfo UpdateInfo;
             UpdateInfo.binding = 0;
             UpdateInfo.count   = 1;
-            UpdateInfo.hDDISet = hDDISet;
+            UpdateInfo.hRHISet = hRHISet;
             SUpdateTextureDescriptorSetInfo::STextureInfo TexInfo;
-            TexInfo.hDDISampler     = GetSampler( hSampler )->GetDDIObject();
-            TexInfo.hDDITextureView = GetTextureView( pRT->GetTextureView() )->GetDDIObject();
+            TexInfo.hRHISampler     = GetSampler( hSampler )->GetRHIObject();
+            TexInfo.hRHITextureView = GetTextureView( pRT->GetTextureView() )->GetRHIObject();
             TexInfo.textureState    = TextureStates::SHADER_READ;
             UpdateInfo.vTextureInfos.PushBack( TexInfo );
             RHI().Update( UpdateInfo );
@@ -799,15 +799,15 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&            hSet    = *phInOut;
-            const RHI::DescriptorSet& hDDISet = m_pDescSetMgr->GetSet( hSet );
-            RHI().Update( hDDISet, Info );
+            const RHI::DescriptorSet& hRHISet = m_pDescSetMgr->GetSet( hSet );
+            RHI().Update( hRHISet, Info );
         }
 
         void CDeviceContext::UpdateDescriptorSet( SCopyDescriptorSetInfo& Info )
         {
-            auto& hDDISrc = m_pDescSetMgr->GetSet( Info.hSrc );
-            auto  hDDIDst = m_pDescSetMgr->GetSet( Info.hDst );
-            RHI().Update( hDDISrc, &hDDIDst );
+            auto& hRHISrc = m_pDescSetMgr->GetSet( Info.hSrc );
+            auto  hRHIDst = m_pDescSetMgr->GetSet( Info.hDst );
+            RHI().Update( hRHISrc, &hRHIDst );
         }
 
         void CDeviceContext::_DestroyDescriptorSets( DescriptorSetHandle* phSets, const uint32_t count )
@@ -857,10 +857,10 @@ namespace VKE
         ExecuteCommandBufferFlags::WAIT | ExecuteCommandBufferFlags::DONT_SIGNAL_SEMAPHORE, nullptr ); return ret;
         }*/
 
-        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const RHI::GPUFence& hDDISemaphore )
+        /*void CDeviceContext::_PushSignaledSemaphore( QUEUE_TYPE queueType, const RHI::GPUFence& hRHISemaphore )
         {
             Threads::ScopedLock l( m_SignaledSemaphoreSyncObj );
-            m_vDDISignaledSemaphores[queueType].PushBack( hDDISemaphore );
+            m_vRHISignaledSemaphores[queueType].PushBack( hRHISemaphore );
         }*/
 
         void CDeviceContext::FreeUnusedAllocations()

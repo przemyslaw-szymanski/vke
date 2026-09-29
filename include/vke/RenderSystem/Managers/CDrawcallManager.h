@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderSystem/Vulkan/Common.h"
+#include "RenderSystem/RHI/Vulkan/Common.h"
 #include "Core/Memory/CFreeListPool.h"
 
 namespace VKE

@@ -136,7 +136,7 @@ namespace VKE
         }
 
         CContextBase::CContextBase( CDeviceContext* pCtx, cstr_t pName ) :
-            m_DDI( pCtx->RHI() ), m_pDeviceCtx( pCtx ), m_pName( pName ), m_CmdBuffMgr( this ),
+            m_RHI( pCtx->RHI() ), m_pDeviceCtx( pCtx ), m_pName( pName ), m_CmdBuffMgr( this ),
             m_pLastExecutedBatch( &g_sDummyBatch )
         {
         }
@@ -191,7 +191,7 @@ namespace VKE
                 Info.initComputeShader   = m_initComputeShader;
                 Info.initGraphicsShaders = m_initGraphicsShaders;
                 pCb->Init( Info );
-                // pCb->m_hDDIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
+                // pCb->m_hRHIFence = m_pCurrentExecuteBatch->hSignalCPUFence;
                 // pCb->_SetCPUSyncObject( m_pCurrentExecuteBatch->hSignalCPUFence );
                 // pCb->_SetGPUSyncObject( m_pCurrentExecuteBatch->hSignalGPUFence );
                 pCb->Begin();
@@ -229,7 +229,7 @@ namespace VKE
             }
             else
             {
-                m_pDeviceCtx->RHI().Reset( pCmdBuffer->GetDDIObject(), pCmdBuffer->m_hDDICmdBufferPool );
+                m_pDeviceCtx->RHI().Reset( pCmdBuffer->GetRHIObject(), pCmdBuffer->m_hRHICmdBufferPool );
                 pCmdBuffer->m_state = CCommandBuffer::States::RESET;
             }
         }
@@ -242,7 +242,7 @@ namespace VKE
 
             _Reset( pCb );
 
-            m_pDeviceCtx->RHI().BeginCommandBuffer( pCb->GetDDIObject(), pCb->getNativeCmdBufferPool() );
+            m_pDeviceCtx->RHI().BeginCommandBuffer( pCb->GetRHIObject(), pCb->getNativeCmdBufferPool() );
             pCb->m_currBackBufferIdx = m_backBufferIdx;
             pCb->m_state             = CCommandBuffer::States::BEGIN;
             return ret;
@@ -268,7 +268,7 @@ namespace VKE
 
             pCb->_ExecutePendingOperations();
             // pCb->DumpDebugMarkerTexts();
-            m_DDI.EndCommandBuffer( pCb->GetDDIObject() );
+            m_RHI.EndCommandBuffer( pCb->GetRHIObject() );
 
             // if( flags & ExecuteCommandBufferFlags::END )
             {
@@ -314,7 +314,7 @@ namespace VKE
             PipelinePtr pRet;
             /*PipelineLayoutPtr pLayout = m_pDeviceCtx->CreatePipelineLayout(
             this->m_pCurrentCommandBuffer->m_CurrentPipelineLayoutDesc );
-            this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc.Pipeline.hDDILayout = pLayout->GetDDIObject();
+            this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc.Pipeline.hRHILayout = pLayout->GetRHIObject();
             pRet = m_pDeviceCtx->CreatePipeline( this->m_pCurrentCommandBuffer->m_CurrentPipelineDesc );*/
             // this->m_pCurrentCommandBuffer->_UpdateCurrentPipeline();
             // pRet = this->m_pCurrentCommandBuffer->m_pCurrentPipeline;

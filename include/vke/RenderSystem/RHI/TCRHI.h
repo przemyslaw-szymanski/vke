@@ -37,7 +37,7 @@ namespace VKE::RenderSystem
             Reinterpret()->DestroyDeviceImpl();
         }
 
-        static Result Load( const SDDILoadInfo& Info, SDriverInfo* pOut )
+        static Result Load( const SRHILoadInfo& Info, SDriverInfo* pOut )
         {
             return RenderApiT::LoadImpl( Info, pOut );
         }
@@ -292,7 +292,7 @@ namespace VKE::RenderSystem
             return Reinterpret()->BindImpl( Info );
         }
 
-        void Bind( const SBindDDIDescriptorSetsInfo& Info )
+        void Bind( const SBindRHIDescriptorSetsInfo& Info )
         {
             return Reinterpret()->BindImpl( Info );
         }
@@ -307,10 +307,10 @@ namespace VKE::RenderSystem
             return Reinterpret()->BindImpl( Info );
         }
 
-        void Bind( const RHI::CommandBuffer& hDDICmdBuffer, const RHI::Buffer& hDDIBuffer, const uint32_t offset,
+        void Bind( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Buffer& hRHIBuffer, const uint32_t offset,
                    const INDEX_TYPE& type )
         {
-            return Reinterpret()->BindImpl( hDDICmdBuffer, hDDIBuffer, offset, type );
+            return Reinterpret()->BindImpl( hRHICmdBuffer, hRHIBuffer, offset, type );
         }
 
         void UnbindPipeline( const RHI::CommandBuffer& hCmdBuffer, const RHI::Pipeline& hPipeline )
@@ -338,14 +338,14 @@ namespace VKE::RenderSystem
             return Reinterpret()->UpdateImpl( Info );
         }
 
-        void Update( const RHI::DescriptorSet& hDDISet, const SUpdateBindingsHelper& Info )
+        void Update( const RHI::DescriptorSet& hRHISet, const SUpdateBindingsHelper& Info )
         {
-            return Reinterpret()->UpdateImpl( hDDISet, Info );
+            return Reinterpret()->UpdateImpl( hRHISet, Info );
         }
 
-        void Update( const RHI::DescriptorSet& hDDISrcSet, RHI::DescriptorSet* phDDIDstOut )
+        void Update( const RHI::DescriptorSet& hRHISrcSet, RHI::DescriptorSet* phRHIDstOut )
         {
-            return Reinterpret()->UpdateImpl( hDDISrcSet, phDDIDstOut );
+            return Reinterpret()->UpdateImpl( hRHISrcSet, phRHIDstOut );
         }
 
         Result Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
@@ -448,9 +448,9 @@ namespace VKE::RenderSystem
         }
 
         // Copy
-        void Copy( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyTextureInfoEx& Info )
+        void Copy( const RHI::CommandBuffer& hRHICmdBuffer, const SCopyTextureInfoEx& Info )
         {
-            return Reinterpret()->CopyImpl( hDDICmdBuffer, Info );
+            return Reinterpret()->CopyImpl( hRHICmdBuffer, Info );
         }
 
         void Copy( const RHI::CommandBuffer& hCmdBuffer, const SCopyBufferInfo& Info )
@@ -458,9 +458,9 @@ namespace VKE::RenderSystem
             return Reinterpret()->CopyImpl( hCmdBuffer, Info );
         }
 
-        void Copy( const RHI::CommandBuffer& hDDICmdBuffer, const SCopyBufferToTextureInfo& Info )
+        void Copy( const RHI::CommandBuffer& hRHICmdBuffer, const SCopyBufferToTextureInfo& Info )
         {
-            return Reinterpret()->CopyImpl( hDDICmdBuffer, Info );
+            return Reinterpret()->CopyImpl( hRHICmdBuffer, Info );
         }
 
         void Blit( const RHI::CommandBuffer& hAPICmdBuffer, const SBlitTextureInfo& Info )
@@ -478,17 +478,17 @@ namespace VKE::RenderSystem
             return Reinterpret()->PresentImpl( Info );
         }
 
-        Result CreateSwapChain( const SSwapChainDesc& Desc, SDDISwapChain* pInOut )
+        Result CreateSwapChain( const SSwapChainDesc& Desc, SRHISwapChain* pInOut )
         {
             return Reinterpret()->CreateSwapChainImpl( Desc, nullptr, pInOut );
         }
 
-        void DestroySwapChain( SDDISwapChain* pInOut = nullptr )
+        void DestroySwapChain( SRHISwapChain* pInOut = nullptr )
         {
             return Reinterpret()->DestroySwapChainImpl( pInOut );
         }
 
-        Result ReCreateSwapChain( const SSwapChainDesc& Desc, SDDISwapChain* pOut )
+        Result ReCreateSwapChain( const SSwapChainDesc& Desc, SRHISwapChain* pOut )
         {
             return Reinterpret()->ReCreateSwapChainImpl( Desc, pOut );
         }
@@ -498,7 +498,7 @@ namespace VKE::RenderSystem
             return Reinterpret()->QueryPresentSurfaceCapsImpl( hSurface, pOut );
         }
 
-        Result GetCurrentBackBufferIndex( const SDDISwapChain& SwapChain, const SDDIGetBackBufferInfo& Info,
+        Result GetCurrentBackBufferIndex( const SRHISwapChain& SwapChain, const SRHIGetBackBufferInfo& Info,
                                           uint32_t* pOut )
         {
             return Reinterpret()->GetCurrentBackBufferIndexImpl( SwapChain, Info, pOut );
@@ -510,14 +510,14 @@ namespace VKE::RenderSystem
         }*/
 
         // Debug
-        void BeginDebugInfo( const RHI::CommandBuffer& hDDICmdBuff, const SDebugInfo* pInfo )
+        void BeginDebugInfo( const RHI::CommandBuffer& hRHICmdBuff, const SDebugInfo* pInfo )
         {
-            return Reinterpret()->BeginDebugInfoImpl( hDDICmdBuff, pInfo );
+            return Reinterpret()->BeginDebugInfoImpl( hRHICmdBuff, pInfo );
         }
 
-        void EndDebugInfo( const RHI::CommandBuffer& hDDICmdBuff )
+        void EndDebugInfo( const RHI::CommandBuffer& hRHICmdBuff )
         {
-            return Reinterpret()->EndDebugInfoImpl( hDDICmdBuff );
+            return Reinterpret()->EndDebugInfoImpl( hRHICmdBuff );
         }
 
         void SetObjectDebugName( const uint64_t& handle, const uint32_t& objType, cstr_t pName ) const

@@ -9,7 +9,7 @@
 
 #include "Core/Utils/CProfiler.h"
 
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
 #define RENDER_WIREFRAME 0
@@ -1218,9 +1218,9 @@ namespace VKE
 
             if( pRet == nullptr )
             {
-                for( uint32_t i = 0; i < Desc.vDDIRenderPasses.GetCount(); ++i )
+                for( uint32_t i = 0; i < Desc.vRHIRenderPasses.GetCount(); ++i )
                 {
-                    PipelineDesc.Pipeline.hDDIRenderPass = Desc.vDDIRenderPasses[ i ];
+                    PipelineDesc.Pipeline.hRHIRenderPass = Desc.vRHIRenderPasses[ i ];
                     // VKE_RENDER_SYSTEM_SET_DEBUG_NAME( PipelineDesc.Pipeline, "TerrainVertexFetchRenderer" );
                     PipelineDesc.Pipeline.SetDebugName( "TerrainVertexFetchRenderer" );
                     pRet = pCtx->CreatePipeline( PipelineDesc );
@@ -1240,7 +1240,7 @@ namespace VKE
         {
             m_prevResourceIndex = m_backBufferIndex;
             m_backBufferIndex   = pCommandBuffer->GetBackBufferIndex();
-            // VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetDDIObject() );
+            // VKE_LOG( "Update frame: " << m_resourceIndex << " cmd buffer: " << pCommandBuffer->GetRHIObject() );
 #if VKE_SCENE_TERRAIN_DEBUG
             RenderSystem::SDebugInfo Info;
             Info.pText = "CTerrainVertexFetchRenderer::_UpdateDrawcalls";
@@ -1261,8 +1261,8 @@ namespace VKE
             {
                 RenderSystem::SCopyBufferInfo CopyInfo;
                 CopyInfo.pDstBuffer = m_pConstantBuffer.Get();
-                // CopyInfo.hDDIDstBuffer = m_pConstantBuffer->GetDDIObject();
-                CopyInfo.hDDISrcBuffer          = m_pConstantBuffer->GetStaging()->GetDDIObject();
+                // CopyInfo.hRHIDstBuffer = m_pConstantBuffer->GetRHIObject();
+                CopyInfo.hRHISrcBuffer          = m_pConstantBuffer->GetStaging()->GetRHIObject();
                 CopyInfo.Region.dstBufferOffset = 0;
                 CopyInfo.Region.srcBufferOffset =
                     m_pConstantBuffer->GetStaging()->CalcAbsoluteOffset( m_backBufferIndex, 0 );
@@ -1447,8 +1447,8 @@ namespace VKE
 
                     RenderSystem::SCopyBufferInfo CopyInfo;
                     CopyInfo.pDstBuffer = m_pInstacingDataBuffer.Get();
-                    // CopyInfo.hDDIDstBuffer = m_pInstacingDataBuffer->GetDDIObject();
-                    CopyInfo.hDDISrcBuffer          = pStagingBuffer->GetDDIObject();
+                    // CopyInfo.hRHIDstBuffer = m_pInstacingDataBuffer->GetRHIObject();
+                    CopyInfo.hRHISrcBuffer          = pStagingBuffer->GetRHIObject();
                     CopyInfo.Region.dstBufferOffset = 0;
                     CopyInfo.Region.srcBufferOffset = regionBaseOffset;
                     CopyInfo.Region.size            = sizeWritten;

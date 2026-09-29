@@ -5,7 +5,7 @@
 #include "RenderSystem/Resources/CImage.h"
 #include "Core/Utils/TCDynamicArray.h"
 
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/Common.h"
 
 namespace VKE::RenderSystem
@@ -32,7 +32,7 @@ namespace VKE::RenderSystem
         friend class CTextureManager;
         friend class CDeviceContext;
         friend class CContextBase;
-        VKE_ADD_DDI_OBJECT( RHI::Sampler );
+        VKE_ADD_RHI_OBJECT( RHI::Sampler );
         VKE_DECL_BASE_OBJECT( SamplerHandle );
 
     public:
@@ -54,7 +54,7 @@ namespace VKE::RenderSystem
         friend class CTextureManager;
         friend class CResourceManager;
         friend class CDeviceContext;
-        VKE_ADD_DDI_OBJECT( RHI::TextureView );
+        VKE_ADD_RHI_OBJECT( RHI::TextureView );
         VKE_DECL_BASE_OBJECT( TextureViewHandle );
 
     public:
@@ -113,7 +113,7 @@ namespace VKE::RenderSystem
 
         TextureViewRefPtr  GetView() const;
         SamplerRefPtr      GetSampler();
-        RHI::Sampler GetDDISampler();
+        RHI::Sampler GetRHISampler();
 
         bool IsColor() const
         {
@@ -177,7 +177,7 @@ namespace VKE::RenderSystem
         // ViewArray&              _GetViews() { return m_vViews; }
     protected:
         STextureDesc m_Desc;
-        VKE_ADD_DDI_OBJECT( RHI::Texture );
+        VKE_ADD_RHI_OBJECT( RHI::Texture );
         VKE_DECL_BASE_OBJECT( TextureHandle );
 
     protected:

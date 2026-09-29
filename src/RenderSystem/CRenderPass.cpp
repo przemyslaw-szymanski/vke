@@ -62,7 +62,7 @@
 //        {
 //            if( destroyRenderPass )
 //            {
-//                m_pCtx->RHI().DestroyRenderPass( &m_hDDIObject, nullptr );
+//                m_pCtx->RHI().DestroyRenderPass( &m_hRHIObject, nullptr );
 //            }
 //        }
 //
@@ -81,7 +81,7 @@
 //            return res;
 //        }
 //
-//        // DDI api handles only
+//        // RHI api handles only
 //        Result CRenderPass::Create( const SRenderPassDesc& Desc )
 //        {
 //            Result ret = VKE_OK;
@@ -111,12 +111,12 @@
 //            }
 //            if( VKE_SUCCEEDED( ret ) )
 //            {
-//                m_hDDIObject = m_pCtx->RHI().CreateRenderPass( m_Desc, nullptr );
+//                m_hRHIObject = m_pCtx->RHI().CreateRenderPass( m_Desc, nullptr );
 //            }
-//            if( m_hDDIObject != RHI::Null )
+//            if( m_hRHIObject != RHI::Null )
 //            {
 //                SFramebufferDesc FbDesc;
-//                FbDesc.hRenderPass.handle = (handle_t)( m_hDDIObject );
+//                FbDesc.hRenderPass.handle = (handle_t)( m_hRHIObject );
 //                FbDesc.Size               = m_Desc.Size;
 //                for( uint32_t i = 0; i < m_Desc.vRenderTargets.GetCount(); ++i )
 //                {
@@ -124,12 +124,12 @@
 //                    VKE_ASSERT2( hView != INVALID_HANDLE, "A proper texture view handle must be set in Attachment" );
 //                    if( hView != INVALID_HANDLE )
 //                    {
-//                        // RHI::TextureView hDDIView = reinterpret_cast<RHI::TextureView>(hView.handle);
+//                        // RHI::TextureView hRHIView = reinterpret_cast<RHI::TextureView>(hView.handle);
 //                        TextureViewPtr pView = m_pCtx->GetTextureView( hView );
-//                        FbDesc.vDDIAttachments.PushBack( pView->GetDDIObject() );
-//                        RHI::ClearValue DDIValue;
-//                        m_pCtx->RHI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &DDIValue );
-//                        m_BeginInfo.vDDIClearValues.PushBack( DDIValue );
+//                        FbDesc.vRHIAttachments.PushBack( pView->GetRHIObject() );
+//                        RHI::ClearValue RHIValue;
+//                        m_pCtx->RHI().Convert( m_Desc.vRenderTargets[ i ].ClearValue, &RHIValue );
+//                        m_BeginInfo.vRHIClearValues.PushBack( RHIValue );
 //                    }
 //                    else
 //                    {
@@ -137,12 +137,12 @@
 //                        break;
 //                    }
 //                }
-//                m_hDDIFramebuffer = m_pCtx->RHI().CreateFramebuffer( FbDesc, nullptr );
-//                if( m_hDDIFramebuffer != RHI::Null )
+//                m_hRHIFramebuffer = m_pCtx->RHI().CreateFramebuffer( FbDesc, nullptr );
+//                if( m_hRHIFramebuffer != RHI::Null )
 //                {
 //                    ret                               = VKE_OK;
-//                    m_BeginInfo.hDDIFramebuffer       = m_hDDIFramebuffer;
-//                    m_BeginInfo.hDDIRenderPass        = m_hDDIObject;
+//                    m_BeginInfo.hRHIFramebuffer       = m_hRHIFramebuffer;
+//                    m_BeginInfo.hRHIRenderPass        = m_hRHIObject;
 //                    m_BeginInfo.RenderArea.Position.x = 0;
 //                    m_BeginInfo.RenderArea.Position.y = 0;
 //                    m_BeginInfo.RenderArea.Size       = m_Desc.Size;
@@ -216,7 +216,7 @@
 //            if( idx < MAX_RT_COUNT )
 //            {
 //                TexturePtr pTex     = m_pCtx->GetTexture( pRT->GetTexture() );
-//                RTInfo.hDDIView     = pTex->GetView()->GetDDIObject();
+//                RTInfo.hRHIView     = pTex->GetView()->GetRHIObject();
 //                RTInfo.ClearColor   = Info.ClearColor;
 //                RTInfo.state        = Info.state;
 //                RTInfo.renderPassOp = Info.renderPassOp;

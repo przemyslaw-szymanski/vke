@@ -143,7 +143,7 @@ namespace VKE::RenderSystem
                 if( HasRenderPass() )
                 {
                     SBeginRenderPassInfo Info = {};
-                    Info.hDDIRenderPass      = m_hRHIRenderPass;
+                    Info.hRHIRenderPass      = m_hRHIRenderPass;
                     Info.RenderArea          = GetRenderArea();
                     m_pCommandBuffer->BeginRenderPass( Info );
                 }
@@ -440,7 +440,7 @@ namespace VKE::RenderSystem
                 TextureViewPtr pView  = pTexture->GetView();
                 if( pTexture->IsColor() )
                 {
-                    SRenderTargetInfo Info = { .hDDIView   = pView->GetDDIObject(),
+                    SRenderTargetInfo Info = { .hRHIView   = pView->GetRHIObject(),
                                                .format     = pView->GetDesc().format,
                                                .ClearColor = SClearValue( 0, 0, 0, 0 ),
                                                .state      = FrameGraphPassOpToColorTextureState( RTDesc.operation ),
@@ -452,7 +452,7 @@ namespace VKE::RenderSystem
                 }
                 else
                 {
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.hDDIView   = pView->GetDDIObject();
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.hRHIView   = pView->GetRHIObject();
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.ClearColor = SClearValue( 1, 0 );
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.format     = pView->GetDesc().format;
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.renderPassOp =
@@ -481,7 +481,7 @@ namespace VKE::RenderSystem
                 TextureViewPtr pView  = pTexture->GetView();
                 if( pTexture->IsColor() )
                 {
-                    SRenderTargetInfo Info = { .hDDIView   = pView->GetDDIObject(),
+                    SRenderTargetInfo Info = { .hRHIView   = pView->GetRHIObject(),
                                                .format     = pView->GetDesc().format,
                                                .ClearColor = SClearValue( 0, 0, 0, 0 ),
                                                .state      = FrameGraphPassOpToColorTextureState( RpRTDesc.operation ),
@@ -496,14 +496,14 @@ namespace VKE::RenderSystem
                     RtDesc.endState    = Info.state;
                     RtDesc.ClearValue  = Info.ClearColor;
                     RtDesc.format      = Info.format;
-                    RtDesc.hRHIView = pTexture->GetView()->GetDDIObject();
+                    RtDesc.hRHIView = pTexture->GetView()->GetRHIObject();
                     RtDesc.usage       = FrameGraphPassOpToColorRenderTargetOp( RpRTDesc.operation );
                     RtDesc.SetDebugName( RpRTDesc.pName );
                     RpDesc.vRenderTargets.PushBack( RtDesc );
                 }
                 else
                 {
-                    m_BeginRenderPassInfo.DepthRenderTargetInfo.hDDIView   = pView->GetDDIObject();
+                    m_BeginRenderPassInfo.DepthRenderTargetInfo.hRHIView   = pView->GetRHIObject();
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.ClearColor = SClearValue( 1, 0 );
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.format     = pView->GetDesc().format;
                     m_BeginRenderPassInfo.DepthRenderTargetInfo.renderPassOp =
@@ -517,7 +517,7 @@ namespace VKE::RenderSystem
                     RtDesc.endState    = m_BeginRenderPassInfo.DepthRenderTargetInfo.state;
                     RtDesc.ClearValue  = m_BeginRenderPassInfo.DepthRenderTargetInfo.ClearColor;
                     RtDesc.format      = m_BeginRenderPassInfo.DepthRenderTargetInfo.format;
-                    RtDesc.hRHIView = pTexture->GetView()->GetDDIObject();
+                    RtDesc.hRHIView = pTexture->GetView()->GetRHIObject();
                     RtDesc.usage       = FrameGraphPassOpToDepthRenderTargetOp( RpRTDesc.operation );
                     RtDesc.SetDebugName( RpRTDesc.pName );
                     RpDesc.vRenderTargets.PushBack( RtDesc );
@@ -611,7 +611,7 @@ namespace VKE::RenderSystem
                         {
                             // VKE_LOG( "Execute batch: " << this->m_Name.GetData() << ", cb: " << pCb->GetDebugName()
                             // );
-                            Exe.vpCommandBuffers.PushBackUnique( pCb->GetDDIObject() );
+                            Exe.vpCommandBuffers.PushBackUnique( pCb->GetRHIObject() );
                         }
                         else
                         {
@@ -629,10 +629,10 @@ namespace VKE::RenderSystem
         //VKE_ASSERT( m_fenceValue > m_pFrameGraph->m_aFrameData[backBufferIndex].frameFenceValue );
         //m_fenceValue                      = m_pFrameGraph->m_aFrameData[ backBufferIndex ].frameFenceValue + 1;
         Exe.SubmitInfo.commandBufferCount = (uint16_t)Exe.vpCommandBuffers.GetCount();
-        Exe.SubmitInfo.pDDICommandBuffers = Exe.vpCommandBuffers.GetData();
+        Exe.SubmitInfo.pRHICommandBuffers = Exe.vpCommandBuffers.GetData();
         Exe.SubmitInfo.signalFenceValue   = GetFenceValue();
         Exe.SubmitInfo.hSignalFence       = m_pFrameGraph->GetFrameFence( backBufferIndex );
-        Exe.SubmitInfo.hDDIQueue          = this->GetContext()->GetNativeQueue();
+        Exe.SubmitInfo.hRHIQueue          = this->GetContext()->GetNativeQueue();
      
         return &Exe;
     }

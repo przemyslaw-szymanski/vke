@@ -48,7 +48,7 @@ namespace VKE
             using CreatePipelineTaskPoolHelper = TaskPoolHelper< PipelineManagerTasks::SCreatePipelineTask, 1024 >;
             using CreatePipelineTaskPool       = CreatePipelineTaskPoolHelper::Pool;
 
-            using DefaultDDIPipelineMap = vke_hash_map< handle_t, RHI::Pipeline >;
+            using DefaultRHIPipelineMap = vke_hash_map< handle_t, RHI::Pipeline >;
 
         public:
             CPipelineManager( CDeviceContext* pCtx );
@@ -88,7 +88,7 @@ namespace VKE
             PipelineMemoryPool       m_PipelineMemMgr;
             PipelineLayoutMemoryPool m_PipelineLayoutMemMgr;
             CreatePipelineTaskPool   m_CreatePipelineTaskPool;
-            DefaultDDIPipelineMap    m_mDefaultDDIPipelines;
+            DefaultRHIPipelineMap    m_mDefaultRHIPipelines;
 
             Threads::SyncObject m_CreatePipelineSyncObj;
             Threads::SyncObject m_LayoutSyncObj;

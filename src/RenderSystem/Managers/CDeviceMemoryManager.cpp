@@ -1,6 +1,6 @@
 #include "RenderSystem/Managers/CDeviceMemoryManager.h"
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 
 #define VKE_LOG_DEVICE_MEMORY_MANAGER 0
 #if VKE_LOG_DEVICE_MEMORY_MANAGER
@@ -93,9 +93,9 @@ namespace VKE
             for( uint32_t i = 0; i < m_PoolBuffer.vPool.GetCount(); i++ )
             {
                 auto& Pool = m_PoolBuffer.vPool[ i ];
-                if( Pool.Data.hDDIMemory != RHI::Null )
+                if( Pool.Data.hRHIMemory != RHI::Null )
                 {
-                    m_pCtx->RHI().Free( &m_PoolBuffer.vPool[ i ].Data.hDDIMemory );
+                    m_pCtx->RHI().Free( &m_PoolBuffer.vPool[ i ].Data.hRHIMemory );
                 }
             }
         }
@@ -118,7 +118,7 @@ namespace VKE
                 if( ret != UNDEFINED_U32 )
                 {
                     CMemoryPoolView::SInitInfo Info;
-                    Info.memory              = (uint64_t)( MemData.hDDIMemory.ToUint64() );
+                    Info.memory              = (uint64_t)( MemData.hRHIMemory.ToUint64() );
                     Info.offset              = 0;
                     Info.size                = Desc.size;
                     Info.allocationAlignment = Desc.alignment;
@@ -250,7 +250,7 @@ namespace VKE
                     if( memory != CMemoryPoolView::INVALID_ALLOCATION )
                     {
                         pBindInfoOut->reserved   = Info.reserved;
-                        pBindInfoOut->hDDIMemory = (RHI::MemoryHeap)( Data.memory );
+                        pBindInfoOut->hRHIMemory = (RHI::MemoryHeap)( Data.memory );
                         pBindInfoOut->offset     = Data.offset;
                         pBindInfoOut->hMemory    = poolIdx;
 
@@ -359,12 +359,12 @@ namespace VKE
                 {
                     auto& BindInfo      = *pOut;
                     BindInfo.reserved   = Info.reserved;
-                    BindInfo.hDDIMemory = Data.hDDIMemory;
+                    BindInfo.hRHIMemory = Data.hRHIMemory;
                     BindInfo.hMemory    = INVALID_HANDLE;
                     BindInfo.offset     = 0;
 
                     SSubAllocateMemoryInfo AllocInfo;
-                    AllocInfo.hMemory = (handle_t)( Data.hDDIMemory.ToUint64() );
+                    AllocInfo.hMemory = (handle_t)( Data.hRHIMemory.ToUint64() );
                     AllocInfo.offset  = 0;
                     AllocInfo.size    = AllocDesc.size;
                     UAllocationHandle Handle;
@@ -393,7 +393,7 @@ namespace VKE
         {
             Result         ret = VKE_ENOMEMORY;
             SMapMemoryInfo MapInfo;
-            MapInfo.hMemory = BindInfo.hDDIMemory;
+            MapInfo.hMemory = BindInfo.hRHIMemory;
             MapInfo.offset  = BindInfo.offset + DataInfo.dstDataOffset;
             MapInfo.size    = DataInfo.dataSize;
             void* pDst      = m_pCtx->RHI().MapMemory( MapInfo );

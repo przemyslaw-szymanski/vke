@@ -262,7 +262,7 @@ namespace VKE
         void CShaderManager::_DestroyShader( Memory::CFreeListPool* pAllocator, CShader** ppInOut )
         {
             CShader* pShader = *ppInOut;
-            m_pCtx->RHI().DestroyShader( &pShader->m_hDDIObject );
+            m_pCtx->RHI().DestroyShader( &pShader->m_hRHIObject );
             Memory::DestroyObject( pAllocator, &pShader );
         }
 
@@ -956,7 +956,7 @@ namespace VKE
                 Threads::ScopedLock l( m_aShaderTypeSyncObjects[ type ] );
                 {
                     // m_pCtx->_GetDevice().DestroyObject( nullptr, &pShader->m_vkModule );
-                    m_pCtx->RHI().DestroyShader( &pShader->m_hDDIObject );
+                    m_pCtx->RHI().DestroyShader( &pShader->m_hRHIObject );
                     // m_aShaderBuffers[ type ].vFreeElements.PushBack( pShader );
                     m_aShaderBuffers[ type ].AddFree( pShader->GetHandle().handle );
                 }
@@ -1019,7 +1019,7 @@ namespace VKE
                 RHI::Shader hShader = m_pCtx->RHI().CreateShader( Data );
                 if( hShader != RHI::Null )
                 {
-                    pShader->m_hDDIObject = hShader;
+                    pShader->m_hRHIObject = hShader;
                     ret                   = VKE_OK;
                 }
             }

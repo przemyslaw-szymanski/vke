@@ -78,8 +78,8 @@ namespace VKE
         {
             CPipeline* pPipeline = *ppPipeline;
             pPipeline->_Destroy();
-            auto& hDDIObj = pPipeline->m_hDDIObject;
-            m_pCtx->RHI().DestroyPipeline( &hDDIObj );
+            auto& hRHIObj = pPipeline->m_hRHIObject;
+            m_pCtx->RHI().DestroyPipeline( &hRHIObj );
             Memory::DestroyObject( &m_PipelineMemMgr, &pPipeline );
             *ppPipeline = nullptr;
         }
@@ -87,8 +87,8 @@ namespace VKE
         void CPipelineManager::_DestroyLayout( CPipelineLayout** ppLayout )
         {
             CPipelineLayout* pLayout = *ppLayout;
-            auto&            hDDIObj = pLayout->m_hDDIObject;
-            m_pCtx->RHI().DestroyPipelineLayout( &hDDIObj );
+            auto&            hRHIObj = pLayout->m_hRHIObject;
+            m_pCtx->RHI().DestroyPipelineLayout( &hRHIObj );
             Memory::DestroyObject( &m_PipelineLayoutMemMgr, &pLayout );
             *ppLayout = nullptr;
         }
@@ -133,7 +133,7 @@ namespace VKE
                             {
                                 pPipeline->m_Desc           = Desc.Pipeline;
                                 pPipeline->m_hObject.handle = hash;
-                                pPipeline->m_hDDIObject     = _GetDefaultPipeline( Desc.Pipeline );
+                                pPipeline->m_hRHIObject     = _GetDefaultPipeline( Desc.Pipeline );
                                 m_currPipelineHash          = hash;
                                 m_pCurrPipeline             = pPipeline;
 
@@ -245,12 +245,12 @@ namespace VKE
             RHI::Pipeline hRet = RHI::Null;
             if( Desc.pDefault!= nullptr && Desc.pDefault->IsResourceReady() )
             {
-                hRet = Desc.pDefault->GetDDIObject();
+                hRet = Desc.pDefault->GetRHIObject();
             }
             else if( Desc.hLayout != INVALID_HANDLE )
             {
                 // auto hash = GetLayout( Desc.hLayout )->GetHandle();
-                hRet = m_mDefaultDDIPipelines[ Desc.hLayout.handle ];
+                hRet = m_mDefaultRHIPipelines[ Desc.hLayout.handle ];
             }
             return hRet;
         }
@@ -281,12 +281,12 @@ namespace VKE
                         goto ERR;
                     }
                 }
-                if( Desc.hDDILayout == RHI::Null )
+                if( Desc.hRHILayout == RHI::Null )
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout         = m_pCtx->GetPipelineLayout( Desc.hLayout );
-                        pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
+                        pPipeline->m_Desc.hRHILayout = pPipeline->m_pLayout->GetRHIObject();
                     }
                 }
 
@@ -309,7 +309,7 @@ namespace VKE
                 RHI::Pipeline hPipeline = m_pCtx->RHI().CreatePipeline( pPipeline->m_Desc );
                 if( hPipeline != RHI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
-                    pPipeline->m_hDDIObject      = hPipeline;
+                    pPipeline->m_hRHIObject      = hPipeline;
                     pPipeline->_AddResourceState( Core::ResourceStates::PREPARED );
                     ret                          = VKE_OK;
                 }
@@ -319,7 +319,7 @@ namespace VKE
                 }
             }
 
-            VKE_ASSERT2( pPipeline->GetDDIObject() != RHI::Null, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetRHIObject() != RHI::Null, "Pipeline API object not created." );
             return ret;
         ERR:
             pPipeline->_AddResourceState( Core::ResourceStates::INVALID );
@@ -335,19 +335,19 @@ namespace VKE
             if( !pPipeline->IsResourceReady() )
             {
                 pPipeline->m_Desc = Desc;
-                if( Desc.hDDILayout == RHI::Null )
+                if( Desc.hRHILayout == RHI::Null )
                 {
                     VKE_ASSERT2( Desc.hLayout != INVALID_HANDLE, "" );
                     {
                         pPipeline->m_pLayout         = m_pCtx->GetPipelineLayout( Desc.hLayout );
-                        pPipeline->m_Desc.hDDILayout = pPipeline->m_pLayout->GetDDIObject();
+                        pPipeline->m_Desc.hRHILayout = pPipeline->m_pLayout->GetRHIObject();
                     }
                 }
 
                 RHI::Pipeline hPipeline = m_pCtx->RHI().CreatePipeline( pPipeline->m_Desc );
                 if( hPipeline != RHI::Null && VKE_SUCCEEDED( pPipeline->Init( Desc ) ) )
                 {
-                    pPipeline->m_hDDIObject      = hPipeline;
+                    pPipeline->m_hRHIObject      = hPipeline;
                     pPipeline->_AddResourceState( Core::ResourceStates::PREPARED );
                     ret                          = VKE_OK;
                 }
@@ -357,7 +357,7 @@ namespace VKE
                 }
             }
 
-            VKE_ASSERT2( pPipeline->GetDDIObject() != RHI::Null, "Pipeline API object not created." );
+            VKE_ASSERT2( pPipeline->GetRHIObject() != RHI::Null, "Pipeline API object not created." );
 
             return ret;
         }
@@ -368,9 +368,9 @@ namespace VKE
             hash_t hash = 0;
 
             //Utils::Hash::Combine( &hash, Desc.hRenderPass.handle );
-            Utils::Hash::Combine( &hash, Desc.hDDIRenderPass );
+            Utils::Hash::Combine( &hash, Desc.hRHIRenderPass );
             Utils::Hash::Combine( &hash, Desc.hLayout.handle );
-            Utils::Hash::Combine( &hash, Desc.hDDILayout );
+            Utils::Hash::Combine( &hash, Desc.hRHILayout );
             /*hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pComputeShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pVertexShader.Get() );
             hash ^= reinterpret_cast< uint64_t >( Desc.Shaders.pTessHullShader.Get() );
@@ -556,13 +556,13 @@ namespace VKE
             if( pRet!= nullptr )
             {
                 CPipelineLayout* pLayout = pRet.Get();
-                if( pLayout->GetDDIObject() == RHI::Null )
+                if( pLayout->GetRHIObject() == RHI::Null )
                 {
                     RHI::PipelineLayout hLayout = m_pCtx->RHI().CreatePipelineLayout( Desc );
                     if( hLayout != RHI::Null )
                     {
                         pLayout->Init( Desc );
-                        pLayout->m_hDDIObject     = hLayout;
+                        pLayout->m_hRHIObject     = hLayout;
                         pLayout->m_hObject.handle = hash;
                     }
                     else
@@ -626,18 +626,18 @@ namespace VKE
         {
             m_pParent         = pParent;
             m_Desc            = m_pParent->GetDesc();
-            m_Desc.hDDIParent = m_pParent->GetDDIObject();
+            m_Desc.hRHIParent = m_pParent->GetRHIObject();
         }
 
 
-        void CPipelineBuilder::Bind( const RHI::RenderPass& hDDIPass )
+        void CPipelineBuilder::Bind( const RHI::RenderPass& hRHIPass )
         {
-            m_Desc.hDDIRenderPass = hDDIPass;
+            m_Desc.hRHIRenderPass = hRHIPass;
         }
 
         void CPipelineBuilder::Bind( const CSwapChain* pSwpChain )
         {
-            m_Desc.hDDIRenderPass = pSwpChain->GetDDIRenderPass();
+            m_Desc.hRHIRenderPass = pSwpChain->GetRHIRenderPass();
         }
 
         void CPipelineBuilder::Bind( const DescriptorSetHandle& hSet, const uint32_t )

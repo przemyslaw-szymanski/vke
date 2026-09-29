@@ -560,7 +560,7 @@ namespace VKE
                         VKE_LOG_ERR( "CTexture::Init: Unknown TextureAspects" );
                         break;
                 }
-                this->m_hDDIObject = m_Desc.hNative;
+                this->m_hRHIObject = m_Desc.hNative;
                 this->_AddResourceState( Core::ResourceStates::INITIALIZED );
                 if( m_Desc.hNative != RHI::Null )
                 {
@@ -575,7 +575,7 @@ namespace VKE
             if( m_state != state )
             {
                 pOut->currentState                      = m_state;
-                pOut->hDDITexture                       = GetDDIObject();
+                pOut->hRHITexture                       = GetRHIObject();
                 pOut->newState                          = state;
                 pOut->SubresourceRange.aspect           = ConvertFormatToAspect( m_Desc.format );
                 pOut->SubresourceRange.beginArrayLayer  = 0;
@@ -596,7 +596,7 @@ namespace VKE
             if( m_state != state )
             {
                 pOut->currentState                      = m_state;
-                pOut->hDDITexture                       = GetDDIObject();
+                pOut->hRHITexture                       = GetRHIObject();
                 pOut->newState                          = state;
                 pOut->SubresourceRange.aspect           = ConvertFormatToAspect( m_Desc.format );
                 pOut->SubresourceRange.beginArrayLayer  = 0;
@@ -693,7 +693,7 @@ namespace VKE
         void CTextureView::Init( const STextureViewDesc& Desc, TexturePtr pTexture )
         {
             m_Desc             = Desc;
-            this->m_hDDIObject = m_Desc.hNative;
+            this->m_hRHIObject = m_Desc.hNative;
         }
 
         hash_t CTextureView::CalcHash( const STextureViewDesc& Desc )

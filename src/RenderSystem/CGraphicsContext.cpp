@@ -21,8 +21,8 @@
 #include "RenderSystem/Managers/CBackBufferManager.h"
 #include "RenderSystem/Managers/CShaderManager.h"
 
-#include "RenderSystem/Vulkan/PrivateDescs.h"
-#include "RenderSystem/Vulkan/Wrappers/CCommandBuffer.h"
+#include "RenderSystem/RHI/Vulkan/PrivateDescs.h"
+#include "RenderSystem/RHI/Vulkan/Wrappers/CCommandBuffer.h"
 
 namespace VKE
 {
@@ -98,10 +98,10 @@ namespace VKE
         STaskGroup g_TaskGrp;
 
         CGraphicsContext::CGraphicsContext( CDeviceContext* pCtx ) :
-            // m_BaseCtx { pCtx->DDI(), pCtx }
+            // m_BaseCtx { pCtx->RHI(), pCtx }
             CContextBase( pCtx, "Graphics" )
             ///*m_BaseCtx.*/m_pDeviceCtx( pCtx )
-            //, /*m_BaseCtx.*/DDI( pCtx->_GetDDI() )
+            //, /*m_BaseCtx.*/RHI( pCtx->_GetRHI() )
             ,
             m_PipelineMgr( pCtx ),
             m_pEventListener( &g_sDefaultGCListener )
@@ -270,10 +270,10 @@ namespace VKE
             pCmdBuffer->End();
             
             SubmitInfo.commandBufferCount = 1;
-            SubmitInfo.pDDICommandBuffers = &pCmdBuffer->GetDDIObject();
+            SubmitInfo.pRHICommandBuffers = &pCmdBuffer->GetRHIObject();
             SubmitInfo.hSignalFence       = this->m_pDeviceCtx->CreateFence( FenceDesc );
             SubmitInfo.signalFenceValue   = 1;
-            SubmitInfo.hDDIQueue          = m_pQueue->GetDDIObject();
+            SubmitInfo.hRHIQueue          = m_pQueue->GetRHIObject();
             res                           = m_pQueue->Execute( SubmitInfo );
             //res = this->_ExecuteBatch( pExecute );
             if( VKE_FAILED( res ) )
@@ -322,7 +322,7 @@ namespace VKE
         // const VkICD::Device& CGraphicsContext::_GetICD() const
         //{
         //     //return *m_pPrivate->PrivateDesc.pICD;
-        //     return /*m_BaseCtx.*/m_DDI.GetDeviceICD();
+        //     return /*m_BaseCtx.*/m_RHI.GetDeviceICD();
         // }
 
         void CGraphicsContext::RenderFrame()
@@ -351,10 +351,10 @@ namespace VKE
                 //    m_renderState = RenderState::END;
                 //    m_pEventListener->OnRenderFrame( this );
 
-                //    pBatch->vDDIWaitGPUFences.PushBack( pBackBuffer->hDDIPresentImageReadySemaphore );
+                //    pBatch->vRHIWaitGPUFences.PushBack( pBackBuffer->hRHIPresentImageReadySemaphore );
                 //    VKE_LOG( "Batch: " << pBatch
                 //                       << " waits on present gpu fence: " <<
-                //                       pBackBuffer->hDDIPresentImageReadySemaphore );
+                //                       pBackBuffer->hRHIPresentImageReadySemaphore );
                 //    pBatch->swapchainElementIndex = m_backBufferIdx;
                 //    this->_PushCurrentBatchToExecuteQueue();
                 //    //VKE_LOG( "Push batch: " << pBatch );
@@ -389,7 +389,7 @@ namespace VKE
             //        {
             //            // VKE_LOG( "Execute batch: " << pBatch << " swpchain idx: " << pBatch->swapchainElementIndex );
             //            m_PresentInfo.pSwapChain        = m_pSwapChain;
-            //            m_PresentInfo.hDDIWaitSemaphore = pBatch->hSignalGPUFence;
+            //            m_PresentInfo.hRHIWaitSemaphore = pBatch->hSignalGPUFence;
             //            m_PresentInfo.imageIndex        = pBatch->swapchainElementIndex;
             //            m_readyToPresent                = true;
             //        }
@@ -429,8 +429,8 @@ namespace VKE
 
                     // Result res = m_pQueue->Present( m_PresentInfo );
                     Result res = Present( m_PresentInfo );
-                    //VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hDDIWaitSemaphore );
-                    // VKE_LOG( "Present: " << res << " wait on: " << m_PresentInfo.hDDIWaitSemaphore );
+                    //VKE_LOG( "Present wait on gpu fence: " << m_PresentInfo.hRHIWaitSemaphore );
+                    // VKE_LOG( "Present: " << res << " wait on: " << m_PresentInfo.hRHIWaitSemaphore );
                     if( res != VKE_OK )
                     {
                     }
@@ -456,7 +456,7 @@ namespace VKE
             auto pCmdBuffer = this->_GetCurrentCommandBuffer();
             // m_pQueue->_GetSubmitManager()->GetCurrentBatch()
 #if 0
-            VKE_LOG( "BEGIN FRAME: " << pCmdBuffer->m_hDDIObject );
+            VKE_LOG( "BEGIN FRAME: " << pCmdBuffer->m_hRHIObject );
 #endif
             return CommandBufferPtr{ pCmdBuffer };
         }
@@ -474,11 +474,11 @@ namespace VKE
         {
         }
 
-        // Result CGraphicsContext::ExecuteCommandBuffers( RHI::GPUFence* phDDISignalSemaphore )
+        // Result CGraphicsContext::ExecuteCommandBuffers( RHI::GPUFence* phRHISignalSemaphore )
         //{
         //     CCommandBufferBatch* pBatch;
         //     Threads::ScopedLock l( m_SyncObj );
-        //     /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->SignalSemaphore( phDDISignalSemaphore );
+        //     /*m_BaseCtx.*/m_pQueue->_GetSubmitManager()->SignalSemaphore( phRHISignalSemaphore );
         //     Result ret = m_pQueue->_GetSubmitManager()->ExecuteCurrentBatch( this, this->m_pQueue, &pBatch );
         //     return ret;
         // }
@@ -491,8 +491,8 @@ namespace VKE
         void CGraphicsContext::Wait()
         {
             /*m_BaseCtx.*/ m_pQueue->Lock();
-            m_DDI.WaitForQueue( m_pQueue->GetDDIObject() );
-            /*m_BaseCtx.*/ // m_DDI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetDDIObject() );
+            m_RHI.WaitForQueue( m_pQueue->GetRHIObject() );
+            /*m_BaseCtx.*/ // m_RHI.GetICD().vkQueueWaitIdle( /*m_BaseCtx.*/m_pQueue->GetRHIObject() );
             /*m_BaseCtx.*/ m_pQueue->Unlock();
         }
 
@@ -508,7 +508,7 @@ namespace VKE
             Info.SubresourceRange.beginArrayLayer  = 0;
             Info.SubresourceRange.layerCount       = 1;
             Info.SubresourceRange.mipmapLevelCount = 1;
-            Info.hDDITexture                       = pCurrEl->hDDITexture;
+            Info.hRHITexture                       = pCurrEl->hRHITexture;
             Info.srcMemoryAccess = CTexture::ConvertStateToSrcMemoryAccess( Info.currentState, Info.newState );
             Info.dstMemoryAccess = CTexture::ConvertStateToDstMemoryAccess( Info.currentState, Info.newState );
             //_GetCurrentCommandBuffer()->Barrier( Info );

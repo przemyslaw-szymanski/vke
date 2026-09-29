@@ -177,7 +177,7 @@ namespace VKE
             RenderSystem::BufferRefPtr        m_pConstantBuffer;
             RenderSystem::RHI::CPUFence m_ahFences[ MAX_FRAME_COUNT ] = { RenderSystem::RHI::Null };
             // RenderSystem::SBindDescriptorSetsInfo   m_BindingTables[2];
-            // RenderSystem::RHI::DescriptorSet          m_hDDISets[2];
+            // RenderSystem::RHI::DescriptorSet          m_hRHISets[2];
             uint32_t                  m_indexCount;
             RenderSystem::SDrawParams m_aDrawParams[ DrawTypes::_MAX_COUNT ];
             uint32_t                  m_frameCount        = 0;

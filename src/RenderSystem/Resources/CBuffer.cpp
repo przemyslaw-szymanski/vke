@@ -143,7 +143,7 @@ namespace VKE
             VKE_ASSERT( size <= m_size - offset );
 
             SUpdateMemoryInfo Info;
-            Info.hBuffer       = GetDDIObject();
+            Info.hBuffer       = GetRHIObject();
             Info.dataSize      = size;
             Info.dstDataOffset = offset;
             Info.hMemory       = m_hMemory;
@@ -161,7 +161,7 @@ namespace VKE
         void CBuffer::Unmap()
         {
             SUpdateMemoryInfo Info;
-            Info.hBuffer = GetDDIObject();
+            Info.hBuffer = GetRHIObject();
             Info.hMemory = m_hMemory;
             m_pMgr->UnlockMemory( Info );
         }

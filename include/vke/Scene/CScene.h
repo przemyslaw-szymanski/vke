@@ -257,7 +257,7 @@ namespace VKE
                         RenderSystem::PipelinePtr pPipeline;
                     } DrawData;
 
-                    RenderSystem::RHI::RenderPass hDDIRenderPass = RenderSystem::RHI::Null;
+                    RenderSystem::RHI::RenderPass hRHIRenderPass = RenderSystem::RHI::Null;
                     BufferArray                         vConstantBuffers;
                     Utils::TCBitset< uint16_t >         UpdateBufferMask;
                 };

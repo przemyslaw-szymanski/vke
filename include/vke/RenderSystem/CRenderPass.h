@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/Common.h"
 #include "Core/VKEForwardDeclarations.h"
 
@@ -28,7 +28,7 @@ namespace VKE
             using ClearValueArray  = Utils::TCDynamicArray< SClearValue, 8 >;
             using FramebufferArray = Utils::TCDynamicArray< RHI::Framebuffer, 8 >;
 
-            VKE_ADD_DDI_OBJECT( RHI::RenderPass );
+            VKE_ADD_RHI_OBJECT( RHI::RenderPass );
             VKE_DECL_BASE_OBJECT( RenderPassHandle );
 
             using SRenderTargetDesc = SRenderPassDesc::SRenderTargetDesc;
@@ -127,7 +127,7 @@ namespace VKE
             CDeviceContext*        m_pCtx;
             ImageArray             m_vImages;
             ImageViewArray         m_vImageViews; // color only
-            RHI::Framebuffer m_hDDIFramebuffer = RHI::Null;
+            RHI::Framebuffer m_hRHIFramebuffer = RHI::Null;
             bool                   m_isActive        = false;
             bool                   m_isDirty         = false;
         };

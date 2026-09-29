@@ -21,9 +21,9 @@ namespace VKE
             // Max 10 command buffers per one submit
             static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
             using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
-            using DDICommandBufferArray =
+            using RHICommandBufferArray =
                 Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
-            using DDISemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using RHISemaphoreArray = Utils::TCDynamicArray< RHI::GPUFence, DEFAULT_COMMAND_BUFFER_COUNT >;
 
         public:
             void operator=( const CCommandBufferBatch& Other );
@@ -32,17 +32,17 @@ namespace VKE
             // VkCommandBuffer GetCommandBuffer() { return m_vCommandBuffers[m_currCmdBuffer++]; }
             const RHI::GPUFence& GetSignaledSemaphore() const
             {
-                return m_hDDISignalSemaphore;
+                return m_hRHISignalSemaphore;
             }
 
-            void WaitOnSemaphore( const RHI::GPUFence& hDDISemaphore )
+            void WaitOnSemaphore( const RHI::GPUFence& hRHISemaphore )
             {
-                m_vDDIWaitSemaphores.PushBack( hDDISemaphore );
+                m_vRHIWaitSemaphores.PushBack( hRHISemaphore );
             }
 
-            void WaitOnSemaphores( DDISemaphoreArray&& vDDISemaphores )
+            void WaitOnSemaphores( RHISemaphoreArray&& vRHISemaphores )
             {
-                m_vDDIWaitSemaphores.Append( vDDISemaphores );
+                m_vRHIWaitSemaphores.Append( vRHISemaphores );
             }
 
             bool CanSubmit() const;
@@ -54,10 +54,10 @@ namespace VKE
 
         private:
             CommandBufferArray    m_vpCommandBuffers;
-            DDICommandBufferArray m_vDDICommandBuffers;
-            DDISemaphoreArray     m_vDDIWaitSemaphores;
-            RHI::GPUFence   m_hDDISignalSemaphore = RHI::Null;
-            RHI::CPUFence   m_hDDIFence           = RHI::Null;
+            RHICommandBufferArray m_vRHICommandBuffers;
+            RHISemaphoreArray     m_vRHIWaitSemaphores;
+            RHI::GPUFence   m_hRHISignalSemaphore = RHI::Null;
+            RHI::CPUFence   m_hRHIFence           = RHI::Null;
             CSubmitManager*       m_pMgr                = nullptr;
             uint8_t               m_currCmdBuffer       = 0;
             Threads::SyncObject   m_SyncObj;
@@ -121,7 +121,7 @@ namespace VKE
         //        return _GetCurrentBatch( pCtx, hCmdPool );
         //    }
 
-        //    void SignalSemaphore( RHI::GPUFence* phDDISemaphoreOut );
+        //    void SignalSemaphore( RHI::GPUFence* phRHISemaphoreOut );
         //    void SetWaitOnSemaphore( const RHI::GPUFence& hSemaphore );
 
         //    Result ExecuteCurrentBatch( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch** ppOut );
@@ -154,7 +154,7 @@ namespace VKE
         //    BatchPtrArray             m_vpPendingBatches;
         //    CCommandBufferBatch*      m_pCurrBatch = nullptr;
         //    // SSubmitManagerDesc          m_Desc;
-        //    RHI::GPUFence m_hDDIWaitSemaphore = RHI::Null;
+        //    RHI::GPUFence m_hRHIWaitSemaphore = RHI::Null;
         //    Threads::SyncObject m_CurrentBatchSyncObj;
         //    bool                m_signalSemaphore   = true;
         //    bool                m_waitForSemaphores = true;

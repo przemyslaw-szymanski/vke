@@ -53,37 +53,37 @@ set(SRC_DIRS
 
 if(VKE_COMPILE_VULKAN_RHI)
     set(INC_DIRS ${INC_DIRS}
-        "${INCLUDE_DIR}/RenderSystem/Vulkan/*.h"
-        "${INCLUDE_DIR}/RenderSystem/Vulkan/*.inl"
-        "${INCLUDE_DIR}/RenderSystem/Vulkan/Managers/*.h"
-        "${INCLUDE_DIR}/RenderSystem/Vulkan/Managers/*.inl"
+        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/*.h"
+        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/*.inl"
+        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.h"
+        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.inl"
     )
     
     set(SRC_DIRS ${SRC_DIRS}
-        "${SOURCE_DIR}/RenderSystem/Vulkan/*.h"
-        "${SOURCE_DIR}/RenderSystem/Vulkan/*.inl"
-        "${SOURCE_DIR}/RenderSystem/Vulkan/*.cpp"
-        "${SOURCE_DIR}/RenderSystem/Vulkan/Managers/*.h"
-        "${SOURCE_DIR}/RenderSystem/Vulkan/Managers/*.inl"
-        "${SOURCE_DIR}/RenderSystem/Vulkan/Managers/*.cpp"
+        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/*.h"
+        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/*.inl"
+        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/*.cpp"
+        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.h"
+        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.inl"
+        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.cpp"
     )
 endif()
 
 if(VKE_COMPILE_D3D12_RHI)
     set(INC_DIRS ${INC_DIRS}
-        "${INCLUDE_DIR}/RenderSystem/D3D12/*.h"
-        "${INCLUDE_DIR}/RenderSystem/D3D12/*.inl"
-        "${INCLUDE_DIR}/RenderSystem/D3D12/Managers/*.h"
-        "${INCLUDE_DIR}/RenderSystem/D3D12/Managers/*.inl"
+        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/*.h"
+        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/*.inl"
+        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/Managers/*.h"
+        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/Managers/*.inl"
     )
     
     set(SRC_DIRS ${SRC_DIRS}
-        "${SOURCE_DIR}/RenderSystem/D3D12/*.h"
-        "${SOURCE_DIR}/RenderSystem/D3D12/*.inl"
-        "${SOURCE_DIR}/RenderSystem/D3D12/*.cpp"
-        "${SOURCE_DIR}/RenderSystem/D3D12/Managers/*.h"
-        "${SOURCE_DIR}/RenderSystem/D3D12/Managers/*.inl"
-        "${SOURCE_DIR}/RenderSystem/D3D12/Managers/*.cpp"
+        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/*.h"
+        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/*.inl"
+        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/*.cpp"
+        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/Managers/*.h"
+        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/Managers/*.inl"
+        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/Managers/*.cpp"
     )
 endif()
 

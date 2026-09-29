@@ -7,7 +7,7 @@
 #include "Core/Memory/CFreeList.h"
 
 #include "RenderSystem/CCommandBuffer.h"
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 
 #define VKE_DUMP_CB 1
 
@@ -48,7 +48,7 @@ namespace VKE
             static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
             static const uint32_t MAX_THREAD_COUNT             = 32;
 
-            using DDICommandBufferVec = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
+            using RHICommandBufferVec = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferVec    = Utils::TCDynamicArray< CCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferPtrVec = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
             using UintVec             = Utils::TCDynamicArray< uint32_t, DEFAULT_COMMAND_BUFFER_COUNT >;
@@ -57,9 +57,9 @@ namespace VKE
             {
                 CommandBufferVec             vCommandBuffers;
                 CommandBufferPtrVec          vpFreeCommandBuffers;
-                DDICommandBufferVec          vDDICommandBuffers;
+                RHICommandBufferVec          vRHICommandBuffers;
                 Threads::SyncObject          SyncObj;
-                RHI::CommandBufferPool hDDIPool = RHI::Null;
+                RHI::CommandBufferPool hRHIPool = RHI::Null;
                 uint32_t                     handle   = INVALID_HANDLE;
             };
 
@@ -206,7 +206,7 @@ namespace VKE
                 fprintf_s( m_pFile,
                            "[%d][%p][%s]: ",
                            Platform::ThisThread::GetID(),
-                           (void*)pCmdBuffer->GetDDIObject().ToVoidPtr(),
+                           (void*)pCmdBuffer->GetRHIObject().ToVoidPtr(),
                            pCmdBuffer->GetDebugName() );
                 fprintf_s( m_pFile, pFmt, std::forward< _ArgsT >( args )... );
                 fprintf_s( m_pFile, "\n" );

@@ -378,7 +378,7 @@ namespace VKE::Scene
                 Desc.Pipeline.vColorRenderTargetFormats = CurrState.RenderPass.PipelineInfo.vColorRenderTargetFormats;
                 Desc.Pipeline.depthRenderTargetFormat   = CurrState.RenderPass.PipelineInfo.depthRenderTargetFormat;
                 Desc.Pipeline.stencilRenderTargetFormat = CurrState.RenderPass.PipelineInfo.stencilRenderTargetFormat;
-                Desc.Pipeline.hDDIRenderPass            = CurrState.RenderPass.hNativeRenderPass;
+                Desc.Pipeline.hRHIRenderPass            = CurrState.RenderPass.hNativeRenderPass;
                 Desc.Pipeline.Rasterization.Polygon.cullMode  = RenderSystem::CullModes::NONE;
                 Desc.Pipeline.Rasterization.Polygon.frontFace = RenderSystem::FrontFaces::COUNTER_CLOCKWISE;
                 Desc.Pipeline.Rasterization.Polygon.mode      = RenderSystem::PolygonModes::WIREFRAME;

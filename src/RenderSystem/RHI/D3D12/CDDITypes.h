@@ -107,7 +107,7 @@ namespace VKE::RenderSystem::D3D12
     {
         // DirectX 12 have multiple structures for the same thing but with different feature sets. To prevent huge pain
         // in the butt when refactoring code due to higher struct / pointer number, we'll have one place to refactor
-        // whole CDDI.
+        // whole CD3D12API.
         using D3D12Fence               = ID3D12Fence1;
         using D3D12CommandAllocator    = ID3D12CommandAllocator;
         using D3D12CommandList         = ID3D12CommandList;

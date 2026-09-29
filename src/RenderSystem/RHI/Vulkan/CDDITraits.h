@@ -31,7 +31,7 @@ namespace VKE
             using RHI::BufferView           = VkBufferView;
             using RHI::CPUFence             = VkFence;
             using RHI::GPUFence             = VkSemaphore;
-            using DDIDevice                       = VkDevice;
+            using RHI::Device               = VkDevice;
             using RHI::DescriptorPool       = VkDescriptorPool;
             using RHI::DescriptorSet        = VkDescriptorSet;
             using RHI::DescriptorSetLayout  = VkDescriptorSetLayout;
@@ -39,18 +39,18 @@ namespace VKE
             using RHI::Framebuffer          = VkFramebuffer;
             using RHI::ClearValue           = VkClearValue;
             using RHI::Queue                = VkQueue;
-            using DDIFormat                       = VkFormat;
-            using DDIImageType                    = VkImageType;
-            using DDIImageViewType                = VkImageViewType;
-            using DDIImageLayout                  = VkImageLayout;
-            using DDIImageUsageFlags              = VkImageUsageFlags;
-            using RHI::MemoryProperties               = VkDeviceMemory;
+            using RHI::Format               = VkFormat;
+            using RHI::ImageType            = VkImageType;
+            using RHI::ImageViewType        = VkImageViewType;
+            using RHI::ImageLayout          = VkImageLayout;
+            using RHI::ImageUsageFlags      = VkImageUsageFlags;
+            using RHI::MemoryProperties     = VkDeviceMemory;
             using RHI::PresentSurface       = VkSurfaceKHR;
-            using DDISwapChain                    = VkSwapchainKHR;
+            using RHI::SwapChain            = VkSwapchainKHR;
             using RHI::Adapter              = VkPhysicalDevice;
             using RHI::Shader               = VkShaderModule;
             using RHI::PipelineLayout       = VkPipelineLayout;
-            using DDIDeviceSize                   = VkDeviceSize;
+            using RHI::DeviceSize           = VkDeviceSize;
             using RHI::Event                = VkEvent;
 
             struct
@@ -79,7 +79,7 @@ namespace VKE
                 using ImageViewType       = VkImageViewType;
                 using ImageLayout         = VkImageLayout;
                 using ImageUsageFlags     = VkImageUsageFlags;
-                using MemoryProperties              = VkDeviceMemory;
+                using MemoryProperties    = VkDeviceMemory;
                 using PresentSurface      = VkSurfaceKHR;
                 using SwapChain           = VkSwapchainKHR;
                 using Adapter             = VkPhysicalDevice;

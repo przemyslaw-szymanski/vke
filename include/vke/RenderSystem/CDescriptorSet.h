@@ -2,7 +2,7 @@
 
 #include "Core/Utils/TCSmartPtr.h"
 
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/Common.h"
 
 namespace VKE
@@ -26,7 +26,7 @@ namespace VKE
                 };
             };
 
-            VKE_ADD_DDI_OBJECT( RHI::DescriptorSetLayout );
+            VKE_ADD_RHI_OBJECT( RHI::DescriptorSetLayout );
             VKE_DECL_BASE_OBJECT( DescriptorSetLayoutHandle );
 
         public:
@@ -75,7 +75,7 @@ namespace VKE
                 handle_t value;
             };
 
-            VKE_ADD_DDI_OBJECT( RHI::DescriptorSet );
+            VKE_ADD_RHI_OBJECT( RHI::DescriptorSet );
             VKE_DECL_BASE_OBJECT( DescriptorSetHandle );
 
         public:
@@ -94,7 +94,7 @@ namespace VKE
 
         struct VKE_API SDescriptorSet
         {
-            RHI::DescriptorSet  hDDISet;
+            RHI::DescriptorSet  hRHISet;
             handle_t                  hPool;
             DescriptorSetLayoutHandle hSetLayout;
         };

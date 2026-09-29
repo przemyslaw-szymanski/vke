@@ -40,14 +40,14 @@ namespace VKE
             struct SPreparationData
             {
                 CCommandBuffer*     pCmdBuffer = nullptr;
-                RHI::CPUFence hDDIFence  = RHI::Null;
+                RHI::CPUFence hRHIFence  = RHI::Null;
             };
 
             using DescPoolArray = Utils::TCDynamicArray< handle_t >;
 
             static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using CommandBufferArray    = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
-            using DDICommandBufferArray = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
+            using RHICommandBufferArray = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
             using UintArray             = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;
 
             struct SCommandBufferBatch
@@ -69,7 +69,7 @@ namespace VKE
 
             struct SExecuteData
             {
-                // RHI::GPUFence            hDDISemaphoreBackBufferReady;
+                // RHI::GPUFence            hRHISemaphoreBackBufferReady;
                 SemaphoreArray       vWaitSemaphores;
                 CCommandBufferBatch* pBatch;
                 uint32_t             ddiImageIndex;
@@ -102,7 +102,7 @@ namespace VKE
 
             RHI::Queue GetNativeQueue() const
             {
-                return m_pQueue->GetDDIObject();
+                return m_pQueue->GetRHIObject();
             }
 
             CTransferContext* GetTransferContext() const;
@@ -211,9 +211,9 @@ namespace VKE
             /// </summary>
             void _FreeExecutedBatches();
 
-            CRHI& _GetDDI() const
+            CRHI& _GetRHI() const
             {
-                return m_DDI;
+                return m_RHI;
             }
 
             CCommandBufferManager& _GetCommandBufferManager()
@@ -229,7 +229,7 @@ namespace VKE
             void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
 
         protected:
-            CRHI&                 m_DDI;
+            CRHI&                 m_RHI;
             CDeviceContext*       m_pDeviceCtx;
             cstr_t                m_pName = "";
             QueueRefPtr           m_pQueue;

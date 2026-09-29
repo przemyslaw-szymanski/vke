@@ -8,12 +8,12 @@
 //    {
 //        void CCommandBufferBatch::operator=( const CCommandBufferBatch& Other )
 //        {
-//            m_hDDIFence = Other.m_hDDIFence;
+//            m_hRHIFence = Other.m_hRHIFence;
 //
-//            m_vDDIWaitSemaphores  = Other.m_vDDIWaitSemaphores;
-//            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+//            m_vRHIWaitSemaphores  = Other.m_vRHIWaitSemaphores;
+//            m_hRHISignalSemaphore = Other.m_hRHISignalSemaphore;
 //            m_vpCommandBuffers    = Other.m_vpCommandBuffers;
-//            m_vDDICommandBuffers  = Other.m_vDDICommandBuffers;
+//            m_vRHICommandBuffers  = Other.m_vRHICommandBuffers;
 //
 //            m_pMgr          = Other.m_pMgr;
 //            m_currCmdBuffer = Other.m_currCmdBuffer;
@@ -23,12 +23,12 @@
 //
 //        void CCommandBufferBatch::operator=( CCommandBufferBatch&& Other )
 //        {
-//            m_hDDIFence = Other.m_hDDIFence;
+//            m_hRHIFence = Other.m_hRHIFence;
 //
-//            m_vDDIWaitSemaphores  = std::move( Other.m_vDDIWaitSemaphores );
-//            m_hDDISignalSemaphore = Other.m_hDDISignalSemaphore;
+//            m_vRHIWaitSemaphores  = std::move( Other.m_vRHIWaitSemaphores );
+//            m_hRHISignalSemaphore = Other.m_hRHISignalSemaphore;
 //            m_vpCommandBuffers    = std::move( Other.m_vpCommandBuffers );
-//            m_vDDICommandBuffers  = std::move( Other.m_vDDICommandBuffers );
+//            m_vRHICommandBuffers  = std::move( Other.m_vRHICommandBuffers );
 //
 //            m_pMgr          = Other.m_pMgr;
 //            m_currCmdBuffer = Other.m_currCmdBuffer;
@@ -43,12 +43,12 @@
 //
 //        Result CCommandBufferBatch::_Submit( CCommandBuffer* pCb )
 //        {
-//            m_vDDICommandBuffers.PushBack( pCb->GetDDIObject() );
-//            // pCb->_SetCPUSyncObject( m_hDDIFence );
+//            m_vRHICommandBuffers.PushBack( pCb->GetRHIObject() );
+//            // pCb->_SetCPUSyncObject( m_hRHIFence );
 //            m_vpCommandBuffers.PushBack( pCb );
-//            for( uint32_t i = 0; i < pCb->m_vDDIWaitOnSemaphores.GetCount(); ++i )
+//            for( uint32_t i = 0; i < pCb->m_vRHIWaitOnSemaphores.GetCount(); ++i )
 //            {
-//                m_vDDIWaitSemaphores.PushBack( pCb->m_vDDIWaitOnSemaphores[ i ] );
+//                m_vRHIWaitSemaphores.PushBack( pCb->m_vRHIWaitOnSemaphores[ i ] );
 //            }
 //            return VKE_OK;
 //        }
@@ -56,8 +56,8 @@
 //        void CCommandBufferBatch::_Clear()
 //        {
 //            m_vpCommandBuffers.Clear();
-//            m_vDDICommandBuffers.Clear();
-//            m_vDDIWaitSemaphores.Clear();
+//            m_vRHICommandBuffers.Clear();
+//            m_vRHIWaitSemaphores.Clear();
 //            m_submitted     = false;
 //            m_currCmdBuffer = 0;
 //        }
@@ -72,14 +72,14 @@
 //
 //        void CSubmitManager::Destroy( CDeviceContext* pCtx )
 //        {
-//            auto& DDI = pCtx->RHI();
+//            auto& RHI = pCtx->RHI();
 //            for( uint32_t i = 0; i < m_CommandBufferBatches.vSubmits.GetCount(); ++i )
 //            {
-//                DDI.DestroyFence( &m_CommandBufferBatches.vSubmits[ i ].m_hDDIFence, nullptr );
-//                DDI.DestroySemaphore( &m_CommandBufferBatches.vSubmits[ i ].m_hDDISignalSemaphore, nullptr );
-//                // DDI.DestroyObject( &m_Submits.vSubmits[i].m_hDDISignalSemaphore, nullptr );
-//                // m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_hDDIFence);
-//                // m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_hDDISignalSemaphore);
+//                RHI.DestroyFence( &m_CommandBufferBatches.vSubmits[ i ].m_hRHIFence, nullptr );
+//                RHI.DestroySemaphore( &m_CommandBufferBatches.vSubmits[ i ].m_hRHISignalSemaphore, nullptr );
+//                // RHI.DestroyObject( &m_Submits.vSubmits[i].m_hRHISignalSemaphore, nullptr );
+//                // m_pCtx->_DestroyFence(&m_Submits.vSubmits[ i ].m_hRHIFence);
+//                // m_pCtx->_DestroySemaphore(&m_Submits.vSubmits[ i ].m_hRHISignalSemaphore);
 //            }
 //            m_CommandBufferBatches.vSubmits.Clear();
 //        }
@@ -94,9 +94,9 @@
 //            {
 //                CCommandBufferBatch Tmp;
 //                Tmp.m_pMgr      = this;
-//                Tmp.m_hDDIFence = pCtx->GetDeviceContext()->RHI().CreateFence( FenceDesc, nullptr );
-//                // pCtx->DDI().Reset( &Tmp.m_hDDIFence );
-//                Tmp.m_hDDISignalSemaphore =
+//                Tmp.m_hRHIFence = pCtx->GetDeviceContext()->RHI().CreateFence( FenceDesc, nullptr );
+//                // pCtx->RHI().Reset( &Tmp.m_hRHIFence );
+//                Tmp.m_hRHISignalSemaphore =
 //                    pCtx->GetDeviceContext()->RHI().CreateSemaphore( SemaphoreDesc, nullptr );
 //                m_CommandBufferBatches.vSubmits.PushBack( Tmp );
 //            }
@@ -111,10 +111,10 @@
 //        CCommandBufferBatch* CSubmitManager::_GetSubmit( CContextBase* pCtx, const handle_t& hCmdPool, uint32_t idx )
 //        {
 //            CCommandBufferBatch* pBatch = &m_CommandBufferBatches.vSubmits[ idx ];
-//            auto&                DDI    = pCtx->GetDeviceContext()->RHI();
-//            if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
+//            auto&                RHI    = pCtx->GetDeviceContext()->RHI();
+//            if( RHI.IsSignaled( pBatch->m_hRHIFence ) )
 //            {
-//                DDI.Reset( &pBatch->m_hDDIFence );
+//                RHI.Reset( &pBatch->m_hRHIFence );
 //                _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
 //                return pBatch;
 //            }
@@ -126,17 +126,17 @@
 //        {
 //            // Get first submit
 //            CCommandBufferBatch* pBatch = nullptr;
-//            auto&                DDI    = pCtx->GetDeviceContext()->RHI();
+//            auto&                RHI    = pCtx->GetDeviceContext()->RHI();
 //            // If there are any submitts
 //            if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
 //            {
 //                pBatch = m_CommandBufferBatches.qpSubmitted.Front();
 //                // Check if oldest submit is ready
-//                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
+//                if( RHI.IsSignaled( pBatch->m_hRHIFence ) )
 //                {
 //                    m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
-//                    DDI.Reset( &pBatch->m_hDDIFence );
-//                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty() )
+//                    RHI.Reset( &pBatch->m_hRHIFence );
+//                    if( !pBatch->m_vRHICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty() )
 //                    {
 //                        _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
 //                    }
@@ -180,13 +180,13 @@
 //            if( !m_CommandBufferBatches.qpSubmitted.IsEmpty() )
 //            {
 //                pBatch    = m_CommandBufferBatches.qpSubmitted.Front();
-//                auto& DDI = pCtx->GetDeviceContext()->RHI();
+//                auto& RHI = pCtx->GetDeviceContext()->RHI();
 //                // Check if oldest submit is ready
-//                if( DDI.IsSignaled( pBatch->m_hDDIFence ) )
+//                if( RHI.IsSignaled( pBatch->m_hRHIFence ) )
 //                {
 //                    m_CommandBufferBatches.qpSubmitted.PopFrontFast( &pBatch );
-//                    DDI.Reset( &pBatch->m_hDDIFence );
-//                    if( !pBatch->m_vDDICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty() )
+//                    RHI.Reset( &pBatch->m_hRHIFence );
+//                    if( !pBatch->m_vRHICommandBuffers.IsEmpty() && !pBatch->m_vpCommandBuffers.IsEmpty() )
 //                    {
 //                        _FreeCommandBuffers( pCtx, hCmdPool, pBatch );
 //                    }
@@ -246,38 +246,38 @@
 //
 //        Result CSubmitManager::_Submit( CContextBase* pCtx, QueuePtr pQueue, CCommandBufferBatch* pBatch )
 //        {
-//            RHI::GPUFence  hDDISignal          = RHI::Null;
+//            RHI::GPUFence  hRHISignal          = RHI::Null;
 //            uint32_t             signalCount         = 0;
 //            uint32_t             waitCount           = 0;
-//            RHI::GPUFence* phDDIWaitSemaphores = nullptr;
+//            RHI::GPUFence* phRHIWaitSemaphores = nullptr;
 //
 //            if( m_signalSemaphore )
 //            {
 //                signalCount = 1;
-//                hDDISignal  = pBatch->m_hDDISignalSemaphore;
+//                hRHISignal  = pBatch->m_hRHISignalSemaphore;
 //            }
 //
 //            if( m_waitForSemaphores )
 //            {
-//                // pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vDDIWaitSemaphores );
-//                waitCount           = pBatch->m_vDDIWaitSemaphores.GetCount();
-//                phDDIWaitSemaphores = pBatch->m_vDDIWaitSemaphores.GetData();
+//                // pCtx->GetDeviceContext()->_GetSignaledSemaphores( &pBatch->m_vRHIWaitSemaphores );
+//                waitCount           = pBatch->m_vRHIWaitSemaphores.GetCount();
+//                phRHIWaitSemaphores = pBatch->m_vRHIWaitSemaphores.GetData();
 //            }
 //
 //            SSubmitInfo Info;
-//            Info.commandBufferCount   = static_cast< uint8_t >( pBatch->m_vDDICommandBuffers.GetCount() );
-//            Info.pDDICommandBuffers   = pBatch->m_vDDICommandBuffers.GetData();
-//            Info.hDDIFence            = pBatch->m_hDDIFence;
+//            Info.commandBufferCount   = static_cast< uint8_t >( pBatch->m_vRHICommandBuffers.GetCount() );
+//            Info.pRHICommandBuffers   = pBatch->m_vRHICommandBuffers.GetData();
+//            Info.hRHIFence            = pBatch->m_hRHIFence;
 //            Info.signalSemaphoreCount = static_cast< uint8_t >( signalCount );
-//            Info.pDDISignalSemaphores = &hDDISignal;
+//            Info.pRHISignalSemaphores = &hRHISignal;
 //            Info.waitSemaphoreCount   = static_cast< uint8_t >( waitCount );
-//            Info.pDDIWaitSemaphores   = phDDIWaitSemaphores;
-//            Info.hDDIQueue            = pQueue->GetDDIObject();
+//            Info.pRHIWaitSemaphores   = phRHIWaitSemaphores;
+//            Info.hRHIQueue            = pQueue->GetRHIObject();
 //
 //#if 0
 //            for(uint32_t i = 0; i < Info.commandBufferCount; ++i)
 //            {
-//                VKE_LOG( "Execute: " << Info.pDDICommandBuffers[ i ] );
+//                VKE_LOG( "Execute: " << Info.pRHICommandBuffers[ i ] );
 //            }
 //#endif
 //
@@ -301,14 +301,14 @@
 //
 //        Result CSubmitManager::WaitForBatch( CContextBase* pCtx, const uint64_t& timeout, CCommandBufferBatch* pBatch )
 //        {
-//            return pCtx->GetDeviceContext()->RHI().WaitForFences( pBatch->m_hDDIFence, timeout );
+//            return pCtx->GetDeviceContext()->RHI().WaitForFences( pBatch->m_hRHIFence, timeout );
 //        }
 //
-//        void CSubmitManager::SignalSemaphore( RHI::GPUFence* phDDISemaphoreOut )
+//        void CSubmitManager::SignalSemaphore( RHI::GPUFence* phRHISemaphoreOut )
 //        {
-//            if( phDDISemaphoreOut != nullptr )
+//            if( phRHISemaphoreOut != nullptr )
 //            {
-//                *phDDISemaphoreOut = m_pCurrBatch->m_hDDISignalSemaphore;
+//                *phRHISemaphoreOut = m_pCurrBatch->m_hRHISignalSemaphore;
 //                m_signalSemaphore  = true;
 //            }
 //            else
@@ -352,7 +352,7 @@
 //
 //        void CSubmitManager::SetWaitOnSemaphore( const RHI::GPUFence& hSemaphore )
 //        {
-//            m_hDDIWaitSemaphore = hSemaphore;
+//            m_hRHIWaitSemaphore = hSemaphore;
 //        }
 //
 //    } // namespace RenderSystem

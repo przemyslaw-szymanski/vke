@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/RHI.h"
+#include "RenderSystem/RHI/RHI.h"
 
 namespace VKE
 {
@@ -11,7 +11,7 @@ namespace VKE
         {
             CDeviceContext*  pContext           = nullptr;
             void*            pSubmitManagerDesc = nullptr;
-            RHI::Queue hDDIQueue;
+            RHI::Queue hRHIQueue;
             uint32_t         familyIndex;
             QUEUE_TYPE       type;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -87,7 +87,7 @@ namespace VKE
                 return ( m_type & type ) != 0;
             }
 
-            const RHI::Queue& GetDDIObject() const
+            const RHI::Queue& GetRHIObject() const
             {
                 return m_PresentData.hQueue;
             }

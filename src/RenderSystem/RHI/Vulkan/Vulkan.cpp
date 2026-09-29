@@ -1,4 +1,4 @@
-#include "RenderSystem/Vulkan/Vulkan.h"
+#include "RenderSystem/RHI/Vulkan/Vulkan.h"
 #include "Core/Platform/CPlatform.h"
 #include "Core/Utils/CLogger.h"
 
@@ -212,10 +212,10 @@ namespace VKE::RenderSystem
             Result err = VKE_OK;
 #if VKE_AUTO_ICD
 #define VK_EXPORTED_FUNCTION( _name ) VKE_EXPORT_FUNC( _name, hLib, Platform::DynamicLibrary::GetProcAddress )
-#include "RenderSystem/Vulkan/VKEICD.h"
+#include "RenderSystem/RHI/Vulkan/VKEICD.h"
 #undef VK_EXPORTED_FUNCTION
 #define VKE_ICD_GLOBAL( _name ) VKE_EXPORT_FUNC( _name, VK_NULL_HANDLE, pOut->vkGetInstanceProcAddr )
-#include "RenderSystem/Vulkan/VKEICD.h"
+#include "RenderSystem/RHI/Vulkan/VKEICD.h"
 #undef VKE_ICD_GLOBAL
 #else  // VKE_AUTO_ICD
             pOut->vkGetInstanceProcAddr = reinterpret_cast< PFN_vkGetInstanceProcAddr >(
@@ -241,7 +241,7 @@ namespace VKE::RenderSystem
 #undef VKE_INSTANCE_EXT_ICD
 #define VKE_INSTANCE_ICD( _name ) VKE_EXPORT_FUNC( _name, vkInstance, Global.vkGetInstanceProcAddr )
 #define VKE_INSTANCE_EXT_ICD( _name ) VKE_EXPORT_EXT_FUNC( _name, vkInstance, Global.vkGetInstanceProcAddr )
-#include "RenderSystem/Vulkan/VKEICD.h"
+#include "RenderSystem/RHI/Vulkan/VKEICD.h"
 #undef VKE_INSTANCE_ICD
 #undef VKE_INSTANCE_EXT_ICD
 #undef VKE_DEVICE_KHR_ICD
@@ -262,7 +262,7 @@ namespace VKE::RenderSystem
 #define VKE_DEVICE_ICD( _name ) VKE_EXPORT_FUNC( _name, vkDevice, Instance.vkGetDeviceProcAddr )
 #define VKE_DEVICE_EXT_ICD( _name ) VKE_EXPORT_EXT_FUNC( _name, vkDevice, Instance.vkGetDeviceProcAddr )
 #define VKE_DEVICE_KHR_ICD( _baseName, _khrName ) VKE_EXPORT_KHR_FUNC( _baseName, _khrName, vkDevice, Instance.vkGetDeviceProcAddr )
-#include "RenderSystem/Vulkan/VKEICD.h"
+#include "RenderSystem/RHI/Vulkan/VKEICD.h"
 #undef VKE_DEVICE_ICD
 #undef VKE_DEVICE_EXT_ICD
 #undef VKE_DEVICE_KHR_ICD
