@@ -5,8 +5,8 @@ project(Samples)
 include(../CompileOptions.cmake NO_POLICY_SCOPE)
 include(../CompilerSettings.cmake NO_POLICY_SCOPE)
 
-set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin")
-set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
+#set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin")
+#set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
 set(INC_DIR "${CMAKE_SOURCE_DIR}/include")
 
 add_subdirectory(HelloWorld)

@@ -6,7 +6,10 @@
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}"
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "VKE_DATA_DIR": "${sourceDir}/bin"
+      }
     },
     {
       "name": "windows-base",
@@ -236,22 +239,26 @@
     {
       "name": "Windows-MinGW-D3D12-x64-Debug",
       "configurePreset": "Windows-MinGW-D3D12-x64-Debug",
-      "nativeToolOptions": [ "-k1" ]
+      "nativeToolOptions": [ "-k1" ],
+      "jobs": 4
     },
     {
       "name": "Windows-MinGW-D3D12-x64-Release",
       "configurePreset": "Windows-MinGW-D3D12-x64-Release",
-      "nativeToolOptions": [ "-k1" ]
+      "nativeToolOptions": [ "-k1" ],
+      "jobs": 4
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Debug",
       "configurePreset": "Windows-MinGW-Vulkan-x64-Debug",
-      "nativeToolOptions": [ "-k1" ]
+      "nativeToolOptions": [ "-k1" ],
+      "jobs": 4
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Release",
       "configurePreset": "Windows-MinGW-Vulkan-x64-Release",
-      "nativeToolOptions": [ "-k1" ]
+      "nativeToolOptions": [ "-k1" ],
+      "jobs": 4
     },
     {
       "name": "Windows-Clang-D3D12-x64-Debug",

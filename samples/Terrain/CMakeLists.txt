@@ -31,8 +31,7 @@ if(VKE_COMPILE_VULKAN_RHI)
     )
 endif()
 
-set(LINK_LIB optimized vkEngine debug vkEngine_d)
-target_link_libraries(${PROJECT_NAME} ${LINK_LIB} ${THIRD_PARTY_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE vkEngine ${THIRD_PARTY_LIBS})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Samples")

@@ -148,16 +148,26 @@ endif()
 include(CompileOptions.cmake NO_POLICY_SCOPE)
 include(CompilerSettings.cmake NO_POLICY_SCOPE)
 
-message(STATUS "source dir: ${CMAKE_SOURCE_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin")
-set(LIB_DIR "${CMAKE_SOURCE_DIR}/lib")
+set(OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+set(LIB_DIR "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
 set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/vke")
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(THIRD_PARTY_DIR "${SOURCE_DIR}/ThirdParty")
 set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
 set(THIRD_PARTY_LIBS)
 set(DLL_DEPENDENCIES )
+
+set(VKE_DATA_DIR "${CMAKE_SOURCE_DIR}/bin" CACHE PATH "Root directory of runtime assets")
+
+message(STATUS "Output configuration:")
+message(STATUS "- source dir: ${CMAKE_SOURCE_DIR}")
+message(STATUS "- bin dir: ${OUTPUT_DIR}")
+message(STATUS "- lib dir: ${LIB_DIR}")
+message(STATUS "- asset data dir: ${VKE_DATA_DIR}")
 
 find_package(glslang CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
@@ -225,7 +235,10 @@ if(VKE_COMPILE_D3D12_RHI)
 
     # D3D12Core.dll exists in both bin/ and debug/bin; pick by config at build time.
     # d3d12SDKLayers.dll only ships in debug/bin, so it is only copied for Debug builds.
-
+    set(D3D12_AGILITY_DLLS
+        "$<IF:$<CONFIG:Debug>,${_AGILITY_DBG_BIN_DIR},${_AGILITY_BIN_DIR}>/D3D12Core.dll"
+        "$<$<CONFIG:Debug>:${_AGILITY_DBG_BIN_DIR}/d3d12SDKLayers.dll>"
+    )
 endif()
 
 message("Third Party Libs:")
@@ -236,6 +249,8 @@ endforeach()
 add_subdirectory(include/vke/Core)
 add_subdirectory(include/vke/RenderSystem)
 add_subdirectory(include/vke/Scene)
+
+target_compile_definitions(vkEngineCore PRIVATE VKE_DEFAULT_DATA_DIR="${VKE_DATA_DIR}")
 
 include_directories(${INCLUDE_DIR} ${SOURCE_DIR})
 link_directories(${LIB_DIR} ${OUTPUT_DIR} ${THIRD_PARTY_LIB_DIRS})
@@ -279,14 +294,13 @@ foreach(DLL_PATH IN LISTS DLL_DEPENDENCIES)
 endforeach()
 
 if(VKE_COMPILE_D3D12_RHI)
-    foreach(DLL_PATH IN LISTS D3D12_AGILITY_DLLS)
-        add_custom_command(TARGET vkEngine POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:vkEngine>/D3D12"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${DLL_PATH}"
-            "$<TARGET_FILE_DIR:vkEngine>/D3D12")
-    endforeach()
+    add_custom_command(TARGET vkEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:vkEngine>/D3D12"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${D3D12_AGILITY_DLLS}
+                "$<TARGET_FILE_DIR:vkEngine>/D3D12"
+        COMMAND_EXPAND_LISTS
+        VERBATIM)
 endif()
 
 target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngineScene ${LINK_LIBS})
@@ -305,5 +319,5 @@ if(BUILD_SAMPLES_ENABLED)
 endif()
 
 target_compile_definitions(vkEngine PRIVATE
-"$<$<CONFIG:DebugVulkan>:VKE_COMPILE_VULKAN_RHI=2>"
-"$<$<CONFIG:ReleaseVulkan>:VKE_COMPILE_VULKAN_RHI=2>")
+    "$<$<CONFIG:DebugVulkan>:VKE_COMPILE_VULKAN_RHI=2>"
+    "$<$<CONFIG:ReleaseVulkan>:VKE_COMPILE_VULKAN_RHI=2>")

@@ -39,6 +39,20 @@ namespace VKE
         {
             m_Desc = Desc;
             VKE_ASSERT2( m_Desc.FileName.IsEmpty() == false, "File name must be set." );
+
+#if defined( VKE_DEFAULT_DATA_DIR )
+            // Relative paths: prefer CWD, fall back to the development data directory.
+            if( !Platform::File::Exists( m_Desc.FileName.GetData() ) )
+            {
+                char pPath[ Config::Resource::MAX_NAME_LENGTH ];
+                vke_sprintf( pPath, sizeof( pPath ), "%s/%s", VKE_DEFAULT_DATA_DIR, m_Desc.FileName.GetData() );
+                if( Platform::File::Exists( pPath ) )
+                {
+                    m_Desc.FileName = pPath;
+                }
+            }
+#endif
+
             m_pFileExtension = strrchr( m_Desc.FileName.GetData(), '.' );
             if( m_pFileExtension )
             {

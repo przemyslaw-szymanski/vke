@@ -31,66 +31,6 @@ add_compile_definitions(
     "VKE_COMPILE_METAL_RHI=${VKE_COMPILE_METAL_RHI}"
 )
 
-set(INC_DIRS
-    "${INCLUDE_DIR}/RenderSystem/Managers/*.h"
-    "${INCLUDE_DIR}/RenderSystem/Managers/*.inl"
-    "${INCLUDE_DIR}/RenderSystem/Resources/*.h"
-    "${INCLUDE_DIR}/RenderSystem/Resources/*.inl"
-    "${INCLUDE_DIR}/RenderSystem/Tasks/*.h"
-    "${INCLUDE_DIR}/RenderSystem/Tasks/*.inl"
-)
-set(SRC_DIRS
-    "${SOURCE_DIR}/RenderSystem/Managers/*.h"
-    "${SOURCE_DIR}/RenderSystem/Managers/*.inl"
-    "${SOURCE_DIR}/RenderSystem/Managers/*.cpp"
-    "${SOURCE_DIR}/RenderSystem/Resources/*.h"
-    "${SOURCE_DIR}/RenderSystem/Resources/*.inl"
-    "${SOURCE_DIR}/RenderSystem/Resources/*.cpp"
-    "${SOURCE_DIR}/RenderSystem/Tasks/*.h"
-    "${SOURCE_DIR}/RenderSystem/Tasks/*.inl"
-    "${SOURCE_DIR}/RenderSystem/Tasks/*.cpp"
-)
-
-if(VKE_COMPILE_VULKAN_RHI)
-    set(INC_DIRS ${INC_DIRS}
-        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/*.h"
-        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/*.inl"
-        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.h"
-        "${INCLUDE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.inl"
-    )
-    
-    set(SRC_DIRS ${SRC_DIRS}
-        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/*.h"
-        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/*.inl"
-        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/*.cpp"
-        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.h"
-        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.inl"
-        "${SOURCE_DIR}/RenderSystem/RHI/Vulkan/Managers/*.cpp"
-    )
-endif()
-
-if(VKE_COMPILE_D3D12_RHI)
-    set(INC_DIRS ${INC_DIRS}
-        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/*.h"
-        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/*.inl"
-        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/Managers/*.h"
-        "${INCLUDE_DIR}/RenderSystem/RHI/D3D12/Managers/*.inl"
-    )
-    
-    set(SRC_DIRS ${SRC_DIRS}
-        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/*.h"
-        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/*.inl"
-        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/*.cpp"
-        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/Managers/*.h"
-        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/Managers/*.inl"
-        "${SOURCE_DIR}/RenderSystem/RHI/D3D12/Managers/*.cpp"
-    )
-endif()
-
-set(INC_DIRS ${INC_DIRS}
-    "${INCLUDE_DIR}/RenderSystem/*.h"
-)
-
 # ---------------------------------------------------------------------------
 # Code generation: enum -> string conversions
 # ---------------------------------------------------------------------------
@@ -98,39 +38,52 @@ set(VKE_ENUM_STRINGS_SCRIPT   "${CMAKE_SOURCE_DIR}/tools/gen_enum_strings.py")
 set(VKE_ENUM_STRINGS_INPUT    "${INCLUDE_DIR}/RenderSystem/Common.h")
 set(VKE_ENUM_STRINGS_OUTPUT   "${INCLUDE_DIR}/RenderSystem/CommonEnumStrings.h")
 
-set(SRC_DIRS ${SRC_DIRS}
-    "${SOURCE_DIR}/RenderSystem/Common.cpp"
-    "${SOURCE_DIR}/RenderSystem/CComputeContext.cpp"
-    "${SOURCE_DIR}/RenderSystem/CCommandBuffer.cpp"
-    "${SOURCE_DIR}/RenderSystem/CContextBase.cpp"
-    "${SOURCE_DIR}/RenderSystem/CSwapChain.cpp"
-    "${SOURCE_DIR}/RenderSystem/CDescriptorSet.cpp"
-    "${SOURCE_DIR}/RenderSystem/CDeviceContext.cpp"
-    "${SOURCE_DIR}/RenderSystem/CDrawcall.cpp"
-    "${SOURCE_DIR}/RenderSystem/CFrameBuffer.cpp"
-    "${SOURCE_DIR}/RenderSystem/CFrameGraph.cpp"
-    "${SOURCE_DIR}/RenderSystem/CFrameGraphNode.cpp"
-    "${SOURCE_DIR}/RenderSystem/CGraphicsContext.cpp"
-    "${SOURCE_DIR}/RenderSystem/CIndexBuffer.cpp"
-    "${SOURCE_DIR}/RenderSystem/CPipeline.cpp"
-    "${SOURCE_DIR}/RenderSystem/CRenderingPipeline.cpp"
-    "${SOURCE_DIR}/RenderSystem/CRenderPass.cpp"
-    "${SOURCE_DIR}/RenderSystem/CRenderQueue.cpp"
-    "${SOURCE_DIR}/RenderSystem/CRenderSubPass.cpp"
-    "${SOURCE_DIR}/RenderSystem/CRenderSystem.cpp"
-    "${SOURCE_DIR}/RenderSystem/CRenderTarget.cpp"
-    "${SOURCE_DIR}/RenderSystem/CRenderTree.cpp"
-    "${SOURCE_DIR}/RenderSystem/CSubmitManager.cpp"
-    "${SOURCE_DIR}/RenderSystem/CTransferContext.cpp"
-    "${SOURCE_DIR}/RenderSystem/CQueue.cpp"
-    "${SOURCE_DIR}/RenderSystem/CVertexBuffer.cpp"
-    "${SOURCE_DIR}/RenderSystem/Managers/*.h"
-    "${SOURCE_DIR}/RenderSystem/Managers/*.cpp"
-    "${SOURCE_DIR}/RenderSystem/FrameGraph/*"
-    "${SOURCE_DIR}/RenderSystem/CShaderCompiler.cpp"
-    "${SOURCE_DIR}/RenderSystem/CShaderCompiler.h"
-    "${SOURCE_DIR}/RenderSystem/CRuntimeConfig.cpp"
+# Execute CommonEnumStrings generation on configuration. If this step is omitted then CMake
+# will never find CommonEnumStrings.h on configure, ending with CMake complaining on missing file.
+execute_process(
+    COMMAND ${Python3_EXECUTABLE}
+            "${VKE_ENUM_STRINGS_SCRIPT}"
+            "${VKE_ENUM_STRINGS_INPUT}"
+            "${VKE_ENUM_STRINGS_OUTPUT}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
+
+# Scan for all files
+set(VKE_RENDER_SYSTEM_INCLUDE_ROOT "${INCLUDE_DIR}/RenderSystem")
+set(VKE_RENDER_SYSTEM_SOURCE_ROOT "${SOURCE_DIR}/RenderSystem")
+
+file(GLOB_RECURSE RENDER_SYSTEM_INCLUDE_FILES CONFIGURE_DEPENDS
+    "${VKE_RENDER_SYSTEM_INCLUDE_ROOT}/*.h"
+    "${VKE_RENDER_SYSTEM_INCLUDE_ROOT}/*.inl"
+)
+
+file(GLOB_RECURSE RENDER_SYSTEM_SOURCE_FILES CONFIGURE_DEPENDS
+    "${VKE_RENDER_SYSTEM_SOURCE_ROOT}/*.h"
+    "${VKE_RENDER_SYSTEM_SOURCE_ROOT}/*.inl"
+    "${VKE_RENDER_SYSTEM_SOURCE_ROOT}/*.cpp"
+)
+
+# Drop all RHI out of sources
+list(FILTER RENDER_SYSTEM_INCLUDE_FILES EXCLUDE REGEX "/RenderSystem/RHI/")
+list(FILTER RENDER_SYSTEM_SOURCE_FILES EXCLUDE REGEX "/RenderSystem/RHI/")
+
+# Add RHI dependencies
+set(RENDER_SYSTEM_INCLUDE_FILES "${RENDER_SYSTEM_INCLUDE_FILES}"
+    "${VKE_RENDER_SYSTEM_INCLUDE_ROOT}/RHI/RHI.h"
+    "${VKE_RENDER_SYSTEM_INCLUDE_ROOT}/RHI/RHITypes.h"
+    "${VKE_RENDER_SYSTEM_INCLUDE_ROOT}/RHI/TCRHI.h"
+)
+
+set(INC_DIRS ${RENDER_SYSTEM_INCLUDE_FILES} )
+set(SRC_DIRS ${RENDER_SYSTEM_SOURCE_FILES} )
+
+if(VKE_COMPILE_VULKAN_RHI)
+    add_subdirectory(RHI/Vulkan)
+endif()
+
+if(VKE_COMPILE_D3D12_RHI)
+    add_subdirectory(RHI/D3D12)
+endif()
 
 include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)
 
@@ -151,21 +104,14 @@ add_custom_command(
     VERBATIM
 )
 
-# Execute CommonEnumStrings generation on configuration. If this step is omitted then CMake
-# will never find CommonEnumStrings.h on configure, ending with CMake complaining on missing file.
-execute_process(
-    COMMAND ${Python3_EXECUTABLE}
-            "${VKE_ENUM_STRINGS_SCRIPT}"
-            "${VKE_ENUM_STRINGS_INPUT}"
-            "${VKE_ENUM_STRINGS_OUTPUT}"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-)
-
 add_dependencies(vkEngineRenderSystem vkEngineCore)
     
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
 
-target_link_libraries(vkEngineRenderSystem
+target_link_libraries(vkEngineRenderSystem PUBLIC
     debug vkEngineCore_d
     optimized vkEngineCore
-    ${THIRD_PARTY_LIBS} )
+    ${THIRD_PARTY_LIBS}
+    $<$<BOOL:${VKE_COMPILE_VULKAN_RHI}>:vkEngineRHI_Vulkan>
+    $<$<BOOL:${VKE_COMPILE_D3D12_RHI}>:vkEngineRHI_D3D12> )
+

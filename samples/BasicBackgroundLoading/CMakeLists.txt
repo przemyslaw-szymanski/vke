@@ -28,8 +28,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG 
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIR})
 set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIR}")
 
-set(LINK_LIB optimized vkEngine debug vkEngine_d)
-target_link_libraries(${PROJECT_NAME} ${LINK_LIB} ${THIRD_PARTY_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE vkEngine ${THIRD_PARTY_LIBS})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY FOLDER "Samples")
