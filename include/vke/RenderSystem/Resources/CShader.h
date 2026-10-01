@@ -6,7 +6,6 @@
 #include "Core/Resources/CResource.h"
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/RHI/Vulkan/CShaderCompiler.h"
 
 #include "glslang/Public/ShaderLang.h"

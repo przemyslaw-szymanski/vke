@@ -9,7 +9,7 @@
 #   define DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE ( (DXGI_FORMAT)190 )
 #endif
 
-namespace VKE::RenderSystem::D3D12
+namespace VKE::RenderSystem::RHI
 {
     static const DXGI_FORMAT g_aFormats[] = {
         // DX12 format mappings for VKE::RenderSystem::Formats::FORMAT

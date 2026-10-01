@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/VKEPreprocessor.h"
-#include "RenderSystem/RHI/RHI.h"
+#include "RenderSystem/RHI/CRHI.h"
 #include "Common.h"
 #include "Core/Utils/TCDynamicArray.h"
 #include "RenderSystem/Resources/CShader.h"
@@ -60,8 +60,7 @@ namespace VKE
             /// <summary>
             ///  TODO: remove these
             /// </summary>
-            friend class Vulkan::CVulkanAPI;
-            friend class D3D12::CD3D12API;
+            friend class RHI::CRHI;
 
         private:
             struct SMetricsSystem
@@ -153,15 +152,15 @@ namespace VKE
             void                      DestroyBuffer( BufferHandle* phBuffer );
             // VertexBufferRefPtr          CreateBuffer( const SCreateVertexBufferDesc& Desc );
 
-            ShaderRefPtr                   GetShader( ShaderHandle hShader );
-            RHI::DescriptorSetLayout GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
-            DescriptorSetLayoutHandle      GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
-            DescriptorSetLayoutHandle      GetDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc );
-            PipelineRefPtr                 GetPipeline( PipelineHandle hPipeline );
-            BufferRefPtr                   GetBuffer( BufferHandle hBuffer );
-            BufferRefPtr                   GetBuffer( const VertexBufferHandle& hBuffer );
-            BufferRefPtr                   GetBuffer( const IndexBufferHandle& hBuffer );
-            PipelineLayoutRefPtr           GetPipelineLayout( PipelineLayoutHandle hLayout );
+            ShaderRefPtr              GetShader( ShaderHandle hShader );
+            RHI::DescriptorSetLayout  GetDescriptorSetLayout( DescriptorSetLayoutHandle hLayout );
+            DescriptorSetLayoutHandle GetDescriptorSetLayout( const DescriptorSetHandle& hSet );
+            DescriptorSetLayoutHandle GetDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc );
+            PipelineRefPtr            GetPipeline( PipelineHandle hPipeline );
+            BufferRefPtr              GetBuffer( BufferHandle hBuffer );
+            BufferRefPtr              GetBuffer( const VertexBufferHandle& hBuffer );
+            BufferRefPtr              GetBuffer( const IndexBufferHandle& hBuffer );
+            PipelineLayoutRefPtr      GetPipelineLayout( PipelineLayoutHandle hLayout );
 
             TextureHandle CreateTexture( const SCreateTextureDesc& Desc );
             Result        LoadTexture( const Core::SLoadFileInfo& Info, TextureHandle* phOut );
@@ -221,12 +220,12 @@ namespace VKE
                 return !IsFenceSignaled( hFence );
             }
 
-            CRHI& RHI()
+            RHI::CRHI& RHI()
             {
                 return m_RHI;
             }
 
-            const CRHI& RHI() const
+            const RHI::CRHI& RHI() const
             {
                 return m_RHI;
             }
@@ -259,7 +258,7 @@ namespace VKE
             Result   UnlockStagingBuffer( CContextBase* pCtx, const SUnlockBufferInfo& Info );
             Result   UploadMemoryToStagingBuffer( const SUpdateMemoryInfo& Info, SStagingBufferInfo* pOut );
 
-            DescriptorSetHandle             CreateDescriptorSet( const SDescriptorSetDesc& Desc );
+            DescriptorSetHandle       CreateDescriptorSet( const SDescriptorSetDesc& Desc );
             const RHI::DescriptorSet& GetDescriptorSet( const DescriptorSetHandle& hSet );
 
             void                UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut );
@@ -277,13 +276,14 @@ namespace VKE
             void GetFormatFeatures( TEXTURE_FORMAT, STextureFormatFeatures* ) const;
 
             RHI::GPUFence CreateGPUFence( const SSemaphoreDesc& );
-            void                DestroyGPUFence( RHI::GPUFence* );
+            void          DestroyGPUFence( RHI::GPUFence* );
             RHI::CPUFence CreateCPUFence( const SFenceDesc& );
-            void                DestroyCPUFence( RHI::CPUFence* );
+            void          DestroyCPUFence( RHI::CPUFence* );
             RHI::Fence    CreateFence( const SFenceDesc& ) const;
-            void                DestroyFence( RHI::Fence* );
-            void                Reset( RHI::CPUFence* );
-            void                Reset( RHI::Fence* phFence )
+            void          DestroyFence( RHI::Fence* );
+            void          Reset( RHI::CPUFence* );
+
+            void Reset( RHI::Fence* phFence )
             {
                 RHI().Reset( phFence, 0 );
             }
@@ -343,11 +343,7 @@ namespace VKE
             ComputeContextArray   m_vpComputeContexts;
             CDeviceMemoryManager* m_pDeviceMemMgr = nullptr;
             // CCommandBufferManager       m_CmdBuffMgr;
-            CRHI                 m_RHI;
-#if VKE_DEBUG
-            D3D12::CD3D12API     m_D3D12;
-            Vulkan::CVulkanAPI   m_Vulkan;
-#endif
+            RHI::CRHI            m_RHI;
             CCommandBuffer*      m_pCurrentCommandBuffer = nullptr;
             SDeviceInfo          m_DeviceInfo;
             Threads::SyncObject  m_SignaledSemaphoreSyncObj;

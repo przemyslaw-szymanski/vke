@@ -2,7 +2,6 @@
 
 #include "Core/CObject.h"
 #include "RenderSystem/Common.h"
-#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/Resources/CResource.h"
 
 namespace VKE

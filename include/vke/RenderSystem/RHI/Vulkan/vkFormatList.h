@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace VKE::RenderSystem::Vulkan
+namespace VKE::RenderSystem::RHI
 {
         // Vulkan header ver 148
         static const VkFormat g_aFormats[ ] = { VK_FORMAT_UNDEFINED,

@@ -1,6 +1,5 @@
 #include "RenderSystem/Managers/CDeviceMemoryManager.h"
 #include "RenderSystem/CDeviceContext.h"
-#include "RenderSystem/RHI/RHI.h"
 
 #define VKE_LOG_DEVICE_MEMORY_MANAGER 0
 #if VKE_LOG_DEVICE_MEMORY_MANAGER

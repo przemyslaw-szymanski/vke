@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/VKECommon.h"
-#include "RenderSystem/RHI/RHI.h"
 #include "Core/Utils/TCDynamicRingArray.h"
 #include "RenderSystem/Resources/CTexture.h"
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/Common.h"
 #include "Core/VKEForwardDeclarations.h"
 

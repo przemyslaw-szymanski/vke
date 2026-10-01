@@ -1,22 +1,24 @@
 cmake_minimum_required(VERSION 3.10...3.31)
 
+add_compile_definitions(
+    VKE_VULKAN=1
+    VKE_D3D12=2
+    VKE_METAL=3 )
+
 function(EnableOption option)
 	if( ${option} )
-		add_definitions("-D${option}=1")
+		add_compile_definitions(${option}=1)
 	else()
-		add_definitions("-D${option}=0")
+		add_compile_definitions(${option}=0)
 	endif()
 endfunction()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    add_definitions(-DVKE_WINDOWS=1)
-    set(VKE_WINDOWS 1)
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    add_definitions(-DVKE_LINUX=1)
-    set(VKE_LINUX 1)
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Android")
-    add_definitions(-DVKE_ANDROID=1)
-    set(VKE_ANDROID 1)
+if(VKE_WINDOWS)
+    add_compile_definitions(VKE_WINDOWS=1)
+elseif(VKE_LINUX)
+    add_compile_definitions(VKE_LINUX=1)
+elseif(VKE_ANDROID)
+    add_compile_definitions(VKE_ANDROID=1)
 else()
     message(FATAL_ERROR "Unknown system")
 endif()
@@ -42,13 +44,32 @@ EnableOption(VKE_ASSERT_ENABLE)
 EnableOption(VKE_RENDER_SYSTEM_MEMORY_DEBUG)
 EnableOption(VKE_MEMORY_DEBUG)
 
+# Handle RHI static linking requirements
+set(VKE_RENDER_SYSTEM "Vulkan" CACHE STRING "RHI used at runtime / linked statically")
+set_property(CACHE VKE_RENDER_SYSTEM PROPERTY STRINGS Vulkan D3D12)
+
+if(VKE_RENDER_SYSTEM STREQUAL "Vulkan")
+    if(NOT VKE_COMPILE_VULKAN_RHI)
+        message(FATAL_ERROR "VKE_RENDER_SYSTEM=Vulkan requires VKE_COMPILE_VULKAN_RHI=ON")
+    endif()
+    add_compile_definitions(VKE_RENDER_SYSTEM=VKE_VULKAN)
+elseif(VKE_RENDER_SYSTEM STREQUAL "D3D12")
+    if(NOT VKE_COMPILE_D3D12_RHI)
+        message(FATAL_ERROR "VKE_RENDER_SYSTEM=D3D12 requires VKE_COMPILE_D3D12_RHI=ON")
+    endif()
+    add_compile_definitions(VKE_RENDER_SYSTEM=VKE_D3D12)
+else()
+    message(FATAL_ERROR "Unknown VKE_RENDER_SYSTEM '${VKE_RENDER_SYSTEM}' (expected Vulkan or D3D12)")
+endif()
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+	add_compile_definitions(VKE_COMPILER_CLANG=1)
 	set(CLANG 1)
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+	add_compile_definitions(VKE_COMPILER_MINGW=1)
 	set(GCC 1)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
-	set(INTEL 1)
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+	add_compile_definitions(VKE_COMPILER_VISUAL_STUDIO=1)
 	set(MSVC 1)
 endif()
 
@@ -56,17 +77,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
 if(CLANG OR GCC)
-
-	if(CLANG)
-		add_definitions("-DVKE_COMPILER_CLANG=1")
-	elseif(MINGW)
-		add_definitions("-DVKE_COMPILER_MINGW=1")
-	else()
-		add_definitions("-DVKE_COMPILER_GCC=1")
-	endif()
-
 	if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
 		# clang-cl: MSVC-compatible driver, use MSVC-style flags
 		add_definitions("/W4 /WX /EHsc")

@@ -244,7 +244,7 @@ namespace VKE
         {
             if( !m_vBackBuffers.IsEmpty() )
             {
-                CRHI& RHI = m_pCtx->GetDeviceContext()->RHI();
+                RHI::CRHI& RHI = m_pCtx->GetDeviceContext()->RHI();
 
                 const uint32_t imgCount = m_RHISwapChain.vImages.GetCount();
                 for( uint32_t i = 0; i < imgCount; i++ )

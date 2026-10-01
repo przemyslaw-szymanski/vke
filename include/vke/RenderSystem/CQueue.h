@@ -1,7 +1,6 @@
 #pragma once
 
 #include "RenderSystem/Common.h"
-#include "RenderSystem/RHI/RHI.h"
 
 namespace VKE
 {

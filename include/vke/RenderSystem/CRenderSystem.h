@@ -2,10 +2,11 @@
 
 #include "Core/VKEPreprocessor.h"
 #include "Core/Utils/TCSmartPtr.h"
+#include "Core/Memory/CFreeListPool.h"
 
 #include "RenderSystem/Common.h"
 #include "RenderSystem/CommonEnumStrings.h"
-#include "RenderSystem/RHI/RHI.h"
+
 #include "RenderSystem/RHI/Vulkan/Vulkan.h"
 
 namespace VKE

@@ -2,7 +2,6 @@
 
 #include "Core/Utils/TCSmartPtr.h"
 
-#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/Common.h"
 
 namespace VKE

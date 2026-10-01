@@ -63,7 +63,7 @@ extern "C"
 
 #define VKE_VULKAN_NEGATIVE_VIEWPORT_HEIGT 1
 
-namespace VKE::RenderSystem::Vulkan
+namespace VKE::RenderSystem::RHI
 {
 #if VKE_WINDOWS
 
@@ -276,7 +276,7 @@ namespace VKE::RenderSystem::Vulkan
 #if VKE_DEBUG
 #define VKE_LOG_VULKAN_ERROR( _err, _exp )                                                                             \
     VKE_LOG_ERR( "Vulkan function: " << VKE_TO_STRING( _exp ) << " error (" << ( _err )                                \
-                                     << "): " << VKE::RenderSystem::Vulkan::ErrorToString( ( _err ) ) )
+                                     << "): " << VKE::RenderSystem::RHI::ErrorToString( ( _err ) ) )
 
 #define VK_ERR( _exp )                                                                                                 \
     VKE_CODE( auto err = _exp; if( err != VK_SUCCESS ) {                                                               \

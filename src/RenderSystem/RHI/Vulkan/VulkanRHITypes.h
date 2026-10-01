@@ -21,7 +21,7 @@
 #include "RenderSystem/RHI/Vulkan/Vulkan.h"
 #include <vulkan/vulkan.h>
 
-namespace VKE::RenderSystem::Vulkan
+namespace VKE::RenderSystem::RHI
 {
     struct NativeAPI
     {
@@ -56,7 +56,7 @@ namespace VKE::RenderSystem::Vulkan
         using ImageViewType         = VkImageViewType;
         using ImageLayout           = VkImageLayout;
         using ImageUsageFlags       = VkImageUsageFlags;
-        using MemoryHeap                = VkDeviceMemory;
+        using MemoryHeap            = VkDeviceMemory;
         using PresentSurface        = VkSurfaceKHR;
         using SwapChain             = VkSwapchainKHR;
         using Adapter               = VkPhysicalDevice;
@@ -170,4 +170,4 @@ namespace VKE::RenderSystem::Vulkan
 
     }; // struct SImplementation
 
-} // namespace VKE::RenderSystem
+} // namespace VKE::RenderSystem::RHI

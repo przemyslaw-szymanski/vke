@@ -17,8 +17,6 @@
 #include "Core/Utils/CLogger.h"
 #include "Core/Memory/Memory.h"
 
-#include "RenderSystem/RHI/RHI.h"
-
 #include "RenderSystem/Managers/CFrameGraphManager.h"
 #include "RenderSystem/CFrameGraph.h"
 
@@ -138,10 +136,10 @@ namespace VKE
                 LoadInfo.enableDebugMode = debugMode.value().boolValue;
             }
 
-            Result ret = CRHI::Load( LoadInfo, &m_DriverData );
+            Result ret = RHI::CRHI::Load( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {
-                ret = CRHI::QueryAdapters( &m_vAdapterInfos );
+                ret = RHI::CRHI::QueryAdapters( &m_vAdapterInfos );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                 }

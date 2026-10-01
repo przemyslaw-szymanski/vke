@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10...3.31)
+cmake_minimum_required(VERSION 3.20...3.31)
 
 # Try to find vcpkg in PATH if not already set.
 # This allows using a globally installed vcpkg instead of a submodule.
@@ -24,116 +24,14 @@ else()
     endif()
 endif()
 
-
 project(vkEngine C CXX)
 
+# Python3 required for code generation
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-
-set(APIS VULKAN D3D12)
-
-add_definitions(
-    -DVKE_VULKAN=1
-    -DVKE_D3D12=2
-    -DVKE_METAL=3)
-
-set(VKE_CONFIGURATION_LIST)
-set_property(GLOBAL PROPERTY VKE_CONFIGURATION_LIST ${VKE_CONFIGURATION_LIST})
-
-function(GenOutputName buildType api compileFlags engineFlags out)
-    message(STATUS "GenOutputName: ${buildType}, ${api}, ${compileFlags}, ${engineFlags}")
-    set(world "")
-    set(physics "")
-    set(ai "")
-    set(renderSystem "")
-    set(autdio "")
-
-    if(${api} STREQUAL "VULKAN")
-        set(api "VK")
-    elseif(${api} STREQUAL "D3D12")
-        set(api "D3D12")
-    else()
-        message(ERROR "Unknown API")
-    endif()
-    if(${buildType} MATCHES ".*DEBUG.*")
-        set(buildType "-dbg")
-    elseif(${buildType} MATCHES ".*DEV.*")
-        set(buildType "-dev")
-    elseif(${buildType} MATCHES ".*EDITOR.*")
-        set(buildType "-ed")
-    else()
-        set(buildType "")
-    endif()
-    if(${engineFlags} MATCHES ".*SCENE_DEBUG=1.*")
-        set(scene "-worldDbg")
-    endif()
-    if(${engineFlags} MATCHES ".*AUDIO_DEBUG=1.*")
-        set(audio "-audioDbg")
-    endif()
-    if(${engineFlags} MATCHES ".*RENDER_DEBUG=1.*")
-        set(renderSystem "-rsDbg")
-    elseif(${engineFlags} MATCHES ".*RENDER_SYSTEM_DEBUG=1.*")
-        set(renderSystem "-rsDbg")
-    endif()
-    unset(${out})
-    set(${out} "${api}${buildType}${renderSystem}${world}${physics}${ai}${audio}" PARENT_SCOPE)
-endfunction()
-
-function(SetBuildTypeProperties buildType outName)
-    set_property( GLOBAL PROPERTY ${PROJECT_NAME}_OUT_NAME_${buildType} ${outName} )
-endfunction()
-
-function(AddBuildType ver)
-    set(options OPTIONAL FAST)
-    set(oneValueArgs API COMPILER_FLAG LINKER_FLAG ENGINE_FLAG)
-    set(multiValueArgs COMPILER_FLAGS LINKER_FLAGS ENGINE_FLAGS)
-    cmake_parse_arguments(PARSE_ARGV 1 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
-    message(STATUS "BuildType: ${ver} with compile flags: ${arg_COMPILER_FLAGS} and linker flags: ${arg_LINKER_FLAGS} argv=${ARGV} argc=${ARGC} argn=${ARGN}")
-
-    foreach(API ${APIS})
-        get_property(tmp GLOBAL PROPERTY VKE_CONFIGURATION_LIST)
-        list(APPEND tmp "${ver}_${API}")
-        set(outName "")
-        GenOutputName( ${ver} ${API} ${arg_COMPILER_FLAGS} ${arg_ENGINE_FLAGS} outName )
-        set(CMAKE_CXX_FLAGS_${ver}_${API} "-DVKE_RENDER_SYSTEM=VKE_${API} ${arg_COMPILER_FLAGS}" CACHE STRING "C++ flags for ${ver} configuration" FORCE)
-        set(CMAKE_C_FLAGS_${ver}_${API} "-DVKE_RENDER_SYSTEM=VKE_${API} ${arg_COMPILER_FLAGS}" CACHE STRING "C flags for ${ver} configuration" FORCE)
-        set(CMAKE_EXE_LINKER_FLAGS_${ver}_${API} "${arg_LINKER_FLAGS}" CACHE STRING "Linker flags for ${ver} configuration" FORCE)
-        set(CMAKE_SHARED_LINKER_FLAGS_${ver}_${API} "${arg_LINKER_FLAGS}" CACHE STRING "Shared linker flags for ${ver} configuration" FORCE)
-        #message(STATUS "config list2: ${tmp}")
-        set_property(GLOBAL PROPERTY VKE_CONFIGURATION_LIST ${tmp})
-    endforeach()
-
-endfunction()
 
 set(WORLD_DEBUG_FLAGS)
 set(RENDER_DEBUG_FLAGS)
 set(PHYSICS_DEBUG_FLAGS)
-
-AddBuildType(
-    DEBUG
-    OUT_NAME "dbg"
-    ENGINE_FLAGS "a"
-    COMPILER_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} ${CMAKE_C_FLAGS_DEBUG} -DDEBUG"
-    LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_DEBUG} ${CMAKE_SHARED_LINKER_FLAGS_DEBUG} ${RELEASE_LINKER_DEBUG}")
-
-AddBuildType(
-    RELEASE
-    OUT_NAME "rel"
-    ENGINE_FLAGS "b"
-    COMPILER_FLAGS "${CMAKE_CXX_FLAGS_RELEASE} -DNDEBUG -DRELEASE"
-    LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${CMAKE_SHARED_LINKER_FLAGS_RELEASE} ${RELEASE_LINKER_SETTINGS}")
-
-get_property(tmp GLOBAL PROPERTY VKE_CONFIGURATION_LIST)
-message(STATUS "config list: ${tmp}")
-set (CMAKE_CONFIGURATION_TYPES "Debug_Vulkan;Debug_D3D12;Release_Vulkan;Release_D3D12;" CACHE STRING "Configurations" FORCE)
-
-
-if(CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Generator is multi-config: ${CMAKE_GENERATOR}")
-  message(STATUS "Available configs: ${CMAKE_CONFIGURATION_TYPES}")
-else()
-  message(STATUS "Generator is single-config: ${CMAKE_GENERATOR}")
-  message(STATUS "Current buld type: ${CMAKE_BUILD_TYPE}")
-endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(VKE_WINDOWS 1)
@@ -194,53 +92,6 @@ endif()
 find_package(directxmath CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXMath)
 
-if(VKE_COMPILE_VULKAN_RHI)
-    find_package(Vulkan REQUIRED)
-    message(STATUS "Found Vulkan: ${Vulkan_LIBRARIES}")
-    message(STATUS "Vulkan include dirs: ${Vulkan_INCLUDE_DIRS}")
-    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Vulkan::Vulkan)
-endif()
-
-if(VKE_COMPILE_D3D12_RHI)
-    # Lookout for D3D12 library. If not found then we need to add the Windows SDK Lib path to the search dirs.
-    # This way CMake can find D3D12.LIB required by the DirectX12 Agility SDK without additional manual steps.
-    find_library(D3D12_LIB NAMES d3d12)
-
-    if("${D3D12_LIB}" STREQUAL "D3D12_LIB-NOTFOUND")
-        # Resolve the Windows Kits 10 root. The Visual Studio generator provides the SDK version
-        # (CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION) but not the root, and CMAKE_WINDOWS_KITS_10_DIR
-        # is often empty. The SDK registers its root under the 32-bit WOW6432Node registry key, so
-        # read that (a 64-bit CMake reading the plain key returns the wrong location).
-        set(_WIN_KITS_ROOT "${CMAKE_WINDOWS_KITS_10_DIR}")
-        if(NOT _WIN_KITS_ROOT)
-            get_filename_component(_WIN_KITS_ROOT
-                "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot10]"
-                ABSOLUTE)
-        endif()
-
-        set(_WIN_SDK_INCLUDE_PATH "${_WIN_KITS_ROOT}/Lib/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/um/x64")
-        message(STATUS "[WINSDK]: Adding Lib dir to library search path: ${_WIN_SDK_INCLUDE_PATH}")
-
-        # Add _WIN_SDK_INCLUDE_PATH to the library search path
-        list(APPEND CMAKE_LIBRARY_PATH "${_WIN_SDK_INCLUDE_PATH}")
-    endif()
-
-    find_package(directx-headers CONFIG REQUIRED)
-    find_package(directx12-agility CONFIG REQUIRED)
-    find_package(winpixevent CONFIG REQUIRED)
-    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility Microsoft::WinPixEventRuntime)
-
-    set(_AGILITY_BIN_DIR     "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
-    set(_AGILITY_DBG_BIN_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/bin")
-
-    # D3D12Core.dll exists in both bin/ and debug/bin; pick by config at build time.
-    # d3d12SDKLayers.dll only ships in debug/bin, so it is only copied for Debug builds.
-    set(D3D12_AGILITY_DLLS
-        "$<IF:$<CONFIG:Debug>,${_AGILITY_DBG_BIN_DIR},${_AGILITY_BIN_DIR}>/D3D12Core.dll"
-        "$<$<CONFIG:Debug>:${_AGILITY_DBG_BIN_DIR}/d3d12SDKLayers.dll>"
-    )
-endif()
-
 message("Third Party Libs:")
 foreach(LIB IN LISTS THIRD_PARTY_LIBS)
     message(" - ${LIB}")
@@ -264,7 +115,7 @@ add_library(vkEngine SHARED
     .clang-format)
 
 # DllMain is the Windows DLL entry point and includes <windows.h>; only build it on Windows.
-if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+if(VKE_WINDOWS)
     target_sources(vkEngine PRIVATE src/DllMain.cpp)
 endif()
 
@@ -286,19 +137,11 @@ foreach(LIB IN LISTS LINK_LIBS)
     message(" - ${LIB}")
 endforeach()
 
-foreach(DLL_PATH IN LISTS DLL_DEPENDENCIES)
+if(DLL_DEPENDENCIES)
     add_custom_command(TARGET vkEngine POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DLL_PATH}"
-        $<TARGET_FILE_DIR:vkEngine>)
-endforeach()
-
-if(VKE_COMPILE_D3D12_RHI)
-    add_custom_command(TARGET vkEngine POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:vkEngine>/D3D12"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${D3D12_AGILITY_DLLS}
-                "$<TARGET_FILE_DIR:vkEngine>/D3D12"
+                ${DLL_DEPENDENCIES}
+                $<TARGET_FILE_DIR:vkEngine>
         COMMAND_EXPAND_LISTS
         VERBATIM)
 endif()
@@ -317,7 +160,3 @@ endif()
 if(BUILD_SAMPLES_ENABLED)
     add_subdirectory(samples)
 endif()
-
-target_compile_definitions(vkEngine PRIVATE
-    "$<$<CONFIG:DebugVulkan>:VKE_COMPILE_VULKAN_RHI=2>"
-    "$<$<CONFIG:ReleaseVulkan>:VKE_COMPILE_VULKAN_RHI=2>")

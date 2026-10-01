@@ -1,17 +1,9 @@
 cmake_minimum_required(VERSION 3.10...3.31)
 
-function(SetOption option desc default define)
-	option(${option} ${desc} ${default})
-	if( ${option} and ${define} )
-		add_definitions("-D${option}=1")
-	else()
-		add_definitions("-D${option}=0")
-	endif()
-endfunction()
-
 option(VKE_DEBUG_INFO "Enables compilation debug info" ON)
 option(VKE_COMPILE_VULKAN_RHI "Enable Vulkan API" ON)
 option(VKE_COMPILE_D3D12_RHI "Enable D3D12 API" ON)
+option(VKE_LINK_STATIC_RHI "Link the RHI selected by VKE_RENDER_SYSTEM statically" ON)
 option(VKE_RENDERER_DEBUG "Enable debugging of RenderSystem" ON)
 option(VKE_SCENE_DEBUG "Enable debugging of SceneSystem" ON)
 option(VKE_USE_DIRECTX_MATH "Enable math using DirectXMath" ON)
@@ -44,3 +36,4 @@ else()
     option(VKE_USE_DIRECTX_SHADER_COMPILER "Enable DirectXShaderCompiler" OFF)
     option(VKE_USE_GLSL_COMPILER "Enable glslang compiler" ON)
 endif()
+

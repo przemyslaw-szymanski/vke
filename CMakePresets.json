@@ -8,7 +8,8 @@
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
-        "VKE_DATA_DIR": "${sourceDir}/bin"
+        "VKE_DATA_DIR": "${sourceDir}/bin",
+        "VKE_LINK_STATIC_RHI": "ON"
       }
     },
     {
@@ -67,9 +68,7 @@
       "hidden": true,
       "inherits": [ "msvc-env" ],
       "cacheVariables": {
-        "VKE_RENDER_SYSTEM": "2",
-        "CMAKE_C_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_D3D12",
-        "CMAKE_CXX_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_D3D12"
+        "VKE_RENDER_SYSTEM": "D3D12"
       }
     },
     {
@@ -77,9 +76,7 @@
       "hidden": true,
       "inherits": [ "msvc-env" ],
       "cacheVariables": {
-        "VKE_RENDER_SYSTEM": "1",
-        "CMAKE_C_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_VULKAN",
-        "CMAKE_CXX_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_VULKAN"
+        "VKE_RENDER_SYSTEM": "Vulkan"
       }
     },
     {
@@ -88,9 +85,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "VKE_RENDER_SYSTEM": "2",
-        "CMAKE_C_FLAGS": "-DVKE_RENDER_SYSTEM=VKE_D3D12",
-        "CMAKE_CXX_FLAGS": "-DVKE_RENDER_SYSTEM=VKE_D3D12"
+        "VKE_RENDER_SYSTEM": "D3D12"
       }
     },
     {
@@ -99,9 +94,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "VKE_RENDER_SYSTEM": "1",
-        "CMAKE_C_FLAGS": "-DVKE_RENDER_SYSTEM=VKE_VULKAN",
-        "CMAKE_CXX_FLAGS": "-DVKE_RENDER_SYSTEM=VKE_VULKAN"
+        "VKE_RENDER_SYSTEM": "Vulkan"
       }
     },
     {
@@ -111,9 +104,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang-cl",
         "CMAKE_CXX_COMPILER": "clang-cl",
-        "VKE_RENDER_SYSTEM": "2",
-        "CMAKE_C_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_D3D12",
-        "CMAKE_CXX_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_D3D12"
+        "VKE_RENDER_SYSTEM": "D3D12"
       }
     },
     {
@@ -123,9 +114,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang-cl",
         "CMAKE_CXX_COMPILER": "clang-cl",
-        "VKE_RENDER_SYSTEM": "1",
-        "CMAKE_C_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_VULKAN",
-        "CMAKE_CXX_FLAGS": "/DVKE_RENDER_SYSTEM=VKE_VULKAN"
+        "VKE_RENDER_SYSTEM": "Vulkan"
       }
     },
     {
@@ -134,9 +123,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
-        "VKE_RENDER_SYSTEM": "1",
-        "CMAKE_C_FLAGS": "-DVKE_RENDER_SYSTEM=VKE_VULKAN",
-        "CMAKE_CXX_FLAGS": "-DVKE_RENDER_SYSTEM=VKE_VULKAN"
+        "VKE_RENDER_SYSTEM": "Vulkan"
       }
     },
     {
@@ -239,26 +226,22 @@
     {
       "name": "Windows-MinGW-D3D12-x64-Debug",
       "configurePreset": "Windows-MinGW-D3D12-x64-Debug",
-      "nativeToolOptions": [ "-k1" ],
-      "jobs": 4
+      "nativeToolOptions": [ "-k1" ]
     },
     {
       "name": "Windows-MinGW-D3D12-x64-Release",
       "configurePreset": "Windows-MinGW-D3D12-x64-Release",
-      "nativeToolOptions": [ "-k1" ],
-      "jobs": 4
+      "nativeToolOptions": [ "-k1" ]
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Debug",
       "configurePreset": "Windows-MinGW-Vulkan-x64-Debug",
-      "nativeToolOptions": [ "-k1" ],
-      "jobs": 4
+      "nativeToolOptions": [ "-k1" ]
     },
     {
       "name": "Windows-MinGW-Vulkan-x64-Release",
       "configurePreset": "Windows-MinGW-Vulkan-x64-Release",
-      "nativeToolOptions": [ "-k1" ],
-      "jobs": 4
+      "nativeToolOptions": [ "-k1" ]
     },
     {
       "name": "Windows-Clang-D3D12-x64-Debug",

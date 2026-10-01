@@ -1,35 +1,6 @@
 cmake_minimum_required(VERSION 3.10...3.31)
 
-
 project(vkEngineRenderSystem C CXX)
-
-if(VKE_WINDOWS)
-    set(VKE_COMPILE_VULKAN_RHI 1)
-    set(VKE_COMPILE_D3D12_RHI 1)
-    set(VKE_COMPILE_METAL_RHI 0)
-elseif(VKE_LINUX)
-    set(VKE_COMPILE_VULKAN_RHI 1)
-    set(VKE_COMPILE_D3D12_RHI 0)
-    set(VKE_COMPILE_METAL_RHI 0)
-elseif(VKE_MACOS)
-    set(VKE_COMPILE_VULKAN_RHI 0)
-    set(VKE_COMPILE_D3D12_RHI 0)
-    set(VKE_COMPILE_METAL_RHI 1)
-elseif(VKE_IOS)
-    set(VKE_COMPILE_VULKAN_RHI 0)
-    set(VKE_COMPILE_D3D12_RHI 0)
-    set(VKE_COMPILE_METAL_RHI 1)
-elseif(VKE_ANDROID)
-    set(VKE_COMPILE_VULKAN_RHI 1)
-    set(VKE_COMPILE_D3D12_RHI 0)
-    set(VKE_COMPILE_METAL_RHI 0)
-endif()
-
-add_compile_definitions(
-    "VKE_COMPILE_D3D12_RHI=${VKE_COMPILE_D3D12_RHI}"
-    "VKE_COMPILE_VULKAN_RHI=${VKE_COMPILE_VULKAN_RHI}"
-    "VKE_COMPILE_METAL_RHI=${VKE_COMPILE_METAL_RHI}"
-)
 
 # ---------------------------------------------------------------------------
 # Code generation: enum -> string conversions
@@ -111,7 +82,12 @@ include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
 target_link_libraries(vkEngineRenderSystem PUBLIC
     debug vkEngineCore_d
     optimized vkEngineCore
-    ${THIRD_PARTY_LIBS}
-    $<$<BOOL:${VKE_COMPILE_VULKAN_RHI}>:vkEngineRHI_Vulkan>
-    $<$<BOOL:${VKE_COMPILE_D3D12_RHI}>:vkEngineRHI_D3D12> )
+    ${THIRD_PARTY_LIBS} )
 
+if(VKE_LINK_STATIC_RHI)
+    if(VKE_RENDER_SYSTEM STREQUAL "Vulkan")
+        target_link_libraries(vkEngineRenderSystem PUBLIC vkEngineRHI_Vulkan)
+    elseif(VKE_RENDER_SYSTEM STREQUAL "D3D12")
+        target_link_libraries(vkEngineRenderSystem PUBLIC vkEngineRHI_D3D12)
+    endif()
+endif()

@@ -5,6 +5,8 @@
 #include "RenderSystem/Common.h"
 #include "RenderSystem/Managers/CCommandBufferManager.h"
 #include "RenderSystem/Managers/CSubmitManager.h"
+#include "RenderSystem/RHI/CRHI.h"
+
 
 namespace VKE
 {
@@ -33,8 +35,7 @@ namespace VKE
             /// <summary>
             /// TODO: remove these friends
             /// </summary>
-            friend class Vulkan::CVulkanAPI;
-            friend class D3D12::CD3D12API;
+            friend class RHI::CRHI;
 
         protected:
             struct SPreparationData
@@ -211,7 +212,7 @@ namespace VKE
             /// </summary>
             void _FreeExecutedBatches();
 
-            CRHI& _GetRHI() const
+            RHI::CRHI& _GetRHI() const
             {
                 return m_RHI;
             }
@@ -229,7 +230,7 @@ namespace VKE
             void _SetTextureState( CCommandBuffer* pCmdBuff, TEXTURE_STATE state, TextureHandle* phInOut );
 
         protected:
-            CRHI&                 m_RHI;
+            RHI::CRHI&                 m_RHI;
             CDeviceContext*       m_pDeviceCtx;
             cstr_t                m_pName = "";
             QueueRefPtr           m_pQueue;

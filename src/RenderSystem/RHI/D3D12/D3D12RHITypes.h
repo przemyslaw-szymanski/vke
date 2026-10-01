@@ -1,9 +1,9 @@
 #pragma once
 
-#if VKE_WINDOWS
-
 #include "Core/Memory/CFreeListPool.h"
 #include "Core/Utils/TCBitPool.h"
+
+#include "RenderSystem/RHI/RHITypes.h"
 
 #include <directx/d3d12.h>
 
@@ -75,7 +75,7 @@ __CRT_UUID_DECL( ID3D12InfoQueue, 0x0742a90b, 0xc387, 0x483f, 0xb9, 0x46, 0x30, 
 //__CRT_UUID_DECL( IDXGIDevice, 0x54ec77fa, 0x1377, 0x44e6, 0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c )
 #endif // __MINGW32__ && __CRT_UUID_DECL
 
-namespace VKE::RenderSystem::D3D12
+namespace VKE::RenderSystem::RHI
 {
     template< class ObjT >
     concept Nullable = std::is_pointer_v< ObjT >;
@@ -316,7 +316,7 @@ namespace VKE::RenderSystem::D3D12
 
             struct SRenderPass
             {
-                static const uint32_t MAX_RENDER_TARGETS = Config::RenderSystem::RenderTarget::MAX_COUNT_IN_RENDER_PASS;
+                static const uint32_t MAX_RENDER_TARGETS = 8;
 
                 using SRenderPassBarriers = TSStaticArray< D3D12_RESOURCE_BARRIER, MAX_RENDER_TARGETS >;
 
@@ -547,14 +547,18 @@ namespace VKE::RenderSystem::D3D12
             D3D12_VIEW_TYPE_RT_ACC_STRUCT,
         };
 
-    }; // struct RHI
+    }; // struct NativeAPI
 
     struct SImplementation
     {
+        using AdapterArray = Utils::TCDynamicArray< RHI::Adapter >;
+
         static const uint32_t MAX_MEMORY_HEAPS = 16;
 
+        static AdapterArray             svAdapters;
         static NativeAPI::D3D12Factory* spFactory;
         static bool                     sDebugLayerEnabled;
+
         NativeAPI::Device               m_hDevice;
         NativeAPI::Adapter              m_hAdapter;
 
@@ -662,8 +666,20 @@ namespace VKE::RenderSystem::D3D12
 
     private:
         Utils::TCDynamicArray< SDescriptorHeapInfo, 4 > m_vDescriptorHeapPool;
+
+
+        //
+        //        SImplementation* m_pImplementation;
+        //
+        //        CDeviceContext*   m_pCtx;
+        //        SDeviceInfo       m_DeviceInfo;
+        //        SDeviceProperties m_DeviceProperties;
+        //
+        //        struct
+        //        {
+        //            uint32_t         TypeToIndex[ MemoryHeapTypes::_MAX_COUNT ];
+        //            MEMORY_HEAP_TYPE IndexToType[ 16 ];
+        //        } HeapMap;
     };
 
-} // namespace VKE::RenderSystem::D3D12
-
-#endif // VKE_COMPILE_D3D12_RHI
+} // namespace VKE::RenderSystem::RHI

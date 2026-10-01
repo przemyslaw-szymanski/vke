@@ -5,7 +5,6 @@
 #include "RenderSystem/Resources/CImage.h"
 #include "Core/Utils/TCDynamicArray.h"
 
-#include "RenderSystem/RHI/RHI.h"
 #include "RenderSystem/Common.h"
 
 namespace VKE::RenderSystem

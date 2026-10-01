@@ -21,7 +21,7 @@
 
 namespace VKE::RenderSystem
 {
-    namespace Vulkan
+    namespace RHI
     {
 
         using ErrorMap = std::map< std::thread::id, VkResult >;

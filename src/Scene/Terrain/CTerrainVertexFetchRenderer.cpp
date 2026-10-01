@@ -9,8 +9,6 @@
 
 #include "Core/Utils/CProfiler.h"
 
-#include "RenderSystem/RHI/RHI.h"
-
 #define VKE_SCENE_TERRAIN_DEBUG_LOD 1
 #define RENDER_WIREFRAME 0
 #define VKE_SCENE_TERRAIN_CCW VKE_USE_LEFT_HANDED_COORDINATES
