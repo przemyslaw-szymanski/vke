@@ -142,7 +142,7 @@ namespace VKE
                 { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, true, false },
 #endif
                 { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true, false },
-                { VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, true, false }, // forced by VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+                { VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, false, false }, // forced by VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 
             };
             if( debug )
@@ -3674,11 +3674,11 @@ namespace VKE
                 VkPipelineColorBlendStateCreateInfo VkColorBlendState = {
                     VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO
                 };
+                Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
                 {
                     auto&       State        = VkColorBlendState;
                     const auto& vBlendStates = Desc.Blending.vBlendStates;
 
-                    Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
                     if( vBlendStates.IsEmpty() )
                     {
                         RHI_LOG_WARN( "No blend states specified for pipeline: " << Desc.GetDebugName() );
@@ -3888,6 +3888,12 @@ namespace VKE
                     VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
                 };
                 ci.pVertexInputState = nullptr;
+                Utils::TCDynamicArray< VkVertexInputAttributeDescription,
+                                       Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >
+                    vVkAttribs;
+                Utils::TCDynamicArray< VkVertexInputBindingDescription,
+                                       Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT >
+                    vVkBindings;
                 if( Desc.InputLayout.enable )
                 {
                     auto&       State    = VkVertexInput;
@@ -3895,12 +3901,6 @@ namespace VKE
                     if( !vAttribs.IsEmpty() )
                     {
                         {
-                            Utils::TCDynamicArray< VkVertexInputAttributeDescription,
-                                                   Config::RenderSystem::Pipeline::MAX_VERTEX_ATTRIBUTE_COUNT >
-                                vVkAttribs;
-                            Utils::TCDynamicArray< VkVertexInputBindingDescription,
-                                                   Config::RenderSystem::Pipeline::MAX_VERTEX_INPUT_BINDING_COUNT >
-                                vVkBindings;
                             vVkAttribs.Resize( vAttribs.GetCount() );
                             // vVkBindings.Resize( vAttribs.GetCount() );
                             SDescriptorSetLayoutDesc::BindingArray vBindings;
@@ -3944,16 +3944,16 @@ namespace VKE
                 VkPipelineViewportStateCreateInfo VkViewportState = {
                     VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO
                 };
+                using VkViewportArray =
+                    Utils::TCDynamicArray< VkViewport, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
+                using VkScissorArray =
+                    Utils::TCDynamicArray< VkRect2D, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
+                VkViewportArray vVkViewports;
+                VkScissorArray  vVkScissors;
                 if( Desc.Viewport.enable )
                 {
                     auto& State = VkViewportState;
                     {
-                        using VkViewportArray =
-                            Utils::TCDynamicArray< VkViewport, Config::RenderSystem::Pipeline::MAX_VIEWPORT_COUNT >;
-                        using VkScissorArray =
-                            Utils::TCDynamicArray< VkRect2D, Config::RenderSystem::Pipeline::MAX_SCISSOR_COUNT >;
-                        VkViewportArray vVkViewports;
-                        VkScissorArray  vVkScissors;
 
                         for( uint32_t i = 0; i < Desc.Viewport.vViewports.GetCount(); ++i )
                         {

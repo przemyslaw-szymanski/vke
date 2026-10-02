@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.10...3.31)
-
 add_compile_definitions(
     VKE_VULKAN=1
     VKE_D3D12=2
@@ -68,7 +66,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 	add_compile_definitions(VKE_COMPILER_MINGW=1)
 	set(GCC 1)
-elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
 	add_compile_definitions(VKE_COMPILER_VISUAL_STUDIO=1)
 	set(MSVC 1)
 endif()
@@ -90,7 +88,7 @@ if(CLANG OR GCC)
 		add_definitions("/wd4505") # unreferenced local function has been removed
 		add_definitions("/wd4221") # This object file does not define any previously undefined public symbols, so it will not be used by any link operation that consumes this library
 	else()
-		# GNU-style clang driver
+		# GCC common and GNU-style clang driver
 		add_definitions("-Wall") # Covers /W4
 		add_definitions("-Wextra") # Covers /W4
 		add_definitions("-Wfatal-errors") # Any warning/error/notice treat as fatal (fatal stops compilation)
