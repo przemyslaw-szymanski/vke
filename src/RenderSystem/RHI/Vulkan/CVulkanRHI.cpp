@@ -30,6 +30,9 @@ namespace VKE
 
     namespace RenderSystem::RHI
     {
+        const char* CRHI::scRHIName = "Vulkan";
+        SRHIInfo    CRHI::sRHIInfo;
+
         template< typename T >
         vke_force_inline auto ToNative( T v ) -> decltype( VKE::RenderSystem::ToNative< NativeAPI >( v ) )
         {
@@ -645,7 +648,7 @@ namespace VKE
                 {
                     return VK_IMAGE_ASPECT_DEPTH_BIT;
                 }
-                VKE_LOG_ERR( "Invalid image usage: " << usage << " to use for aspectMask" );
+                RHI_LOG_ERR( "Invalid image usage: " << usage << " to use for aspectMask" );
                 assert( 0 && "Invalid image usage" );
                 return VK_IMAGE_ASPECT_COLOR_BIT;
             }
@@ -722,7 +725,7 @@ namespace VKE
                     return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 }
                 assert( 0 && "Invalid image usage flags" );
-                VKE_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
+                RHI_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
@@ -737,7 +740,7 @@ namespace VKE
                     return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 }
                 assert( 0 && "Invalid image usage flags" );
-                VKE_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
+                RHI_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
@@ -765,7 +768,7 @@ namespace VKE
                 }
 
                 assert( 0 && "Invalid image usage flags" );
-                VKE_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
+                RHI_LOG_ERR( "Usage flags: " << vkFlags << " are invalid." );
                 return VK_IMAGE_LAYOUT_UNDEFINED;
             }
 
@@ -1625,7 +1628,7 @@ namespace VKE
                         Ext.required     = true;
 
                         pvNamesOut->PushBack( ReqExt.name.c_str() );
-                        VKE_LOG( "Enable Vulkan required extension/layer: " << ReqExt.name.c_str() );
+                        RHI_LOG( "Enable Vulkan required extension/layer: " << ReqExt.name.c_str() );
                         break;
                     }
                 }
@@ -1633,12 +1636,12 @@ namespace VKE
                 {
                     if( ReqExt.required )
                     {
-                        VKE_LOG_ERR( "Vulkan EXT: " << ReqExt.name << " is not supported by this Device." );
+                        RHI_LOG_ERR( "Vulkan EXT: " << ReqExt.name << " is not supported by this Device." );
                         ret = VKE_ENOTFOUND;
                     }
                     else
                     {
-                        VKE_LOG_WARN( "Vulkan EXT: " << ReqExt.name << " is not supported by this Device." );
+                        RHI_LOG_WARN( "Vulkan EXT: " << ReqExt.name << " is not supported by this Device." );
                     }
                 }
             }
@@ -1683,18 +1686,18 @@ namespace VKE
                 pmLayersInOut->reserve( count );
                 vke_string tmpName;
                 tmpName.reserve( 128 );
-                VKE_LOG( "SUPPORTED VULKAN INSTANCE LAYERS:" );
+                RHI_LOG( "SUPPORTED VULKAN INSTANCE LAYERS:" );
                 for( uint32_t i = 0; i < count; ++i )
                 {
                     tmpName = vProps[ i ].layerName;
                     pmLayersInOut->insert(
                         NativeAPI::NativeExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
-                    VKE_LOG( tmpName.c_str() );
+                    RHI_LOG( tmpName.c_str() );
                 }
             }
             else
             {
-                VKE_LOG_WARN( "Vulkan instance layers are not supported on this machine." );
+                RHI_LOG_WARN( "Vulkan instance layers are not supported on this machine." );
             }
             return CheckRequiredExtensions( pmLayersInOut, pvRequiredInOut, pvNames );
         }
@@ -1702,30 +1705,30 @@ namespace VKE
         Result CheckInstanceExtensionNames( VkICD::Global& Global, NativeAPI::NativeExtMap* pmExtensionsInOut,
                                             NativeAPI::NativeExtArray* pvRequired, CStrVec* pvOut )
         {
-            VKE_LOG_PROG( "VKEngine Checking instance extensions" );
+            RHI_LOG( "VKEngine Checking instance extensions" );
             vke_vector< VkExtensionProperties > vProps;
             uint32_t                            count = 0;
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( nullptr, &count, nullptr ) );
-            VKE_LOG_PROG( "VKEngine count: " << count );
+            RHI_LOG( "VKEngine count: " << count );
             vProps.resize( count );
             VK_ERR( Global.vkEnumerateInstanceExtensionProperties( nullptr, &count, &vProps[ 0 ] ) );
-            VKE_LOG_PROG( "VKEngine extensions queried" );
+            RHI_LOG( "VKEngine extensions queried" );
 
             pvOut->Reserve( count );
-            VKE_LOG_PROG( "VKEngine reserve output" );
+            RHI_LOG( "VKEngine reserve output" );
             pmExtensionsInOut->reserve( count );
-            VKE_LOG_PROG( "VKEngine reserve map output" );
+            RHI_LOG( "VKEngine reserve map output" );
             vke_string tmpName;
             tmpName.reserve( 128 );
-            VKE_LOG_PROG( "VKEngine reserve tmp string" );
+            RHI_LOG( "VKEngine reserve tmp string" );
 
-            VKE_LOG( "SUPPORTED VULKAN INSTANCE EXTENSIONS:" );
+            RHI_LOG( "SUPPORTED VULKAN INSTANCE EXTENSIONS:" );
             for( uint32_t i = 0; i < count; ++i )
             {
                 tmpName = vProps[ i ].extensionName;
                 pmExtensionsInOut->insert(
                     NativeAPI::NativeExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
-                VKE_LOG( tmpName.c_str() );
+                RHI_LOG( tmpName.c_str() );
             }
 
             return CheckRequiredExtensions( pmExtensionsInOut, pvRequired, pvOut );
@@ -1918,11 +1921,11 @@ namespace VKE
 
             vke_string tmpName;
             tmpName.reserve( 128 );
-            VKE_LOG( "SUPPORTED VULKAN DEVICE EXTENSIONS:" );
+            RHI_LOG( "SUPPORTED VULKAN DEVICE EXTENSIONS:" );
             for( uint32_t p = 0; p < count; ++p )
             {
                 tmpName = vProperties[ p ].extensionName;
-                VKE_LOG( tmpName );
+                RHI_LOG( tmpName );
                 pmAllExtensionsOut->insert(
                     NativeAPI::NativeExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
             }
@@ -1944,10 +1947,10 @@ namespace VKE
             }
             if( !vNotSupported.IsEmpty() )
             {
-                VKE_LOG_ERR( "Some requested extensions are not supported:" );
+                RHI_LOG_ERR( "Some requested extensions are not supported:" );
                 for( uint32_t i = 0; i < vNotSupported.GetCount(); ++i )
                 {
-                    VKE_LOG_ERR( vNotSupported[ i ] );
+                    RHI_LOG_ERR( vNotSupported[ i ] );
                 }
                 return VKE_FAIL;
             }
@@ -2033,7 +2036,7 @@ namespace VKE
         Result CRHI::Load( const SRHILoadInfo& Info, SDriverInfo* pOut )
         {
             Result ret = VKE_OK;
-            VKE_LOG_PROG( "VKEngine loading vulkan-1.dll" );
+            RHI_LOG( "VKEngine loading vulkan-1.dll" );
 
             auto& sGlobalICD = SImplementation::sGlobalICD;
             auto& shICD      = SImplementation::shICD;
@@ -2041,12 +2044,12 @@ namespace VKE
             shICD = Platform::DynamicLibrary::Load( "vulkan-1.dll" );
             if( shICD != 0 )
             {
-                VKE_LOG_PROG( "vulkan-1.dll loaded" );
+                RHI_LOG( "vulkan-1.dll loaded" );
 
                 ret = RHI::LoadGlobalFunctions( shICD, &sGlobalICD );
                 if( VKE_SUCCEEDED( ret ) )
                 {
-                    VKE_LOG_PROG( "Vulkan global functions loaded" );
+                    RHI_LOG( "Vulkan global functions loaded" );
                     NativeAPI::NativeExtArray vRequiredInstanceExts =
                         GetRequiredInstanceExtensions( Info.enableDebugMode );
                     NativeAPI::NativeExtArray vRequiredDeviceExts = GetRequiredDeviceExtensions( Info.enableDebugMode );
@@ -2072,7 +2075,7 @@ namespace VKE
                     {
                         return ret;
                     }
-                    VKE_LOG_PROG( "Vulkan ext checked" );
+                    RHI_LOG( "Vulkan ext checked" );
 
                     CStrVec              vLayerNames;
                     NativeAPI::NativeExtMap mLayers;
@@ -2094,7 +2097,7 @@ namespace VKE
 
                     if( VKE_SUCCEEDED( ret ) )
                     {
-                        VKE_LOG_PROG( "Vulkan validation layers" );
+                        RHI_LOG( "Vulkan validation layers" );
                         VkApplicationInfo vkAppInfo;
                         vkAppInfo.apiVersion         = apiVersion;
                         vkAppInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -2158,7 +2161,7 @@ namespace VKE
                         VK_ERR( vkRes );
                         if( vkRes == VK_SUCCESS )
                         {
-                            VKE_LOG_PROG( "Vulkan instance created with API ver: "
+                            RHI_LOG( "Vulkan instance created with API ver: "
                                           << VK_API_VERSION_MAJOR( apiVersion ) << "."
                                           << VK_API_VERSION_MINOR( apiVersion ) );
                             ret = RHI::LoadInstanceFunctions( SImplementation::sVkInstance,
@@ -2166,7 +2169,7 @@ namespace VKE
                                                                  &SImplementation::sInstanceICD );
                             if( ret == VKE_OK )
                             {
-                                VKE_LOG_PROG( "Vk instance functions loaded" );
+                                RHI_LOG( "Vk instance functions loaded" );
                                 if( Info.enableDebugMode )
                                 {
                                     if( SImplementation::sInstanceICD.vkCreateDebugReportCallbackEXT )
@@ -2193,22 +2196,22 @@ namespace VKE
                         else
                         {
                             ret = VKE_FAIL;
-                            VKE_LOG_ERR( "Unable to create Vulkan instance: " << vkRes );
+                            RHI_LOG_ERR( "Unable to create Vulkan instance: " << vkRes );
                         }
                     }
                     else
                     {
-                        VKE_LOG_ERR( "Unable to get Vulkan instance validation layers." );
+                        RHI_LOG_ERR( "Unable to get Vulkan instance validation layers." );
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Unable to load Vulkan global function pointers." );
+                    RHI_LOG_ERR( "Unable to load Vulkan global function pointers." );
                 }
             }
             else
             {
-                VKE_LOG_ERR( "Unable to load library: vulkan-1.dll" );
+                RHI_LOG_ERR( "Unable to load library: vulkan-1.dll" );
             }
             return ret;
         }
@@ -2374,7 +2377,7 @@ namespace VKE
             SImplementation::sInstanceICD.vkGetPhysicalDeviceQueueFamilyProperties( hAdapter, &propCount, nullptr );
             if( propCount == 0 )
             {
-                VKE_LOG_ERR( "No device queue family properties" );
+                RHI_LOG_ERR( "No device queue family properties" );
                 return VKE_FAIL;
             }
 
@@ -2478,11 +2481,11 @@ namespace VKE
             std::string ext;
             vke_string  tmpName;
             tmpName.reserve( 128 );
-            VKE_LOG( "SUPPORTED VULKAN DEVICE EXTENSIONS:" );
+            RHI_LOG( "SUPPORTED VULKAN DEVICE EXTENSIONS:" );
             for( uint32_t p = 0; p < count; ++p )
             {
                 tmpName = vProperties[ p ].extensionName;
-                VKE_LOG( tmpName );
+                RHI_LOG( tmpName );
                 pmAllExtensionsOut->insert(
                     NativeAPI::NativeExtMap::value_type( tmpName, { tmpName, false, true, false } ) );
             }
@@ -2594,7 +2597,7 @@ namespace VKE
 
                 if( !Features.ShaderDrawParameters.shaderDrawParameters )
                 {
-                    VKE_LOG_ERR( "Required device feature: 'Shader Draw Parameters' is not supported." );
+                    RHI_LOG_ERR( "Required device feature: 'Shader Draw Parameters' is not supported." );
                     ret = VKE_FAIL;
                 }
 
@@ -2621,11 +2624,11 @@ namespace VKE
             {
                 if( !Features.DescriptorIndexing.descriptorBindingPartiallyBound )
                 {
-                    VKE_LOG_ERR( "Required device feature: 'Descriptor Indexing' is not supported." );
+                    RHI_LOG_ERR( "Required device feature: 'Descriptor Indexing' is not supported." );
                     ret = VKE_FAIL;
                     if( !Features.DescriptorIndexing.runtimeDescriptorArray )
                     {
-                        VKE_LOG_ERR( "Required device feature: 'Runtime Descriptor Array' is not supported." );
+                        RHI_LOG_ERR( "Required device feature: 'Runtime Descriptor Array' is not supported." );
                         ret = VKE_FAIL;
                     }
                 }
@@ -2636,12 +2639,12 @@ namespace VKE
                 {
                     if( !Features.Raytracing10.rayTracingPipeline )
                     {
-                        VKE_LOG_ERR( "Required device feature: 'Raytracing 1.0' is not supported." );
+                        RHI_LOG_ERR( "Required device feature: 'Raytracing 1.0' is not supported." );
                         ret = VKE_FAIL;
                     }
                     if( !Features.Raytracing11.rayQuery )
                     {
-                        VKE_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
+                        RHI_LOG_ERR( "Required device feature: 'Raytracing 1.1' is not supported." );
                         ret = VKE_FAIL;
                     }
                     
@@ -2658,7 +2661,7 @@ namespace VKE
                 {
                     if( !Features.MeshShaderEXT.meshShader || !Features.MeshShaderEXT.taskShader )
                     {
-                        VKE_LOG_ERR( "Required device feature: 'MeshShaders' is not supported." );
+                        RHI_LOG_ERR( "Required device feature: 'MeshShaders' is not supported." );
                         ret = VKE_FAIL;
                     }
                     Features.MeshShaderEXT.multiviewMeshShader = 0; // do not enable/support multiview
@@ -2818,18 +2821,18 @@ namespace VKE
                     }
                     else
                     {
-                        VKE_LOG_ERR( "No physical device available for this machine" );
+                        RHI_LOG_ERR( "No physical device available for this machine" );
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR( "No physical device available for this machine" );
-                    VKE_LOG_ERR( "Vulkan is not supported for this GPU" );
+                    RHI_LOG_ERR( "No physical device available for this machine" );
+                    RHI_LOG_ERR( "Vulkan is not supported for this GPU" );
                 }
             }
             else
             {
-                VKE_LOG_ERR( "Unable to enumerate Vulkan physical devices: " << vkRes );
+                RHI_LOG_ERR( "Unable to enumerate Vulkan physical devices: " << vkRes );
             }
             return ret;
         }
@@ -3678,7 +3681,7 @@ namespace VKE
                     Utils::TCDynamicArray< VkPipelineColorBlendAttachmentState > vVkBlendStates;
                     if( vBlendStates.IsEmpty() )
                     {
-                        VKE_LOG_WARN( "No blend states specified for pipeline: " << Desc.GetDebugName() );
+                        RHI_LOG_WARN( "No blend states specified for pipeline: " << Desc.GetDebugName() );
                         VkPipelineColorBlendAttachmentState VkState;
                         VkState.alphaBlendOp   = VK_BLEND_OP_ADD;
                         VkState.blendEnable    = VK_FALSE;
@@ -3839,7 +3842,7 @@ namespace VKE
                                 vkShaderStages            |= State.stage;
                                 stageCount++;
                                 vVkStages.PushBack( State );
-                                VKE_LOG( "Stage: " << State.stage << ": " << State.pName );
+                                RHI_LOG( "Stage: " << State.stage << ": " << State.pName );
                             }
                         }
                     }
@@ -4000,7 +4003,7 @@ namespace VKE
                     }
                     else
                     {
-                        VKE_LOG_WARN( "No valid pipeline layout handle provided. Pipeline will not be created." );
+                        RHI_LOG_WARN( "No valid pipeline layout handle provided. Pipeline will not be created." );
                     }
                 }
                 if( Desc.hRHIRenderPass != RHI::Null )
@@ -4243,7 +4246,7 @@ namespace VKE
                     VkInfo.imageView   = ToNative( m_pCtx->GetTextureView( Curr.ahHandles[ j ] )->GetRHIObject() );
                     VkInfo.sampler     = NativeAPI::Null;
                     vvVkImageViewsInfos[ i ].PushBack( VkInfo );
-                    /*VKE_LOG("Update desc set: " << hRHISet << ", " << (uint32_t)Curr.binding << ", " <<
+                    /*RHI_LOG("Update desc set: " << hRHISet << ", " << (uint32_t)Curr.binding << ", " <<
                              j << ": " << VkInfo.imageView << ": " << Curr.ahHandles[ j ].handle );*/
                 }
 
@@ -4591,7 +4594,7 @@ namespace VKE
                 if( ( Desc.usage & MemoryUsages::UPLOAD ) == MemoryUsages::UPLOAD &&
                     m_pImplementation->m_aHeapSizes[ heapIdx ] < Desc.size )
                 {
-                    VKE_LOG_WARN( "No free space left on UPLOAD heap: "
+                    RHI_LOG_WARN( "No free space left on UPLOAD heap: "
                                   << VKE_LOG_MEM_SIZE( m_pImplementation->m_aHeapSizes[ heapIdx ] )
                                   << ", requested allocation size: " << VKE_LOG_MEM_SIZE( Desc.size )
                                   << ". Trying to allocate on a CPU heap instead." );
@@ -4620,7 +4623,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR( "Required memory usage: " << Desc.usage << " is not suitable for this GPU." );
+                RHI_LOG_ERR( "Required memory usage: " << Desc.usage << " is not suitable for this GPU." );
             }
             return ret;
         }
@@ -4695,7 +4698,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR( "Unable to create vkBuffer: " << Desc.GetDebugName() );
+                RHI_LOG_ERR( "Unable to create vkBuffer: " << Desc.GetDebugName() );
             }
             return ret;
         }
@@ -5187,7 +5190,7 @@ namespace VKE
                         m_pImplementation->m_hAdapter, queueIndex, hSurface, &isSurfaceSupported ) );
                     if( !isSurfaceSupported )
                     {
-                        VKE_LOG_ERR( "Queue index: " << queueIndex << " does not support the surface." );
+                        RHI_LOG_ERR( "Queue index: " << queueIndex << " does not support the surface." );
                         SImplementation::sInstanceICD.vkDestroySurfaceKHR(
                             SImplementation::sVkInstance, ( hSurface ), nullptr );
                     }
@@ -5199,7 +5202,7 @@ namespace VKE
                 Size                      = Caps.CurrentSize;
                 if( !Caps.canBeUsedAsRenderTarget )
                 {
-                    VKE_LOG_ERR( "Created present surface can't be used as render target." );
+                    RHI_LOG_ERR( "Created present surface can't be used as render target." );
                     goto ERR;
                 }
                 bool found = false;
@@ -5217,7 +5220,7 @@ namespace VKE
                 }
                 if( !found )
                 {
-                    VKE_LOG_ERR( "Requested format: " << Desc.format << " / " << Desc.colorSpace
+                    RHI_LOG_ERR( "Requested format: " << Desc.format << " / " << Desc.colorSpace
                                                       << " is not supported for present surface." );
                     goto ERR;
                 }
@@ -5236,12 +5239,12 @@ namespace VKE
                 {
                     if( Caps.vModes.IsEmpty() )
                     {
-                        VKE_LOG_WARN( "The device doesn't support presentation mode." );
+                        RHI_LOG_WARN( "The device doesn't support presentation mode." );
                         goto ERR;
                     }
                     // Get any supported
                     pOut->mode = Caps.vModes[ 0 ];
-                    VKE_LOG_WARN( "Requested presentation mode is not supported for presentation surface." );
+                    RHI_LOG_WARN( "Requested presentation mode is not supported for presentation surface." );
                     found = true;
                 }
                 pOut->Size     = Caps.CurrentSize;
@@ -5341,7 +5344,7 @@ namespace VKE
                                     VK_ERR( res );
                                     if( res != VK_SUCCESS )
                                     {
-                                        VKE_LOG_ERR( "Unable to create ImageView for SwapChain image." );
+                                        RHI_LOG_ERR( "Unable to create ImageView for SwapChain image." );
                                         goto ERR;
                                     }
                                     pOut->vImageViews[ i ] = FromNative( hView );
@@ -5393,25 +5396,25 @@ namespace VKE
                             }
                             else
                             {
-                                VKE_LOG_ERR( "Unable to get Vulkan SwapChain images." );
+                                RHI_LOG_ERR( "Unable to get Vulkan SwapChain images." );
                                 goto ERR;
                             }
                         }
                         else
                         {
-                            VKE_LOG_ERR( "imgCount > Desc.elementCount" );
+                            RHI_LOG_ERR( "imgCount > Desc.elementCount" );
                             goto ERR;
                         }
                     }
                     else
                     {
-                        VKE_LOG_ERR( "Unable to get Vulkan SwapChain images." );
+                        RHI_LOG_ERR( "Unable to get Vulkan SwapChain images." );
                         goto ERR;
                     }
                 }
                 else
                 {
-                    VKE_LOG_ERR( "Unable to create a SwapChain Vulkan object." );
+                    RHI_LOG_ERR( "Unable to create a SwapChain Vulkan object." );
                     goto ERR;
                 }
             }
@@ -5544,7 +5547,7 @@ namespace VKE
                                 auto presentMode = mModes.find( vkMode );
                                 if( presentMode == mModes.end() )
                                 {
-                                    VKE_LOG_WARN( "Unsupported present mode: " << static_cast< int >( vkMode ) );
+                                    RHI_LOG_WARN( "Unsupported present mode: " << static_cast< int >( vkMode ) );
                                     pOut->vModes.PushBack( PresentModes::UNDEFINED );
                                 }
                                 else
@@ -5639,7 +5642,7 @@ namespace VKE
                 }
                 case VK_ERROR_VALIDATION_FAILED_EXT: {
 
-                    VKE_LOG( res );
+                    RHI_LOG( res );
                 }
                 break;
                 case VK_ERROR_DEVICE_LOST: {
@@ -6024,20 +6027,20 @@ namespace VKE
             message << "[" << pLayerPrefix << "] Code " << msgCode << " : " << pMsg;
             auto str = std::regex_replace( message.str(), std::regex( " : " ), "\n" );
             str      = std::regex_replace( str, std::regex( ";" ), "\n" );
-            //VKE_LOG( str );
+            //RHI_LOG( str );
             //Platform::Debug::PrintOutput( str.data() );
             //VKE_ASSERT2( ( msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT ) == 0, message.str().c_str() );
             if( msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT )
             {
-                VKE_LOG_ERR( str );
+                RHI_LOG_ERR( str );
             }
             else if ( msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT )
             {
-                VKE_LOG_WARN( str );
+                RHI_LOG_WARN( str );
             }
             else
             {
-                VKE_LOG( str );
+                RHI_LOG( str );
             }
 #ifdef _WIN32
             if( msgFlags == VK_DEBUG_REPORT_ERROR_BIT_EXT )
@@ -6062,7 +6065,7 @@ namespace VKE
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes,
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* /*pUserData*/ )
         {
-#if VKE_LOG_RENDER_API_ERRORS
+#if RHI_LOG_RENDER_API_ERRORS
             (void)messageTypes;
 #define MSG pCallbackData->pMessageIdName << ": " << pCallbackData->pMessage
             if( pCallbackData && pCallbackData->pMessageIdName )
@@ -6070,16 +6073,16 @@ namespace VKE
                 switch( messageSeverity )
                 {
                     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-                        VKE_LOG_ERR( MSG );
+                        RHI_LOG_ERR( MSG );
                         break;
                     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                        VKE_LOG_WARN( MSG );
+                        RHI_LOG_WARN( MSG );
                         break;
                     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-                        VKE_LOG_WARN( MSG );
+                        RHI_LOG_WARN( MSG );
                         break;
                     default:
-                        VKE_LOG( MSG );
+                        RHI_LOG( MSG );
                         break;
                 }
             }
