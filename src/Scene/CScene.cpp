@@ -173,10 +173,10 @@ namespace VKE
                     if( m_ahBindings[ i ] != INVALID_HANDLE )
                     {
                         RenderSystem::SUpdateBindingsHelper UpdateInfo;
-                        UpdateInfo.AddBinding( 0u,
-                                               m_pConstantBufferGPU->GetRegion( 0 ),
-                                               m_pConstantBufferGPU->GetHandle(),
-                                               RenderSystem::BindingTypes::CONSTANT_BUFFER );
+                        UpdateInfo.AddBuffer( 0u,
+                                              m_pConstantBufferGPU->GetRegion( 0 ),
+                                              m_pConstantBufferGPU->GetRHIObject(),
+                                              RenderSystem::BindingTypes::CONSTANT_BUFFER );
                         m_pDeviceCtx->UpdateDescriptorSet( UpdateInfo, &m_ahBindings[ i ] );
                     }
                     else
@@ -791,14 +791,14 @@ namespace VKE
                         {
                             pOut->hDescSet = this->hPerFrameDescSet;
                             RenderSystem::SUpdateBindingsHelper Update;
-                            Update.AddBinding( 0u,
-                                               pPerFrameConstantBuffer->GetRegion( 0 ),
-                                               pPerFrameConstantBuffer->GetHandle(),
-                                               RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
-                            Update.AddBinding( 1u,
-                                               pSBuffer->GetRegion( 0 ),
-                                               hInstanceDataBuffer,
-                                               RenderSystem::BindingTypes::DYNAMIC_BUFFER );
+                            Update.AddBuffer( 0u,
+                                              pPerFrameConstantBuffer->GetRegion( 0 ),
+                                              pPerFrameConstantBuffer->GetRHIObject(),
+                                              RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                            Update.AddBuffer( 1u,
+                                              pSBuffer->GetRegion( 0 ),
+                                              pSBuffer->GetRHIObject(),
+                                              RenderSystem::BindingTypes::DYNAMIC_BUFFER );
                             pCtx->UpdateDescriptorSet( Update, &this->hPerFrameDescSet );
                             ret = true;
                         }
@@ -818,7 +818,7 @@ namespace VKE
             {
                 RenderSystem::SPipelineLayoutDesc LayoutDesc;
                 LayoutDesc.SetDebugName( "VKE_DebugView" );
-                LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( hPerFrameDescSet ) };
+                LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout(pCtx->GetDescriptorSetLayout( hPerFrameDescSet )) };
                 auto  pLayout                    = pCtx->CreatePipelineLayout( LayoutDesc );
                 auto& Pipeline                   = this->InstancingPipelineTemplate.Pipeline;
                 Pipeline.hLayout                 = pLayout->GetHandle();
@@ -1162,15 +1162,15 @@ namespace VKE
                 hPerFrameDescSet = pDevice->CreateResourceBindings( BindingDesc );
                 RenderSystem::SUpdateBindingsHelper UpdateHelper;
                 hBuff = pPerFrameConstantBuffer->GetHandle();
-                UpdateHelper.AddBinding( 0u,
-                                         pPerFrameConstantBuffer->GetRegion( 0 ),
-                                         hBuff,
-                                         RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                UpdateHelper.AddBuffer( 0u,
+                                        pPerFrameConstantBuffer->GetRegion( 0 ),
+                                        pPerFrameConstantBuffer->GetRHIObject(),
+                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                 pDevice->UpdateDescriptorSet( UpdateHelper, &hPerFrameDescSet );
             }
 
             RenderSystem::SPipelineLayoutDesc LayoutDesc;
-            LayoutDesc.vDescriptorSetLayouts = { pDevice->GetDescriptorSetLayout( hPerFrameDescSet ) };
+            LayoutDesc.vDescriptorSetLayouts = { pDevice->GetDescriptorSetLayout(pDevice->GetDescriptorSetLayout( hPerFrameDescSet )) };
             auto pLayout                     = pDevice->CreatePipelineLayout( LayoutDesc );
 
             RenderSystem::SShaderData       VsData, PsData;
@@ -1476,7 +1476,7 @@ namespace VKE
                                 // Get any desc set as they all are the same
                                 auto                              hDescSet = Curr.vConstantBuffers.Back().hDescSet;
                                 RenderSystem::SPipelineLayoutDesc LayoutDesc;
-                                LayoutDesc.vDescriptorSetLayouts = { pDevCtx->GetDescriptorSetLayout( hDescSet ) };
+                                LayoutDesc.vDescriptorSetLayouts = { pDevCtx->GetDescriptorSetLayout(pDevCtx->GetDescriptorSetLayout( hDescSet )) };
                                 const auto& pLayout              = pDevCtx->CreatePipelineLayout( LayoutDesc );
                                 if( pLayout != nullptr )
                                 {

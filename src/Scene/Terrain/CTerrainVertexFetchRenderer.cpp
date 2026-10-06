@@ -681,10 +681,10 @@ namespace VKE
                         RenderSystem::SUpdateBindingsHelper UpdateInfo;
                         {
                             UpdateInfo.Reset();
-                            UpdateInfo.AddBinding( 0,
-                                                   m_pConstantBuffer->GetRegion( 0 ),
-                                                   m_pConstantBuffer->GetHandle(),
-                                                   RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                            UpdateInfo.AddBuffer( 0,
+                                                  m_pConstantBuffer->GetRegion( 0 ),
+                                                  m_pConstantBuffer->GetRHIObject(),
+                                                  RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
                             pDevice->UpdateDescriptorSet( UpdateInfo, &m_ahPerFrameDescSets[ f ] );
                         }
 #if VKE_TERRAIN_INSTANCING_RENDERING
@@ -745,18 +745,18 @@ namespace VKE
             {
                 auto&                               hBindings = vTileBindings[ i ];
                 RenderSystem::SUpdateBindingsHelper UpdateInfo;
-                UpdateInfo.AddBinding( 0,
-                                       m_pConstantBuffer->GetRegion( 1 ),
-                                       m_pConstantBuffer->GetHandle(),
-                                       RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
-                UpdateInfo.AddBinding( 1, &m_pTerrain->m_hHeightmapSampler, 1 );
+                UpdateInfo.AddBuffer( 0,
+                                      m_pConstantBuffer->GetRegion( 1 ),
+                                      m_pConstantBuffer->GetRHIObject(),
+                                      RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
+                UpdateInfo.AddSampler( 1, &m_pTerrain->m_hRHIHeightmapSampler, 1 );
                 // if( Data.hHeightmap != INVALID_HANDLE )
-                UpdateInfo.AddBinding(
+                UpdateInfo.AddTextureView(
                     2, &m_pTerrain->m_vHeightmapTexViews[ 0 ], (uint16_t)m_pTerrain->m_vHeightmapTexViews.GetCount() );
-                UpdateInfo.AddBinding( 3,
+                UpdateInfo.AddTextureView( 3,
                                        &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
                                        (uint16_t)m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
-                UpdateInfo.AddBinding(
+                UpdateInfo.AddTextureView(
                     4, &m_pTerrain->m_vSplatmapTexViews[ 0 ], (uint16_t)m_pTerrain->m_vSplatmapTexViews.GetCount() );
                 // if( Data.hBilinearSampler != INVALID_HANDLE )
 
@@ -778,26 +778,26 @@ namespace VKE
                 auto&                               hDescSet = m_ahPerInstancedDrawDescSets[ backBufferIndex ];
                 // uint32_t lodRangeSize = m_pInstacingDataBuffer->GetSize() / CTerrainQuadTree::MAX_LOD_COUNT;
                 UpdateInfo.Reset();
-                UpdateInfo.AddBinding( 0,
+                UpdateInfo.AddBuffer( 0,
                                        m_pConstantBuffer->GetRegion( 0 ),
-                                       m_pConstantBuffer->GetHandle(),
+                                       m_pConstantBuffer->GetRHIObject(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
-                UpdateInfo.AddBinding( 1,
+                UpdateInfo.AddBuffer( 1,
                                        m_pInstacingDataBuffer->GetRegion( 0 ),
-                                       m_pInstacingDataBuffer->GetHandle(),
+                                       m_pInstacingDataBuffer->GetRHIObject(),
                                        RenderSystem::BindingTypes::DYNAMIC_CONSTANT_BUFFER );
-                UpdateInfo.AddBinding( 2, &m_pTerrain->m_hHeightmapSampler, 1 );
+                UpdateInfo.AddSampler( 2, &m_pTerrain->m_hRHIHeightmapSampler, 1 );
                 // UpdateInfo.AddBinding( 1, &m_pTerrain->m_vDummyTexViews[ 0 ], 1 );
-                UpdateInfo.AddBinding(
+                UpdateInfo.AddTextureView(
                     3, &m_pTerrain->m_vHeightmapTexViews[ 0 ], (uint16_t)m_pTerrain->m_vHeightmapTexViews.GetCount() );
-                UpdateInfo.AddBinding( 4,
+                UpdateInfo.AddTextureView( 4,
                                        &m_pTerrain->m_vHeightmapNormalTexViews[ 0 ],
                                        (uint16_t)m_pTerrain->m_vHeightmapNormalTexViews.GetCount() );
-                UpdateInfo.AddBinding(
+                UpdateInfo.AddTextureView(
                     5,
                     &m_pTerrain->m_avTextureViews[ CTerrain::TextureTypes::SPLAT ][ 0 ],
                     (uint16_t)m_pTerrain->m_avTextureViews[ CTerrain::TextureTypes::SPLAT ].GetCount() );
-                UpdateInfo.AddBinding(
+                UpdateInfo.AddTextureView(
                     6,
                     &m_pTerrain->m_avTextureViews[ CTerrain::TextureTypes::DIFFUSE ][ 0 ],
                     (uint16_t)m_pTerrain->m_avTextureViews[ CTerrain::TextureTypes::DIFFUSE ].GetCount() );
@@ -1143,11 +1143,11 @@ namespace VKE
                 pDs = pCtx->CreateShader( DsDesc );
             }
             RenderSystem::SPipelineLayoutDesc LayoutDesc;
-            LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout( m_ahPerFrameDescSets[ 0 ] ),
+            LayoutDesc.vDescriptorSetLayouts = { pCtx->GetDescriptorSetLayout(pCtx->GetDescriptorSetLayout( m_ahPerFrameDescSets[ 0 ] )),
 #if VKE_TERRAIN_INSTANCING_RENDERING
-                                                 pCtx->GetDescriptorSetLayout( m_ahPerInstancedDrawDescSets[ 0 ] )
+                                                 pCtx->GetDescriptorSetLayout(pCtx->GetDescriptorSetLayout( m_ahPerInstancedDrawDescSets[ 0 ] ))
 #else
-                                                 pCtx->GetDescriptorSetLayout( m_ahPerTileDescSets[ 0 ] )
+                                                 pCtx->GetDescriptorSetLayout(pCtx->GetDescriptorSetLayout( m_ahPerTileDescSets[ 0 ] ))
 #endif
             };
             LayoutDesc.vPushConstants = { { RenderSystem::PipelineStages::ALL, sizeof( SPushConstants ), 0 } };

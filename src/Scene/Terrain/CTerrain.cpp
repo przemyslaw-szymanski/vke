@@ -132,6 +132,7 @@ namespace VKE
                 SamplerDesc.AddressMode.U = RenderSystem::AddressModes::REPEAT;
                 SamplerDesc.AddressMode.V = SamplerDesc.AddressMode.U;
                 m_hHeightmapSampler       = pCtx->CreateSampler( SamplerDesc );
+                m_hRHIHeightmapSampler    = pCtx->GetSampler( m_hHeightmapSampler )->GetRHIObject();
             }
             ret = _CreateDummyResources( pCommandBuffer );
             if( VKE_FAILED( ret ) )
@@ -328,11 +329,11 @@ namespace VKE
                 {
                     pCtx->SetTextureState( pCommandBuffer, RenderSystem::TextureStates::SHADER_READ, &hTex );
                     m_vDummyTextures.Resize( MAX_TEXTURE_COUNT, hTex );
-                    auto hTexView = pDevice->GetTextureView( hTex )->GetHandle();
-                    if( hTexView != INVALID_HANDLE )
+                    auto pTextureView = pDevice->GetTextureView( hTex );
+                    if( pTextureView->GetHandle() != INVALID_HANDLE )
                     {
-                        m_vDummyTexViews.Resize( MAX_TEXTURE_COUNT, hTexView );
-                        VKE_LOG( "Create terrain dummy texture: " << hTex.handle << ": " << hTexView.handle );
+                        m_vDummyTexViews.Resize( MAX_TEXTURE_COUNT, pTextureView->GetRHIObject() );
+                        VKE_LOG( "Create terrain dummy texture: " << hTex.handle << ": " << pTextureView->GetHandle().handle );
                         ret                     = VKE_OK;
                         uint32_t heightmapCount = 0;
                         /*for( uint32_t y = 0; y < m_Desc.Heightmap.vvFileNames.GetCount(); ++y )
@@ -557,7 +558,7 @@ namespace VKE
             pOut->index            = rootNodeIdx;
             pOut->hHeightmap       = m_vDummyTexViews[ 0 ];
             pOut->hHeightmapNormal = m_vDummyTexViews[ 0 ];
-            pOut->hBilinearSampler = m_hHeightmapSampler;
+            pOut->hBilinearSampler = m_hRHIHeightmapSampler;
             // pOut->phDiffuses = m_vDummyTexViews.GetData();
             // pOut->phDiffuseNormals = m_vDummyTexViews.GetData();
             // pOut->diffuseTextureCount = ( uint16_t )m_vDummyTexViews.GetCount();
@@ -595,7 +596,7 @@ namespace VKE
                     {
                         // Replace current texture
                         uint32_t                         index      = Pair.second;
-                        RenderSystem::TextureViewHandle* phCurrView = nullptr;
+                        RenderSystem::RHI::TextureView* phCurrView = nullptr;
                         RenderSystem::TextureHandle*     phCurrTex  = nullptr;
                         switch( t )
                         {
@@ -613,7 +614,7 @@ namespace VKE
                         // VKE_ASSERT( pTex!= nullptr );
                         // pCommandBuffer->GenerateMipmaps( pTex );
                         *phCurrTex  = pTex->GetHandle();
-                        *phCurrView = pTex->GetView()->GetHandle();
+                        *phCurrView = pTex->GetView()->GetRHIObject();
                         STerrainUpdateBindingData Data;
                         m_pRenderer->UpdateBindings( Data );
                         vpTextures.RemoveFast( i );

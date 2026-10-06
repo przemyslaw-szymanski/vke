@@ -57,7 +57,7 @@ namespace VKE
         return _DbgName.IsEmpty();                                                                                     \
     }
 #define VKE_RENDER_SYSTEM_DEBUG_INFO                                                                                   \
-    SDebugInfo* pDebugInfo = nullptr;                                                                                  \
+    SDebugInfo*                            pDebugInfo = nullptr;                                                       \
     vke_force_inline constexpr SDebugInfo* GetDebugInfo() const noexcept                                               \
     {                                                                                                                  \
         return pDebugInfo;                                                                                             \
@@ -1105,70 +1105,81 @@ namespace VKE
                 uint8_t           binding;
             };
 
-            struct SBufferBinding : TSBinding< BufferHandle >
+            struct SBufferBinding : TSBinding< RHI::Buffer >
             {
                 uint32_t offset;
                 uint32_t elementSize;
                 uint32_t elementCount;
             };
 
-            struct SSamplerAndTextureBinding
-            {
-                const SamplerHandle*     ahSamplers;
-                const TextureHandle*     ahTextures;
-                const TextureViewHandle* ahTexViews;
-                uint16_t                 count;
-                BINDING_TYPE             type;
-                uint8_t                  binding;
-            };
+            using BindingTypeRenderTarget = TSBinding< RHI::TextureView >;
+            using BindingTypeTexture      = TSBinding< RHI::Texture >;
+            using BindingTypeTextureView  = TSBinding< RHI::TextureView >;
+            using BindingTypeSampler      = TSBinding< RHI::Sampler >;
+            using BindingTypeBuffer       = SBufferBinding;
 
-            void AddBinding( uint8_t binding, const RenderTargetHandle* ahHandles, const uint16_t count )
+            template< class BindingType, uint32_t count = 16 >
+            using BindingArray = Utils::TCDynamicArray< BindingType, count >;
+
+            using RenderTargetArray      = BindingArray< BindingTypeRenderTarget >;
+            using TextureArray           = BindingArray< BindingTypeTexture >;
+            using TextureViewArray       = BindingArray< BindingTypeTextureView >;
+            using SamplerArray           = BindingArray< BindingTypeSampler >;
+            using BufferArray            = BindingArray< BindingTypeBuffer >;
+
+            RenderTargetArray      vRTs;
+            TextureArray           vTexs;
+            TextureViewArray       vTexViews;
+            SamplerArray           vSamplers;
+            BufferArray            vBuffers;
+
+            void AddRenderTarget( uint8_t binding, const RHI::TextureView* ahHandles, const uint16_t count )
             {
-                TSBinding< RenderTargetHandle > Binding;
+                BindingTypeRenderTarget Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count     = count;
                 Binding.binding   = binding;
                 vRTs.PushBack( Binding );
             }
 
-            /*void AddBinding( uint8_t binding, const TextureHandle* ahHandles, const uint16_t count )
+            /*void AddBinding( uint8_t binding, const RHI::Texture* ahHandles, const uint16_t count )
             {
-                TSBinding<TextureHandle> Binding;
+                BindingTypeTexture Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count = count;
                 Binding.binding = binding;
                 vTexs.PushBack( Binding );
             }*/
 
-            void AddBinding( uint8_t binding, const TextureViewHandle* ahHandles, const uint16_t count )
+            void AddTextureView( uint8_t binding, const RHI::TextureView* ahHandles, const uint16_t count )
             {
-                TSBinding< TextureViewHandle > Binding;
+                BindingTypeTextureView Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count     = count;
                 Binding.binding   = binding;
                 vTexViews.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const SamplerHandle* ahHandles, const uint16_t count )
+            void AddSampler( uint8_t binding, const RHI::Sampler* ahHandles, const uint16_t count )
             {
-                TSBinding< SamplerHandle > Binding;
+                BindingTypeSampler Binding;
                 Binding.ahHandles = ahHandles;
                 Binding.count     = count;
                 Binding.binding   = binding;
                 vSamplers.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const SBufferRegion& BufferRegion, const BufferHandle& hBuffer,
+            void AddBuffer( uint8_t binding, const SBufferRegion& BufferRegion, const RHI::Buffer& hBuffer,
                              BINDING_TYPE type )
             {
-                AddBinding(
+                AddBuffer(
                     binding, BufferRegion.offset, BufferRegion.elementSize, BufferRegion.elementCount, hBuffer, type );
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t elementSize, uint32_t elementCount,
-                             const BufferHandle& hBuffer, BINDING_TYPE type )
+            void AddBuffer( uint8_t binding, const uint32_t offset, const uint32_t elementSize, uint32_t elementCount,
+                             const RHI::Buffer& hBuffer, BINDING_TYPE type )
             {
-                SBufferBinding Binding;
+                BindingTypeBuffer Binding;
                 Binding.ahHandles    = &hBuffer;
                 Binding.count        = 1;
                 Binding.binding      = binding;
@@ -1179,8 +1190,8 @@ namespace VKE
                 vBuffers.PushBack( Binding );
             }
 
-            void AddBinding( uint8_t binding, const uint32_t offset, BufferPtr pBuffer );
-            void AddBinding( uint8_t binding, const uint32_t offset, const uint32_t range, BufferPtr pBuffer );
+            void AddBuffer( uint8_t binding, const uint32_t offset, BufferPtr pBuffer );
+            void AddBuffer( uint8_t binding, const uint32_t offset, const uint32_t range, BufferPtr pBuffer );
 
             void Reset()
             {
@@ -1189,24 +1200,7 @@ namespace VKE
                 vTexViews.Clear();
                 vSamplers.Clear();
                 vBuffers.Clear();
-                vSamplerAndTextures.Clear();
             }
-
-            template< class HandleType >
-            using BindingArray           = Utils::TCDynamicArray< TSBinding< HandleType >, 16 >;
-            using RtArray                = BindingArray< RenderTargetHandle >;
-            using TexArray               = BindingArray< TextureHandle >;
-            using TexViewArray           = BindingArray< TextureViewHandle >;
-            using SamplerArray           = BindingArray< SamplerHandle >;
-            using BufferArray            = Utils::TCDynamicArray< SBufferBinding, 8 >;
-            using SamplerAndTextureArray = Utils::TCDynamicArray< SSamplerAndTextureBinding, 16 >;
-
-            RtArray                vRTs;
-            TexArray               vTexs;
-            TexViewArray           vTexViews;
-            SamplerArray           vSamplers;
-            BufferArray            vBuffers;
-            SamplerAndTextureArray vSamplerAndTextures;
         };
 
         struct SCopyDescriptorSetInfo
@@ -1672,7 +1666,7 @@ namespace VKE
             MEMORY_USAGE         memoryUsage       = MemoryUsages::DEFAULT;
             uint16_t             arrayElementCount = 1;         // number of textures in array
             uint16_t             sliceCount        = 1;         // number of slices in 3d
-            RHI::Texture         hNative           = RHI::Null; // create from native
+            RHI::Texture         hRHITextureView   = RHI::Null; // create from native
             RHI::TextureView     hNativeView       = RHI::Null; // create from native
             CREATE_TEXTURE_FLAGS flags             = SCreateTextureFlags::NONE;
             // TODO(Any): clearValue is passed to CreateResource for optimized clear paths. This is currently unhandled
@@ -1713,7 +1707,8 @@ namespace VKE
             TEXTURE_VIEW_TYPE        type     = TextureViewTypes::VIEW_2D;
             TEXTURE_FORMAT           format   = Formats::R8G8B8A8_UNORM;
             STextureSubresourceRange SubresourceRange;
-            RHI::TextureView         hNative = RHI::Null;
+            RHI::Texture             hRHITexture     = RHI::Null;
+            RHI::TextureView         hRHITextureView = RHI::Null;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2868,6 +2863,7 @@ namespace VKE
             BufferHandle hBuffer;
             size_t       offset;
             FORMAT       format;
+            RHI::Buffer  hRHIBuffer;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
         };
 
@@ -2959,14 +2955,14 @@ namespace VKE
             };
 
             static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
-            using DescSetLayoutArray    = Utils::TCDynamicArray< DescriptorSetLayoutHandle, MAX_COUNT >;
+            using DescSetLayoutArray    = Utils::TCDynamicArray< RHI::DescriptorSetLayout, MAX_COUNT >;
             using PushConstantArray     = Utils::TCDynamicArray< SPushConstantDesc, 4 >;
 
             SPipelineLayoutDesc()
             {
             }
 
-            SPipelineLayoutDesc( DescriptorSetLayoutHandle hLayout )
+            SPipelineLayoutDesc( RHI::DescriptorSetLayout hLayout )
             {
                 vDescriptorSetLayouts.PushBack( hLayout );
             }
@@ -3420,7 +3416,8 @@ namespace VKE
 
         struct SCreateDeviceDesc
         {
-            SSettings Settings;
+            const SAdapterInfo* pAdapterInfo;
+            SSettings           Settings;
         };
 
         struct SDeviceContextDesc

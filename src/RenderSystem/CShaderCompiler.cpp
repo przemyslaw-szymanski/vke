@@ -1,4 +1,5 @@
 #include "RenderSystem/CShaderCompiler.h"
+#include "RenderSystem/RHI/RHIPreprocessor.h"
 
 #if VKE_USE_DIRECTX_SHADER_COMPILER
 #if VKE_WINDOWS
@@ -332,11 +333,14 @@ namespace VKE
 #else
                 vArgs.push_back( L"-O3" );
 #endif
-#if VKE_RENDER_SYSTEM == VKE_VULKAN
-                vArgs.push_back( L"-spirv" );
-                vArgs.push_back( L"-fvk-use-gl-layout" );
-                vArgs.push_back( L"-fspv-target-env=vulkan1.2" );
-                // vArgs.push_back(L"-fvk-bind-globals 128 0");
+#if VKE_COMPILE_VULKAN_RHI
+                if( RHI::GetRuntimeRHI() == RHI::RHI_API::Vulkan )
+                {
+                    vArgs.push_back( L"-spirv" );
+                    vArgs.push_back( L"-fvk-use-gl-layout" );
+                    vArgs.push_back( L"-fspv-target-env=vulkan1.2" );
+                    // vArgs.push_back(L"-fvk-bind-globals 128 0");
+                }
 #endif
 
                 const SShaderDesc::NameWString Name       = Info.pDesc->Name;

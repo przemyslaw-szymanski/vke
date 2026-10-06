@@ -120,27 +120,9 @@ namespace VKE
             return VKE_OK;
         }
 
-        static void RHILogCallback( const RHI::SRHILogInfo& Info )
-        {
-            // '\r' is intended here. Logger by default adds func/line/info which shows RHILogCallback.
-            // Carriage return sign overwrite that.
-            VKE_LOGF( "\r{}[{}][{}]{}{}{} {}", // \r is intended here
-                      RHI::SRHILogLevels::GetText( Info.level ),
-                      VKE_LOG_TID,
-                      Info.pRHIName,
-                      VKE_LOGGER_SEPARATOR,
-                      Info.pFunction,
-                      VKE_LOGGER_SEPARATOR,
-                      Info.pMessage );
-        }
-
         Result CRenderSystem::_InitAPI()
         {
             VKE_LOG_PROG( "VKEngine API initialization" );
-
-            RHI::SRHIInfo RHIInfo;
-            RHIInfo.pfnLogCallback = &RHILogCallback;
-            RHI::CRHI::Init( RHIInfo );
 
             SRHILoadInfo LoadInfo;
             const auto&  EngineInfo = m_pEngine->GetInfo();
@@ -157,10 +139,10 @@ namespace VKE
                 LoadInfo.enableDebugMode = debugMode.value().boolValue;
             }
 
-            Result ret = RHI::CRHI::Load( LoadInfo, &m_DriverData );
+            Result ret = RHI::Load( LoadInfo, &m_DriverData );
             if( VKE_SUCCEEDED( ret ) )
             {
-                ret = RHI::CRHI::QueryAdapters( &m_vAdapterInfos );
+                ret = RHI::QueryAdapters( &m_vAdapterInfos );
                 if( VKE_SUCCEEDED( ret ) )
                 {
                 }

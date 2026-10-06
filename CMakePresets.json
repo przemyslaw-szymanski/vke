@@ -1,4 +1,4 @@
-{
+﻿{
   "version": 6,
   "configurePresets": [
     {
@@ -8,14 +8,15 @@
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
-        "VKE_DATA_DIR": "${sourceDir}/bin",
-        "VKE_LINK_STATIC_RHI": "ON"
+        "VKE_DATA_DIR": "${sourceDir}/bin"
       }
     },
     {
       "name": "windows-base",
       "hidden": true,
-      "inherits": [ "common-base" ],
+      "inherits": [
+        "common-base"
+      ],
       "architecture": {
         "value": "x64",
         "strategy": "external"
@@ -25,7 +26,8 @@
       },
       "cacheVariables": {
         "VKE_COMPILE_VULKAN_RHI": "ON",
-        "VKE_COMPILE_D3D12_RHI": "ON"
+        "VKE_COMPILE_D3D12_RHI": "ON",
+        "VKE_RENDER_SYSTEM": "D3D12"
       },
       "condition": {
         "type": "equals",
@@ -36,16 +38,26 @@
     {
       "name": "linux-base",
       "hidden": true,
-      "inherits": [ "common-base" ],
+      "inherits": [
+        "common-base"
+      ],
       "cacheVariables": {
         "VKE_COMPILE_VULKAN_RHI": "ON",
-        "VKE_COMPILE_D3D12_RHI": "OFF"
+        "VKE_COMPILE_D3D12_RHI": "OFF",
+        "VKE_RENDER_SYSTEM": "Vulkan"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
       }
     },
     {
       "name": "mingw-base",
       "hidden": true,
-      "inherits": [ "windows-base" ],
+      "inherits": [
+        "windows-base"
+      ],
       "environment": {
         "VK_ADD_LAYER_PATH": "${sourceDir}/out/build/${presetName}/vcpkg_installed/x64-mingw-dynamic/bin"
       },
@@ -59,71 +71,44 @@
       "hidden": true,
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "inheritedEnvironments": [ "msvc_x64_x64" ]
+          "inheritedEnvironments": [
+            "msvc_x64_x64"
+          ]
         }
       }
     },
     {
-      "name": "msvc-d3d12",
+      "name": "msvc",
       "hidden": true,
-      "inherits": [ "msvc-env" ],
-      "cacheVariables": {
-        "VKE_RENDER_SYSTEM": "D3D12"
-      }
+      "inherits": [
+        "msvc-env"
+      ]
     },
     {
-      "name": "msvc-vulkan",
-      "hidden": true,
-      "inherits": [ "msvc-env" ],
-      "cacheVariables": {
-        "VKE_RENDER_SYSTEM": "Vulkan"
-      }
-    },
-    {
-      "name": "gcc-d3d12",
+      "name": "gcc",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_CXX_COMPILER": "g++",
-        "VKE_RENDER_SYSTEM": "D3D12"
+        "CMAKE_CXX_COMPILER": "g++"
       }
     },
     {
-      "name": "gcc-vulkan",
+      "name": "clang",
       "hidden": true,
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_CXX_COMPILER": "g++",
-        "VKE_RENDER_SYSTEM": "Vulkan"
-      }
-    },
-    {
-      "name": "clang-d3d12",
-      "hidden": true,
-      "inherits": [ "msvc-env" ],
+      "inherits": [
+        "msvc-env"
+      ],
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang-cl",
-        "CMAKE_CXX_COMPILER": "clang-cl",
-        "VKE_RENDER_SYSTEM": "D3D12"
+        "CMAKE_CXX_COMPILER": "clang-cl"
       }
     },
     {
-      "name": "clang-vulkan",
-      "hidden": true,
-      "inherits": [ "msvc-env" ],
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang-cl",
-        "CMAKE_CXX_COMPILER": "clang-cl",
-        "VKE_RENDER_SYSTEM": "Vulkan"
-      }
-    },
-    {
-      "name": "clang-linux-vulkan",
+      "name": "clang-linux",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
-        "VKE_RENDER_SYSTEM": "Vulkan"
+        "CMAKE_CXX_COMPILER": "clang++"
       }
     },
     {
@@ -142,142 +127,144 @@
       }
     },
     {
-      "name": "Windows-MSVC-D3D12-x64-Debug",
-      "inherits": [ "msvc-d3d12", "debug", "windows-base" ]
+      "name": "Windows-MSVC-x64-Debug",
+      "inherits": [
+        "msvc",
+        "debug",
+        "windows-base"
+      ]
     },
     {
-      "name": "Windows-MSVC-D3D12-x64-Release",
-      "inherits": [ "msvc-d3d12", "release", "windows-base" ]
+      "name": "Windows-MSVC-x64-Release",
+      "inherits": [
+        "msvc",
+        "release",
+        "windows-base"
+      ]
     },
     {
-      "name": "Windows-MSVC-Vulkan-x64-Debug",
-      "inherits": [ "msvc-vulkan", "debug", "windows-base" ]
+      "name": "Windows-MinGW-x64-Debug",
+      "inherits": [
+        "gcc",
+        "debug",
+        "mingw-base"
+      ]
     },
     {
-      "name": "Windows-MSVC-Vulkan-x64-Release",
-      "inherits": [ "msvc-vulkan", "release", "windows-base" ]
+      "name": "Windows-MinGW-x64-Release",
+      "inherits": [
+        "gcc",
+        "release",
+        "mingw-base"
+      ]
     },
     {
-      "name": "Windows-MinGW-D3D12-x64-Debug",
-      "inherits": [ "gcc-d3d12", "debug", "mingw-base" ]
+      "name": "Windows-Clang-x64-Debug",
+      "inherits": [
+        "clang",
+        "debug",
+        "windows-base"
+      ]
     },
     {
-      "name": "Windows-MinGW-D3D12-x64-Release",
-      "inherits": [ "gcc-d3d12", "release", "mingw-base" ]
+      "name": "Windows-Clang-x64-Release",
+      "inherits": [
+        "clang",
+        "release",
+        "windows-base"
+      ]
     },
     {
-      "name": "Windows-MinGW-Vulkan-x64-Debug",
-      "inherits": [ "gcc-vulkan", "debug", "mingw-base" ]
+      "name": "Linux-GCC-x64-Debug",
+      "inherits": [
+        "gcc",
+        "debug",
+        "linux-base"
+      ]
     },
     {
-      "name": "Windows-MinGW-Vulkan-x64-Release",
-      "inherits": [ "gcc-vulkan", "release", "mingw-base" ]
+      "name": "Linux-GCC-x64-Release",
+      "inherits": [
+        "gcc",
+        "release",
+        "linux-base"
+      ]
     },
     {
-      "name": "Windows-Clang-D3D12-x64-Debug",
-      "inherits": [ "clang-d3d12", "debug", "windows-base" ]
+      "name": "Linux-Clang-x64-Debug",
+      "inherits": [
+        "clang-linux",
+        "debug",
+        "linux-base"
+      ]
     },
     {
-      "name": "Windows-Clang-D3D12-x64-Release",
-      "inherits": [ "clang-d3d12", "release", "windows-base" ]
-    },
-    {
-      "name": "Windows-Clang-Vulkan-x64-Debug",
-      "inherits": [ "clang-vulkan", "debug", "windows-base" ]
-    },
-    {
-      "name": "Windows-Clang-Vulkan-x64-Release",
-      "inherits": [ "clang-vulkan", "release", "windows-base" ]
-    },
-    {
-      "name": "Linux-GCC-Vulkan-x64-Debug",
-      "inherits": [ "gcc-vulkan", "debug", "linux-base" ]
-    },
-    {
-      "name": "Linux-GCC-Vulkan-x64-Release",
-      "inherits": [ "gcc-vulkan", "release", "linux-base" ]
-    },
-    {
-      "name": "Linux-Clang-Vulkan-x64-Debug",
-      "inherits": [ "clang-linux-vulkan", "debug", "linux-base" ]
-    },
-    {
-      "name": "Linux-Clang-Vulkan-x64-Release",
-      "inherits": [ "clang-linux-vulkan", "release", "linux-base" ]
+      "name": "Linux-Clang-x64-Release",
+      "inherits": [
+        "clang-linux",
+        "release",
+        "linux-base"
+      ]
     }
   ],
   "buildPresets": [
     {
-      "name": "Windows-MSVC-D3D12-x64-Debug",
-      "configurePreset": "Windows-MSVC-D3D12-x64-Debug"
+      "name": "Windows-MSVC-x64-Debug",
+      "configurePreset": "Windows-MSVC-x64-Debug"
     },
     {
-      "name": "Windows-MSVC-D3D12-x64-Release",
-      "configurePreset": "Windows-MSVC-D3D12-x64-Release"
+      "name": "Windows-MSVC-x64-Release",
+      "configurePreset": "Windows-MSVC-x64-Release"
     },
     {
-      "name": "Windows-MSVC-Vulkan-x64-Debug",
-      "configurePreset": "Windows-MSVC-Vulkan-x64-Debug"
+      "name": "Windows-MinGW-x64-Debug",
+      "configurePreset": "Windows-MinGW-x64-Debug",
+      "nativeToolOptions": [
+        "-k1"
+      ]
     },
     {
-      "name": "Windows-MSVC-Vulkan-x64-Release",
-      "configurePreset": "Windows-MSVC-Vulkan-x64-Release"
+      "name": "Windows-MinGW-x64-Release",
+      "configurePreset": "Windows-MinGW-x64-Release",
+      "nativeToolOptions": [
+        "-k1"
+      ]
     },
     {
-      "name": "Windows-MinGW-D3D12-x64-Debug",
-      "configurePreset": "Windows-MinGW-D3D12-x64-Debug",
-      "nativeToolOptions": [ "-k1" ]
+      "name": "Windows-Clang-x64-Debug",
+      "configurePreset": "Windows-Clang-x64-Debug"
     },
     {
-      "name": "Windows-MinGW-D3D12-x64-Release",
-      "configurePreset": "Windows-MinGW-D3D12-x64-Release",
-      "nativeToolOptions": [ "-k1" ]
+      "name": "Windows-Clang-x64-Release",
+      "configurePreset": "Windows-Clang-x64-Release"
     },
     {
-      "name": "Windows-MinGW-Vulkan-x64-Debug",
-      "configurePreset": "Windows-MinGW-Vulkan-x64-Debug",
-      "nativeToolOptions": [ "-k1" ]
+      "name": "Linux-GCC-x64-Debug",
+      "configurePreset": "Linux-GCC-x64-Debug",
+      "nativeToolOptions": [
+        "-k1"
+      ]
     },
     {
-      "name": "Windows-MinGW-Vulkan-x64-Release",
-      "configurePreset": "Windows-MinGW-Vulkan-x64-Release",
-      "nativeToolOptions": [ "-k1" ]
+      "name": "Linux-GCC-x64-Release",
+      "configurePreset": "Linux-GCC-x64-Release",
+      "nativeToolOptions": [
+        "-k1"
+      ]
     },
     {
-      "name": "Windows-Clang-D3D12-x64-Debug",
-      "configurePreset": "Windows-Clang-D3D12-x64-Debug"
+      "name": "Linux-Clang-x64-Debug",
+      "configurePreset": "Linux-Clang-x64-Debug",
+      "nativeToolOptions": [
+        "-k1"
+      ]
     },
     {
-      "name": "Windows-Clang-D3D12-x64-Release",
-      "configurePreset": "Windows-Clang-D3D12-x64-Release"
-    },
-    {
-      "name": "Windows-Clang-Vulkan-x64-Debug",
-      "configurePreset": "Windows-Clang-Vulkan-x64-Debug"
-    },
-    {
-      "name": "Windows-Clang-Vulkan-x64-Release",
-      "configurePreset": "Windows-Clang-Vulkan-x64-Release"
-    },
-    {
-      "name": "Linux-GCC-Vulkan-x64-Debug",
-      "configurePreset": "Linux-GCC-Vulkan-x64-Debug",
-      "nativeToolOptions": [ "-k1" ]
-    },
-    {
-      "name": "Linux-GCC-Vulkan-x64-Release",
-      "configurePreset": "Linux-GCC-Vulkan-x64-Release",
-      "nativeToolOptions": [ "-k1" ]
-    },
-    {
-      "name": "Linux-Clang-Vulkan-x64-Debug",
-      "configurePreset": "Linux-Clang-Vulkan-x64-Debug",
-      "nativeToolOptions": [ "-k1" ]
-    },
-    {
-      "name": "Linux-Clang-Vulkan-x64-Release",
-      "configurePreset": "Linux-Clang-Vulkan-x64-Release",
-      "nativeToolOptions": [ "-k1" ]
+      "name": "Linux-Clang-x64-Release",
+      "configurePreset": "Linux-Clang-x64-Release",
+      "nativeToolOptions": [
+        "-k1"
+      ]
     }
   ]
 }

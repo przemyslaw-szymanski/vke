@@ -560,9 +560,9 @@ namespace VKE
                         VKE_LOG_ERR( "CTexture::Init: Unknown TextureAspects" );
                         break;
                 }
-                this->m_hRHIObject = m_Desc.hNative;
+                this->m_hRHIObject = m_Desc.hRHITextureView;
                 this->_AddResourceState( Core::ResourceStates::INITIALIZED );
-                if( m_Desc.hNative != RHI::Null )
+                if( m_Desc.hRHITextureView != RHI::Null )
                 {
                     this->_AddResourceState( Core::ResourceStates::CREATED );
                 }
@@ -693,7 +693,7 @@ namespace VKE
         void CTextureView::Init( const STextureViewDesc& Desc, TexturePtr pTexture )
         {
             m_Desc             = Desc;
-            this->m_hRHIObject = m_Desc.hNative;
+            this->m_hRHIObject = m_Desc.hRHITextureView;
         }
 
         hash_t CTextureView::CalcHash( const STextureViewDesc& Desc )

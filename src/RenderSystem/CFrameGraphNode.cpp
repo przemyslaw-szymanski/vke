@@ -109,6 +109,7 @@ namespace VKE::RenderSystem
         if( m_hRHIRenderPass != RHI::Null )
         {
             m_pContext->GetDeviceContext()->DestroyRenderPass( &m_hRHIRenderPass );
+            m_hRHIRenderPass = RHI::Null;
         }
         
     }

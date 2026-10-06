@@ -275,7 +275,9 @@ namespace VKE
                     {
                         goto ERR;
                     }
-                    Desc.hLayout = m_pCtx->CreatePipelineLayout( hDescSetLayout )->GetHandle();
+
+                    Desc.hLayout =
+                        m_pCtx->CreatePipelineLayout( m_pCtx->GetDescriptorSetLayout( hDescSetLayout ) )->GetHandle();
                     if( Desc.hLayout == INVALID_HANDLE )
                     {
                         goto ERR;
@@ -516,7 +518,7 @@ namespace VKE
             for( uint32_t i = 0; i < Desc.vDescriptorSetLayouts.GetCount(); ++i )
             {
                 // hash ^= ( reinterpret_cast< uint64_t >( Desc.vDescriptorSetLayouts[ i ].handle ) << 1 );
-                Hash += Desc.vDescriptorSetLayouts[ i ].handle;
+                Hash += Desc.vDescriptorSetLayouts[ i ];
             }
             return Hash.value;
         }

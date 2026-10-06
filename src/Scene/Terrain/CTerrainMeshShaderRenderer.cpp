@@ -85,18 +85,23 @@ namespace VKE::Scene
             }
         }
 
-        auto                                pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
+        auto pDevice = pCmdBuffer->GetContext()->GetDeviceContext();
+
         RenderSystem::SUpdateBindingsHelper UpdateInfo;
-        UpdateInfo.AddBinding(
-            0u, m_pVertexBuffer->GetRegion( 0 ), m_pVertexBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            1u, m_pTriangleBuffer->GetRegion( 0 ), m_pTriangleBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            2u, m_pMeshletBuffer->GetRegion( 0 ), m_pMeshletBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            3u, m_pTileBuffer->GetRegion( 0 ), m_pTileBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
-        UpdateInfo.AddBinding(
-            4u, m_pDebugBuffer->GetRegion( 0 ), m_pDebugBuffer->GetHandle(), RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBuffer(
+            0u, m_pVertexBuffer->GetRegion( 0 ), m_pVertexBuffer->GetRHIObject(), RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBuffer( 1u,
+                              m_pTriangleBuffer->GetRegion( 0 ),
+                              m_pTriangleBuffer->GetRHIObject(),
+                              RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBuffer( 2u,
+                              m_pMeshletBuffer->GetRegion( 0 ),
+                              m_pMeshletBuffer->GetRHIObject(),
+                              RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBuffer(
+            3u, m_pTileBuffer->GetRegion( 0 ), m_pTileBuffer->GetRHIObject(), RenderSystem::BindingTypes::BUFFER );
+        UpdateInfo.AddBuffer(
+            4u, m_pDebugBuffer->GetRegion( 0 ), m_pDebugBuffer->GetRHIObject(), RenderSystem::BindingTypes::BUFFER );
         pDevice->UpdateDescriptorSet( UpdateInfo, &m_hTileDescSet );
 
         return ret;
@@ -321,8 +326,8 @@ namespace VKE::Scene
                 { ( L"RIGHT_VERTEX_POS_X" ), ShaderCompilerString( m_MeshletDesc.vertexCountInRow - 1 ).GetData() },
             };
 
-            auto pDevice = pCmdBuff->GetContext()->GetDeviceContext();
-            auto& ResMgr = World::CResourceManager::GetInstance();
+            auto  pDevice = pCmdBuff->GetContext()->GetDeviceContext();
+            auto& ResMgr  = World::CResourceManager::GetInstance();
             if( m_pMeshShader == nullptr )
             {
                 RenderSystem::SCreateShaderDesc Desc = { .Create = { .stages = Core::ResourceStages::FULL_LOAD,
@@ -368,7 +373,8 @@ namespace VKE::Scene
                 auto hDescLayout         = pDevice->GetDescriptorSetLayout( m_hTileDescSet );
                 RenderSystem::SPipelineLayoutDesc LayoutDesc;
                 LayoutDesc.SetDebugName( "MeshShaderTerrain" );
-                LayoutDesc.vDescriptorSetLayouts = { hDescLayout, hSceneBindingLayout };
+                LayoutDesc.vDescriptorSetLayouts = { pDevice->GetDescriptorSetLayout( hDescLayout ),
+                                                     pDevice->GetDescriptorSetLayout( hSceneBindingLayout ) };
 
                 RenderSystem::SPipelineCreateDesc Desc;
                 Desc.Create.OnCreate = [ & ]( void* pData ) {
@@ -777,7 +783,7 @@ namespace VKE::Scene
                                                    .Color = RenderSystem::SColor::GREEN };
             UpdateInfo.pDebugInfo              = &DebugInfo;
 #endif
-            ret                      = pContext->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
+            ret = pContext->UpdateBuffer( pCmdBuffer, UpdateInfo, &hBuffer );
         }
         return ret;
     }

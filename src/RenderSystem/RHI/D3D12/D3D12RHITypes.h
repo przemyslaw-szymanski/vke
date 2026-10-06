@@ -103,6 +103,8 @@ namespace VKE::RenderSystem::RHI
 #define VKE_D3D12_CALL_RET( OutVar, Obj, Method, ... ) ( Obj )->Method( &(OutVar)__VA_OPT__(, ) __VA_ARGS__ )
 #endif
 
+    namespace D3D12API
+    {
     struct NativeAPI
     {
         // DirectX 12 have multiple structures for the same thing but with different feature sets. To prevent huge pain
@@ -682,4 +684,6 @@ namespace VKE::RenderSystem::RHI
         //        } HeapMap;
     };
 
+    } // namespace D3D12API
+    using namespace D3D12API;
 } // namespace VKE::RenderSystem::RHI

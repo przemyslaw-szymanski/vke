@@ -30,6 +30,7 @@ namespace VKE
 
         CDeviceContext::CDeviceContext( CRenderSystem* pRS ) : m_pRenderSystem( pRS )
         {
+            m_pRHI = RHI::CreateRHI();
         }
 
         CDeviceContext::~CDeviceContext()
@@ -124,17 +125,22 @@ namespace VKE
                 Memory::DestroyObject( &HeapAllocator, &m_pDeviceMemMgr );
 
                 RHI().DestroyDevice();
+
+                Memory::DestroyObject( &HeapAllocator, &m_pRHI );
+
                 // m_vGraphicsContexts.Clear()
                 // Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             }
-            //Memory::DestroyObject( &HeapAllocator, &m_pRHI );
+            // Memory::DestroyObject( &HeapAllocator, &m_pRHI );
         }
 
         Result CDeviceContext::Create( const SDeviceContextDesc& Desc )
         {
-            //Memory::CreateObject( &HeapAllocator, &m_pRHI );
-            m_Desc     = Desc;
-            Result ret = RHI().CreateDevice( Desc.DeviceDesc, this );
+            // Memory::CreateObject( &HeapAllocator, &m_pRHI );
+            m_Desc                         = Desc;
+            m_Desc.DeviceDesc.pAdapterInfo = Desc.pAdapterInfo;
+
+            Result ret = RHI().CreateDevice( m_Desc.DeviceDesc, &m_Features );
             if( VKE_FAILED( ret ) )
             {
                 return ret;
@@ -374,13 +380,13 @@ namespace VKE
 
             // Get next free graphics queue
             QueueRefPtr pQueue = _AcquireQueue( QueueTypes::GENERAL, pCtx );
-            if( pQueue== nullptr )
+            if( pQueue == nullptr )
             {
                 VKE_LOG_ERR( "This GPU does not support graphics queue." );
                 return nullptr;
             }
 
-            if( Desc.SwapChainDesc.pWindow!= nullptr )
+            if( Desc.SwapChainDesc.pWindow != nullptr )
             {
                 // Add swapchain ref count if this context uses swapchain
                 // pQueue->m_swapChainCount++;
@@ -437,10 +443,10 @@ namespace VKE
                 if( Family.type == type )
                 {
                     // Calc next queue index like: 0,1,2,3...0,1,2,3
-                    const uint32_t   currentQueueCount = m_vQueues.GetCount();
-                    const uint32_t   idx               = ( currentQueueCount ) % Family.vQueues.GetCount();
-                    RHI::Queue hRHIQueue         = Family.vQueues[ idx ];
-                    CQueue*          pQueue            = nullptr;
+                    const uint32_t currentQueueCount = m_vQueues.GetCount();
+                    const uint32_t idx               = ( currentQueueCount ) % Family.vQueues.GetCount();
+                    RHI::Queue     hRHIQueue         = Family.vQueues[ idx ];
+                    CQueue*        pQueue            = nullptr;
 
                     // Find if this queue is already being used
                     for( uint32_t j = 0; j < currentQueueCount; ++j )
@@ -484,7 +490,7 @@ namespace VKE
         void CDeviceContext::_NotifyDestroy( CGraphicsContext* pCtx )
         {
             VKE_ASSERT2( pCtx != nullptr, "GraphicsContext must not be destroyed." );
-            VKE_ASSERT2( pCtx->_GetQueue()!= nullptr, "Queue must not be destroyed." );
+            VKE_ASSERT2( pCtx->_GetQueue() != nullptr, "Queue must not be destroyed." );
             // if( pCtx->m_pQueue->GetRefCount() > 0 )
             {
                 pCtx->/*m_BaseCtx.*/ m_pQueue = nullptr;
@@ -753,7 +759,7 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( BufferPtr pBuffer, DescriptorSetHandle* phInOut )
         {
             DescriptorSetHandle&                        hSet    = *phInOut;
-            const RHI::DescriptorSet&             hRHISet = m_pDescSetMgr->GetSet( hSet );
+            const RHI::DescriptorSet&                   hRHISet = m_pDescSetMgr->GetSet( hSet );
             SUpdateBufferDescriptorSetInfo              Info;
             SUpdateBufferDescriptorSetInfo::SBufferInfo BuffInfo;
             const auto&                                 BindInfo = pBuffer->GetBindingInfo();
@@ -777,10 +783,10 @@ namespace VKE
         void CDeviceContext::UpdateDescriptorSet( const SamplerHandle& hSampler, const RenderTargetHandle& hRT,
                                                   DescriptorSetHandle* phInOut )
         {
-            DescriptorSetHandle&            hSet    = *phInOut;
+            DescriptorSetHandle&      hSet    = *phInOut;
             const RHI::DescriptorSet& hRHISet = m_pDescSetMgr->GetSet( hSet );
-            RenderTargetPtr                 pRT     = GetRenderTarget( hRT );
-            SSamplerTextureBinding          Binding;
+            RenderTargetPtr           pRT     = GetRenderTarget( hRT );
+            SSamplerTextureBinding    Binding;
             Binding.hSampler     = hSampler;
             Binding.hTextureView = pRT->GetTextureView();
             // Binding.textureState = TextureStates::SHADER_READ;
@@ -798,7 +804,7 @@ namespace VKE
 
         void CDeviceContext::UpdateDescriptorSet( const SUpdateBindingsHelper& Info, DescriptorSetHandle* phInOut )
         {
-            DescriptorSetHandle&            hSet    = *phInOut;
+            DescriptorSetHandle&      hSet    = *phInOut;
             const RHI::DescriptorSet& hRHISet = m_pDescSetMgr->GetSet( hSet );
             RHI().Update( hRHISet, Info );
         }

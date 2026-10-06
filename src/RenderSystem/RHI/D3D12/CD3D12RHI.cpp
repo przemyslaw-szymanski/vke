@@ -2,23 +2,24 @@
 #include "Core/Platform/CWindow.h"
 
 #include "RenderSystem/CContextBase.h"
-#include "RenderSystem/CDeviceContext.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/CRenderPass.h"
 #include "RenderSystem/Resources/CBuffer.h"
 #include "RenderSystem/Resources/CTexture.h"
 
 #include "RenderSystem/RHI/D3D12/dxgiFormats.h"
-
 #include "RenderSystem/RHI/D3D12/D3D12RHITypes.h"
 
 #include <dxgidebug.h>
 
+#if VKE_RHI_USE_VIRTUAL
+#define CRHI CD3D12RHI
+#else
+#define CRHI CRHI
+#endif
+
 namespace VKE::RenderSystem::RHI
 {
-    const char* CRHI::scRHIName = "D3D12";
-    SRHIInfo    CRHI::sRHIInfo;
-
     template< typename T >
     vke_force_inline auto ToNative( T v ) -> decltype( VKE::RenderSystem::ToNative< RHI::NativeAPI >( v ) )
     {
@@ -51,7 +52,7 @@ namespace VKE::RenderSystem::RHI
     static bool s_called = false;                                                                                      \
     if( s_called )                                                                                                     \
     {                                                                                                                  \
-        RHI_LOG_ERR( "D3D12 Render System: " + std::string( msg ) + " can only be called once!" );                     \
+        VKE_LOG_ERR( "D3D12 Render System: " + std::string( msg ) + " can only be called once!" );                     \
     }                                                                                                                  \
     s_called = true;
 
@@ -59,7 +60,7 @@ namespace VKE::RenderSystem::RHI
     do                                                                                                                 \
     {                                                                                                                  \
         ::__debugbreak();                                                                                              \
-        RHI_LOG_ERR( "D3D12 Render System: Unimplemented method: " << __FUNCTION__ );                                  \
+        VKE_LOG_ERR( "D3D12 Render System: Unimplemented method: " << __FUNCTION__ );                                  \
     }                                                                                                                  \
     while( 0 )
 
@@ -232,7 +233,7 @@ namespace VKE::RenderSystem::RHI
 
         if( !SImplementation::sDebugLayerEnabled )
         {
-            RHI_LOG( "HandleDeviceRemoval: DRED is not enabled without SImplementation::sDebugLayerEnabled" );
+            VKE_LOG( "HandleDeviceRemoval: DRED is not enabled without SImplementation::sDebugLayerEnabled" );
             return;
         }
 
@@ -240,48 +241,48 @@ namespace VKE::RenderSystem::RHI
 
         if( reason == S_OK )
         {
-            RHI_LOG( "HandleDeviceRemoval: called but no TDR happened" );
+            VKE_LOG( "HandleDeviceRemoval: called but no TDR happened" );
             return;
         }
 
-        RHI_LOG( "HandleDeviceRemoval: TDR with reason: " << std::hex << reason );
+        VKE_LOG( "HandleDeviceRemoval: TDR with reason: " << std::hex << reason );
 
         ID3D12DeviceRemovedExtendedData1* pDRED = NativeAPI::Null;
         if( FAILED( pDevice->QueryInterface( IID_PPV_ARGS( &pDRED ) ) ) )
         {
-            RHI_LOG( "HandleDeviceRemoval: Failed to query DRED" );
+            VKE_LOG( "HandleDeviceRemoval: Failed to query DRED" );
             return;
         }
 
         D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 Breadcrumbs = {};
         if( SUCCEEDED( pDRED->GetAutoBreadcrumbsOutput1( &Breadcrumbs ) ) )
         {
-            RHI_LOG( "HandleDeviceRemoval: === DRED Auto-Breadcrumbs ===" );
+            VKE_LOG( "HandleDeviceRemoval: === DRED Auto-Breadcrumbs ===" );
             const D3D12_AUTO_BREADCRUMB_NODE1* pNode = NativeAPI::Null;
 
             for( pNode = Breadcrumbs.pHeadAutoBreadcrumbNode; pNode != nullptr; pNode = pNode->pNext )
             {
-                RHI_LOG( "HandleDeviceRemoval: Command List: "
+                VKE_LOG( "HandleDeviceRemoval: Command List: "
                          << ( pNode->pCommandListDebugNameA ? pNode->pCommandListDebugNameA : "<unnamed>" ) );
-                RHI_LOG( "HandleDeviceRemoval:  Command Queue: "
+                VKE_LOG( "HandleDeviceRemoval:  Command Queue: "
                          << ( pNode->pCommandQueueDebugNameA ? pNode->pCommandQueueDebugNameA : "<unnamed>" ) );
 
                 uint32_t lastCompleted = GetLastCompletedBreadcrumb( pNode );
-                RHI_LOG( "HandleDeviceRemoval:  Last completed operation: " << lastCompleted << " / "
+                VKE_LOG( "HandleDeviceRemoval:  Last completed operation: " << lastCompleted << " / "
                                                                             << pNode->BreadcrumbCount );
 
                 for( uint32_t i = 0; i < pNode->BreadcrumbCount; i++ )
                 {
                     bool completed = pNode->pLastBreadcrumbValue && ( *pNode->pLastBreadcrumbValue & ( 1u << i ) );
 
-                    RHI_LOG( "HandleDeviceRemoval:    [" << ( completed ? "X" : " " ) << "] Op " << i << ": "
+                    VKE_LOG( "HandleDeviceRemoval:    [" << ( completed ? "X" : " " ) << "] Op " << i << ": "
                                                          << GetBreadcrumbOpName( pNode->pCommandHistory[ i ] ) );
                 }
             }
         }
     }
 
-#if defined( ENABLE_D3D12_RHI_LOGGING )
+#if defined( ENABLE_D3D12_VKE_LOGGING )
 
     std::ostringstream& _GetLogStream()
     {
@@ -302,16 +303,16 @@ namespace VKE::RenderSystem::RHI
         }
     }
 
-#define D3D12_RHI_LOG( _msg )                                                                                          \
+#define D3D12_VKE_LOG( _msg )                                                                                          \
     do                                                                                                                 \
     {                                                                                                                  \
-        std::ostringstream& _logStream = VKE::RenderSystem::RHI::_GetLogStream();                                    \
+        std::ostringstream& _logStream = VKE::RenderSystem::RHI::_GetLogStream();                                      \
         _logStream << _msg;                                                                                            \
-        VKE::RenderSystem::RHI::_Log( _logStream );                                                                  \
+        VKE::RenderSystem::RHI::_Log( _logStream );                                                                    \
     }                                                                                                                  \
     while( 0 )
 #else
-#define D3D12_RHI_LOG( _msg )
+#define D3D12_VKE_LOG( _msg )
 #endif
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -320,14 +321,14 @@ namespace VKE::RenderSystem::RHI
     {
         VKE_ASSERT( pObject != nullptr );
 
-        D3D12_RHI_LOG( "[CPU] " << GetFenceName() << "->Signal( " << value << " )" );
+        D3D12_VKE_LOG( "[CPU] " << GetFenceName() << "->Signal( " << value << " )" );
 
         HRESULT hResult = pObject->Signal( value );
         this->Value     = value;
 
         if( FAILED( hResult ) )
         {
-            RHI_LOG_ERR( "Failed with HR: " << std::hex << (uint64_t)hResult << std::dec );
+            VKE_LOG_ERR( "Failed with HR: " << std::hex << (uint64_t)hResult << std::dec );
         }
     }
 
@@ -336,7 +337,7 @@ namespace VKE::RenderSystem::RHI
         VKE_ASSERT( pObject != nullptr );
         VKE::Result out = VKE::Result::OK;
 
-        D3D12_RHI_LOG( "[CPU] " << GetFenceName() << "->Wait( " << value << " )" );
+        D3D12_VKE_LOG( "[CPU] " << GetFenceName() << "->Wait( " << value << " )" );
         if( pObject->GetCompletedValue() >= value )
         {
             return out;
@@ -346,7 +347,7 @@ namespace VKE::RenderSystem::RHI
 
         if( FAILED( hr ) )
         {
-            RHI_LOG_ERR( "SetEventOnCompletion failed with HRESULT 0x"
+            VKE_LOG_ERR( "SetEventOnCompletion failed with HRESULT 0x"
                          << std::hex << hr << std::dec << " while waiting for fence value " << value
                          << ". Current value: " << pObject->GetCompletedValue() );
             ::CloseHandle( hEvent );
@@ -379,14 +380,14 @@ namespace VKE::RenderSystem::RHI
     {
         VKE_ASSERT( pObject != nullptr );
 
-        D3D12_RHI_LOG( "[GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Signal( "
-                                                      << GetFenceName() << ", " << value << " )" );
+        D3D12_VKE_LOG( "[GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Signal( " << GetFenceName()
+                                      << ", " << value << " )" );
         HRESULT hResult = pQueue->Signal( pObject, value );
         this->Value     = value;
 
         if( FAILED( hResult ) )
         {
-            RHI_LOG_ERR( "Failed with HR: " << std::hex << (uint64_t)hResult << std::dec );
+            VKE_LOG_ERR( "Failed with HR: " << std::hex << (uint64_t)hResult << std::dec );
         }
     }
 
@@ -394,14 +395,14 @@ namespace VKE::RenderSystem::RHI
     {
         VKE_ASSERT( pObject != nullptr );
 
-        D3D12_RHI_LOG( "[GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Wait( "
-                                                    << GetFenceName() << ", " << value << " )" );
+        D3D12_VKE_LOG( "[GPU] Queue_" << std::hex << (uint64_t)pQueue << std::dec << "->Wait( " << GetFenceName()
+                                      << ", " << value << " )" );
         HRESULT hResult = pQueue->Wait( pObject, value );
         this->Value     = value;
 
         if( FAILED( hResult ) )
         {
-            RHI_LOG_ERR( "Failed with HR: " << std::hex << (uint64_t)hResult << std::dec );
+            VKE_LOG_ERR( "Failed with HR: " << std::hex << (uint64_t)hResult << std::dec );
         }
     }
 
@@ -410,8 +411,8 @@ namespace VKE::RenderSystem::RHI
         VKE_ASSERT( pObject != nullptr );
         UINT64 completedValue = pObject->GetCompletedValue();
 
-        D3D12_RHI_LOG( "" << GetFenceName() << "->GetCompletedValue() = " << completedValue
-                                                     << "[ SIGNALED: " << GetSignaledValue() << " ]" );
+        D3D12_VKE_LOG( "" << GetFenceName() << "->GetCompletedValue() = " << completedValue
+                          << "[ SIGNALED: " << GetSignaledValue() << " ]" );
 
         return completedValue;
     }
@@ -765,7 +766,7 @@ namespace VKE::RenderSystem::RHI
 
             if( EngineFilter == SAMPLER_FILTER::CUBIC_IMG )
             {
-                RHI_LOG_ERR( "D3D12 doesn't support CUBIC_IMG" );
+                VKE_LOG_ERR( "D3D12 doesn't support CUBIC_IMG" );
             }
 
             static_assert( SamplerFilters::_MAX_COUNT == _countof( ascNativeMap ) );
@@ -925,7 +926,7 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 case CULL_MODE::FRONT_AND_BACK:
-                    RHI_LOG_ERR( "D3D12 doesn't support FRONT_AND_BACK cull mode" );
+                    VKE_LOG_ERR( "D3D12 doesn't support FRONT_AND_BACK cull mode" );
                     break;
 
                 default:
@@ -1566,7 +1567,7 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 default:
-                    RHI_LOG_ERR( "Unhandled BORDER_COLOR" );
+                    VKE_LOG_ERR( "Unhandled BORDER_COLOR" );
                     break;
             }
 
@@ -1736,7 +1737,7 @@ namespace VKE::RenderSystem::RHI
                         resolvedFormat = Formats::D32_SFLOAT_S8_UINT;
                         break;
                     default:
-                        RHI_LOG_ERR( "Unsupported depth format for a combined "
+                        VKE_LOG_ERR( "Unsupported depth format for a combined "
                                      "depth-stencil target: "
                                      << static_cast< uint32_t >( depthFormat ) );
                         break;
@@ -1977,8 +1978,7 @@ namespace VKE::RenderSystem::RHI
             HRESULT hr;
             if( FAILED( hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &VideoMemoryInfo ) ) )
             {
-                RHI_LOG_ERR( "QueryVideoMemoryInfo failed with error code " +
-                             std::to_string( hr ) );
+                VKE_LOG_ERR( "QueryVideoMemoryInfo failed with error code " + std::to_string( hr ) );
             }
 
             pOut->Properties.Memory.localBudget = VideoMemoryInfo.Budget;
@@ -1986,8 +1986,7 @@ namespace VKE::RenderSystem::RHI
             if( FAILED(
                     hr = hAdapter->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &VideoMemoryInfo ) ) )
             {
-                RHI_LOG_ERR( "QueryVideoMemoryInfo failed with error code " +
-                             std::to_string( hr ) );
+                VKE_LOG_ERR( "QueryVideoMemoryInfo failed with error code " + std::to_string( hr ) );
             }
 
             pOut->Properties.Memory.hostBudget = VideoMemoryInfo.Budget;
@@ -2002,7 +2001,7 @@ namespace VKE::RenderSystem::RHI
 
             if( Barrier.Transition.StateBefore == Barrier.Transition.StateAfter )
             {
-                RHI_LOG_WARN( "Translation resulted in no transition." );
+                VKE_LOG_WARN( "Translation resulted in no transition." );
                 IsValid = false;
             }
 
@@ -2025,8 +2024,8 @@ namespace VKE::RenderSystem::RHI
                         dst << i << " ";
                     }
                 }
-                RHI_LOG_WARN( src.str() );
-                RHI_LOG_WARN( dst.str() );
+                VKE_LOG_WARN( src.str() );
+                VKE_LOG_WARN( dst.str() );
             }
 
             return IsValid;
@@ -2037,9 +2036,8 @@ namespace VKE::RenderSystem::RHI
             if( Info.currentState == Info.newState && Info.srcMemoryAccess == Info.dstMemoryAccess )
             {
                 // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
-                RHI_LOG_WARN(
-                    "Source and destination memory access masks are the same, DX12 doesn't "
-                    "allow that." );
+                VKE_LOG_WARN( "Source and destination memory access masks are the same, DX12 doesn't "
+                              "allow that." );
                 return;
             }
 
@@ -2114,9 +2112,8 @@ namespace VKE::RenderSystem::RHI
             if( Info.srcMemoryAccess == Info.dstMemoryAccess )
             {
                 // TODO(szymansk): This assert should never be hit, engine must prevent transitioning same state.
-                RHI_LOG_WARN(
-                    "Source and destination memory access masks are the same, DX12 doesn't "
-                    "allow that." );
+                VKE_LOG_WARN( "Source and destination memory access masks are the same, DX12 doesn't "
+                              "allow that." );
                 return;
             }
 
@@ -2189,8 +2186,7 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 default:
-                    RHI_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: "
-                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    VKE_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: " << static_cast< uint32_t >( TextureViewDesc.type ) );
                     break;
             }
         }
@@ -2218,7 +2214,7 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 case TEXTURE_VIEW_TYPE::VIEW_CUBE:
-                    RHI_LOG_ERR( "TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
+                    VKE_LOG_ERR( "TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
                     break;
 
                 case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
@@ -2235,12 +2231,11 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
-                    RHI_LOG_ERR( "TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
+                    VKE_LOG_ERR( "TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
                     break;
 
                 default:
-                    RHI_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: "
-                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    VKE_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: " << static_cast< uint32_t >( TextureViewDesc.type ) );
                     break;
             }
         }
@@ -2269,7 +2264,7 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 case TEXTURE_VIEW_TYPE::VIEW_CUBE:
-                    RHI_LOG_ERR( "TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
+                    VKE_LOG_ERR( "TEXTURE_VIEW_TYPE::VIEW_CUBE is not supported" );
                     break;
 
                 case TEXTURE_VIEW_TYPE::VIEW_1D_ARRAY:
@@ -2286,13 +2281,11 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 case TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY:
-                    RHI_LOG_ERR(
-                        "TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
+                    VKE_LOG_ERR( "TEXTURE_VIEW_TYPE::VIEW_CUBE_ARRAY is not supported" );
                     break;
 
                 default:
-                    RHI_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: "
-                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    VKE_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: " << static_cast< uint32_t >( TextureViewDesc.type ) );
                     break;
             }
         }
@@ -2318,8 +2311,7 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 default:
-                    RHI_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: "
-                                 << static_cast< uint32_t >( TextureViewDesc.type ) );
+                    VKE_LOG_ERR( "unhandled TEXTURE_VIEW_TYPE: " << static_cast< uint32_t >( TextureViewDesc.type ) );
                     break;
             }
         }
@@ -2353,7 +2345,7 @@ namespace VKE::RenderSystem::RHI
     {
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &m_pImplementation ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
         }
     }
 
@@ -2400,7 +2392,7 @@ namespace VKE::RenderSystem::RHI
 
         if( pFactory == NativeAPI::Null )
         {
-            RHI_LOG_ERR( "DXGI Factory is null" );
+            VKE_LOG_ERR( "DXGI Factory is null" );
             return VKE_FAIL;
         }
 
@@ -2423,7 +2415,7 @@ namespace VKE::RenderSystem::RHI
 
             if( FAILED( pAdapter1->QueryInterface( IID_PPV_ARGS( &pAdapter ) ) ) )
             {
-                RHI_LOG_ERR( "Query RHI::Adapter failed" );
+                VKE_LOG_ERR( "Query RHI::Adapter failed" );
             }
 
             // pAdapter1 was only needed to obtain the newer adapter interface (pAdapter).
@@ -2434,7 +2426,7 @@ namespace VKE::RenderSystem::RHI
             DXGI_ADAPTER_DESC3 AdapterDesc;
             if( FAILED( pAdapter->GetDesc3( &AdapterDesc ) ) )
             {
-                RHI_LOG_ERR( "Fail getting descriptor" );
+                VKE_LOG_ERR( "Fail getting descriptor" );
             }
 
             VKE::RenderSystem::SAdapterInfo AdapterInfo = {};
@@ -2459,7 +2451,7 @@ namespace VKE::RenderSystem::RHI
 
                 char Buffer[ 128 ];
                 sprintf_s( &Buffer[ 0 ], 128, "%u.%u.%u.%u", VersionMajor, VersionMinor, VersionPatch, VersionBuild );
-                RHI_LOG( Buffer );
+                VKE_LOG( Buffer );
 
                 AdapterInfo.driverVersion = ( VersionMajor << 16 ) | VersionPatch;
             }
@@ -2499,8 +2491,7 @@ namespace VKE::RenderSystem::RHI
         const bool pixAttached = ( ::GetModuleHandleW( L"WinPixGpuCapturer.dll" ) != nullptr );
         if( pixAttached )
         {
-            RHI_LOG(
-                "PIX GPU capturer detected - skipping D3D12 debug layer / GPU-Based Validation." );
+            VKE_LOG( "PIX GPU capturer detected - skipping D3D12 debug layer / GPU-Based Validation." );
         }
 
         const bool enableDebugMode = Info.enableDebugMode && !pixAttached;
@@ -2510,7 +2501,7 @@ namespace VKE::RenderSystem::RHI
             ID3D12Debug1* pDebug;
             if( FAILED( D3D12GetDebugInterface( IID_PPV_ARGS( &pDebug ) ) ) )
             {
-                RHI_LOG_ERR( "Error while getting debug interface." );
+                VKE_LOG_ERR( "Error while getting debug interface." );
             }
             else
             {
@@ -2527,7 +2518,7 @@ namespace VKE::RenderSystem::RHI
 
         if( FAILED( CreateDXGIFactory2( Flags, IID_PPV_ARGS( &SImplementation::spFactory ) ) ) )
         {
-            RHI_LOG_ERR( "Failed to create DXGI Factory" );
+            VKE_LOG_ERR( "Failed to create DXGI Factory" );
             return VKE_FAIL;
         }
 
@@ -2535,7 +2526,7 @@ namespace VKE::RenderSystem::RHI
         if( FAILED( SImplementation::spFactory->CheckFeatureSupport(
                 DXGI_FEATURE_PRESENT_ALLOW_TEARING, &AllowTearing, sizeof( AllowTearing ) ) ) )
         {
-            RHI_LOG_ERR( "Check tearing support failed" );
+            VKE_LOG_ERR( "Check tearing support failed" );
             return VKE_FAIL;
         }
 
@@ -2546,21 +2537,19 @@ namespace VKE::RenderSystem::RHI
 
     // Object methods
 
-    Result CRHI::CreateDevice( const SCreateDeviceDesc& Info, CDeviceContext* pCtx )
+    Result CRHI::CreateDevice( SCreateDeviceDesc& Info, SSettings* pFeaturesOut )
     {
-        D3D12_RHI_LOG( "CRHI::CreateDevice" );
+        D3D12_VKE_LOG( "CRHI::CreateDevice" );
 
         // TODO(blturkot): Move this to RenderSystem
         // Enable WaitForDebugger
-        // RHI_LOG( "Waiting for debugger..." );
+        // VKE_LOG( "Waiting for debugger..." );
         // while( !IsDebuggerPresent() )
         //{
         //    Sleep( 100 );
         //}
 
-        m_pImplementation->m_hAdapter =
-            reinterpret_cast< NativeAPI::Adapter >( pCtx->m_Desc.pAdapterInfo->hRHIAdapter );
-        m_pCtx = pCtx;
+        m_pImplementation->m_hAdapter = reinterpret_cast< NativeAPI::Adapter >( Info.pAdapterInfo->hRHIAdapter );
 
         VKE_ASSERT2( m_pImplementation->m_hAdapter != NativeAPI::Null, "Adapter is null" );
         VKE_RETURN_IF_FAILED( Helper::QueryAdapterProperties( m_pImplementation->m_hAdapter, m_pImplementation ) );
@@ -2578,16 +2567,16 @@ namespace VKE::RenderSystem::RHI
                 pDREDSettings->SetBreadcrumbContextEnablement( D3D12_DRED_ENABLEMENT_FORCED_ON );
 
                 pDREDSettings->Release();
-                RHI_LOG( "DRED enabled with auto-breadcrumbs and page fault reporting" );
+                VKE_LOG( "DRED enabled with auto-breadcrumbs and page fault reporting" );
             }
         }
 
         HRESULT Result = D3D12CreateDevice( m_pImplementation->m_hAdapter,
-                                            static_cast< D3D_FEATURE_LEVEL >( pCtx->m_Desc.pAdapterInfo->apiVersion ),
+                                            static_cast< D3D_FEATURE_LEVEL >( Info.pAdapterInfo->apiVersion ),
                                             IID_PPV_ARGS( &m_pImplementation->m_hDevice ) );
         if( FAILED( Result ) )
         {
-            RHI_LOG_ERR( "D3D12CreateDevice failed" );
+            VKE_LOG_ERR( "D3D12CreateDevice failed" );
             return VKE_FAIL;
         }
 
@@ -2596,7 +2585,7 @@ namespace VKE::RenderSystem::RHI
             ID3D12InfoQueue* pInfoQueue = NativeAPI::Null;
             if( FAILED( m_pImplementation->m_hDevice->QueryInterface( &pInfoQueue ) ) )
             {
-                RHI_LOG_ERR( "QueryInterface for ID3D12InfoQueue failed" );
+                VKE_LOG_ERR( "QueryInterface for ID3D12InfoQueue failed" );
             }
             else
             {
@@ -2636,26 +2625,26 @@ namespace VKE::RenderSystem::RHI
         if( Info.Settings.Features.bindlessResourceAccess == FeatureEnableModes::ENABLE &&
             !m_pImplementation->Features.BindlessResourceAccessSupported )
         {
-            RHI_LOG_WARN( "Bindless Resource Access not fully supported on this device" );
+            VKE_LOG_WARN( "Bindless Resource Access not fully supported on this device" );
         }
 
         if( Info.Settings.Features.meshShaders == FeatureEnableModes::ENABLE &&
             !m_pImplementation->Features.MeshShaderSupported )
         {
-            RHI_LOG_ERR( "Mesh Shaders not supported on this device" );
+            VKE_LOG_ERR( "Mesh Shaders not supported on this device" );
             return VKE_FAIL;
         }
 
         if( Info.Settings.Features.raytracing == FeatureEnableModes::ENABLE &&
             !m_pImplementation->Features.RayTracingSupported )
         {
-            RHI_LOG_ERR( "Raytracing not supported on this device" );
+            VKE_LOG_ERR( "Raytracing not supported on this device" );
             return VKE_FAIL;
         }
 
         if( m_pImplementation->Features.ResourceHeapTier < 2 )
         {
-            RHI_LOG_WARN( "Hardware does not support Tier2 resource heaps." );
+            VKE_LOG_WARN( "Hardware does not support Tier2 resource heaps." );
         }
 
         // Create a global fence for draining queues.
@@ -2715,7 +2704,7 @@ namespace VKE::RenderSystem::RHI
         ID3D12CommandQueue* pQueue = nullptr;
         if( FAILED( pNativeDevice->CreateCommandQueue( &NativeDesc, IID_PPV_ARGS( &pQueue ) ) ) && Required )
         {
-            RHI_LOG_ERR( "Failed to create command queue" );
+            VKE_LOG_ERR( "Failed to create command queue" );
         }
 
         return RHI::Queue{ reinterpret_cast< handle_t >( pQueue ) };
@@ -2825,19 +2814,17 @@ namespace VKE::RenderSystem::RHI
                                                    pOptimizedClearValue,
                                                    IID_PPV_ARGS( &pResource ) ) ) )
         {
-            RHI_LOG_ERR( "Create resource failure." );
+            VKE_LOG_ERR( "Create resource failure." );
         }
         else
         {
             if( ResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER )
             {
-                RHI_LOG( std::format( "Placed resource created at GPU VA: {}",
-                                      pResource->GetGPUVirtualAddress() ) );
+                VKE_LOG( std::format( "Placed resource created at GPU VA: {}", pResource->GetGPUVirtualAddress() ) );
             }
             else
             {
-                RHI_LOG( std::format( "Placed resource created at heap offset: {}",
-                                      MemInfo.offset ) );
+                VKE_LOG( std::format( "Placed resource created at heap offset: {}", MemInfo.offset ) );
             }
         }
 
@@ -2846,8 +2833,7 @@ namespace VKE::RenderSystem::RHI
 
     RHI::Buffer CRHI::CreateBuffer( const SBufferDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( Desc, m_pImplementation->Features );
         NativeAPI::Buffer pBuffer = CreateResource( m_pImplementation->m_hDevice, ResourceDesc, MemInfo, nullptr );
@@ -2891,8 +2877,7 @@ namespace VKE::RenderSystem::RHI
 
     RHI::Texture CRHI::CreateTexture( const STextureDesc& Desc, const SBindMemoryInfo& MemInfo )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::D3D12ResourceDesc ResourceDesc;
         Convert::GetResourceDesc( Desc, m_pImplementation->Features, &ResourceDesc );
@@ -2935,11 +2920,11 @@ namespace VKE::RenderSystem::RHI
         NativeAPI::TextureView pTextureView = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pTextureView ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
             return FromNative< RHI::TextureView >( pTextureView );
         }
 
-        pTextureView->pResource = ToNative( m_pCtx->GetTexture( TextureViewDesc.hTexture )->GetRHIObject() );
+        pTextureView->pResource = ToNative( TextureViewDesc.hRHITexture );
         NativeAPI::D3D12ResourceDesc ResourceDesc{};
         VKE_D3D12_CALL_RET( ResourceDesc, pTextureView->pResource, GetDesc );
 
@@ -2998,7 +2983,7 @@ namespace VKE::RenderSystem::RHI
         NativeAPI::CPUFence pFence = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
         }
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
@@ -3006,7 +2991,7 @@ namespace VKE::RenderSystem::RHI
         if( FAILED( m_pImplementation->m_hDevice->CreateFence(
                 Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
-            RHI_LOG_ERR( "Failed to create fence" );
+            VKE_LOG_ERR( "Failed to create fence" );
         }
 
         pFence->Value = Desc.startValue;
@@ -3019,7 +3004,7 @@ namespace VKE::RenderSystem::RHI
         NativeAPI::Fence pFence = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
         }
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
@@ -3027,7 +3012,7 @@ namespace VKE::RenderSystem::RHI
         if( FAILED( m_pImplementation->m_hDevice->CreateFence(
                 Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
-            RHI_LOG_ERR( "Failed to create fence" );
+            VKE_LOG_ERR( "Failed to create fence" );
         }
 
         pFence->Value = Desc.startValue;
@@ -3036,7 +3021,7 @@ namespace VKE::RenderSystem::RHI
         pFence->hEvent = ::CreateEventEx( nullptr, nullptr, 0, EVENT_ALL_ACCESS );
         if( pFence->hEvent == nullptr )
         {
-            RHI_LOG_ERR( "Failed to create event handle" );
+            VKE_LOG_ERR( "Failed to create event handle" );
         }
 
         return FromNative< RHI::Fence >( pFence );
@@ -3069,7 +3054,7 @@ namespace VKE::RenderSystem::RHI
         NativeAPI::GPUFence pFence = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pFence ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
         }
 
         D3D12_FENCE_FLAGS Flags = D3D12_FENCE_FLAG_NONE;
@@ -3077,7 +3062,7 @@ namespace VKE::RenderSystem::RHI
         if( FAILED( m_pImplementation->m_hDevice->CreateFence(
                 Desc.startValue, Flags, IID_PPV_ARGS( &pFence->pObject ) ) ) )
         {
-            RHI_LOG_ERR( "Failed to create fence" );
+            VKE_LOG_ERR( "Failed to create fence" );
         }
 
         pFence->Value = Desc.startValue;
@@ -3090,13 +3075,12 @@ namespace VKE::RenderSystem::RHI
         DestroyFence( reinterpret_cast< RHI::Fence* >( pInOut ) );
     }
 
-    RHI::RenderPass CRHI::CreateRenderPass( const SRenderPassDesc& EngineRenderPassDesc,
-                                                     const void*            pAllocator )
+    RHI::RenderPass CRHI::CreateRenderPass( const SRenderPassDesc& EngineRenderPassDesc, const void* pAllocator )
     {
         NativeAPI::RenderPass pNativeRenderPass = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeRenderPass ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
             return RHI::Null;
         }
 
@@ -3198,7 +3182,7 @@ namespace VKE::RenderSystem::RHI
                     break;
 
                 default:
-                    RHI_LOG_ERR( "Unhandled usage" );
+                    VKE_LOG_ERR( "Unhandled usage" );
                     return RHI::Null;
             }
 
@@ -3206,7 +3190,7 @@ namespace VKE::RenderSystem::RHI
             {
                 if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::RTV ) )
                 {
-                    RHI_LOG_ERR( "COLOR render targets must have resource valid for "
+                    VKE_LOG_ERR( "COLOR render targets must have resource valid for "
                                  "RENDER_TARGET_VIEW" );
                     return RHI::Null;
                 }
@@ -3280,7 +3264,7 @@ namespace VKE::RenderSystem::RHI
             {
                 if( !NativeResourceView.IsEnabled( NativeAPI::ResourceViewTypes::DSV ) )
                 {
-                    RHI_LOG_ERR( "DEPTH_STENCIL render targets must have resource valid "
+                    VKE_LOG_ERR( "DEPTH_STENCIL render targets must have resource valid "
                                  "for DEPTH_STENCIL_VIEW" );
                     return RHI::Null;
                 }
@@ -3336,7 +3320,7 @@ namespace VKE::RenderSystem::RHI
             }
             else
             {
-                RHI_LOG_ERR( "Render target must have RTV or DSV set." );
+                VKE_LOG_ERR( "Render target must have RTV or DSV set." );
                 return RHI::Null;
             }
 
@@ -3352,7 +3336,7 @@ namespace VKE::RenderSystem::RHI
         {
             for( const auto& Subpass: EngineRenderPassDesc.vSubpasses )
             {
-                RHI_LOG( "Subpass: " << Subpass.GetDebugName() );
+                VKE_LOG( "Subpass: " << Subpass.GetDebugName() );
                 UNIMPLEMENTED_D3D12_METHOD();
             }
         }
@@ -3375,30 +3359,28 @@ namespace VKE::RenderSystem::RHI
         }
     }
 
-    RHI::CommandBufferPool CRHI::CreateCommandBufferPool( const SCommandBufferPoolDesc& Desc,
-                                                                   const void*                   pAllocator )
+    RHI::CommandBufferPool CRHI::CreateCommandBufferPool( const SCommandBufferPoolDesc& Desc, const void* pAllocator )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::CommandBufferPool pCommandBufferPool = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pCommandBufferPool ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
             return RHI::Null;
         }
 
         D3D12_COMMAND_LIST_TYPE type = Map::GetCommandListType( Desc.pContext->m_pQueue->GetType() );
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
         {
-            RHI_LOG_ERR( "Unsupported command list type" );
+            VKE_LOG_ERR( "Unsupported command list type" );
             return RHI::Null;
         }
 
         // if( FAILED( m_pImplementation->m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS(
         // &pCommandAllocator->pAllocator ) ) ) )
         //{
-        //     RHI_LOG_ERR( "Failed to create command allocator" );
+        //     VKE_LOG_ERR( "Failed to create command allocator" );
         // }
 
         pCommandBufferPool->EngineType = Desc.pContext->m_pQueue->GetType();
@@ -3426,25 +3408,23 @@ namespace VKE::RenderSystem::RHI
         }
     }
 
-    RHI::DescriptorPool CRHI::CreateDescriptorPool( const SDescriptorPoolDesc& EngineDesc,
-                                                             const void*                pAllocator )
+    RHI::DescriptorPool CRHI::CreateDescriptorPool( const SDescriptorPoolDesc& EngineDesc, const void* pAllocator )
     {
         if( EngineDesc.IsValid() == false )
         {
-            RHI_LOG_ERR(
+            VKE_LOG_ERR(
                 "Invalid DescriptorPool desc. Descriptor pool must have only one type (DESCRIPTOR_POOL_TYPE). Make "
                 "sure that textures/buffers, sampler, render targets, depth stencils are not mixed together." );
 
             return RHI::Null;
         }
 
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::DescriptorPool pPool = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pPool ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
             return RHI::Null;
         }
 
@@ -3463,7 +3443,7 @@ namespace VKE::RenderSystem::RHI
                 totalDescriptorSlotCount, sizeof( std::remove_pointer_t< NativeAPI::DescriptorSet > ), 1 ) ) )
         {
             Memory::DestroyObject( &HeapAllocator, &pPool );
-            RHI_LOG_ERR( "Critical: Not enouth memory to create descriptor pool. Required number of descriptor slots: "
+            VKE_LOG_ERR( "Critical: Not enouth memory to create descriptor pool. Required number of descriptor slots: "
                          << totalDescriptorSlotCount );
             return FromNative< RHI::DescriptorPool >( pPool );
         }
@@ -3488,14 +3468,14 @@ namespace VKE::RenderSystem::RHI
                 {
                     auto hPool = FromNative< RHI::DescriptorPool >( pPool );
                     DestroyDescriptorPool( &hPool, pAllocator );
-                    RHI_LOG_ERR( "Unable to create descriptor heap slot pool. Out of memory." );
+                    VKE_LOG_ERR( "Unable to create descriptor heap slot pool. Out of memory." );
                     return FromNative< RHI::DescriptorPool >( pPool );
                 }
 
                 if( FAILED( m_pImplementation->m_hDevice->CreateDescriptorHeap( &heapDesc,
                                                                                 IID_PPV_ARGS( &pPool->pHeap ) ) ) )
                 {
-                    RHI_LOG_ERR( "Failed to create descriptor heap" );
+                    VKE_LOG_ERR( "Failed to create descriptor heap" );
                 }
 
                 pPool->type = nativePoolType;
@@ -3522,10 +3502,9 @@ namespace VKE::RenderSystem::RHI
     }
 
     RHI::DescriptorSetLayout CRHI::CreateDescriptorSetLayout( const SDescriptorSetLayoutDesc& Desc,
-                                                                       const void*                     pAllocator )
+                                                              const void*                     pAllocator )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         if( !Desc.IsValid() )
         {
@@ -3533,7 +3512,7 @@ namespace VKE::RenderSystem::RHI
         }
         if( Desc.vBindings.IsEmpty() )
         {
-            RHI_LOG_ERRF( "Unable to create DescriptorSetLayout: '{}' because number of resource bindings is 0.",
+            VKE_LOG_ERRF( "Unable to create DescriptorSetLayout: '{}' because number of resource bindings is 0.",
                           Desc.GetDebugName() );
             return RHI::Null;
         }
@@ -3541,7 +3520,7 @@ namespace VKE::RenderSystem::RHI
         NativeAPI::DescriptorSetLayout pNativeDescriptorSetLayout = NativeAPI::Null;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDescriptorSetLayout ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
         }
 
         NativeAPI::D3D12RootParameter& rootParameter = pNativeDescriptorSetLayout->RootParameter;
@@ -3591,10 +3570,9 @@ namespace VKE::RenderSystem::RHI
     }
 
     VKE::Result CRHI::CreateDescriptorSets( const AllocateDescs::SDescSet& EngineDescriptorSetInfo,
-                                                     RHI::DescriptorSet*            pOutNativeDescriptorSets )
+                                            RHI::DescriptorSet*            pOutNativeDescriptorSets )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         NativeAPI::DescriptorPool pNativePool = ToNative( EngineDescriptorSetInfo.hPool );
 
@@ -3609,7 +3587,7 @@ namespace VKE::RenderSystem::RHI
 
             if( VKE_FAILED( Memory::CreateObject( &pNativePool->DescriptorSetMemMgr, &pCurrentSet ) ) )
             {
-                RHI_LOG_ERR( "Out of memory" );
+                VKE_LOG_ERR( "Out of memory" );
                 return VKE_FAIL;
             }
 
@@ -3632,7 +3610,7 @@ namespace VKE::RenderSystem::RHI
             {
                 result = VKE_FAIL;
                 // Not an error since it is possible to create new descriptor pool
-                RHI_LOG_WARN( "Not enough free slot ranges in descriptor heap pool of type: " << pLayout->type );
+                VKE_LOG_WARN( "Not enough free slot ranges in descriptor heap pool of type: " << pLayout->type );
             }
 
             pOutNativeDescriptorSets[ layoutIndex ] = FromNative< RHI::DescriptorSet >( pCurrentSet );
@@ -3667,9 +3645,6 @@ namespace VKE::RenderSystem::RHI
 
     void CRHI::Update( const RHI::DescriptorSet& hRHISet, const SUpdateBindingsHelper& Info )
     {
-        VKE_ASSERT2( Info.vSamplerAndTextures.GetCount() == 0,
-                     "Sampler and texture heaps are not supported in DX12" );
-
         auto pNativeDescriptorSet = ToNative( hRHISet );
         VKE_ASSERT( pNativeDescriptorSet != NativeAPI::Null );
 
@@ -3698,46 +3673,45 @@ namespace VKE::RenderSystem::RHI
         for( auto& Binding: Info.vTexs )
         {
             UNIMPLEMENTED_D3D12_METHOD();
+            (void)Binding;
 
-            VKE_ASSERT( Binding.type == BindingTypes::STORAGE_TEXTURE );
+            //VKE_ASSERT( Binding.type == BindingTypes::STORAGE_TEXTURE );
 
-            for( uint32_t i = 0; i < Binding.count; ++i )
-            {
-                D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
-                const auto                       pTexture = m_pCtx->GetTexture( Binding.ahHandles[ i ] );
-                const auto&                      ViewDesc = pTexture->GetView()->GetDesc();
-                // const auto&                      NativeDesc = pTexture->GetRHIObject()->GetDesc();
-                const auto NativeTexture = ToNative( pTexture->GetRHIObject() );
-                NativeAPI::D3D12ResourceDesc NativeTextureDesc{};
-                VKE_D3D12_CALL_RET( NativeTextureDesc, NativeTexture, GetDesc );
-                UavDesc.Format           = NativeTextureDesc.Format; /// TODO: handle typeless format
-                UavDesc.ViewDimension    = Map::DimmensionToUAVDimmension( NativeTextureDesc.Dimension );
-                Helper::CreateUnorderedAccessView( ViewDesc, &UavDesc );
+            //for( uint32_t i = 0; i < Binding.count; ++i )
+            //{
+            //    D3D12_UNORDERED_ACCESS_VIEW_DESC UavDesc;
+            //    const auto                   NativeTexture = ToNative( Binding.ahHandles[ i ] );
+            //    NativeAPI::D3D12ResourceDesc NativeTextureDesc{};
+            //    VKE_D3D12_CALL_RET( NativeTextureDesc, NativeTexture, GetDesc );
+            //    UavDesc.Format        = NativeTextureDesc.Format; /// TODO: handle typeless format
+            //    UavDesc.ViewDimension = Map::DimmensionToUAVDimmension( NativeTextureDesc.Dimension );
+            //    Helper::CreateUnorderedAccessView( ViewDesc, &UavDesc );
 
-                D3D12_CPU_DESCRIPTOR_HANDLE hCpu = pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
+            //    D3D12_CPU_DESCRIPTOR_HANDLE hCpu = pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
 
-                m_pImplementation->m_hDevice->CreateUnorderedAccessView( NativeTexture, nullptr, &UavDesc, hCpu );
-            }
+            //    m_pImplementation->m_hDevice->CreateUnorderedAccessView( NativeTexture, nullptr, &UavDesc, hCpu );
+            //}
         }
 
         /// TODO: validate
         for( auto& Binding: Info.vTexViews )
         {
             UNIMPLEMENTED_D3D12_METHOD();
+            (void)Binding;
 
-            for( uint32_t i = 0; i < Binding.count; ++i )
-            {
-                const auto  pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
-                const auto& TexViewDesc = pTexView->GetDesc();
-                const auto  pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
+            //for( uint32_t i = 0; i < Binding.count; ++i )
+            //{
+            //    const auto  pTexView    = m_pCtx->GetTextureView( Binding.ahHandles[ i ] );
+            //    const auto& TexViewDesc = pTexView->GetDesc();
+            //    const auto  pTexture    = m_pCtx->GetTexture( TexViewDesc.hTexture );
 
-                D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
-                Helper::CreateShaderResourceView( TexViewDesc, &SrvDesc );
+            //    D3D12_SHADER_RESOURCE_VIEW_DESC SrvDesc;
+            //    Helper::CreateShaderResourceView( TexViewDesc, &SrvDesc );
 
-                auto hCpu = pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
-                m_pImplementation->m_hDevice->CreateShaderResourceView(
-                    ToNative( pTexture->GetRHIObject() ), &SrvDesc, hCpu );
-            }
+            //    auto hCpu = pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
+            //    m_pImplementation->m_hDevice->CreateShaderResourceView(
+            //        ToNative( pTexture->GetRHIObject() ), &SrvDesc, hCpu );
+            //}
         }
 
         for( auto& Binding: Info.vSamplers )
@@ -3750,8 +3724,7 @@ namespace VKE::RenderSystem::RHI
         {
             for( uint32_t index = 0; index < Binding.count; index++ )
             {
-                const auto EngineBuffer    = m_pCtx->GetBuffer( Binding.ahHandles[ index ] );
-                const auto pNativeResource = ToNative( EngineBuffer->GetRHIObject() );
+                const auto pNativeResource = ToNative( Binding.ahHandles[ index ] );
 
                 D3D12_CPU_DESCRIPTOR_HANDLE hCpuDescriptorHandle =
                     pNativeDescriptorSet->GetCpuDescriptorHandle( Binding.binding );
@@ -3784,8 +3757,7 @@ namespace VKE::RenderSystem::RHI
                         break;
 
                     case BINDING_TYPE::READ_ONLY_TEXEL_BUFFER:
-                    case BINDING_TYPE::READ_WRITE_TEXEL_BUFFER:
-                    {
+                    case BINDING_TYPE::READ_WRITE_TEXEL_BUFFER: {
                         D3D12_RESOURCE_DESC ResourceDesc{};
                         VKE_D3D12_CALL_RET( ResourceDesc, pNativeResource, GetDesc );
 
@@ -3800,12 +3772,12 @@ namespace VKE::RenderSystem::RHI
 
                         m_pImplementation->m_hDevice->CreateUnorderedAccessView(
                             pNativeResource, nullptr, &uavDesc, hCpuDescriptorHandle );
-                        RHI_LOG_ERR( "Unhandled buffer type" );
+                        VKE_LOG_ERR( "Unhandled buffer type" );
                         break;
                     }
 
                     default:
-                        RHI_LOG_ERR( "Invalid buffer type" );
+                        VKE_LOG_ERR( "Invalid buffer type" );
                         break;
                 }
             }
@@ -3839,7 +3811,7 @@ namespace VKE::RenderSystem::RHI
             NativeAPI::Pipeline pNativePipeline = NativeAPI::Null;
             if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativePipeline ) ) )
             {
-                RHI_LOG_ERR( "Out of memory" );
+                VKE_LOG_ERR( "Out of memory" );
             }
 
             // Find a stride for vertex buffer from InputLayout.
@@ -3856,7 +3828,7 @@ namespace VKE::RenderSystem::RHI
             if( FAILED( m_pImplementation->m_hDevice->CreatePipelineState(
                     &NativeStreamDesc, IID_PPV_ARGS( &pNativePipeline->Graphics ) ) ) )
             {
-                RHI_LOG_ERR( "PSO creation failed" );
+                VKE_LOG_ERR( "PSO creation failed" );
             }
 
             return FromNative< RHI::Pipeline >( pNativePipeline );
@@ -3881,9 +3853,7 @@ namespace VKE::RenderSystem::RHI
 
     RHI::PipelineLayout CRHI::CreatePipelineLayout( const SPipelineLayoutDesc& Desc, const void* pAllocator )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
-        VKE_ASSERT2( m_pCtx != nullptr, "m_pCtx can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         D3D12_VERSIONED_ROOT_SIGNATURE_DESC versionedRootSignature;
         versionedRootSignature.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -3898,8 +3868,7 @@ namespace VKE::RenderSystem::RHI
         Utils::TCDynamicArray< D3D12_ROOT_PARAMETER1, 32 > vRootParameters;
         for( auto& layout: Desc.vDescriptorSetLayouts )
         {
-            const RHI::DescriptorSetLayout& hDescriptorSetLayout = m_pCtx->GetDescriptorSetLayout( layout );
-            vRootParameters.PushBack( ToNative( hDescriptorSetLayout )->RootParameter );
+            vRootParameters.PushBack( ToNative( layout )->RootParameter );
         }
 
         // Right now push constants are not being used in Engine. Root signature includes information about push
@@ -3924,7 +3893,7 @@ namespace VKE::RenderSystem::RHI
 
         if( FAILED( D3D12SerializeVersionedRootSignature( &versionedRootSignature, &pSignatureBlob, &pErrorBlob ) ) )
         {
-            RHI_LOG_ERR( "Unable to serialize root signature." );
+            VKE_LOG_ERR( "Unable to serialize root signature." );
         }
 
         NativeAPI::D3D12RootSignature* pRootSignature;
@@ -3934,7 +3903,7 @@ namespace VKE::RenderSystem::RHI
                                                                        pSignatureBlob->GetBufferSize(),
                                                                        IID_PPV_ARGS( &pRootSignature ) ) ) )
         {
-            RHI_LOG_ERR( "Unable to create root signature." );
+            VKE_LOG_ERR( "Unable to create root signature." );
         }
 
         // The serialization blobs are only needed to create the root signature; release them so
@@ -3968,7 +3937,7 @@ namespace VKE::RenderSystem::RHI
         NativeAPI::Shader shader;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &shader ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
             return RHI::Null;
         }
 
@@ -3979,7 +3948,7 @@ namespace VKE::RenderSystem::RHI
                 reinterpret_cast< BYTE* >( Memory::AllocMemory( &HeapAllocator, &pOwnedBytecode, Desc.codeSize ) );
             if( pOwnedBytecode == nullptr )
             {
-                RHI_LOG_ERR( "Out of memory while copying shader bytecode." );
+                VKE_LOG_ERR( "Out of memory while copying shader bytecode." );
                 Memory::DestroyObject( &HeapAllocator, &shader );
                 return RHI::Null;
             }
@@ -4020,7 +3989,7 @@ namespace VKE::RenderSystem::RHI
         NativeAPI::Sampler pNativeDesc = nullptr;
         if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &pNativeDesc ) ) )
         {
-            RHI_LOG_ERR( "Out of memory" );
+            VKE_LOG_ERR( "Out of memory" );
             return RHI::Null;
         }
 
@@ -4069,8 +4038,7 @@ namespace VKE::RenderSystem::RHI
     Result CRHI::CreateCommandBuffers( const SAllocateCommandBufferInfo& Info, RHI::CommandBuffer* pBuffers )
     {
         Result result = VKE_OK;
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         D3D12_COMMAND_LIST_TYPE type = ( Info.level == COMMAND_BUFFER_LEVEL::PRIMARY )
                                            ? ToNative( Info.hRHIPool )->NativeType
@@ -4078,7 +4046,7 @@ namespace VKE::RenderSystem::RHI
 
         if( type == D3D12_COMMAND_LIST_TYPE_NONE )
         {
-            RHI_LOG_WARN( "Unsupported command list type" );
+            VKE_LOG_WARN( "Unsupported command list type" );
             return result;
         }
 
@@ -4089,7 +4057,7 @@ namespace VKE::RenderSystem::RHI
             if( FAILED(
                     m_pImplementation->m_hDevice->CreateCommandAllocator( type, IID_PPV_ARGS( &Pair.pAllocator ) ) ) )
             {
-                RHI_LOG_ERR( "Failed to create command allocator" );
+                VKE_LOG_ERR( "Failed to create command allocator" );
                 result = VKE_FAIL;
                 break;
             }
@@ -4097,7 +4065,7 @@ namespace VKE::RenderSystem::RHI
             if( FAILED( m_pImplementation->m_hDevice->CreateCommandList(
                     0, type, Pair.pAllocator, NativeAPI::Null, IID_PPV_ARGS( &Pair.pCmdList ) ) ) )
             {
-                RHI_LOG_ERR( "Failed to create command list" );
+                VKE_LOG_ERR( "Failed to create command list" );
                 result = VKE_FAIL;
                 break;
             }
@@ -4118,8 +4086,7 @@ namespace VKE::RenderSystem::RHI
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    Result CRHI::GetBufferMemoryRequirements( const SBufferDesc&                InDesc,
-                                                       SAllocationMemoryRequirementInfo* pOut )
+    Result CRHI::GetBufferMemoryRequirements( const SBufferDesc& InDesc, SAllocationMemoryRequirementInfo* pOut )
     {
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateBuffer.
         NativeAPI::D3D12ResourceDesc ResourceDesc = Convert::GetResourceDesc( InDesc, m_pImplementation->Features );
@@ -4139,8 +4106,7 @@ namespace VKE::RenderSystem::RHI
         return Result::OK;
     }
 
-    Result CRHI::GetTextureMemoryRequirements( const STextureDesc&               Desc,
-                                                        SAllocationMemoryRequirementInfo* pOut )
+    Result CRHI::GetTextureMemoryRequirements( const STextureDesc& Desc, SAllocationMemoryRequirementInfo* pOut )
     {
         // TODO(any): Consider not writing D3D12_RESOURCE_DESC twice - here and CreateTexture.
         NativeAPI::D3D12ResourceDesc ResourceDesc;
@@ -4287,8 +4253,8 @@ namespace VKE::RenderSystem::RHI
         pNativeCommandBuffer->IASetVertexBuffers( 0, 1, &NativeVertexBufferView );
     }
 
-    void CRHI::Bind( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Buffer& hRHIBuffer,
-                              const uint32_t offset, const INDEX_TYPE& type )
+    void CRHI::Bind( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Buffer& hRHIBuffer, const uint32_t offset,
+                     const INDEX_TYPE& type )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -4318,7 +4284,7 @@ namespace VKE::RenderSystem::RHI
         // allocation id instead of the owning heap.
         if( ( reinterpret_cast< uintptr_t >( pNativeMemory ) % alignof( void* ) ) != 0 )
         {
-            RHI_LOG_ERR( "RHI::MemoryHeap does not point to an ID3D12Heap. "
+            VKE_LOG_ERR( "RHI::MemoryHeap does not point to an ID3D12Heap. "
                          "A pooled sub-allocation handle (heap base + offset) was passed instead "
                          "of the owning heap. Only the pool that owns the heap may free it." );
             VKE_ASSERT2( false, "invalid (unaligned) memory heap handle." );
@@ -4332,8 +4298,7 @@ namespace VKE::RenderSystem::RHI
 
     Result CRHI::Allocate( const SAllocateMemoryDesc& Desc, SAllocateMemoryData* pOut )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         D3D12_HEAP_DESC heapDesc =
             Convert::GetMemoryHeapDesc( Desc.usage, m_pImplementation->Features.ResourceHeapTier >= 2 );
@@ -4442,8 +4407,7 @@ namespace VKE::RenderSystem::RHI
 
     void* CRHI::MapMemory( const SMapMemoryInfo& Info )
     {
-        VKE_ASSERT2( ToNative( Info.hBuffer ) != NativeAPI::Null,
-                     "DX12 can map only resources, not memory." );
+        VKE_ASSERT2( ToNative( Info.hBuffer ) != NativeAPI::Null, "DX12 can map only resources, not memory." );
 
         D3D12_RANGE range;
         range.Begin = Info.offset;
@@ -4452,7 +4416,7 @@ namespace VKE::RenderSystem::RHI
         void* pData = nullptr;
         if( FAILED( ToNative( Info.hBuffer )->Map( 0, &range, &pData ) ) )
         {
-            RHI_LOG_ERR( "Failed to map memory" );
+            VKE_LOG_ERR( "Failed to map memory" );
         }
         else if( pData != nullptr )
         {
@@ -4466,19 +4430,17 @@ namespace VKE::RenderSystem::RHI
 
     void CRHI::UnmapMemory( const SMapMemoryInfo& Info )
     {
-        VKE_ASSERT2( ToNative( Info.hBuffer ) != NativeAPI::Null,
-                     "DX12 can map only resources, not memory." );
+        VKE_ASSERT2( ToNative( Info.hBuffer ) != NativeAPI::Null, "DX12 can map only resources, not memory." );
         ToNative( Info.hBuffer )->Unmap( 0, nullptr );
     }
 
-    void CRHI::Reset( const RHI::CommandBuffer&     hCommandBuffer,
-                               const RHI::CommandBufferPool& hCommandBufferPool )
+    void CRHI::Reset( const RHI::CommandBuffer& hCommandBuffer, const RHI::CommandBufferPool& hCommandBufferPool )
     {
         // No-op
     }
 
     void CRHI::BeginCommandBuffer( const RHI::CommandBuffer&     hCommandBuffer,
-                                            const RHI::CommandBufferPool& hCommandBufferPool )
+                                   const RHI::CommandBufferPool& hCommandBufferPool )
     {
         NativeAPI::D3D12CommandAllocator* pCommandAllocator =
             ToNative( hCommandBufferPool )->GetAllocator( ToNative( hCommandBuffer ) );
@@ -4486,12 +4448,12 @@ namespace VKE::RenderSystem::RHI
 
         if( FAILED( pCommandAllocator->Reset() ) )
         {
-            RHI_LOG_ERR( "Failed to reset command buffer pool" );
+            VKE_LOG_ERR( "Failed to reset command buffer pool" );
         }
 
         if( FAILED( ToNative( hCommandBuffer )->Reset( pCommandAllocator, NativeAPI::Null ) ) )
         {
-            RHI_LOG_ERR( "Failed to reset command buffer" );
+            VKE_LOG_ERR( "Failed to reset command buffer" );
         }
     }
 
@@ -4502,7 +4464,7 @@ namespace VKE::RenderSystem::RHI
 
         if( FAILED( pNativeCommandBuffer->Close() ) )
         {
-            RHI_LOG_ERR( "Failed to close command buffer" );
+            VKE_LOG_ERR( "Failed to close command buffer" );
         }
     }
 
@@ -4532,7 +4494,7 @@ namespace VKE::RenderSystem::RHI
         }
         else
         {
-            RHI_LOG_WARN( "Requested barrier resulted in 0 actual barriers." );
+            VKE_LOG_WARN( "Requested barrier resulted in 0 actual barriers." );
         }
     }
 
@@ -4567,8 +4529,7 @@ namespace VKE::RenderSystem::RHI
     }
 
     void CRHI::Draw( const RHI::CommandBuffer& hCommandBuffer, const uint32_t& vertexCount,
-                              const uint32_t& instanceCount, const uint32_t& firstVertex,
-                              const uint32_t& firstInstance )
+                     const uint32_t& instanceCount, const uint32_t& firstVertex, const uint32_t& firstInstance )
     {
         auto pNativeCommandBuffer = ToNative( hCommandBuffer );
         VKE_ASSERT( pNativeCommandBuffer != NativeAPI::Null );
@@ -4581,25 +4542,23 @@ namespace VKE::RenderSystem::RHI
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CRHI::DrawMesh( const RHI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height,
-                                  uint32_t depth )
+    void CRHI::DrawMesh( const RHI::CommandBuffer& hCommandBuffer, uint32_t width, uint32_t height, uint32_t depth )
     {
         auto pNativeCommandBuffer = ToNative( hCommandBuffer );
         pNativeCommandBuffer->DispatchMesh( width, height, depth );
     }
 
     void CRHI::BeginRenderPass( RHI::CommandBuffer           pNativeCommandBuffer,
-                                         const SBeginRenderPassInfo2& EngineRenderPassInfo )
+                                const SBeginRenderPassInfo2& EngineRenderPassInfo )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
 
-    void CRHI::BeginRenderPass( RHI::CommandBuffer          hCommandBuffer,
-                                         const SBeginRenderPassInfo& EngineRenderPassInfo )
+    void CRHI::BeginRenderPass( RHI::CommandBuffer hCommandBuffer, const SBeginRenderPassInfo& EngineRenderPassInfo )
     {
         if( EngineRenderPassInfo.hRHIRenderPass == RHI::Null )
         {
-            RHI_LOG_ERR( "Render pass is NULL" );
+            VKE_LOG_ERR( "Render pass is NULL" );
             return;
         }
 
@@ -4694,7 +4653,7 @@ namespace VKE::RenderSystem::RHI
 
         if( pNativeRenderPass == NativeAPI::Null )
         {
-            RHI_LOG_ERR( "Render pass is NULL" );
+            VKE_LOG_ERR( "Render pass is NULL" );
             return;
         }
 
@@ -4799,7 +4758,7 @@ namespace VKE::RenderSystem::RHI
     }
 
     void CRHI::SetEvent( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Event& hRHIEvent,
-                                  const PIPELINE_STAGES& stages )
+                         const PIPELINE_STAGES& stages )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -4810,7 +4769,7 @@ namespace VKE::RenderSystem::RHI
     }
 
     void CRHI::Reset( const RHI::CommandBuffer& hRHICmdBuffer, const RHI::Event& hRHIEvent,
-                               const PIPELINE_STAGES& stages )
+                      const PIPELINE_STAGES& stages )
     {
         UNIMPLEMENTED_D3D12_METHOD();
     }
@@ -4900,8 +4859,8 @@ namespace VKE::RenderSystem::RHI
 
             if( FAILED( result ) )
             {
-                RHI_LOG_ERR( "[#" << presentIndex << "] Failed to present swap chain " << index
-                                                 << " with HRESULT 0x" << std::hex << result << std::dec );
+                VKE_LOG_ERR( "[#" << presentIndex << "] Failed to present swap chain " << index << " with HRESULT 0x"
+                                  << std::hex << result << std::dec );
                 res = Result::FAIL;
             }
         }
@@ -4911,8 +4870,7 @@ namespace VKE::RenderSystem::RHI
 
     Result CRHI::CreateSwapChain( const SSwapChainDesc& Desc, SRHISwapChain* pOut, const void* )
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice can't be null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice can't be null" );
 
         QueryPresentSurfaceCaps( RHI::Null, &pOut->Caps );
 
@@ -4924,16 +4882,14 @@ namespace VKE::RenderSystem::RHI
         }
         else if( Desc.backBufferCount > DXGI_MAX_SWAP_CHAIN_BUFFERS )
         {
-            RHI_LOG_ERR(
-                "Unspecified number of backBufferCount or exceeds max supported." );
+            VKE_LOG_ERR( "Unspecified number of backBufferCount or exceeds max supported." );
             return Result::NOT_SUPPORTED;
         }
 
         auto dxgiFormat = Convert::GetDXGIFormat( Desc.format );
         if( dxgiFormat == DXGI_FORMAT_UNKNOWN )
         {
-            RHI_LOG_ERR(
-                "Unsupported swapchain format (no matching engine with DXGI format)." );
+            VKE_LOG_ERR( "Unsupported swapchain format (no matching engine with DXGI format)." );
             return Result::NOT_SUPPORTED;
         }
 
@@ -4945,19 +4901,19 @@ namespace VKE::RenderSystem::RHI
 
         if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET ) == 0 )
         {
-            RHI_LOG_ERR( "Format can't be used as render target (required)." );
+            VKE_LOG_ERR( "Format can't be used as render target (required)." );
             return Result::NOT_SUPPORTED;
         }
 
         if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE ) == 0 )
         {
-            RHI_LOG_ERR( "Format can't be used as shader resource (required)." );
+            VKE_LOG_ERR( "Format can't be used as shader resource (required)." );
             return Result::NOT_SUPPORTED;
         }
 
         if( ( formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY ) == 0 )
         {
-            RHI_LOG_ERR( "Format can't be used to present() (required)." );
+            VKE_LOG_ERR( "Format can't be used to present() (required)." );
             return Result::NOT_SUPPORTED;
         }
 
@@ -4999,7 +4955,7 @@ namespace VKE::RenderSystem::RHI
         if( FAILED( m_pImplementation->spFactory->CreateSwapChainForHwnd(
                 pQueue, hWnd, &swapChainDesc, NULL, NULL, &pSwapChain1 ) ) )
         {
-            RHI_LOG_ERR( "Failed to create swap chain" );
+            VKE_LOG_ERR( "Failed to create swap chain" );
             return Result::FAIL;
         }
 
@@ -5019,7 +4975,7 @@ namespace VKE::RenderSystem::RHI
         pSwapChain->CheckColorSpaceSupport( dxgiColorSpace, &dxgiColorSpaceSupport );
         if( ( dxgiColorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT ) == 0 )
         {
-            RHI_LOG_WARN( "Color space not supported for swapchain." );
+            VKE_LOG_WARN( "Color space not supported for swapchain." );
         }
         else
         {
@@ -5032,7 +4988,7 @@ namespace VKE::RenderSystem::RHI
             // This is required when RHI::Texture is a custom object.
             // if( VKE_FAILED( Memory::CreateObject( &HeapAllocator, &bbTexture ) ) )
             //{
-            //    RHI_LOG_ERR( "Failed to create back buffer texture object." );
+            //    VKE_LOG_ERR( "Failed to create back buffer texture object." );
             //}
 
             pSwapChain->GetBuffer( i, IID_PPV_ARGS( &NativeBackBufferTexture ) );
@@ -5154,7 +5110,7 @@ namespace VKE::RenderSystem::RHI
     }
 
     Result CRHI::GetCurrentBackBufferIndex( const SRHISwapChain& SwapChain, const SRHIGetBackBufferInfo& Info,
-                                                     uint32_t* pOut )
+                                            uint32_t* pOut )
     {
         Result backBufferStatus = Result::NOT_READY;
 
@@ -5255,11 +5211,11 @@ namespace VKE::RenderSystem::RHI
             case ApiObjectTypes::DESCRIPTOR_SET_LAYOUT:
             case ApiObjectTypes::SAMPLER:
             case ApiObjectTypes::DESCRIPTOR_POOL:
-                RHI_LOG_WARN( "Unsupported objType" );
+                VKE_LOG_WARN( "Unsupported objType" );
                 break;
 
             default:
-                RHI_LOG_ERR( "Unhandled objType" );
+                VKE_LOG_ERR( "Unhandled objType" );
                 break;
         }
     }
@@ -5277,8 +5233,7 @@ namespace VKE::RenderSystem::RHI
 
     bool CRHI::IsSignaled( const RHI::CPUFence& hFence ) const
     {
-        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null,
-                     "m_pImplementation->m_hDevice is null" );
+        VKE_ASSERT2( m_pImplementation->m_hDevice != NativeAPI::Null, "m_pImplementation->m_hDevice is null" );
         auto pNativeFence = ToNative( hFence );
         return pNativeFence->GetCompletedValue() >= pNativeFence->GetSignaledValue();
     }
@@ -5360,6 +5315,40 @@ namespace VKE::RenderSystem::RHI
         }
 
         return out;
+    }
+
+    const RHI::Device CRHI::GetDevice() const
+    {
+        return FromNative<RHI::Device>( m_pImplementation->m_hDevice );
+    }
+
+    const RHI::Adapter CRHI::GetAdapter() const
+    {
+        return FromNative<RHI::Adapter>( m_pImplementation->m_hAdapter );
+    }
+
+    bool CRHI::IsSignaled( const RHI::Fence& hFence ) const
+    {
+        NativeAPI::Fence pNativeFence = ToNative( hFence );
+        VKE_ASSERT( pNativeFence != NativeAPI::Null );
+        return pNativeFence->GetCompletedValue() >= pNativeFence->GetSignaledValue();
+    }
+
+    Result CRHI::Bind( RESOURCE_TYPE, const SBindMemoryInfo& )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
+        return VKE_FAIL;
+    }
+
+    void CRHI::Bind( const SBindRenderPassInfo& Info )
+    {
+        VKE_ASSERT( Info.pBeginInfo != nullptr );
+        BeginRenderPass( Info.hRHICommandBuffer, *Info.pBeginInfo );
+    }
+
+    void CRHI::Reset( const RHI::CommandBuffer& )
+    {
+        UNIMPLEMENTED_D3D12_METHOD();
     }
 
 } // namespace VKE::RenderSystem::RHI

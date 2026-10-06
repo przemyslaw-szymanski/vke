@@ -363,7 +363,7 @@ namespace VKE
         HMONITOR    hMon = ::MonitorFromWindow( m_pPrivate->hWnd, MONITOR_DEFAULTTONEAREST );
         MONITORINFO mi;
         Memory::Zero( &mi );
-        mi.cbSize        = sizeof( mi );
+        mi.cbSize = sizeof( mi );
         if( !::GetMonitorInfoA( hMon, &mi ) )
         {
             return false;
@@ -646,15 +646,15 @@ namespace VKE
         // Threads::ScopedLock l(m_SyncObj);
         const bool needDestroy = NeedDestroy();
         const bool needUpdate  = !needDestroy && m_needUpdate;
-        //if( needDestroy )
+        // if( needDestroy )
         //{
-        //    bool b = false;
-        //    b      = b;
-        //}
+        //     bool b = false;
+        //     b      = b;
+        // }
         if( needUpdate )
         {
             assert( m_isDestroyed == false );
-            MSG  msg;
+            MSG msg;
             Memory::Zero( &msg );
 
             HWND hWnd = m_pPrivate->hWnd;

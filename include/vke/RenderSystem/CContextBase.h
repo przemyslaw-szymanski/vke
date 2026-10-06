@@ -35,7 +35,7 @@ namespace VKE
             /// <summary>
             /// TODO: remove these friends
             /// </summary>
-            friend class RHI::CRHI;
+            VKE_RHI_FRIEND_CLASS
 
         protected:
             struct SPreparationData

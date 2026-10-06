@@ -23,6 +23,8 @@
 
 namespace VKE::RenderSystem::RHI
 {
+    namespace VulkanAPI
+    {
     struct NativeAPI
     {
         static const uint32_t             DEFAULT_QUEUE_FAMILY_PROPERTY_COUNT = 16;
@@ -170,4 +172,6 @@ namespace VKE::RenderSystem::RHI
 
     }; // struct SImplementation
 
+    } // namespace VulkanAPI
+    using namespace VulkanAPI;
 } // namespace VKE::RenderSystem::RHI

@@ -199,7 +199,7 @@ namespace VKE
                         TexDesc.sliceCount         = 1;
                         TexDesc.type               = TextureTypes::TEXTURE_2D;
                         TexDesc.usage              = TextureUsages::COLOR_RENDER_TARGET;
-                        TexDesc.hNative            = Element.hRHITexture;
+                        TexDesc.hRHITextureView    = Element.hRHITexture;
                         TexDesc.hNativeView        = Element.hRHITextureView;
                         TexDesc.Name               = std::format( "SwapchainTexture_{}", i ).data();
                         TexDesc.SetDebugName( std::format( "SwapchainTexture_{}", i ).data() );

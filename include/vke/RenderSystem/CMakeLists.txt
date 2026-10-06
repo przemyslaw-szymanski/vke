@@ -48,12 +48,16 @@ set(RENDER_SYSTEM_INCLUDE_FILES "${RENDER_SYSTEM_INCLUDE_FILES}"
 set(INC_DIRS ${RENDER_SYSTEM_INCLUDE_FILES} )
 set(SRC_DIRS ${RENDER_SYSTEM_SOURCE_FILES} )
 
+set(LINK_RHI_LIBS)
+
 if(VKE_COMPILE_VULKAN_RHI)
     add_subdirectory(RHI/Vulkan)
+    set(LINK_RHI_LIBS ${LINK_RHI_LIBS} vkEngineRHI_Vulkan)
 endif()
 
 if(VKE_COMPILE_D3D12_RHI)
     add_subdirectory(RHI/D3D12)
+    set(LINK_RHI_LIBS ${LINK_RHI_LIBS} vkEngineRHI_D3D12)
 endif()
 
 include(../../../IncludeFiles.cmake NO_POLICY_SCOPE)
@@ -82,12 +86,5 @@ include(../../../LinkSettings.cmake NO_POLICY_SCOPE)
 target_link_libraries(vkEngineRenderSystem PUBLIC
     debug vkEngineCore_d
     optimized vkEngineCore
-    ${THIRD_PARTY_LIBS} )
-
-if(VKE_LINK_STATIC_RHI)
-    if(VKE_RENDER_SYSTEM STREQUAL "Vulkan")
-        target_link_libraries(vkEngineRenderSystem PUBLIC vkEngineRHI_Vulkan)
-    elseif(VKE_RENDER_SYSTEM STREQUAL "D3D12")
-        target_link_libraries(vkEngineRenderSystem PUBLIC vkEngineRHI_D3D12)
-    endif()
-endif()
+    ${THIRD_PARTY_LIBS}
+     ${LINK_RHI_LIBS})

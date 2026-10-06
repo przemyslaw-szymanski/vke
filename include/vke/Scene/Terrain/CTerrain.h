@@ -69,7 +69,7 @@ namespace VKE
             using TextureHandleArray = Utils::TCDynamicArray< RenderSystem::TextureHandle, MAX_TEXTURE_COUNT >;
             using TexturePtrArray =
                 Utils::TCDynamicArray< std::pair< RenderSystem::TextureRefPtr, uint32_t >, MAX_TEXTURE_COUNT >;
-            using TextureViewArray      = Utils::TCDynamicArray< RenderSystem::TextureViewHandle, MAX_TEXTURE_COUNT >;
+            using TextureViewArray      = Utils::TCDynamicArray< RenderSystem::RHI::TextureView, MAX_TEXTURE_COUNT >;
             using TextureArrayArray     = Utils::TCDynamicArray< TextureHandleArray, 1 >;
             using TextureViewArrayArray = Utils::TCDynamicArray< TextureViewArray, 1 >;
 
@@ -144,6 +144,7 @@ namespace VKE
             // MAX_HEIGHTMAP_TEXTURE_COUNT ]; RenderSystem::TextureViewHandle
             // m_hHeigtmapTexView = INVALID_HANDLE;
             RenderSystem::SamplerHandle m_hHeightmapSampler = INVALID_HANDLE;
+            RenderSystem::RHI::Sampler  m_hRHIHeightmapSampler = RenderSystem::RHI::Null;
             CScene*                     m_pScene;
             ITerrainRenderer*           m_pRenderer          = nullptr;
             uint32_t                    m_loadedTextureCount = 0;

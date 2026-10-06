@@ -60,7 +60,7 @@ namespace VKE
             /// <summary>
             ///  TODO: remove these
             /// </summary>
-            friend class RHI::CRHI;
+            VKE_RHI_FRIEND_CLASS
 
         private:
             struct SMetricsSystem
@@ -222,12 +222,12 @@ namespace VKE
 
             RHI::CRHI& RHI()
             {
-                return m_RHI;
+                return *m_pRHI;
             }
 
             const RHI::CRHI& RHI() const
             {
-                return m_RHI;
+                return *m_pRHI;
             }
 
             void Wait()
@@ -343,7 +343,7 @@ namespace VKE
             ComputeContextArray   m_vpComputeContexts;
             CDeviceMemoryManager* m_pDeviceMemMgr = nullptr;
             // CCommandBufferManager       m_CmdBuffMgr;
-            RHI::CRHI            m_RHI;
+            RHI::CRHI* m_pRHI = nullptr;
             CCommandBuffer*      m_pCurrentCommandBuffer = nullptr;
             SDeviceInfo          m_DeviceInfo;
             Threads::SyncObject  m_SignaledSemaphoreSyncObj;

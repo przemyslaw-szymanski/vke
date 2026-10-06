@@ -229,6 +229,8 @@ namespace VKE
                 // this->m_pQueue->_AddSwapChainRef();
 
                 SwpDesc.pWindow->AddDestroyCallback( [ & ]( CWindow* ) {
+                    // TODO: WindowMessages::CLOSE callback immediately closes application and calls destructor of
+                    // CGraphicsContext, causing null pointer exception later on CFrameGraphNode::_Destroy().
                     auto pThis = this;
                     m_pDeviceCtx->DestroyGraphicsContext( &pThis );
                 } );

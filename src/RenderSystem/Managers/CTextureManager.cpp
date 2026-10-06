@@ -133,7 +133,7 @@ namespace VKE
             for( uint32_t i = 1; i < m_TextureViews.vPool.GetCount(); ++i )
             {
                 auto& pCurr = m_TextureViews[ i ];
-                if( pCurr && pCurr->m_hRHIObject != RHI::Null && pCurr->m_Desc.hNative == RHI::Null )
+                if( pCurr && pCurr->m_hRHIObject != RHI::Null && pCurr->m_Desc.hRHITextureView == RHI::Null )
                 {
                     m_pDevice->RHI().DestroyTextureView( &pCurr->m_hRHIObject );
                 }
@@ -297,7 +297,7 @@ namespace VKE
                 if( hApiObj != RHI::Null )
                 {
                     // Create memory for buffer
-                    if( Desc.hNative == RHI::Null && pTex->m_hMemory == INVALID_HANDLE )
+                    if( Desc.hRHITextureView == RHI::Null && pTex->m_hMemory == INVALID_HANDLE )
                     {
                         VKE_ASSERT( pTex->m_hMemory != INVALID_HANDLE );
                         if( pTex->m_hMemory != INVALID_HANDLE )
@@ -322,7 +322,7 @@ namespace VKE
                         ViewDesc.SubresourceRange.beginMipmapLevel = 0;
                         ViewDesc.SubresourceRange.layerCount       = 1;
                         ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipmapCount;
-                        ViewDesc.hNative                           = Desc.hNativeView;
+                        ViewDesc.hRHITextureView                           = Desc.hNativeView;
                         ViewDesc.SetDebugName( Desc.GetDebugName() );
                         pTex->m_hView = CreateTextureView( ViewDesc );
                         if( pTex->m_hView == INVALID_HANDLE )
@@ -700,7 +700,8 @@ namespace VKE
                                 ViewDesc.SubresourceRange.beginMipmapLevel = 0;
                                 ViewDesc.SubresourceRange.layerCount       = 1;
                                 ViewDesc.SubresourceRange.mipmapLevelCount = Desc.mipmapCount;
-                                ViewDesc.hNative                           = Desc.hNativeView;
+                                ViewDesc.hRHITexture                       = pTex->m_hRHIObject;
+                                ViewDesc.hRHITextureView                   = Desc.hNativeView;
                                 if( Desc.IsDebugNameEmpty() )
                                 {
                                     ViewDesc.SetDebugName( Desc.Name.GetData() );
@@ -1022,7 +1023,7 @@ namespace VKE
         void CTextureManager::_DestroyTexture( CTexture** ppInOut )
         {
             CTexture* pTex = *ppInOut;
-            if( pTex->m_Desc.hNative == RHI::Null )
+            if( pTex->m_Desc.hRHITextureView == RHI::Null )
             {
                 m_pDevice->RHI().DestroyTexture( &pTex->m_hRHIObject );
             }

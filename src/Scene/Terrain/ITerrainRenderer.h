@@ -52,9 +52,9 @@ namespace VKE
         {
             uint32_t                                        index; // binding index
             Utils::TCDynamicArray< STerrainSubTileDesc, 1 > vSubTiles;
-            RenderSystem::TextureViewHandle                 hHeightmap       = INVALID_HANDLE;
-            RenderSystem::TextureViewHandle                 hHeightmapNormal = INVALID_HANDLE;
-            RenderSystem::SamplerHandle                     hBilinearSampler = INVALID_HANDLE;
+            RenderSystem::RHI::TextureView                  hHeightmap       = RenderSystem::RHI::Null;
+            RenderSystem::RHI::TextureView                  hHeightmapNormal = RenderSystem::RHI::Null;
+            RenderSystem::RHI::Sampler                      hBilinearSampler = RenderSystem::RHI::Null;
         };
 
         class ITerrainRenderer
