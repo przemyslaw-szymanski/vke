@@ -49,12 +49,12 @@ set(_AGILITY_DBG_BIN_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRI
 
 # Multi-config generators (Visual Studio, Ninja Multi-Config) append the config name
 # to CMAKE_RUNTIME_OUTPUT_DIRECTORY, so the deploy dir must follow the same layout.
-get_property(_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(_IS_MULTI_CONFIG)
-    set(_AGILITY_DST_DIR "${OUTPUT_DIR}/$<CONFIG>/D3D12")
-else()
+#get_property(_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+#if(_IS_MULTI_CONFIG)
+#    set(_AGILITY_DST_DIR "${OUTPUT_DIR}/$<CONFIG>/D3D12")
+#else()
     set(_AGILITY_DST_DIR "${OUTPUT_DIR}/D3D12")
-endif()
+#endif()
 
 # D3D12Core.dll exists in both bin/ and debug/bin.
 # d3d12SDKLayers.dll only ships in debug/bin, so it is only deployed for Debug.
