@@ -62,10 +62,12 @@ class CSampleFramework
         WindowArray             m_vpWindows;
         DeviceContextArray      m_vpDeviceContexts;
         GraphicsContextArray    m_vpGraphicsContexts;
+        SSampleCreateDesc       m_Desc;
 };
 
 bool CSampleFramework::Create(const SSampleCreateDesc& Desc)
-{   
+{
+    m_Desc = Desc;
     VKE::SEngineInfo EngineInfo;
     VKE::Result err = VKE::VKE_FAIL;
     m_pEngine = VKECreate();
@@ -182,6 +184,10 @@ ERR:
 
 void CSampleFramework::Destroy()
 {
+    for( uint32_t i = 0; i < m_Desc.gfxListenerCount; ++i )
+    {
+        VKE_DELETE( m_Desc.ppGfxListeners[ i ] );
+    }
     VKEDestroy();
 }
 

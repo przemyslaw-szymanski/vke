@@ -228,11 +228,14 @@ namespace VKE
                 }
                 // this->m_pQueue->_AddSwapChainRef();
 
-                SwpDesc.pWindow->AddDestroyCallback( [ & ]( CWindow* ) {
+                SwpDesc.pWindow->AddDestroyCallback( [ this ]( CWindow* ) {
                     // TODO: WindowMessages::CLOSE callback immediately closes application and calls destructor of
                     // CGraphicsContext, causing null pointer exception later on CFrameGraphNode::_Destroy().
-                    auto pThis = this;
-                    m_pDeviceCtx->DestroyGraphicsContext( &pThis );
+                    /// TODO: this stopRendering does nothing currently. The swap chain should be invalidated.
+                    this->m_stopRendering = true;
+                    this->m_needQuit = true;
+                    this->m_needRenderFrame = false;
+                    this->Wait();
                 } );
                 SwpDesc.pWindow->AddShowCallback( [ this ]( CWindow* pWnd ) {
                     if( pWnd->IsVisible() )
