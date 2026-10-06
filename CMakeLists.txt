@@ -46,18 +46,16 @@ endif()
 include(CompileOptions.cmake NO_POLICY_SCOPE)
 include(CompilerSettings.cmake NO_POLICY_SCOPE)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+get_property(VKE_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(VKE_IS_MULTI_CONFIG)
+    set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available build configurations" FORCE)
+endif()
 
-# Multi-config generators (Visual Studio) append /<Config> to the output dirs.
-# Override per-config dirs so every configuration uses the same folders.
-foreach(OUTPUT_CONFIG ${CMAKE_CONFIGURATION_TYPES})
-    string(TOUPPER ${OUTPUT_CONFIG} OUTPUT_CONFIG)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
-endforeach()
+# Every configuration gets its own output subfolder (bin/<Config>, lib/<Config>)
+# for both single and multi-config generators.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
 
 set(OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 set(LIB_DIR "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")

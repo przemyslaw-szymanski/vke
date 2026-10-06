@@ -102,4 +102,4 @@ add_shader_copy_postbuild(vkEngineScene
     "${SOURCE_DIR}/Scene/Assets"
     "${OUTPUT_DIR}/data/Assets"
 )
-target_link_libraries(vkEngineScene debug vkEngineRenderSystem_d optimized vkEngineRenderSystem ${THIRD_PARTY_LIBS})
+target_link_libraries(vkEngineScene vkEngineRenderSystem ${THIRD_PARTY_LIBS})
