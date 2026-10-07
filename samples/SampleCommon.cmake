@@ -31,7 +31,7 @@ if(VKE_COMPILE_VULKAN_RHI)
     )
 endif()
 
-set(LINK_LIB optimized vkEngine debug vkEngine_d)
+set(LINK_LIB vkEngine)
 target_link_libraries(${PROJECT_NAME} ${LINK_LIB} ${THIRD_PARTY_LIBS})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

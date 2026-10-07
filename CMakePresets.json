@@ -1,13 +1,15 @@
-﻿{
+{
   "version": 6,
   "configurePresets": [
     {
       "name": "common-base",
       "hidden": true,
-      "generator": "Ninja",
+      "generator": "Ninja Multi-Config",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+        "CMAKE_DEBUG_POSTFIX": "_d",
         "VKE_DATA_DIR": "${sourceDir}/bin"
       }
     },
@@ -67,6 +69,15 @@
       }
     },
     {
+      "name": "vs-generator",
+      "hidden": true,
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    },
+    {
       "name": "msvc-env",
       "hidden": true,
       "vendor": {
@@ -104,6 +115,17 @@
       }
     },
     {
+      "name": "clang-vs",
+      "hidden": true,
+      "inherits": [
+        "msvc-env"
+      ],
+      "toolset": {
+        "value": "ClangCL",
+        "strategy": "set"
+      }
+    },
+    {
       "name": "clang-linux",
       "hidden": true,
       "cacheVariables": {
@@ -112,156 +134,142 @@
       }
     },
     {
-      "name": "debug",
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_DEBUG_POSTFIX": "_d"
-      }
-    },
-    {
-      "name": "release",
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "Windows-MSVC-x64-Debug",
+      "name": "Windows-Ninja-MSVC-x64",
       "inherits": [
         "msvc",
-        "debug",
         "windows-base"
       ]
     },
     {
-      "name": "Windows-MSVC-x64-Release",
+      "name": "Windows-VisualStudio-MSVC-x64",
       "inherits": [
+        "vs-generator",
         "msvc",
-        "release",
         "windows-base"
       ]
     },
     {
-      "name": "Windows-MinGW-x64-Debug",
+      "name": "Windows-Ninja-Clang-x64",
+      "inherits": [
+        "clang",
+        "windows-base"
+      ]
+    },
+    {
+      "name": "Windows-VisualStudio-Clang-x64",
+      "inherits": [
+        "vs-generator",
+        "clang-vs",
+        "windows-base"
+      ]
+    },
+    {
+      "name": "Windows-Ninja-MinGW-x64",
       "inherits": [
         "gcc",
-        "debug",
         "mingw-base"
       ]
     },
     {
-      "name": "Windows-MinGW-x64-Release",
+      "name": "Linux-Ninja-GCC-x64",
       "inherits": [
         "gcc",
-        "release",
-        "mingw-base"
-      ]
-    },
-    {
-      "name": "Windows-Clang-x64-Debug",
-      "inherits": [
-        "clang",
-        "debug",
-        "windows-base"
-      ]
-    },
-    {
-      "name": "Windows-Clang-x64-Release",
-      "inherits": [
-        "clang",
-        "release",
-        "windows-base"
-      ]
-    },
-    {
-      "name": "Linux-GCC-x64-Debug",
-      "inherits": [
-        "gcc",
-        "debug",
         "linux-base"
       ]
     },
     {
-      "name": "Linux-GCC-x64-Release",
-      "inherits": [
-        "gcc",
-        "release",
-        "linux-base"
-      ]
-    },
-    {
-      "name": "Linux-Clang-x64-Debug",
+      "name": "Linux-Ninja-Clang-x64",
       "inherits": [
         "clang-linux",
-        "debug",
-        "linux-base"
-      ]
-    },
-    {
-      "name": "Linux-Clang-x64-Release",
-      "inherits": [
-        "clang-linux",
-        "release",
         "linux-base"
       ]
     }
   ],
   "buildPresets": [
     {
-      "name": "Windows-MSVC-x64-Debug",
-      "configurePreset": "Windows-MSVC-x64-Debug"
+      "name": "Windows-VisualStudio-MSVC-x64-VS-Debug",
+      "configurePreset": "Windows-VisualStudio-MSVC-x64",
+      "configuration": "Debug"
     },
     {
-      "name": "Windows-MSVC-x64-Release",
-      "configurePreset": "Windows-MSVC-x64-Release"
+      "name": "Windows-VisualStudio-MSVC-x64-VS-Release",
+      "configurePreset": "Windows-VisualStudio-MSVC-x64",
+      "configuration": "Release"
     },
     {
-      "name": "Windows-MinGW-x64-Debug",
-      "configurePreset": "Windows-MinGW-x64-Debug",
+      "name": "Windows-VisualStudio-Clang-x64-VS-Debug",
+      "configurePreset": "Windows-VisualStudio-Clang-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "Windows-VisualStudio-Clang-x64-VS-Release",
+      "configurePreset": "Windows-VisualStudio-Clang-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "Windows-Ninja-MSVC-x64-Debug",
+      "configurePreset": "Windows-Ninja-MSVC-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "Windows-Ninja-MSVC-x64-Release",
+      "configurePreset": "Windows-Ninja-MSVC-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "Windows-Ninja-Clang-x64-Debug",
+      "configurePreset": "Windows-Ninja-Clang-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "Windows-Ninja-Clang-x64-Release",
+      "configurePreset": "Windows-Ninja-Clang-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "Windows-Ninja-MinGW-x64-Debug",
+      "configurePreset": "Windows-Ninja-MinGW-x64",
+      "configuration": "Debug",
       "nativeToolOptions": [
         "-k1"
       ]
     },
     {
-      "name": "Windows-MinGW-x64-Release",
-      "configurePreset": "Windows-MinGW-x64-Release",
+      "name": "Windows-Ninja-MinGW-x64-Release",
+      "configurePreset": "Windows-Ninja-MinGW-x64",
+      "configuration": "Release",
       "nativeToolOptions": [
         "-k1"
       ]
     },
     {
-      "name": "Windows-Clang-x64-Debug",
-      "configurePreset": "Windows-Clang-x64-Debug"
-    },
-    {
-      "name": "Windows-Clang-x64-Release",
-      "configurePreset": "Windows-Clang-x64-Release"
-    },
-    {
-      "name": "Linux-GCC-x64-Debug",
-      "configurePreset": "Linux-GCC-x64-Debug",
+      "name": "Linux-Ninja-GCC-x64-Debug",
+      "configurePreset": "Linux-Ninja-GCC-x64",
+      "configuration": "Debug",
       "nativeToolOptions": [
         "-k1"
       ]
     },
     {
-      "name": "Linux-GCC-x64-Release",
-      "configurePreset": "Linux-GCC-x64-Release",
+      "name": "Linux-Ninja-GCC-x64-Release",
+      "configurePreset": "Linux-Ninja-GCC-x64",
+      "configuration": "Release",
       "nativeToolOptions": [
         "-k1"
       ]
     },
     {
-      "name": "Linux-Clang-x64-Debug",
-      "configurePreset": "Linux-Clang-x64-Debug",
+      "name": "Linux-Ninja-Clang-x64-Debug",
+      "configurePreset": "Linux-Ninja-Clang-x64",
+      "configuration": "Debug",
       "nativeToolOptions": [
         "-k1"
       ]
     },
     {
-      "name": "Linux-Clang-x64-Release",
-      "configurePreset": "Linux-Clang-x64-Release",
+      "name": "Linux-Ninja-Clang-x64-Release",
+      "configurePreset": "Linux-Ninja-Clang-x64",
+      "configuration": "Release",
       "nativeToolOptions": [
         "-k1"
       ]

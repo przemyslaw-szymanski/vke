@@ -14,7 +14,16 @@ target_include_directories(${RHI_LIBRARY_NAME} PRIVATE "${INCLUDE_DIR}" "${SOURC
 
 # Lookout for D3D12 library. If not found then we need to add the Windows SDK Lib path to the search dirs.
 # This way CMake can find D3D12.LIB required by the DirectX12 Agility SDK without additional manual steps.
-find_library(D3D12_LIB NAMES d3d12)
+# The Visual Studio generator runs without the x64 developer environment (no LIB variable), so a plain
+# search can pick up the x86 import library. Point it at the x64 SDK dir of the selected SDK version.
+set(_D3D12_LIB_HINTS)
+if(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION)
+    get_filename_component(_WIN_KITS_HINT_ROOT
+        "[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot10]"
+        ABSOLUTE)
+    set(_D3D12_LIB_HINTS "${_WIN_KITS_HINT_ROOT}/Lib/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/um/x64")
+endif()
+find_library(D3D12_LIB NAMES d3d12 HINTS ${_D3D12_LIB_HINTS})
 
 if("${D3D12_LIB}" STREQUAL "D3D12_LIB-NOTFOUND")
     # Resolve the Windows Kits 10 root. The Visual Studio generator provides the SDK version
@@ -47,14 +56,8 @@ set(LINK_D3D12_LIBS dxgi dxguid Microsoft::DirectX-Headers Microsoft::DirectX-Gu
 set(_AGILITY_BIN_DIR     "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
 set(_AGILITY_DBG_BIN_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/bin")
 
-# Multi-config generators (Visual Studio, Ninja Multi-Config) append the config name
-# to CMAKE_RUNTIME_OUTPUT_DIRECTORY, so the deploy dir must follow the same layout.
-#get_property(_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-#if(_IS_MULTI_CONFIG)
-#    set(_AGILITY_DST_DIR "${OUTPUT_DIR}/$<CONFIG>/D3D12")
-#else()
-    set(_AGILITY_DST_DIR "${OUTPUT_DIR}/D3D12")
-#endif()
+# OUTPUT_DIR already contains $<CONFIG>, so this follows the per-config layout.
+set(_AGILITY_DST_DIR "${OUTPUT_DIR}/D3D12")
 
 # D3D12Core.dll exists in both bin/ and debug/bin.
 # d3d12SDKLayers.dll only ships in debug/bin, so it is only deployed for Debug.
