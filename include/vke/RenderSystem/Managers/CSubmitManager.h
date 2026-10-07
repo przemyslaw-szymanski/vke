@@ -19,7 +19,7 @@ namespace VKE
             friend class CContextBase;
 
             // Max 10 command buffers per one submit
-            static const uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
+            static constexpr uint16_t DEFAULT_COMMAND_BUFFER_COUNT = 16;
             using CommandBufferArray = Utils::TCDynamicArray< CCommandBuffer*, DEFAULT_COMMAND_BUFFER_COUNT >;
             using RHICommandBufferArray =
                 Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;

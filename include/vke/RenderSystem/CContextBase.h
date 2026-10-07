@@ -46,7 +46,7 @@ namespace VKE
 
             using DescPoolArray = Utils::TCDynamicArray< handle_t >;
 
-            static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
+            static constexpr uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using CommandBufferArray    = Utils::TCDynamicArray< CommandBufferPtr, DEFAULT_CMD_BUFFER_COUNT >;
             using RHICommandBufferArray = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_CMD_BUFFER_COUNT >;
             using UintArray             = Utils::TCDynamicArray< uint32_t, DEFAULT_CMD_BUFFER_COUNT >;

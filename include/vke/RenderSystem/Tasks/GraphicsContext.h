@@ -27,7 +27,7 @@ namespace VKE
                 {
                     SPresent()
                     {
-                        VKE_DEBUG_CODE( char buff[ 128 ]; sprintf_s( buff, 128, "GraphicsContext Present: %p", this );
+                        VKE_DEBUG_CODE( char buff[ 128 ]; vke_sprintf( buff, 128, "GraphicsContext Present: %p", this );
                                         this->m_strDbgName = buff; );
                     }
 

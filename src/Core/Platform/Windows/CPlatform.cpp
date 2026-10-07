@@ -37,7 +37,7 @@
 #undef MemoryBarrier
 #undef Yield
 
-namespace VKE
+namespace VKE::Platform
 {
     void GetErrorMessage( ::DWORD errorCode, char* pBuffer, uint32_t bufferSize )
     {
@@ -57,9 +57,7 @@ namespace VKE
         VKE_LOG_ERR( "System Error: " << pBuffer << "\t" << pText );
     }
 
-    Platform::SProcessorInfo Platform::m_ProcessorInfo;
-
-    const Input::KEY Platform::KeyMap::s_aKeyMap[ Platform::KeyMap::MAP_SIZE ] = {
+    const Input::KEY KeyMap::s_aKeyMap[ KeyMap::MAP_SIZE ] = {
         Input::KEY::UNKNOWN,         // 0x00
         Input::KEY::LBUTTON,         // 0x01: VK_LBUTTON
         Input::KEY::RBUTTON,         // 0x02: VK_RBUTTON
@@ -317,27 +315,29 @@ namespace VKE
         Input::KEY::UNKNOWN,         // 0xFE: VK_OEM_CLEAR
     };
 
-    const Platform::SProcessorInfo& Platform::GetProcessorInfo()
+    const SProcessorInfo& GetProcessorInfo()
     {
-        if( m_ProcessorInfo.count == 0 )
+        static SProcessorInfo sProcessorInfo;
+
+        if( sProcessorInfo.count == 0 )
         {
             ::SYSTEM_INFO SysInfo;
             GetSystemInfo( &SysInfo );
-            m_ProcessorInfo.count = static_cast< uint16_t >( SysInfo.dwNumberOfProcessors );
+            sProcessorInfo.count = static_cast< uint16_t >( SysInfo.dwNumberOfProcessors );
             switch( SysInfo.wProcessorArchitecture )
             {
                 case PROCESSOR_ARCHITECTURE_AMD64:
-                    m_ProcessorInfo.architecture = Architectures::X64;
+                    sProcessorInfo.architecture = Architectures::X64;
                     break;
                 case PROCESSOR_ARCHITECTURE_INTEL:
-                    m_ProcessorInfo.architecture = Architectures::X86;
+                    sProcessorInfo.architecture = Architectures::X86;
                     break;
                 case PROCESSOR_ARCHITECTURE_ARM:
                 case PROCESSOR_ARCHITECTURE_ARM32_ON_WIN64:
-                    m_ProcessorInfo.architecture = Architectures::ARM32;
+                    sProcessorInfo.architecture = Architectures::ARM32;
                     break;
                 case PROCESSOR_ARCHITECTURE_ARM64:
-                    m_ProcessorInfo.architecture = Architectures::ARM64;
+                    sProcessorInfo.architecture = Architectures::ARM64;
                     break;
             }
             ::PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX pBuffer = nullptr;
@@ -373,18 +373,18 @@ namespace VKE
                 }
             }
         }
-        return m_ProcessorInfo;
+        return sProcessorInfo;
     }
 
-    cstr_t Platform::GetCmdLine()
+    cstr_t GetCmdLine()
     {
         return ::GetCommandLineA();
     }
 
-    static _CrtMemState                         g_sMemState1, g_sMemState2;
-    static Platform::Debug::CMemoryLeakDetector g_sMemLeakDetector;
+    static _CrtMemState               g_sMemState1, g_sMemState2;
+    static Debug::CMemoryLeakDetector g_sMemLeakDetector;
 
-    void Platform::Debug::BeginDumpMemoryLeaks()
+    void Debug::BeginDumpMemoryLeaks()
     {
         _CrtSetReportMode( _CRT_ERROR, _CRTDBG_MODE_DEBUG );
         //_CrtSetDbgFlag( _CRTDBG_DELAY_FREE_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -392,7 +392,7 @@ namespace VKE
         g_sMemLeakDetector.Start( "VKE GLOBAL SCOPE" );
     }
 
-    void Platform::Debug::EndDumpMemoryLeaks()
+    void Debug::EndDumpMemoryLeaks()
     {
         g_sMemLeakDetector.End();
         /*_CrtMemCheckpoint( &g_sMemState2 );
@@ -404,12 +404,12 @@ namespace VKE
         //_CrtDumpMemoryLeaks();
     }
 
-    void Platform::Debug::BreakAtAllocation( uint32_t idx )
+    void Debug::BreakAtAllocation( uint32_t idx )
     {
         _CrtSetBreakAlloc( idx );
     }
 
-    void Platform::Debug::CMemoryLeakDetector::Start( cstr_t pName )
+    void Debug::CMemoryLeakDetector::Start( cstr_t pName )
     {
 #if VKE_DEBUG
         m_pName = pName;
@@ -419,7 +419,7 @@ namespace VKE
 #endif
     }
 
-    bool Platform::Debug::CMemoryLeakDetector::End()
+    bool Debug::CMemoryLeakDetector::End()
     {
         bool ret = true;
 #if VKE_DEBUG
@@ -430,12 +430,12 @@ namespace VKE
             ret = _CrtMemDifference( &DiffState, &m_BeginState, &m_EndState );
             if( ret )
             {
-                Platform::Debug::PrintOutput( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
-                Platform::Debug::PrintOutput( "VKE MEMORY LEAKS DETECTION IN REGION:\n" );
-                Platform::Debug::PrintOutput( m_pName );
-                Platform::Debug::PrintOutput( "\n" );
+                Debug::PrintOutput( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
+                Debug::PrintOutput( "VKE MEMORY LEAKS DETECTION IN REGION:\n" );
+                Debug::PrintOutput( m_pName );
+                Debug::PrintOutput( "\n" );
                 _CrtMemDumpStatistics( &DiffState );
-                Platform::Debug::PrintOutput( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
+                Debug::PrintOutput( "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
             }
         }
 #endif
@@ -454,17 +454,17 @@ namespace VKE
         return ret;
     }
 
-    void Platform::Time::Sleep( uint32_t us )
+    void Time::Sleep( uint32_t us )
     {
         std::this_thread::sleep_for( std::chrono::microseconds( us ) );
     }
 
-    void Platform::Debug::PrintOutput( const cstr_t msg )
+    void Debug::PrintOutput( const cstr_t msg )
     {
         ::OutputDebugStringA( (LPCSTR)msg );
     }
 
-    void Platform::Debug::PrintStallstack()
+    void Debug::PrintStallstack()
     {
         const int MAX_FRAMES = 64;
         void*     stack[ MAX_FRAMES ];
@@ -527,7 +527,7 @@ namespace VKE
         SymCleanup( process );
     }
 
-    void Platform::Debug::ConvertErrorCodeToText( uint32_t err, char* pBuffOut, uint32_t buffSize )
+    void Debug::ConvertErrorCodeToText( uint32_t err, char* pBuffOut, uint32_t buffSize )
     {
         ::LPVOID pMsgBuff;
         ::FormatMessageA( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -544,23 +544,23 @@ namespace VKE
         LocalFree( pMsgBuff );
     }
 
-    handle_t Platform::DynamicLibrary::Load( const cstr_t name )
+    handle_t DynamicLibrary::Load( const cstr_t name )
     {
         return reinterpret_cast< handle_t >( ::LoadLibraryA( name ) );
     }
 
-    void Platform::DynamicLibrary::Close( const handle_t& handle )
+    void DynamicLibrary::Close( const handle_t& handle )
     {
         ::FreeLibrary( reinterpret_cast< HMODULE >( handle ) );
     }
 
-    void* Platform::DynamicLibrary::GetProcAddress( const handle_t& handle, const void* pSymbol )
+    void* DynamicLibrary::GetProcAddress( const handle_t& handle, const void* pSymbol )
     {
         return reinterpret_cast< void* >(
             ::GetProcAddress( reinterpret_cast< HMODULE >( handle ), reinterpret_cast< LPCSTR >( pSymbol ) ) );
     }
 
-    Platform::Time::TimePoint Platform::Time::GetHighResClockFrequency()
+    Time::TimePoint Time::GetHighResClockFrequency()
     {
         ::LARGE_INTEGER Freq;
         if( ::QueryPerformanceFrequency( &Freq ) == TRUE )
@@ -570,7 +570,7 @@ namespace VKE
         return 1;
     }
 
-    Platform::Time::TimePoint Platform::Time::GetHighResClockTimePoint()
+    Time::TimePoint Time::GetHighResClockTimePoint()
     {
         ::LARGE_INTEGER Counter;
         if( ::QueryPerformanceCounter( &Counter ) == TRUE )
@@ -580,13 +580,13 @@ namespace VKE
         return 0;
     }
 
-    double Platform::Time::TimePointToMicroseconds( TimePoint ticks, TimePoint freq )
+    double Time::TimePointToMicroseconds( TimePoint ticks, TimePoint freq )
     {
         double t = (double)ticks * 1000000;
         return t / freq;
     }
 
-    bool Platform::File::Exists( cstr_t pFileName )
+    bool File::Exists( cstr_t pFileName )
     {
         ::WIN32_FIND_DATA FindData;
         ::HANDLE          handle = ::FindFirstFileA( pFileName, &FindData );
@@ -599,7 +599,7 @@ namespace VKE
         return exists;
     }
 
-    bool Platform::File::IsDirectory( cstr_t pFileName )
+    bool File::IsDirectory( cstr_t pFileName )
     {
         bool ret;
         /*const std_filesystem::path path(pFileName);
@@ -611,7 +611,7 @@ namespace VKE
         return ret;
     }
 
-    uint32_t Platform::File::GetSize( cstr_t pFileName )
+    uint32_t File::GetSize( cstr_t pFileName )
     {
         handle_t hFile = Open( pFileName, Modes::READ );
         uint32_t size  = GetSize( hFile );
@@ -619,13 +619,13 @@ namespace VKE
         return size;
     }
 
-    uint32_t Platform::File::GetSize( handle_t hFile )
+    uint32_t File::GetSize( handle_t hFile )
     {
         ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
         return ::GetFileSize( hNative, nullptr );
     }
 
-    uint32_t Platform::File::GetDirectory( cstr_t pFileName, uint32_t fileNameSize, char** ppOut )
+    uint32_t File::GetDirectory( cstr_t pFileName, uint32_t fileNameSize, char** ppOut )
     {
         assert( ppOut && *ppOut );
         uint32_t dirNameSize = fileNameSize;
@@ -658,7 +658,7 @@ namespace VKE
         return dirNameSize;
     }
 
-    bool Platform::File::GetWorkingDirectory( const uint32_t bufferSize, char** ppOut )
+    bool File::GetWorkingDirectory( const uint32_t bufferSize, char** ppOut )
     {
         bool  ret = false;
         DWORD dw  = ::GetCurrentDirectory( (DWORD)bufferSize, *ppOut );
@@ -666,7 +666,7 @@ namespace VKE
         return ret;
     }
 
-    handle_t Platform::File::Create( cstr_t pFileName, MODE mode )
+    handle_t File::Create( cstr_t pFileName, MODE mode )
     {
         ::DWORD dwAccess = 0;
         ::DWORD dwShare  = 0;
@@ -697,7 +697,7 @@ namespace VKE
         return ret;
     }
 
-    bool Platform::File::CreateDir( cstr_t pDirPath )
+    bool File::CreateDir( cstr_t pDirPath )
     {
         bool ret = true;
         if( !Exists( pDirPath ) )
@@ -734,19 +734,19 @@ namespace VKE
         return ret;
     }
 
-    bool Platform::File::IsRelativePath( cstr_t pPath )
+    bool File::IsRelativePath( cstr_t pPath )
     {
         std_filesystem::path Path( pPath );
         return Path.is_relative();
     }
 
-    bool Platform::File::IsAbsolutePath( cstr_t pPath )
+    bool File::IsAbsolutePath( cstr_t pPath )
     {
         std_filesystem::path Path( pPath );
         return Path.is_absolute();
     }
 
-    handle_t Platform::File::Open( cstr_t pFileName, MODE mode )
+    handle_t File::Open( cstr_t pFileName, MODE mode )
     {
         ::DWORD dwAccess     = 0;
         ::DWORD dwShare      = 0;
@@ -778,7 +778,7 @@ namespace VKE
         return ret;
     }
 
-    void Platform::File::Close( handle_t* phFile )
+    void File::Close( handle_t* phFile )
     {
         handle_t& hFile   = *phFile;
         ::HANDLE  hNative = reinterpret_cast< ::HANDLE >( hFile );
@@ -786,7 +786,19 @@ namespace VKE
         hFile = 0;
     }
 
-    bool Platform::File::Seek( handle_t hFile, uint32_t offset, SEEK_MODE mode )
+    void File::Flush( handle_t hFile )
+    {
+        // ::WriteFile flushes write to OS cache by default.
+        (void)hFile;
+    }
+
+    void File::FlushSync( handle_t hFile )
+    {
+        ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
+        ::FlushFileBuffers( hNative );
+    }
+
+    bool File::Seek( handle_t hFile, uint32_t offset, SEEK_MODE mode )
     {
         static const uint32_t aModes[] = { FILE_BEGIN, FILE_CURRENT, FILE_END };
         ::HANDLE              hNative  = reinterpret_cast< ::HANDLE >( hFile );
@@ -795,7 +807,7 @@ namespace VKE
         return ::SetFilePointerEx( hNative, Offset, nullptr, aModes[ mode ] );
     }
 
-    uint32_t Platform::File::Read( handle_t hFile, SReadData* pData )
+    uint32_t File::Read( handle_t hFile, SReadData* pData )
     {
         ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
         ::DWORD  dwCount;
@@ -810,7 +822,7 @@ namespace VKE
         return dwCount;
     }
 
-    uint32_t Platform::File::Write( handle_t hFile, const SWriteInfo& Info )
+    uint32_t File::Write( handle_t hFile, const SWriteInfo& Info )
     {
         ::HANDLE hNative = reinterpret_cast< ::HANDLE >( hFile );
         ::DWORD  dwCount;
@@ -825,7 +837,7 @@ namespace VKE
         return dwCount;
     }
 
-    cstr_t Platform::File::GetExtension( cstr_t pFileName )
+    cstr_t File::GetExtension( cstr_t pFileName )
     {
         cstr_t pExt = strrchr( pFileName, '.' );
         if( pExt )
@@ -835,13 +847,13 @@ namespace VKE
         return pExt;
     }
 
-    cstr_t Platform::File::GetExtension( handle_t /*hFile*/ )
+    cstr_t File::GetExtension( handle_t /*hFile*/ )
     {
         assert( 0 && "not implemented" );
         return nullptr;
     }
 
-    bool Platform::File::GetFileName( cstr_t pFilePath, bool includeExtension, char** ppOut )
+    bool File::GetFileName( cstr_t pFilePath, bool includeExtension, char** ppOut )
     {
         bool                 ret = false;
         std_filesystem::path Path( pFilePath );
@@ -864,46 +876,46 @@ namespace VKE
         return ret;
     }
 
-    Platform::Thread::ID Platform::Thread::GetID()
+    Thread::ID Thread::GetID()
     {
         return ::GetCurrentThreadId();
     }
 
-    Platform::Thread::ID Platform::Thread::GetID( const handle_t& hThread )
+    Thread::ID Thread::GetID( const handle_t& hThread )
     {
         return ::GetThreadId( reinterpret_cast< HANDLE >( hThread ) );
     }
 
-    Platform::Thread::ID Platform::Thread::GetID( void* pHandle )
+    Thread::ID Thread::GetID( void* pHandle )
     {
         return ::GetThreadId( pHandle );
     }
 
-    void Platform::Thread::Sleep( uint32_t us )
+    void Thread::Sleep( uint32_t us )
     {
-        Platform::Time::Sleep( us );
+        Time::Sleep( us );
     }
 
-    /* void Platform::Thread::MemoryBarrier()
+    /* void Thread::MemoryBarrier()
      {
          __faststorefence();
      }*/
 
-    void Platform::Thread::Pause()
+    void Thread::Pause()
     {
         ::YieldProcessor();
         // std::this_thread::sleep_for( std::chrono::nanoseconds( 1 ) );
         // Sleep( 1000 );
     }
 
-    uint32_t Platform::Thread::GetMaxConcurrentThreadCount()
+    uint32_t Thread::GetMaxConcurrentThreadCount()
     {
         return std::thread::hardware_concurrency();
     }
 
-    void Platform::Thread::CSpinlock::Lock()
+    void Thread::CSpinlock::Lock()
     {
-        const auto id = Platform::Thread::GetID();
+        const auto id = Thread::GetID();
         if( m_threadId == id )
         {
             ++m_lockCount;
@@ -911,14 +923,14 @@ namespace VKE
         }
         while( ::InterlockedCompareExchange( &m_threadId, id, UNKNOWN_THREAD_ID ) != UNKNOWN_THREAD_ID )
         {
-            Platform::Thread::Pause();
+            Thread::Pause();
         }
         m_lockCount = 1;
         // linux
         // while( m_interlock == 1 || __sync_lock_test_and_set(&m_interlock, 1) == 1 );
     }
 
-    void Platform::Thread::CSpinlock::Unlock()
+    void Thread::CSpinlock::Unlock()
     {
         if( --m_lockCount == 0 )
         {
@@ -927,9 +939,9 @@ namespace VKE
         }
     }
 
-    bool Platform::Thread::CSpinlock::TryLock()
+    bool Thread::CSpinlock::TryLock()
     {
-        const auto id = Platform::Thread::GetID();
+        const auto id = Thread::GetID();
         if( m_threadId == id )
         {
             ++m_lockCount;
@@ -943,13 +955,13 @@ namespace VKE
         return true;
     }
 
-    void Platform::Thread::SetDesc( cstr_t pText )
+    void Thread::SetDesc( cstr_t pText )
     {
         Utils::TCString< wchar_t > Text = ResourceName( pText );
         ::SetThreadDescription( ::GetCurrentThread(), Text.GetData() );
     }
 
-    bool Platform::Thread::Wait( const ThreadFence& hFence, uint32_t value, Time::TimePoint timeout )
+    bool Thread::Wait( const ThreadFence& hFence, uint32_t value, Time::TimePoint timeout )
     {
         bool timeoutReached = false;
         if( timeout == 0 )
@@ -977,7 +989,7 @@ namespace VKE
         return timeoutReached;
     }
 
-} // namespace VKE
+} // namespace VKE::Platform
 
 // #if VKE_COMPILER_VISUAL_STUDIO || VKE_COMPILER_GCC
 // #   pragma pop_macro(VKE_TO_STRING(LoadLibrary))

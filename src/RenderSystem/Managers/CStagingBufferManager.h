@@ -35,13 +35,13 @@ namespace VKE
         {
             friend class CBufferManager;
             using CommandBufferArray                        = Utils::TCDynamicArray< CCommandBuffer* >;
-            static const uint8_t  MAX_BATCH_COUNT           = std::numeric_limits< uint8_t >::max();
-            static const uint8_t  MAX_BUFFER_COUNT          = std::numeric_limits< uint8_t >::max();
-            static const uint16_t MAX_CHUNK_COUNT           = std::numeric_limits< uint16_t >::max();
-            static const uint32_t MAX_CHUNK_SIZE            = std::numeric_limits< uint32_t >::max();
-            static const uint32_t PAGE_SIZE                 = Config::RenderSystem::Buffer::STAGING_BUFFER_PAGE_SIZE;
-            static const uint16_t MAX_PAGE_COUNT            = 0xFFF; // max number of pages in one buffer, 12 bits
-            static const uint16_t WHOLE_PAGE_BATCH_RESERVED = 0xFFFF;
+            static constexpr uint8_t MAX_BATCH_COUNT           = std::numeric_limits< uint8_t >::max();
+            static constexpr uint8_t MAX_BUFFER_COUNT          = std::numeric_limits< uint8_t >::max();
+            static constexpr uint16_t MAX_CHUNK_COUNT           = std::numeric_limits< uint16_t >::max();
+            static constexpr uint32_t MAX_CHUNK_SIZE            = std::numeric_limits< uint32_t >::max();
+            static constexpr uint32_t PAGE_SIZE      = Config::RenderSystem::Buffer::STAGING_BUFFER_PAGE_SIZE;
+            static constexpr uint16_t MAX_PAGE_COUNT = 0xFFF; // max number of pages in one buffer, 12 bits
+            static constexpr uint16_t WHOLE_PAGE_BATCH_RESERVED = 0xFFFF;
 
             struct SBufferChunk
             {

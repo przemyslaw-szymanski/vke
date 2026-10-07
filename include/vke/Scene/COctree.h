@@ -51,9 +51,9 @@ namespace VKE
 
             using ObjDataArray = Utils::TCDynamicArray< SObjectData, 1 >;
 
-            static const uint8_t CHILD_NODE_INDEX_BIT_COUNT = 3;
-            static const uint8_t NODE_LEVEL_BIT_COUNT       = 3;
-            static const uint8_t BUFFER_INDEX_BIT_COUNT     = 32 - CHILD_NODE_INDEX_BIT_COUNT - NODE_LEVEL_BIT_COUNT;
+            static constexpr uint8_t CHILD_NODE_INDEX_BIT_COUNT = 3;
+            static constexpr uint8_t NODE_LEVEL_BIT_COUNT       = 3;
+            static constexpr uint8_t BUFFER_INDEX_BIT_COUNT = 32 - CHILD_NODE_INDEX_BIT_COUNT - NODE_LEVEL_BIT_COUNT;
 
             SOctreeNode()
             {

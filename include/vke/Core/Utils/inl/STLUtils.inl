@@ -18,8 +18,8 @@ namespace VKE
         };
     };
 
-    static const Result VKE_OK   = Results::OK;
-    static const Result VKE_FAIL = Results::FAIL;
+    static constexpr Result VKE_OK   = Results::OK;
+    static constexpr Result VKE_FAIL = Results::FAIL;
 
 } // namespace VKE
 

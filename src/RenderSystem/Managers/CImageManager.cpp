@@ -446,17 +446,16 @@ namespace VKE
 
         Result CImageManager::_InitDirectXTex()
         {
-            Result ret = VKE_FAIL;
-#if VKE_USE_DIRECTXTEX
+            Result ret = VKE_OK;
+
+            // TODO: DirectXTex requires COM for WIC loads. This means LoadFromWICFile/Memory will be unavailable on
+            // Linux and requires a different library to handle PNG/JPEG/BMP codecs.
+#if VKE_USE_DIRECTXTEX && VKE_WINDOWS
             ::HRESULT hr = ::CoInitializeEx( nullptr, COINIT_MULTITHREADED );
             if( hr != S_OK )
             {
                 VKE_LOG_ERR( "Unable to initialize COM library." );
                 ret = VKE_FAIL;
-            }
-            else
-            {
-                ret = VKE_OK;
             }
 #endif
             return ret;
@@ -623,8 +622,8 @@ namespace VKE
                     {
                         ret           = VKE_FAIL;
                         FilePtr pFile = m_pFileMgr->LoadFile( Info );
-                        VKE_ASSERT( pFile!= nullptr );
-                        if( pFile!= nullptr )
+                        VKE_ASSERT( pFile != nullptr );
+                        if( pFile != nullptr )
                         {
                             pImage->_AddResourceState( Core::ResourceStates::LOADED );
                             VKE_LOG_IMGR( "Creating Image: " << Info.FileInfo.FileName );
@@ -743,6 +742,7 @@ namespace VKE
         }
 
 #if VKE_USE_DIRECTXTEX
+#if VKE_WINDOWS
         vke_force_inline DirectX::WICCodecs MapFileFormatToWICCodec( IMAGE_FILE_FORMAT fmt )
         {
             static const DirectX::WICCodecs aCodecs[] = {
@@ -756,6 +756,7 @@ namespace VKE
             };
             return aCodecs[ fmt ];
         }
+#endif
 
         vke_force_inline IMAGE_TYPE MapDXGIDimmensionToImageType( DirectX::TEX_DIMENSION dimm )
         {
@@ -797,20 +798,18 @@ namespace VKE
                         if( !DirectX::IsTypeless( Metadata.format ) )
                         {
                             Image.OverrideFormat( Metadata.format );
+                            ret = VKE_OK;
                         }
                         else
                         {
                             VKE_LOG_ERR( "Failed to load DDS image: " << pFileName << " due to typeless format." );
-                            goto ERR;
                         }
                     }
-
-                    ret = VKE_OK;
                 }
                 else
                 {
                     VKE_LOG_ERR( "Failed to load DDS image: " << pFileName << " error: " << hr );
-                    goto ERR;
+                    ret = VKE_FAIL;
                 }
             }
             else if( fileFormat == ImageFileFormats::TGA )
@@ -830,8 +829,10 @@ namespace VKE
                     ret = VKE_OK;
                 }
             }
-            else // Copied from Texconv.cpp
+            else
             {
+#if VKE_WINDOWS
+                // Copied from Texconv.cpp
                 // WIC shares the same filter values for mode and dither
                 static_assert( static_cast< int >( DirectX::WIC_FLAGS_DITHER ) ==
                                    static_cast< int >( DirectX::TEX_FILTER_DITHER ),
@@ -865,9 +866,12 @@ namespace VKE
                 else
                 {
                     VKE_LOG_ERR( "Failed to load WIC image: " << pFileName << " error: " << hr );
-                    goto ERR;
                 }
+#else
+                VKE_LOG_ERR( "Unimplemented load image" );
+#endif
             }
+
             if( VKE_SUCCEEDED( ret ) )
             {
                 SImageDesc Desc;
@@ -883,11 +887,6 @@ namespace VKE
             }
 #endif
             return ret;
-#if VKE_USE_DIRECTXTEX
-        ERR:
-            ret = VKE_FAIL;
-            return ret;
-#endif
         }
 
         Result CImageManager::_CreateImage( CFile* pFile, CImage** ppInOut )
@@ -958,7 +957,7 @@ namespace VKE
             const hash_t& srcHash = Info.hSrcImage.handle;
             CImage*       pDstImg = nullptr;
 
-            if( pSrcImg!= nullptr )
+            if( pSrcImg != nullptr )
             {
                 SImageRegion Region;
                 Region.Size   = Info.DstSize;
@@ -1144,10 +1143,10 @@ namespace VKE
                     if( pTmpMeta->width != Region.Size.width || pTmpMeta->height != Region.Size.height )
                     {
                         hr       = TmpImg.Initialize2D( DecompressedMeta.format,
-                                                  Region.Size.width,
-                                                  Region.Size.height,
-                                                  DecompressedMeta.arraySize,
-                                                  DecompressedMeta.mipLevels );
+                                                        Region.Size.width,
+                                                        Region.Size.height,
+                                                        DecompressedMeta.arraySize,
+                                                        DecompressedMeta.mipLevels );
                         pTmpMeta = &TmpImg.GetMetadata();
                     }
                     if( hr == S_OK )
@@ -1177,10 +1176,10 @@ namespace VKE
                                 auto&       DstDx   = pDstImg->m_DXImage;
                                 const auto& TmpMeta = TmpImg.GetMetadata();
                                 hr                  = DstDx.Initialize2D( SrcMeta.format,
-                                                         TmpMeta.width,
-                                                         TmpMeta.height,
-                                                         TmpMeta.arraySize,
-                                                         TmpMeta.mipLevels );
+                                                                          TmpMeta.width,
+                                                                          TmpMeta.height,
+                                                                          TmpMeta.arraySize,
+                                                                          TmpMeta.mipLevels );
                                 if( hr == S_OK )
                                 {
                                     hr = DirectX::Compress( TmpImg.GetImages(),
@@ -1316,7 +1315,7 @@ namespace VKE
             return hRet;
         }
 
-#if VKE_USE_DIRECTXTEX
+#if VKE_USE_DIRECTXTEX && VKE_WINDOWS
         DirectX::WICCodecs MapImageFormatToCodec( const IMAGE_FILE_FORMAT& fmt )
         {
             static const DirectX::WICCodecs aCodecs[] = {
@@ -1334,7 +1333,6 @@ namespace VKE
             };
             return aCodecs[ fmt ];
         }
-
 #endif
 
         Result CImageManager::Save( const SSaveImageInfo& Info )
@@ -1372,6 +1370,7 @@ namespace VKE
 
             Utils::TCString< wchar_t, Config::Resource::MAX_NAME_LENGTH > Name;
             Name.Convert( Info.pFileName );
+#if VKE_WINDOWS
             DirectX::WICCodecs codec = MapImageFormatToCodec( Info.format );
 
             if( codec != 0 )
@@ -1384,7 +1383,9 @@ namespace VKE
                     ret = VKE_OK;
                 }
             }
-            else if( Info.format == ImageFileFormats::TGA )
+            else
+#endif
+            if( Info.format == ImageFileFormats::TGA )
             {
                 ::HRESULT hr = DirectX::SaveToTGAFile( Img, Name.GetData(), nullptr );
                 if( hr == S_OK )
@@ -1433,12 +1434,12 @@ namespace VKE
             pOut->Size.width        = (RenderSystem::TextureSizeType)Metadata.width;
             pOut->Size.height       = (RenderSystem::TextureSizeType)Metadata.height;
             pOut->memoryUsage       = RenderSystem::MemoryUsages::GPU_ACCESS | RenderSystem::MemoryUsages::TEXTURE |
-                                RenderSystem::MemoryUsages::STATIC;
-            pOut->mipmapCount   = (uint16_t)Metadata.mipLevels;
-            pOut->multisampling = RenderSystem::SampleCounts::SAMPLE_1;
-            pOut->sliceCount    = (uint16_t)Metadata.depth;
-            pOut->type          = MapTexDimmensionToTextureType( Metadata.dimension );
-            pOut->usage         = RenderSystem::TextureUsages::SAMPLED | RenderSystem::TextureUsages::TRANSFER_DST;
+                                      RenderSystem::MemoryUsages::STATIC;
+            pOut->mipmapCount       = (uint16_t)Metadata.mipLevels;
+            pOut->multisampling     = RenderSystem::SampleCounts::SAMPLE_1;
+            pOut->sliceCount        = (uint16_t)Metadata.depth;
+            pOut->type              = MapTexDimmensionToTextureType( Metadata.dimension );
+            pOut->usage             = RenderSystem::TextureUsages::SAMPLED | RenderSystem::TextureUsages::TRANSFER_DST;
             // pOut->Name = pImg->GetDesc().Name;
             pOut->SetDebugName( pImg->GetDesc().Name.GetData() );
             // VKE_RENDER_SYSTEM_SET_DEBUG_NAME(*pOut, pOut->Name.GetData());

@@ -34,7 +34,7 @@ namespace VKE::Scene
 
         union UNodeHandle
         {
-            static const uint32_t MAX_NODE_INDEX = 0x3FFFFFF; // 26 bit max
+            static constexpr uint32_t MAX_NODE_INDEX = 0x3FFFFFF; // 26 bit max
 
             struct
             {
@@ -71,9 +71,9 @@ namespace VKE::Scene
             uint8_t corner : 4;
         };
 
-        static const uint8_t  MAX_LOD_COUNT   = 13; // 4 pow 13 == 67108864, fits to 26 bit index
-        static const uint8_t  LAST_LOD        = MAX_LOD_COUNT - 1u;
-        static const uint32_t MAIN_ROOT_COUNT = 4;
+        static constexpr uint8_t MAX_LOD_COUNT   = 13; // 4 pow 13 == 67108864, fits to 26 bit index
+        static constexpr uint8_t LAST_LOD        = MAX_LOD_COUNT - 1u;
+        static constexpr uint32_t MAIN_ROOT_COUNT = 4;
 
         struct SDrawData
         {

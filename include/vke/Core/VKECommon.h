@@ -25,23 +25,23 @@ namespace VKE
 
     namespace Constants
     {
-        static const uint32_t ENGINE_VERSION  = 1000;
-        static const cstr_t   ENGINE_NAME     = "Vulkan Engine";
-        static const uint32_t MAX_NAME_LENGTH = 256;
+        static constexpr uint32_t ENGINE_VERSION  = 1000;
+        static constexpr cstr_t   ENGINE_NAME     = "Vulkan Engine";
+        static constexpr uint32_t MAX_NAME_LENGTH = 256;
 
         namespace Threads
         {
-            static const int32_t COUNT_OPTIMAL = 0;
+            static constexpr int32_t COUNT_OPTIMAL = 0;
         } // namespace Threads
 
         namespace RenderSystem
         {
-            static const uint32_t MAX_RENDER_QUEUES                            = 1;
-            static const uint32_t MAX_PHYSICAL_DEVICES                         = 10;
-            static const uint32_t MAX_PHYSICAL_DEVICES_QUEUE_FAMILY_PROPERTIES = 10;
-            static const uint32_t MAX_EXTENSION_COUNT                          = 10;
-            static const uint32_t MAX_SWAP_CHAIN_ELEMENTS                      = 10;
-            static const uint32_t DEFAULT_DRAWCALL_COUNT                       = 1000;
+            static constexpr uint32_t MAX_RENDER_QUEUES                            = 1;
+            static constexpr uint32_t MAX_PHYSICAL_DEVICES                         = 10;
+            static constexpr uint32_t MAX_PHYSICAL_DEVICES_QUEUE_FAMILY_PROPERTIES = 10;
+            static constexpr uint32_t MAX_EXTENSION_COUNT                          = 10;
+            static constexpr uint32_t MAX_SWAP_CHAIN_ELEMENTS                      = 10;
+            static constexpr uint32_t DEFAULT_DRAWCALL_COUNT                       = 1000;
         } // namespace RenderSystem
 
         struct _SOptimal

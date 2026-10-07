@@ -58,17 +58,17 @@ namespace VKE
     using image_dimm_t = uint16_t;
     using image_size_t = image_dimm_t;
 
-    static const std::string  EMPTY_STRING  = "";
-    static const std::wstring EMPTY_WSTRING = L"";
-    static const uint32_t     UNDEFINED     = static_cast< uint32_t >( ~0 );
-    static const uint32_t     UNKNOWN       = static_cast< uint32_t >( ~0 );
-    static const uint32_t     NONE          = static_cast< uint32_t >( ~0 );
-    static const uint8_t      UNDEFINED_U8  = static_cast< uint8_t >( -1 );
-    static const uint16_t     UNDEFINED_U16 = static_cast< uint16_t >( -1 );
-    static const uint32_t     UNDEFINED_U32 = static_cast< uint32_t >( -1 );
-    static const uint64_t     UNDEFINED_U64 = static_cast< uint64_t >( -1 );
+    inline const std::string      EMPTY_STRING  = "";
+    inline const std::wstring     EMPTY_WSTRING = L"";
+    static constexpr uint32_t     UNDEFINED     = static_cast< uint32_t >( ~0 );
+    static constexpr uint32_t     UNKNOWN       = static_cast< uint32_t >( ~0 );
+    static constexpr uint32_t     NONE          = static_cast< uint32_t >( ~0 );
+    static constexpr uint8_t      UNDEFINED_U8  = static_cast< uint8_t >( -1 );
+    static constexpr uint16_t     UNDEFINED_U16 = static_cast< uint16_t >( -1 );
+    static constexpr uint32_t     UNDEFINED_U32 = static_cast< uint32_t >( -1 );
+    static constexpr uint64_t     UNDEFINED_U64 = static_cast< uint64_t >( -1 );
 
-    static const uint32_t INVALID_POSITION = static_cast< uint32_t >( ~0 );
+    static constexpr uint32_t INVALID_POSITION = static_cast< uint32_t >( ~0 );
 
     template< typename T, typename U >
     concept ConvertibleExtent = requires( U v ) {
@@ -282,10 +282,10 @@ namespace VKE
 
     using handle_t = uint64_t;
 
-    static const handle_t RANDOM_HANDLE = std::numeric_limits< handle_t >::max();
+    static constexpr handle_t RANDOM_HANDLE = std::numeric_limits< handle_t >::max();
 
-    // static const handle_t INVALID_HANDLE = 0;
-    // static const handle_t NULL_HANDLE_VALUE = (0);
+    // static constexpr handle_t INVALID_HANDLE = 0;
+    // static constexpr handle_t NULL_HANDLE_VALUE = (0);
 
     struct InvalidTag
     {

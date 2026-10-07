@@ -1148,7 +1148,7 @@ namespace VKE
                                      sizeof( pFileName ),
                                      "%s/%llu.%s",
                                      m_Desc.pShaderCacheFileName,
-                                     hash,
+                                     (unsigned long long)hash,
                                      m_Desc.pShaderCacheFileExt );
                         if( Platform::File::Exists( pFileName ) )
                         {
@@ -1200,7 +1200,7 @@ namespace VKE
                                          sizeof( pFileName ),
                                          "%s/%llu.%s",
                                          m_Desc.pShaderCacheFileName,
-                                         hash,
+                                         (unsigned long long)hash,
                                          m_Desc.pShaderCacheFileExt );
                             handle_t hFile = Platform::File::Create( pFileName, Platform::File::Modes::WRITE );
                             if( hFile )

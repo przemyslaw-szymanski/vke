@@ -25,7 +25,7 @@ namespace VKE
         struct SCommandBuffer
         {
             RHI::CommandBuffer handle   = RHI::Null;
-            uint32_t                 refCount = 0;
+            uint32_t           refCount = 0;
         };
 
         struct SCommandPoolDesc
@@ -44,8 +44,8 @@ namespace VKE
             friend class CRenderQueue;
             friend class CCommandBuffer;
 
-            static const uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
-            static const uint32_t MAX_THREAD_COUNT             = 32;
+            static constexpr uint32_t DEFAULT_COMMAND_BUFFER_COUNT = 64;
+            static constexpr uint32_t MAX_THREAD_COUNT             = 32;
 
             using RHICommandBufferVec = Utils::TCDynamicArray< RHI::CommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
             using CommandBufferVec    = Utils::TCDynamicArray< CCommandBuffer, DEFAULT_COMMAND_BUFFER_COUNT >;
@@ -54,12 +54,12 @@ namespace VKE
 
             struct SCommandPool
             {
-                CommandBufferVec             vCommandBuffers;
-                CommandBufferPtrVec          vpFreeCommandBuffers;
-                RHICommandBufferVec          vRHICommandBuffers;
-                Threads::SyncObject          SyncObj;
+                CommandBufferVec       vCommandBuffers;
+                CommandBufferPtrVec    vpFreeCommandBuffers;
+                RHICommandBufferVec    vRHICommandBuffers;
+                Threads::SyncObject    SyncObj;
                 RHI::CommandBufferPool hRHIPool = RHI::Null;
-                uint32_t                     handle   = INVALID_HANDLE;
+                uint32_t               handle   = INVALID_HANDLE;
             };
 
             using CommandPoolArray = Utils::TCDynamicArray< SCommandPool* >;
@@ -132,7 +132,7 @@ namespace VKE
             CommandPoolArray          m_avpPools[ MAX_THREAD_COUNT ];
             CCommandBuffer*           m_apCurrentCommandBuffers[ MAX_THREAD_COUNT ];
 #if VKE_DUMP_CB
-            FILE* m_pFile = nullptr;
+            handle_t m_hFile = INVALID_HANDLE;
 #endif
         };
 
@@ -200,16 +200,37 @@ namespace VKE
         void CCommandBufferManager::_LogCommand( CCommandBuffer* pCmdBuffer, cstr_t pFmt, _ArgsT&&... args )
         {
 #if VKE_DUMP_CB
-            if( m_pFile != nullptr )
+            if( m_hFile != INVALID_HANDLE )
             {
-                fprintf_s( m_pFile,
-                           "[%d][%p][%s]: ",
-                           Platform::ThisThread::GetID(),
-                           (void*)pCmdBuffer->GetRHIObject().ToVoidPtr(),
-                           pCmdBuffer->GetDebugName() );
-                fprintf_s( m_pFile, pFmt, std::forward< _ArgsT >( args )... );
-                fprintf_s( m_pFile, "\n" );
-                fflush( m_pFile );
+                static char  saBuffer[ 2048 ];
+                const size_t scBufferSize = sizeof( saBuffer );
+                size_t       used         = 0;
+
+                used += snprintf( saBuffer,
+                                  scBufferSize,
+                                  "[%d][%p][%s]: ",
+                                  static_cast< int >( Platform::ThisThread::GetID() ),
+                                  (void*)pCmdBuffer->GetRHIObject().ToVoidPtr(),
+                                  pCmdBuffer->GetDebugName() );
+
+                if constexpr( sizeof...( _ArgsT ) == 0 )
+                {
+                    // Prevents unsecure passing pFmt without params (Linux not handling this will throw
+                    // -Wformat-security).
+                    used += snprintf( saBuffer + used, scBufferSize - used, "%s", pFmt );
+                }
+                else
+                {
+                    used += snprintf( saBuffer + used, scBufferSize - used, pFmt, std::forward< _ArgsT >( args )... );
+                }
+
+                used += snprintf( saBuffer + used, scBufferSize - used, "\n" );
+
+                Platform::File::SWriteInfo writeInfo;
+                writeInfo.pData    = saBuffer;
+                writeInfo.dataSize = static_cast< uint32_t >( used );
+
+                Platform::File::Write( m_hFile, writeInfo );
             }
 #endif
         }

@@ -1,6 +1,7 @@
 #include "Core/Input/CInputSystem.h"
 #include "Core/Platform/CPlatform.h"
 #include "Core/Utils/CLogger.h"
+
 #if VKE_WINDOWS
 #include <windef.h>
 #include <basetsd.h>
@@ -393,4 +394,19 @@ namespace VKE
 
     } // namespace Input
 } // namespace VKE
+#elif VKE_LINUX
+
+namespace VKE::Input
+{
+
+    CInputSystem::CInputSystem()
+    {
+    }
+
+    CInputSystem::~CInputSystem()
+    {
+    }
+
+};
+
 #endif // VKE_WINDOWS

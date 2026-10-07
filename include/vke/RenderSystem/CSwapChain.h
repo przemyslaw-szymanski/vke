@@ -57,9 +57,9 @@ namespace VKE
             friend class CCommandBuffer;
             struct SPrivate;
 
-            using SAcquireElement = SBackBuffer::SAcquireElement;
+            using SAcquireElement = RenderSystem::SBackBuffer::SAcquireElement;
 
-            using BackBufferVec      = Utils::TCDynamicRingArray< SBackBuffer >;
+            using BackBufferVec      = Utils::TCDynamicRingArray< RenderSystem::SBackBuffer >;
             using AcquireElementVec  = Utils::TCDynamicArray< SAcquireElement >;
             using CPUFenceQueue      = std::deque< RHI::Fence >;
             using GPUFenceQueue      = std::deque< RHI::Fence >;

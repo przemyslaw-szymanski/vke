@@ -27,7 +27,7 @@ namespace VKE
     using UpdateCallbackVec   = vke_vector< CWindow::UpdateCallback >;
     using ShowCallbackVec     = vke_vector< CWindow::ShowCallback >;
 
-    static const DWORD SWP_FLAGS = SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
+    static constexpr DWORD SWP_FLAGS = SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED;
 
     struct WindowMessages
     {

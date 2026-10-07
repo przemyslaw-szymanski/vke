@@ -188,7 +188,7 @@ namespace VKE
             const Math::CVector4 vecWorldSpaceError( worldSpaceError );
             Math::CVector4       vecD, vecP;
             /// TODO: Cache this!
-            const float          k = View.screenWidth / ( 2.0f * std::tanf( View.halfFOV ) );
+            const float          k = View.screenWidth / ( 2.0f * tanf( View.halfFOV ) );
             const Math::CVector4 vecK( k );
             // d = error / distance
             Math::CVector4::Div( vecWorldSpaceError, *pvecDistanceOut, &vecD );
@@ -524,7 +524,7 @@ namespace VKE
                 const auto vecRootNodeSize = vecRootNodeExtents * 2.0f;
                 const auto RootAABB        = Math::CAABB( m_Desc.vecCenter, vecRootNodeExtents );
                 // Node is a square so bounding sphere radius is a diagonal
-                const float boundingSphereRadius = ( std::sqrtf( 2.0f ) * vecRootNodeExtents.x );
+                const float boundingSphereRadius = ( sqrtf( 2.0f ) * vecRootNodeExtents.x );
                 // const float boundingSphereRadius2 = vecRootNodeExtents.x;
                 Math::CVector3 vecRootNodeCenter;
                 uint32_t       currRootIdx = 0;

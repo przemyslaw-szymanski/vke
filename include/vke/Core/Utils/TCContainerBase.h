@@ -160,7 +160,7 @@ namespace VKE
             using iterator       = TCArrayIterator< DataType >;
             using const_iterator = TCArrayIterator< const DataType >;
 
-            static const uint32_t NPOS = UNDEFINED_U32;
+            static constexpr uint32_t NPOS = UNDEFINED_U32;
 
             using CompareFunc = std::function< bool( const DataType&, const DataType& ) >;
 

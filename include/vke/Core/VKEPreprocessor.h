@@ -155,7 +155,11 @@
 #define VKE_TEMPLATE_EXPORT( _type ) template _type VKE_API
 #define VKE_TEMPLATE_IMPORT( _type ) extern template _type VKE_API
 #else
-#define VKE_DLL_EXPORT __declspec( dllexport )
+#if __GNUC__ >= 4
+#define VKE_DLL_EXPORT __attribute__( ( visibility( "default" ) ) )
+#else
+#define VKE_DLL_EXPORT
+#endif
 #define VKE_DLL_IMPORT
 #define VKE_DLL_USED __attribute__( ( used ) )
 #define VKE_TEMPLATE_EXPORT( _type )

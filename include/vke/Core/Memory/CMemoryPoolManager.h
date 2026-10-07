@@ -26,7 +26,7 @@ namespace VKE
             ALLOC_FROM_FREE_WITH_FIRST_AVAILABLE
         };
 
-        static const uint64_t INVALID_ALLOCATION = UNDEFINED_U64;
+        static constexpr uint64_t INVALID_ALLOCATION = UNDEFINED_U64;
 
         struct SAllocateData
         {

@@ -16,9 +16,9 @@ namespace VKE
             using MemRangeVec = std::vector< MemRange >;
 
             // Max of 24 bits
-            static const uint32_t MAX_ALLOC_COUNT = 0xFFFFFF;
+            static constexpr uint32_t MAX_ALLOC_COUNT = 0xFFFFFF;
             // Max of 8 bits
-            static const uint32_t MAX_POOL_COUNT = 0xFF;
+            static constexpr uint32_t MAX_POOL_COUNT = 0xFF;
 
         public:
             struct SHandle

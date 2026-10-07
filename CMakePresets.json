@@ -98,6 +98,10 @@
     {
       "name": "gcc",
       "hidden": true,
+      "environment": {
+        "CC": "gcc",
+        "CXX": "g++"
+      },
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++"
@@ -128,6 +132,10 @@
     {
       "name": "clang-linux",
       "hidden": true,
+      "environment": {
+        "CC": "clang",
+        "CXX": "clang++"
+      },
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++"

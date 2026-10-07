@@ -68,7 +68,7 @@ namespace VKE
             using ThreadUsagesVec   = Utils::TCDynamicArray< ThreadUsages >;
             using InternalTaskVec   = Utils::TCDynamicArray< Task >;
 
-            static const size_t PAGE_SIZE = 1024;
+            static constexpr size_t PAGE_SIZE = 1024;
 
             struct SCalcWorkerIDDesc
             {

@@ -4,7 +4,13 @@ cmake_minimum_required(VERSION 3.20...3.31)
 # This allows using a globally installed vcpkg instead of a submodule.
 # Submodule is easy to use for new users, but a global installation is often preferred for faster builds.
 if(NOT VCPKG_EXECUTABLE)
-    find_program(VCPKG_EXECUTABLE vcpkg)
+    find_program(VCPKG_EXECUTABLE vcpkg
+        HINTS
+            "$ENV{VCPKG_ROOT}"
+            "$ENV{HOME}/vcpkg"
+            "$ENV{HOME}/.vcpkg"
+            "$ENV{USERPROFILE}/vcpkg"
+    )
 endif()
 
 if(VCPKG_EXECUTABLE)
@@ -64,7 +70,6 @@ set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(THIRD_PARTY_DIR "${SOURCE_DIR}/ThirdParty")
 set(THIRD_PARTY_LIB_DIRS "${LIB_DIR}")
 set(THIRD_PARTY_LIBS)
-set(DLL_DEPENDENCIES )
 
 set(VKE_DATA_DIR "${CMAKE_SOURCE_DIR}/bin" CACHE PATH "Root directory of runtime assets")
 
@@ -83,8 +88,6 @@ set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" ZLIB::ZLIB)
 if(VKE_USE_DIRECTX_SHADER_COMPILER)
     find_package(directx-dxc CONFIG REQUIRED)
     set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXShaderCompiler)
-    set(DLL_DEPENDENCIES ${DLL_DEPENDENCIES} "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin/dxcompiler.dll")
-    set(DLL_DEPENDENCIES ${DLL_DEPENDENCIES} "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin/dxil.dll")
 endif()
 
 find_package(directxtex CONFIG REQUIRED)
@@ -98,11 +101,6 @@ endif()
 
 find_package(directxmath CONFIG REQUIRED)
 set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXMath)
-
-#message("Third Party Libs:")
-#foreach(LIB IN LISTS THIRD_PARTY_LIBS)
-#    message(" - ${LIB}")
-#endforeach()
 
 add_subdirectory(include/vke/Core)
 add_subdirectory(include/vke/RenderSystem)
@@ -128,10 +126,6 @@ endif()
 
 add_dependencies(vkEngine vkEngineRenderSystem vkEngineScene)
 
-#set(PROJECT_LIBS debug vkEngineCore_d debug vkEngineRenderSystem_d debug vkEngineScene_d
-#    optimized vkEngineCore optimized vkEngineRenderSystem optimized vkEngineScene)
-
-#set(LINK_LIBS ${PROJECT_LIBS} ${THIRD_PARTY_LIBS})
 set(LINK_LIBS ${THIRD_PARTY_LIBS})
 
 # Handle libs that were previously in code used as #pragma comment lib.
@@ -139,21 +133,28 @@ if(WIN32)
     set(LINK_LIBS ${LINK_LIBS} dbghelp)
 endif()
 
-#message("Linking vkEngine with libs:")
-#foreach(LIB IN LISTS LINK_LIBS)
-#    message(" - ${LIB}")
-#endforeach()
+target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngineScene ${LINK_LIBS})
 
-if(DLL_DEPENDENCIES)
-    add_custom_command(TARGET vkEngine POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DLL_DEPENDENCIES}
-                $<TARGET_FILE_DIR:vkEngine>
-        COMMAND_EXPAND_LISTS
-        VERBATIM)
+# dxcompiler.dll is loaded at runtime via Platform::DynamicLibrary (CShaderCompiler.cpp) and dxil.dll
+# is loaded at runtime by dxcompiler, so neither is in vkEngine's import table and vcpkg's
+# VCPKG_APPLOCAL_DEPS cannot detect them. Copy both explicitly. Linux needs nothing: RPATH handles it.
+if(VKE_WINDOWS AND VKE_USE_DIRECTX_SHADER_COMPILER)
+    foreach(_dxc_dll IN ITEMS dxcompiler dxil)
+        string(TOUPPER "${_dxc_dll}" _dxc_dll_upper)
+        find_file(VKE_${_dxc_dll_upper}_DLL ${_dxc_dll}.dll
+            PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin"
+            NO_DEFAULT_PATH)
+        if(VKE_${_dxc_dll_upper}_DLL)
+            add_custom_command(TARGET vkEngine POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${VKE_${_dxc_dll_upper}_DLL}" "$<TARGET_FILE_DIR:vkEngine>"
+                VERBATIM)
+        else()
+            message(WARNING "${_dxc_dll}.dll not found in ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin; DXC will fail at runtime.")
+        endif()
+    endforeach()
 endif()
 
-target_link_libraries(vkEngine PRIVATE vkEngineRenderSystem vkEngineCore vkEngineScene ${LINK_LIBS})
 include(LinkSettings.cmake NO_POLICY_SCOPE)
 
 # Set Vulkan layer path for Visual Studio debugging
@@ -162,6 +163,13 @@ if(VKE_COMPILE_VULKAN_RHI)
     set_target_properties(vkEngine PROPERTIES
         VS_DEBUGGER_ENVIRONMENT "VK_ADD_LAYER_PATH=${VULKAN_LAYER_PATH}"
     )
+endif()
+
+# CMake can't find a library search order (RPATH) that's right for every library the program loads at runtime.
+if(VKE_LINUX)
+    set_target_properties(vkEngine PROPERTIES
+        SKIP_BUILD_RPATH ON
+        BUILD_RPATH "$ORIGIN")
 endif()
 
 if(BUILD_SAMPLES_ENABLED)

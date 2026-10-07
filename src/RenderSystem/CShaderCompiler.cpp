@@ -28,8 +28,8 @@ namespace VKE
 #define VKE_HR_OK S_OK
 #define VKE_HR_FAIL S_FALSE
 #else
-#define VKE_HR_OK 0
-#define VKE_HR_FAIL = -1
+#define VKE_HR_OK S_OK
+#define VKE_HR_FAIL S_FALSE
 #endif
 
     namespace RenderSystem
@@ -48,12 +48,12 @@ namespace VKE
             Result Initialize()
             {
                 const char* pDllName;
-#if _WIN32
+#if VKE_WINDOWS
                 pDllName = "dxcompiler.dll";
-#elif __APPLE__
-                pDllName = "libdxcompiler.dylib";
-#else
+#elif VKE_LINUX
                 pDllName = "libdxcompiler.so";
+#else
+#error "Unhandled OS"
 #endif
                 hDll = Platform::DynamicLibrary::Load( pDllName );
                 if( hDll != INVALID_HANDLE )
@@ -146,7 +146,7 @@ namespace VKE
         size_t vke_force_inline ConvertCSTRToWCSTR( wchar_t* pDst, uint32_t dstSize, cstr_t pSrc, uint32_t srcSize )
         {
             size_t ret;
-            mbstowcs_s( &ret, pDst, dstSize, pSrc, srcSize );
+            vke_mbstowcs( ret, pDst, dstSize, pSrc, srcSize );
             return ret;
         }
 

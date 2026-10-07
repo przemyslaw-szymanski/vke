@@ -781,11 +781,11 @@ namespace VKE
 
         struct GraphicsQueueTypes
         {
-            static const uint32_t RENDER     = VKE_BIT( 0 );
-            static const uint32_t COMPUTE    = VKE_BIT( 1 );
-            static const uint32_t TRANSFER   = VKE_BIT( 2 );
-            static const uint32_t _MAX_COUNT = 3;
-            static const uint32_t GENERAL    = RENDER | COMPUTE | TRANSFER;
+            static constexpr uint32_t RENDER     = VKE_BIT( 0 );
+            static constexpr uint32_t COMPUTE    = VKE_BIT( 1 );
+            static constexpr uint32_t TRANSFER   = VKE_BIT( 2 );
+            static constexpr uint32_t _MAX_COUNT = 3;
+            static constexpr uint32_t GENERAL    = RENDER | COMPUTE | TRANSFER;
         };
 
         using GRAPHICS_QUEUE_TYPE = uint32_t;
@@ -2954,7 +2954,7 @@ namespace VKE
                 uint16_t        offset;
             };
 
-            static const auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
+            static constexpr auto MAX_COUNT = Config::RenderSystem::Pipeline::MAX_PIPELINE_LAYOUT_DESCRIPTOR_SET_COUNT;
             using DescSetLayoutArray    = Utils::TCDynamicArray< RHI::DescriptorSetLayout, MAX_COUNT >;
             using PushConstantArray     = Utils::TCDynamicArray< SPushConstantDesc, 4 >;
 
@@ -3622,7 +3622,7 @@ namespace VKE
 
         struct SExecuteBatch
         {
-            static const uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
+            static constexpr uint32_t DEFAULT_CMD_BUFFER_COUNT = 32;
             using ExecuteBatchArray                        = Utils::TCDynamicArray< SExecuteBatch*, 4 >;
             using SemaphoreArray                           = Utils::TCDynamicArray< RHI::GPUFence, 8 >;
             VKE_RENDER_SYSTEM_DEBUG_NAME;
@@ -3743,7 +3743,7 @@ namespace VKE
 
         struct SBarrierInfo
         {
-            static const uint16_t MAX_BARRIER_COUNT = 16;
+            static constexpr uint16_t MAX_BARRIER_COUNT = 16;
 
             using MemoryBarrierArray  = Utils::TCDynamicArray< SMemoryBarrierInfo, MAX_BARRIER_COUNT >;
             using TextureBarrierArray = Utils::TCDynamicArray< STextureBarrierInfo, MAX_BARRIER_COUNT >;

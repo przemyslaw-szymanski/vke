@@ -90,13 +90,13 @@ struct VkICD
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
         // VK_KHR_xcb_surface
-        VKE_INSTANCE_ICD( vkCreateXcbSurfaceKHR )
+        VKE_INSTANCE_ICD( vkCreateXcbSurfaceKHR );
         VKE_INSTANCE_ICD( vkGetPhysicalDeviceXcbPresentationSupportKHR );
 #endif
 
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
         // VK_KHR_android_surface
-        VKE_INSTANCE_ICD( vkCreateAndroidSurfaceKHR )
+        VKE_INSTANCE_ICD( vkCreateAndroidSurfaceKHR );
 #endif
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR

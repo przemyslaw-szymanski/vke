@@ -218,19 +218,25 @@ namespace VKE
     } // namespace Input
 } // namespace VKE
 
-#if VKE_WINDOWS
 namespace VKE
 {
     namespace Input
     {
+#if VKE_WINDOWS
         using Keyboard     = ::RAWINPUTDEVICE;
         using Mouse        = ::RAWINPUTDEVICE;
         using GamePad      = ::RAWINPUTDEVICE;
         using Joystick     = ::RAWINPUTDEVICE;
         using DeviceHandle = ::HANDLE;
+#elif VKE_LINUX
+        using Keyboard     = void*;
+        using Mouse        = void*;
+        using GamePad      = void*;
+        using Joystick     = void*;
+        using DeviceHandle = void*;
+#endif // VKE_WINDOWS
     } // namespace Input
 } // namespace VKE
-#endif // VKE_WINDOWS
 
 #if VKE_USE_XINPUT
 namespace VKE

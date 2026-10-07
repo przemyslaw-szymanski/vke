@@ -431,7 +431,7 @@ namespace VKE::RenderSystem::RHI
 
     struct TSPipelineStateStreamBuffer
     {
-        static const size_t scBufferByteSize = 2048;
+        static constexpr size_t scBufferByteSize = 2048;
 
         template< typename SubobjectTypeT >
         void vke_force_inline AddData( const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Type, const SubobjectTypeT& Data )
@@ -2450,7 +2450,7 @@ namespace VKE::RenderSystem::RHI
                 WORD VersionBuild = DriverVersion.QuadPart & 0xFFFF;
 
                 char Buffer[ 128 ];
-                sprintf_s( &Buffer[ 0 ], 128, "%u.%u.%u.%u", VersionMajor, VersionMinor, VersionPatch, VersionBuild );
+                vke_sprintf( &Buffer[ 0 ], 128, "%u.%u.%u.%u", VersionMajor, VersionMinor, VersionPatch, VersionBuild );
                 VKE_LOG( Buffer );
 
                 AdapterInfo.driverVersion = ( VersionMajor << 16 ) | VersionPatch;

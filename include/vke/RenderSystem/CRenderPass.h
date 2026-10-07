@@ -19,7 +19,7 @@ namespace VKE
             friend class CCommandBuffer;
 
         public:
-            static const uint32_t MAX_RT_COUNT = 8;
+            static constexpr uint32_t MAX_RT_COUNT = 8;
 
         protected:
             using ImageArray       = Utils::TCDynamicArray< RHI::Texture, 8 >;

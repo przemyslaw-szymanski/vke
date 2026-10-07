@@ -1,3 +1,6 @@
+// For std::cout later on...
+#include <iostream>
+
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"
 #include "RenderSystem/CContextBase.h"
@@ -818,7 +821,7 @@ namespace VKE
                 }
 
                 char buff[ 128 ];
-                sprintf_s( buff, "Cannot convert VkFormat: %d to Engine format.", vkFormat );
+                vke_sprintf( buff, sizeof(buff), "Cannot convert VkFormat: %d to Engine format.", vkFormat );
                 VKE_ASSERT2( 0, buff );
                 return RenderSystem::Formats::UNDEFINED;
             }
@@ -2406,8 +2409,9 @@ namespace VKE
 #if VKE_USE_VULKAN_WINDOWS
                 isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR( hAdapter, i );
 #elif VKE_USE_VULKAN_LINUX
-                isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
-                    hAdapter, i, xcb_connection, visual_id );
+                //isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
+                //    hAdapter, i, xcb_connection, visual_id );
+                VKE_LOG_ERR( "Unimplemented" );
 #elif VKE_USE_VULKAN_ANDROID
 #error "implement"
 #endif
@@ -5160,12 +5164,14 @@ namespace VKE
                 vkRes               = SImplementation::sInstanceICD.vkCreateWin32SurfaceKHR(
                     SImplementation::sVkInstance, &SurfaceCI, nullptr, &hSurface );
 #elif VKE_USE_VULKAN_LINUX
-                VkXcbSurfaceCreateInfoKHR SurfaceCI;
-                RHI::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR );
-                SurfaceCI.flags      = 0;
-                SurfaceCI.connection = reinterpret_cast< xcb_connection_t* >( m_Desc.hPlatform );
-                SurfaceCI.window     = m_Desc.hWnd;
-                EXPECT_SUCCESS( Vk.vkCreateXcbSurfaceKHR( s_instance, &SurfaceCI, NO_ALLOC_CALLBACK, &s_surface ) )
+                //VkXcbSurfaceCreateInfoKHR SurfaceCI;
+                //RHI::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR );
+                //SurfaceCI.flags      = 0;
+                //SurfaceCI.connection = reinterpret_cast< xcb_connection_t* >( m_Desc.hPlatform );
+                //SurfaceCI.window     = m_Desc.hWnd;
+                //EXPECT_SUCCESS( Vk.vkCreateXcbSurfaceKHR( s_instance, &SurfaceCI, NO_ALLOC_CALLBACK, &s_surface ) )
+                vkRes = VK_SUCCESS;
+                VKE_LOG_ERR( "Unimplemented" );
 #elif VKE_USE_VULKAN_ANDROID
                 VkAndroidSurfaceCreateInfoKHR SurfaceCI;
                 RHI::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR );

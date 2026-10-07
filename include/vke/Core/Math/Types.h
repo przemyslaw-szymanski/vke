@@ -67,9 +67,9 @@ namespace VKE
         using NativeBoundingSphere = DirectX::BoundingSphere;
         using NativeQuaternion     = DirectX::XMVECTOR;
 
-        static const float PI       = DirectX::XM_PI;
-        static const float PI_DIV_2 = DirectX::XM_PIDIV2;
-        static const float PI_MUL_2 = DirectX::XM_2PI;
+        static constexpr float PI       = DirectX::XM_PI;
+        static constexpr float PI_DIV_2 = DirectX::XM_PIDIV2;
+        static constexpr float PI_MUL_2 = DirectX::XM_2PI;
 
 #if VKE_SIMD
         using NativeVector4Ref = NativeVector4;

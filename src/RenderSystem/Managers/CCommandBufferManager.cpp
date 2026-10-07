@@ -29,9 +29,10 @@ namespace VKE
                 }
                 vpPools.Clear();
 #if VKE_DUMP_CB
-                if( m_pFile != nullptr )
+                if( m_hFile != INVALID_HANDLE )
                 {
-                    fclose( m_pFile );
+                    Platform::File::FlushSync( m_hFile );
+                    Platform::File::Close( &m_hFile );
                 }
 #endif
             }
@@ -43,9 +44,9 @@ namespace VKE
             m_Desc     = Desc;
             memset( m_apCurrentCommandBuffers, 0, sizeof( m_apCurrentCommandBuffers ) );
 #if VKE_DUMP_CB
-            if( m_pFile == nullptr )
+            if( m_hFile == INVALID_HANDLE )
             {
-                fopen_s( &m_pFile, "CommandBufferDump.txt", "w" );
+                m_hFile = Platform::File::Open( "CommandBufferDump.txt", Platform::File::Modes::WRITE );
             }
 #endif
             ret = VKE_OK;
