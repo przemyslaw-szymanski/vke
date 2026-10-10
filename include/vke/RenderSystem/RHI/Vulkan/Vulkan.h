@@ -72,11 +72,11 @@ namespace VKE::RenderSystem::RHI
 #else
         static cstr_t g_pVkLibName = "vulkan-1.dll";
 #endif // ARCHITECTURE
-#elif VKE_LINUX || VKE_ANDROID
-        static cstr_t g_pVkLibName = "libvulkan-1.so";
+#elif VKE_ANDROID
+        static cstr_t g_pVkLibName = "libvulkan.so";
+#elif VKE_LINUX
+        static cstr_t g_pVkLibName = "libvulkan.so.1";
 #endif
-
-        static cstr_t g_pVulkanLibName = g_pVkLibName;
 
         template< typename _INFO_, typename _TYPE_ >
         vke_force_inline void InitInfo( _INFO_* pInfo, _TYPE_ type )

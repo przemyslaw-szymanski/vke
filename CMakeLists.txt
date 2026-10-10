@@ -87,7 +87,11 @@ set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" ZLIB::ZLIB)
 
 if(VKE_USE_DIRECTX_SHADER_COMPILER)
     find_package(directx-dxc CONFIG REQUIRED)
-    set(THIRD_PARTY_LIBS "${THIRD_PARTY_LIBS}" Microsoft::DirectXShaderCompiler)
+    # DXC is loaded at runtime (CShaderCompiler.cpp), so only its headers are needed. Linking
+    # Microsoft::DirectXShaderCompiler adds DT_NEEDED entries without --as-needed (Clang/lld), and
+    # vcpkg's libdxil.so has SONAME libdxildll.so which does not exist on disk.
+    get_target_property(VKE_DXC_INCLUDE_DIRS Microsoft::DirectXShaderCompiler INTERFACE_INCLUDE_DIRECTORIES)
+    include_directories(${VKE_DXC_INCLUDE_DIRS})
 endif()
 
 find_package(directxtex CONFIG REQUIRED)
@@ -167,9 +171,20 @@ endif()
 
 # CMake can't find a library search order (RPATH) that's right for every library the program loads at runtime.
 if(VKE_LINUX)
+    # dlopen() from vkEngine only searches vkEngine's own RUNPATH, so it must contain $ORIGIN.
     set_target_properties(vkEngine PROPERTIES
-        SKIP_BUILD_RPATH ON
-        BUILD_RPATH "$ORIGIN")
+        BUILD_WITH_INSTALL_RPATH ON
+        INSTALL_RPATH "$ORIGIN")
+
+    # libdxcompiler.so is dlopen()ed by CShaderCompiler.cpp and itself dlopen()s libdxil.so using its
+    # own RUNPATH ($ORIGIN), so deploy both next to vkEngine.
+    if(VKE_USE_DIRECTX_SHADER_COMPILER)
+        set(_dxc_lib_dir "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/$<IF:$<CONFIG:Debug>,debug/lib,lib>")
+        add_custom_command(TARGET vkEngine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${_dxc_lib_dir}/libdxcompiler.so" "${_dxc_lib_dir}/libdxil.so" "$<TARGET_FILE_DIR:vkEngine>"
+            VERBATIM)
+    endif()
 endif()
 
 if(BUILD_SAMPLES_ENABLED)

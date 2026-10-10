@@ -243,7 +243,7 @@ namespace VKE
                 {
                     if( !m_File.is_open() )
                     {
-                        m_File.open( "f:\\projects\\vke\\bin\\log.txt", std::ios::out );
+                        m_File.open( "./log.txt", std::ios::out );
                     }
                     if( m_File.is_open() )
                     {

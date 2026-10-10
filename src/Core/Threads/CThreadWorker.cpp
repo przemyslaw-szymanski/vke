@@ -129,6 +129,8 @@ namespace VKE
 
         void CThreadWorker::Start()
         {
+            m_platformThreadId = Platform::ThisThread::GetID();
+            m_pPool->_OnWorkerStarted( m_Desc.id, m_platformThreadId );
             Platform::ThisThread::SetDesc( m_Desc.Desc.Name.GetData() );
             volatile uint32_t idx           = m_Desc.id;
             ThreadUsages      WorkerUsages  = m_Desc.Usages;
@@ -246,12 +248,12 @@ namespace VKE
             return VKE_FAIL;
         }
 
-        std::thread::id CThreadWorker::AddTask( Threads::ITask* pTask )
+        Platform::Thread::ID CThreadWorker::AddTask( Threads::ITask* pTask )
         {
             Threads::ScopedLock l( m_TaskSyncObj );
             m_qTasks.push_back( pTask );
             m_totalTaskWeight += pTask->GetTaskWeight();
-            return GetThreadID();
+            return GetPlatformThreadID();
         }
 
         /*std::thread::id CThreadWorker::AddConstantWork( const WorkFunc2& Func, void* pPtr )
@@ -261,7 +263,7 @@ namespace VKE
             m_ConstantTaskSyncObj.Unlock();
             return GetThreadID();
         }*/
-        std::thread::id CThreadWorker::AddConstantTask( Threads::ITask* pTask, TaskState state )
+        Platform::Thread::ID CThreadWorker::AddConstantTask( Threads::ITask* pTask, TaskState state )
         {
             Threads::ScopedLock l( m_ConstantTaskSyncObj );
             VKE_ASSERT( strlen( pTask->GetName() ) > 0 );
@@ -273,7 +275,7 @@ namespace VKE
             pTask->m_state       = state;
             pTask->m_pState      = &m_ConstantTasks.vStates[ id ];
             m_Flags             |= pTask->Flags;
-            return GetThreadID();
+            return GetPlatformThreadID();
         }
 
         void CThreadWorker::Stop()

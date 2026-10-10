@@ -31,7 +31,7 @@ namespace VKE
     };
 
     using SThreadWorkerID = TSThreadID< int32_t, -1 >;
-    using SNativeThreadID = TSThreadID< Platform::Thread::ID, 0 >;
+    using SNativeThreadID = TSThreadID< Platform::Thread::ID, Platform::Thread::UNKNOWN_THREAD_ID >;
 
     namespace Threads
     {
@@ -61,6 +61,7 @@ namespace VKE
             using WorkerID          = SThreadWorkerID;
             using TaskGroupVec      = Utils::TCDynamicArray< Threads::CTaskGroup*, 64 >;
             using WorkerVec         = Utils::TCDynamicArray< CThreadWorker, 16 >;
+            using PlatformThreadIDVec = Utils::TCDynamicArray< Platform::Thread::ID, 16 >;
             using TaskQueueArray    = Utils::TCDynamicArray< InternalTaskQueue >;
             using TaskIndexMap      = vke_hash_map< ThreadUsages, WorkerID >;
             using TaskQueueMap      = vke_hash_map< ThreadUsages, TaskQueue >;
@@ -119,7 +120,7 @@ namespace VKE
 
             const NativeThreadID GetOSThreadId( uint32_t id )
             {
-                return NativeThreadID( Platform::Thread::GetID( m_vThreads[ id ].native_handle() ) );
+                return NativeThreadID( m_vPlatformThreadIds[ id ] );
             }
 
             WorkerID GetThisThreadID() const;
@@ -132,7 +133,8 @@ namespace VKE
             // Threads::ITask* _PopTask(THREAD_USAGES usages);
             bool     _PopTask( ThreadUsages usages, Task* ppTask );
             bool     _PopTaskFromQueue( uint32_t workerIdx, Task* ppTask );
-            WorkerID _FindThread( NativeThreadID id );
+            WorkerID _FindThread( NativeThreadID id ) const;
+            void     _OnWorkerStarted( uint32_t workerIdx, Platform::Thread::ID platformThreadId );
 
             TASK_RESULT _RunTask( ThreadUsages usages, Task pTask )
             {
@@ -162,6 +164,9 @@ namespace VKE
         protected:
             SThreadPoolInfo m_Desc;
             ThreadVec       m_vThreads;
+            // Platform thread ID per worker; written once by each worker at start, read-only afterwards.
+            PlatformThreadIDVec     m_vPlatformThreadIds;
+            std::atomic< uint32_t >             m_startedWorkerCount = 0;
             TaskGroupVec    m_vpTaskGroups;
             WorkerVec       m_vWorkers;
             memptr_t        m_pMemPool = nullptr;

@@ -80,17 +80,17 @@ namespace VKE
             Result AddWork( const WorkFunc& Func, const STaskParams& Params, uint8_t weight, uint8_t priority,
                             int32_t threadId );
             // std::thread::id AddConstantWork( const WorkFunc2& Func, void* pPtr );
-            std::thread::id AddConstantTask( Threads::ITask* pTask, TaskState state );
-            std::thread::id AddTask( Threads::ITask* pTask );
+            Platform::Thread::ID AddConstantTask( Threads::ITask* pTask, TaskState state );
+            Platform::Thread::ID AddTask( Threads::ITask* pTask );
 
             uint32_t GetWorkCount() const
             {
                 return static_cast< uint32_t >( m_qWorks.size() );
             }
 
-            std::thread::id GetThreadID() const
+            Platform::Thread::ID GetPlatformThreadID() const
             {
-                return m_ThreadId;
+                return m_platformThreadId;
             }
 
             SWorkerData* GetFreeData();
@@ -135,7 +135,7 @@ namespace VKE
             // UsageVec m_vUsages;
             CThreadPool*    m_pPool                  = nullptr;
             uint32_t        m_memPoolSize            = 0;
-            std::thread::id m_ThreadId               = std::this_thread::get_id();
+            Platform::Thread::ID m_platformThreadId  = Platform::Thread::UNKNOWN_THREAD_ID;
             uint32_t        m_totalTaskWeight        = 0;
             uint32_t        m_totalTaskPriority      = 0;
             float           m_totalTimeUS            = 0.0f;

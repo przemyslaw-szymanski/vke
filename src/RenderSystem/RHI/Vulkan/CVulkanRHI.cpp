@@ -2042,15 +2042,15 @@ namespace VKE
         Result CRHI::Load( const SRHILoadInfo& Info, SDriverInfo* pOut )
         {
             Result ret = VKE_OK;
-            VKE_LOG( "VKEngine loading vulkan-1.dll" );
+            VKE_LOG( "VKEngine loading " << g_pVkLibName );
 
             auto& sGlobalICD = SImplementation::sGlobalICD;
             auto& shICD      = SImplementation::shICD;
 
-            shICD = Platform::DynamicLibrary::Load( "vulkan-1.dll" );
+            shICD = Platform::DynamicLibrary::Load( g_pVkLibName );
             if( shICD != 0 )
             {
-                VKE_LOG( "vulkan-1.dll loaded" );
+                VKE_LOG( g_pVkLibName << " loaded" );
 
                 ret = RHI::LoadGlobalFunctions( shICD, &sGlobalICD );
                 if( VKE_SUCCEEDED( ret ) )
@@ -2216,7 +2216,7 @@ namespace VKE
             }
             else
             {
-                VKE_LOG_ERR( "Unable to load library: vulkan-1.dll" );
+                VKE_LOG_ERR( "Unable to load library: " << g_pVkLibName );
             }
             return ret;
         }

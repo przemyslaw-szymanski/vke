@@ -881,16 +881,6 @@ namespace VKE::Platform
         return ::GetCurrentThreadId();
     }
 
-    Thread::ID Thread::GetID( const handle_t& hThread )
-    {
-        return ::GetThreadId( reinterpret_cast< HANDLE >( hThread ) );
-    }
-
-    Thread::ID Thread::GetID( void* pHandle )
-    {
-        return ::GetThreadId( pHandle );
-    }
-
     void Thread::Sleep( uint32_t us )
     {
         Time::Sleep( us );

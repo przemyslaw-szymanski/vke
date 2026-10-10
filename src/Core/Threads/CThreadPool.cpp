@@ -278,6 +278,8 @@ namespace VKE
                 m_vThreads[ i ].join();
             }
             m_vThreads.clear();
+            m_vPlatformThreadIds.Clear();
+            m_startedWorkerCount.store( 0, std::memory_order_relaxed );
             m_vWorkers.ClearFull();
             VKE_DELETE_ARRAY( m_pMemPool );
             Memory::DestroyObject( &HeapAllocator, &m_pMemAllocator );
@@ -409,6 +411,10 @@ namespace VKE
                     return VKE_ENOMEMORY;
                 }
                 m_vThreads.resize( m_Desc.vThreadDescs.GetCount() );
+                m_vPlatformThreadIds.Resize( static_cast< uint32_t >( m_vThreads.size() ),
+                                             Platform::Thread::UNKNOWN_THREAD_ID );
+                m_startedWorkerCount.store( 0, std::memory_order_relaxed );
+                uint32_t launchedCount = 0;
                 for( uint32_t i = 0; i < m_vThreads.size(); ++i )
                 {
                     const auto&          ThreadDesc = m_Desc.vThreadDescs[ i ];
@@ -423,10 +429,17 @@ namespace VKE
                     if( VKE_SUCCEEDED( m_vWorkers[ i ].Create( this, Desc ) ) )
                     {
                         m_vThreads[ i ] = std::thread( std::ref( m_vWorkers[ i ] ) );
+                        ++launchedCount;
 
                         VKE_LOG( "Create thread: " << i << ", tid: " << m_vThreads[ i ].get_id() << ", "
                                                    << ThreadUsageBitsToString( Desc.Usages ) );
                     }
+                }
+                // Startup barrier: every launched worker publishes its platform thread ID before
+                // Create returns, so m_vPlatformThreadIds is read-only and lock-free afterwards.
+                while( m_startedWorkerCount.load( std::memory_order_acquire ) < launchedCount )
+                {
+                    Platform::ThisThread::Pause();
                 }
             }
             else
@@ -522,17 +535,26 @@ namespace VKE
             return ret;
         }
 
-        CThreadPool::WorkerID CThreadPool::_FindThread( NativeThreadID id )
+        void CThreadPool::_OnWorkerStarted( uint32_t workerIdx, Platform::Thread::ID platformThreadId )
         {
-            for( decltype( m_Desc.vThreadDescs.GetCount() ) i = 0; i < m_Desc.vThreadDescs.GetCount(); ++i )
+            m_vPlatformThreadIds[ workerIdx ] = platformThreadId;
+            m_startedWorkerCount.fetch_add( 1, std::memory_order_release );
+        }
+
+        CThreadPool::WorkerID CThreadPool::_FindThread( NativeThreadID id ) const
+        {
+            // Linear scan over a small contiguous array; faster than hashing for typical worker counts.
+            WorkerID    ret;
+            const auto  count = static_cast< int32_t >( m_vPlatformThreadIds.GetCount() );
+            const auto* pIds  = m_vPlatformThreadIds.GetData();
+            for( int32_t i = 0; i < count && ret.id < 0; ++i )
             {
-                NativeThreadID ID = NativeThreadID( Platform::Thread::GetID( m_vThreads[ i ].native_handle() ) );
-                if( ID.id == id.id )
+                if( pIds[ i ] == id.id )
                 {
-                    return WorkerID( i );
+                    ret = WorkerID( i );
                 }
             }
-            return WorkerID( -1 );
+            return ret;
         }
 
         CThreadPool::WorkerID CThreadPool::GetThisThreadID() const

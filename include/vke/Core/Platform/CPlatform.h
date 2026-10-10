@@ -204,8 +204,8 @@ namespace VKE::Platform
 
     struct VKE_API Thread
     {
-        using ID                          = uint32_t;
-        using AtomicType                  = volatile unsigned long long;
+        using ID                              = uint32_t;
+        using AtomicType                      = volatile unsigned long long;
         static constexpr ID UNKNOWN_THREAD_ID = static_cast< ID >( -1 );
 
         class VKE_API CSpinlock
@@ -238,8 +238,6 @@ namespace VKE::Platform
         };
 
         static ID   GetID();
-        static ID   GetID( const handle_t& hThread );
-        static ID   GetID( void* pHandle );
         static void Sleep( uint32_t microseconds );
         static void Pause();
         static void SetDesc( cstr_t );
@@ -252,7 +250,7 @@ namespace VKE::Platform
 
     struct VKE_API KeyMap
     {
-        static constexpr uint32_t MAP_SIZE = 256;
+        static constexpr uint32_t    MAP_SIZE = 256;
         static const VKE::Input::KEY s_aKeyMap[ MAP_SIZE ];
 
         static VKE::Input::KEY GetMappedKey( const uint16_t platformKey )
@@ -261,4 +259,4 @@ namespace VKE::Platform
         }
     };
 
-} // namespace VKE
+} // namespace VKE::Platform
