@@ -1,8 +1,9 @@
+#if VKE_WINDOWS
+
 #include "Core/Input/CInputSystem.h"
 #include "Core/Platform/CPlatform.h"
 #include "Core/Utils/CLogger.h"
 
-#if VKE_WINDOWS
 #include <windef.h>
 #include <basetsd.h>
 #include <winnt.h>
@@ -279,8 +280,35 @@ namespace VKE
                     {
                     }
                 }
-            }
-        }
+
+                    }
+                }
+
+                void CInputSystem::_ResetState()
+                {
+                    SKeyboardState& Keyboard = m_InputState.Keyboard;
+                    if( !Keyboard.aKeys.IsEmpty() )
+                    {
+                        const auto Pressed = Keyboard.aKeys; // snapshot: listeners see consistent state while iterating
+                        Keyboard.aKeys.Reset();
+                        Pressed.ForEachSetBit( [ & ]( const size_t key ) {
+                            m_pListener->OnKeyUp( Keyboard, static_cast< KEY >( key ) );
+                        } );
+                    }
+
+                    SMouseState&       Mouse = m_InputState.Mouse;
+                    MOUSE_BUTTON_STATE held  = static_cast< MOUSE_BUTTON_STATE >( Mouse.buttonState & MOUSE_BUTTONS_DOWN_MASK );
+                    while( held != 0 )
+                    {
+                        // Lowest held button only: one Up event per button, same as a real release
+                        const MOUSE_BUTTON_STATE downBit = static_cast< MOUSE_BUTTON_STATE >( held & ( ~held + 1 ) );
+                        Mouse.buttonState                = ApplyMouseButtonTransitions( Mouse.buttonState, 0, downBit );
+                        m_pListener->OnMouseButtonUp( Mouse );
+                        held &= static_cast< MOUSE_BUTTON_STATE >( held - 1 );
+                    }
+                    Mouse.Move      = { 0, 0 };
+                    Mouse.wheelMove = 0;
+                }
 
         void CInputSystem::_ProcessWindowInput( void* pParam )
         {
@@ -352,21 +380,25 @@ namespace VKE
             // printf("p %d, %d\n", pOut->Position.x, pOut->Position.y);
             // printf("m %d, %d\n", pOut->Move.x, pOut->Move.y);
 
-            if( pMouse->usButtonFlags )
-            {
-                pOut->buttonState = pMouse->usButtonFlags;
-            }
+            // usButtonFlags uses the same bit layout as MouseButtonStates (RI_MOUSE_BUTTON_n_DOWN/UP, WHEEL, HWHEEL)
+            const MOUSE_BUTTON_STATE flags = pMouse->usButtonFlags;
+            const MOUSE_BUTTON_STATE downs = static_cast< MOUSE_BUTTON_STATE >( flags & MOUSE_BUTTONS_DOWN_MASK );
+            const MOUSE_BUTTON_STATE ups   = static_cast< MOUSE_BUTTON_STATE >( ( flags & MOUSE_BUTTONS_UP_MASK ) >> 1 );
+            // Wheel is an event, not a held state
+            pOut->buttonState = static_cast< MOUSE_BUTTON_STATE >( ( pOut->buttonState & ~MOUSE_WHEELS_MASK ) |
+                                                                   ( flags & MOUSE_WHEELS_MASK ) );
             // if( pMouse->usFlags & RI_MOUSE_WHEEL )
             {
                 pOut->wheelMove = static_cast< int16_t >( pMouse->usButtonData );
             }
-            if( pOut->buttonState & MouseButtonStates::LEFT_BUTTON_DOWN )
+            if( downs != 0 )
             {
+                pOut->buttonState = ApplyMouseButtonTransitions( pOut->buttonState, downs, 0 );
                 m_pListener->OnMouseButtonDown( *pOut );
-                // VKE_LOG( "state: " << pOut->buttonState );
             }
-            else if( pOut->buttonState & MouseButtonStates::LEFT_BUTTON_UP )
+            if( ups != 0 )
             {
+                pOut->buttonState = ApplyMouseButtonTransitions( pOut->buttonState, 0, ups );
                 m_pListener->OnMouseButtonUp( *pOut );
             }
 
@@ -394,19 +426,4 @@ namespace VKE
 
     } // namespace Input
 } // namespace VKE
-#elif VKE_LINUX
-
-namespace VKE::Input
-{
-
-    CInputSystem::CInputSystem()
-    {
-    }
-
-    CInputSystem::~CInputSystem()
-    {
-    }
-
-};
-
 #endif // VKE_WINDOWS

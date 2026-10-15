@@ -5,7 +5,7 @@
 #include "Core/Platform/CWindow.h"
 
 #if VKE_LINUX
-#include "Core/Platform/Linux/Backend/Backend.h"
+#include "Core/Platform/Linux/CX11.h"
 #endif
 
 #include "RenderSystem/CContextBase.h"
@@ -2417,15 +2417,14 @@ namespace VKE
 #if VKE_USE_VULKAN_WINDOWS
                 isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR( hAdapter, i );
 #elif VKE_USE_VULKAN_LINUX
-                if( Platform::Backend::GetWindowSystem() == Platform::Backend::WindowSystems::X11 )
                 {
                     // Shared connection is opened lazily; keep a reference only for the duration of the query
-                    Platform::Backend::SX11 X11Ref;
-                    if( VKE_SUCCEEDED( Platform::Backend::CX11::Load( X11Ref ) ) )
+                    Platform::Linux::SX11 X11Ref;
+                    if( VKE_SUCCEEDED( Platform::Linux::CX11::Load( X11Ref ) ) )
                     {
                         isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
                             hAdapter, i, X11Ref.pDisplay->pConnection, X11Ref.pDisplay->visualId );
-                        Platform::Backend::CX11::Unload( X11Ref );
+                        Platform::Linux::CX11::Unload( X11Ref );
                     }
                 }
 #elif VKE_USE_VULKAN_ANDROID
@@ -5183,13 +5182,8 @@ namespace VKE
                     SImplementation::sVkInstance, &SurfaceCI, nullptr, &hSurface );
 #elif VKE_USE_VULKAN_LINUX
                 vkRes = VK_ERROR_INITIALIZATION_FAILED;
-                if( Platform::Backend::GetWindowSystem() == Platform::Backend::WindowSystems::WAYLAND )
                 {
-                    VKE_LOG_ERR( "Wayland surface is not implemented." );
-                }
-                else
-                {
-                    const Platform::Backend::SX11* pX11 = Platform::Backend::GetX11( Desc.pWindow.Get() );
+                    const Platform::Linux::SX11* pX11 = Platform::Linux::GetX11( Desc.pWindow.Get() );
                     if( pX11 != nullptr && pX11->IsValid() )
                     {
                         VkXcbSurfaceCreateInfoKHR SurfaceCI;
@@ -5642,7 +5636,7 @@ namespace VKE
                     static_cast< uint16_t >( std::min( vkSurfaceCaps.maxImageExtent.height, 0xFFFFu ) );
                 if( vkSurfaceCaps.currentExtent.width == UINT32_MAX )
                 {
-                    // Surface size is defined by the swapchain (e.g. Wayland): fall back to minimum, caller overrides
+                    // Surface size is defined by the swapchain: fall back
                     vkSurfaceCaps.currentExtent = vkSurfaceCaps.minImageExtent;
                 }
                 pOut->CurrentSize.width       = static_cast< uint16_t >( vkSurfaceCaps.currentExtent.width );

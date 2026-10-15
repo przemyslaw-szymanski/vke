@@ -1024,21 +1024,26 @@ namespace VKE::RenderSystem
         {
             // VKE_ASSERT( m_vThreadNames.GetCount() < MAX_GRAPHICS_THREAD_COUNT );
             ret = (INDEX_TYPE)( m_vThreadNames.PushBack( ResourceName{ ThreadName } ) );
-            std::thread* pThread;
-            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pThread, CFrameGraph::_ThreadFunc, this, ret ) ) )
+            // Thread data must exist before the thread starts: _ThreadFunc reads m_vpThreadData[ index ] immediately.
+            SThreadData* pData = nullptr;
+            if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pData ) ) )
             {
-                INDEX_TYPE   ret2 = (INDEX_TYPE)( m_vpThreads.PushBack( ( pThread ) ) );
-                INDEX_TYPE   ret3 = INVALID_INDEX;
-                SThreadData* pData;
-                if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pData ) ) )
+                const INDEX_TYPE ret3    = (INDEX_TYPE)( m_vpThreadData.PushBack( pData ) );
+                std::thread*     pThread = nullptr;
+                if( VKE_SUCCEEDED(
+                        Memory::CreateObject( &HeapAllocator, &pThread, CFrameGraph::_ThreadFunc, this, ret ) ) )
                 {
-                    ret3 = (INDEX_TYPE)( m_vpThreadData.PushBack( pData ) );
+                    const INDEX_TYPE ret2 = (INDEX_TYPE)( m_vpThreads.PushBack( pThread ) );
+                    VKE_ASSERT( ret == ret2 && ret2 == ret3 );
                 }
                 else
                 {
                     ret = INVALID_INDEX;
                 }
-                VKE_ASSERT( ret == ret2 && ret2 == ret3 );
+            }
+            else
+            {
+                ret = INVALID_INDEX;
             }
         }
         else

@@ -820,6 +820,11 @@ namespace VKE
             }
             break;
 
+            case WM_KILLFOCUS: {
+                // Releases outside the window are not delivered: drop all held keys/buttons
+                m_InputSystem._ResetState();
+            }
+            break;
             case WM_DESTROY: {
                 // PostQuitMessage(0);
                 printf( "Destroy: %p\n", hWnd );

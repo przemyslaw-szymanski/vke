@@ -8,6 +8,7 @@
 namespace VKE
 {
     class CVKEngine;
+    class CWindow;
 
     namespace Input
     {
@@ -66,7 +67,7 @@ namespace VKE
         class VKE_API CInputSystem
         {
             friend class VKE::CVKEngine;
-            friend class CWindow;
+            friend class VKE::CWindow;
 
             using DeviceArray = Utils::TCDynamicArray< SDevice >;
 
@@ -105,6 +106,7 @@ namespace VKE
             void _ProcessMouse( void* pMouseState, SMouseState* pOut );
             void _ProcessKeyboard( void* pKeyboardState, SKeyboardState* pOut );
             void _ProcessWindowInput( void* );
+            void _ResetState();
 
             Result _QueryDevices();
 

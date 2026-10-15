@@ -2,7 +2,7 @@
 
 #include "Core/Platform/Common.h"
 
-namespace VKE::Platform::Backend
+namespace VKE::Platform::Linux
 {
     // Window events collected by a backend event pump, consumed by the owning CWindow.
     struct SWindowEvents
@@ -14,4 +14,4 @@ namespace VKE::Platform::Backend
         bool     mapped         = false;
         bool     focused        = false;
     };
-} // namespace VKE::Platform::Backend
+} // namespace VKE::Platform::Linux

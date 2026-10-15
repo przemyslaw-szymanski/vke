@@ -4,7 +4,8 @@
 #include "Core/Memory/Memory.h"
 #include "Core/Utils/CLogger.h"
 
-#include "Core/Platform/Linux/Backend/Backend.h"
+#include "Core/Platform/Linux/CX11.h"
+#include "Core/Input/CInputSystem.h"
 
 namespace VKE
 {
@@ -19,14 +20,8 @@ namespace VKE
 
     struct SWindowInternal
     {
-        using WINDOW_SYSTEM = Platform::Backend::WINDOW_SYSTEM;
-
-        const WINDOW_SYSTEM  windowSystem = Platform::Backend::GetWindowSystem();
-        Platform::Thread::ID osThreadId   = 0;
-
-        // Both kept (no union): small, trivially destructible, no manual lifetime management required
-        Platform::Backend::SX11     X11;
-        Platform::Backend::SWayland Wayland;
+        Platform::Thread::ID osThreadId = 0;
+        Platform::Linux::SX11 X11;
 
         struct
         {
@@ -42,15 +37,7 @@ namespace VKE
         bool isLoaded = false;
     };
 
-    // Static, non-virtual dispatch. Branch is perfectly predicted: windowSystem never changes.
-#define VKE_WINDOW_CALL_BACKEND( _func, ... )                                                                          \
-    ( m_pPrivate->windowSystem == Platform::Backend::WindowSystems::WAYLAND                                            \
-          ? Platform::Backend::CWayland::_func( m_pPrivate->Wayland __VA_OPT__(, ) __VA_ARGS__ )                       \
-          : Platform::Backend::CX11::_func( m_pPrivate->X11 __VA_OPT__(, ) __VA_ARGS__ ) )
-
-#define VKE_WINDOW_BACKEND_EVENTS()                                                                                    \
-    ( m_pPrivate->windowSystem == Platform::Backend::WindowSystems::WAYLAND ? m_pPrivate->Wayland.Events               \
-                                                                             : m_pPrivate->X11.Events )
+    using CX11 = Platform::Linux::CX11;
 
     struct SDefaultInputListener : public Input::EventListeners::IInput
     {
@@ -86,11 +73,11 @@ namespace VKE
             m_Desc                 = Info;
             m_pPrivate->osThreadId = Platform::ThisThread::GetID();
 
-            ret = VKE_WINDOW_CALL_BACKEND( Load );
+            ret = CX11::Load( m_pPrivate->X11 );
             if( VKE_SUCCEEDED( ret ) )
             {
                 m_pPrivate->isLoaded = true;
-                ret                  = VKE_WINDOW_CALL_BACKEND( Create, m_Desc );
+                ret                  = CX11::Create( m_pPrivate->X11, m_Desc );
             }
             else
             {
@@ -99,7 +86,7 @@ namespace VKE
 
             if( VKE_SUCCEEDED( ret ) )
             {
-                const auto& Events  = VKE_WINDOW_BACKEND_EVENTS();
+                const auto& Events  = m_pPrivate->X11.Events;
                 m_Desc.Size         = { Events.width, Events.height };
                 m_Desc.hWnd         = m_pPrivate->X11.windowId;
                 m_Desc.threadId     = static_cast< uint32_t >( m_pPrivate->osThreadId );
@@ -108,8 +95,13 @@ namespace VKE
                 m_NewSize           = m_ClientSize;
                 m_isDestroyed       = false;
                 m_needDestroy       = false;
+
+                Input::SInputSystemDesc InputDesc;
+                InputDesc.hWnd = m_Desc.hWnd;
+                ret            = m_InputSystem._Create( InputDesc );
             }
-            else
+
+            if( VKE_FAILED( ret ) )
             {
                 Destroy();
             }
@@ -123,10 +115,10 @@ namespace VKE
         Threads::ScopedLock l( m_SyncObj );
         if( m_pPrivate != nullptr )
         {
-            VKE_WINDOW_CALL_BACKEND( Destroy );
+            CX11::Destroy( m_pPrivate->X11 );
             if( m_pPrivate->isLoaded )
             {
-                VKE_WINDOW_CALL_BACKEND( Unload );
+                CX11::Unload( m_pPrivate->X11 );
             }
             Memory::DestroyObject( &HeapAllocator, &m_pPrivate );
             m_pPrivate = nullptr;
@@ -173,7 +165,7 @@ namespace VKE
         m_isVisible = isVisible;
         if( m_pPrivate != nullptr )
         {
-            VKE_WINDOW_CALL_BACKEND( IsVisible, m_isVisible );
+            CX11::IsVisible( m_pPrivate->X11, m_isVisible );
             _OnShow();
         }
     }
@@ -183,7 +175,7 @@ namespace VKE
         if( !m_needDestroy && m_pPrivate != nullptr && pText != nullptr )
         {
             m_strText = pText;
-            VKE_WINDOW_CALL_BACKEND( SetWindowTitle, m_strText.c_str() );
+            CX11::SetWindowTitle( m_pPrivate->X11, m_strText.c_str() );
         }
     }
 
@@ -267,7 +259,7 @@ namespace VKE
         bool ret = false;
         if( m_pPrivate != nullptr )
         {
-            ret = VKE_WINDOW_BACKEND_EVENTS().focused;
+            ret = m_pPrivate->X11.Events.focused;
         }
         return ret;
     }
@@ -282,12 +274,12 @@ namespace VKE
         return 0;
     }
 
-    // X11: xcb_window_t. Use Platform::Backend::GetX11()/GetWayland() for full typed data.
+    // X11: xcb_window_t. Use Platform::Linux::GetX11() for full typed data.
     uint64_t CWindow::GetNativeHandle() const
     {
         uint64_t            ret = 0;
         Threads::ScopedLock l( m_SyncObj );
-        if( m_pPrivate != nullptr && m_pPrivate->windowSystem == Platform::Backend::WindowSystems::X11 )
+        if( m_pPrivate != nullptr )
         {
             ret = static_cast< uint64_t >( m_pPrivate->X11.windowId );
         }
@@ -354,15 +346,14 @@ namespace VKE
         if( m_pPrivate != nullptr && !m_needDestroy && m_needUpdate )
         {
             // One shared connection: draining it here routes events to every window
-            const bool isConnected = m_pPrivate->windowSystem == Platform::Backend::WindowSystems::WAYLAND
-                                         ? Platform::Backend::CWayland::PumpEvents()
-                                         : Platform::Backend::CX11::PumpEvents();
-            auto&      Events      = VKE_WINDOW_BACKEND_EVENTS();
+            const bool isConnected = CX11::PumpEvents();
+            auto&      Events      = m_pPrivate->X11.Events;
             if( !isConnected )
             {
                 VKE_LOG_ERR( "Lost connection to the window system." );
                 Events.closeRequested = true;
             }
+            m_InputSystem.Update();
             if( Events.resized )
             {
                 Events.resized = false;
@@ -380,12 +371,12 @@ namespace VKE
         return ret;
     }
 
-    namespace Platform::Backend
+    namespace Platform::Linux
     {
         const SX11* GetX11( const CWindow* pWindow )
         {
             const SX11* pRet = nullptr;
-            if( pWindow != nullptr && GetWindowSystem() == WindowSystems::X11 )
+            if( pWindow != nullptr )
             {
                 const auto windowId = static_cast< xcb_window_t >( pWindow->GetNativeHandle() );
                 if( windowId != XCB_WINDOW_NONE )
@@ -395,12 +386,7 @@ namespace VKE
             }
             return pRet;
         }
-
-        const SWayland* GetWayland( const CWindow* )
-        {
-            return nullptr;
-        }
-    } // namespace Platform::Backend
+    } // namespace Platform::Linux
 
 } // namespace VKE
 #endif // VKE_LINUX

@@ -1,12 +1,19 @@
 ﻿#pragma once
 
 #include "Core/Platform/Common.h"
-#include "Core/Platform/Linux/Backend/SWindowEvents.h"
+#include "Core/Platform/Linux/SWindowEvents.h"
+#include "Core/Platform/Linux/SInputEvents.h"
 #include "Core/Utils/CLogger.h"
 
 #include <xcb/xcb.h>
+#include <xcb/xinput.h>
 
-namespace VKE::Platform::Backend
+namespace VKE
+{
+    class CWindow;
+}
+
+namespace VKE::Platform::Linux
 {
     struct SX11Config
     {
@@ -29,6 +36,9 @@ namespace VKE::Platform::Backend
         xcb_atom_t netWmState           = XCB_ATOM_NONE;
         xcb_atom_t netWmStateFullscreen = XCB_ATOM_NONE;
 
+        uint8_t xiOpcode = 0;
+        bool    hasXI2   = false;
+
         bool IsValid() const
         {
             return pConnection != nullptr && pScreen != nullptr;
@@ -49,11 +59,22 @@ namespace VKE::Platform::Backend
 
     class CX11
     {
+        // Absolute pointers (e.g. WSLg/RDP, tablets) report positions in raw events: track last value to get deltas
+        struct SPointerAxes
+        {
+            bool  aIsAbsolute[ 2 ] = { false, false };
+            bool  aHasLast[ 2 ]    = { false, false };
+            float aLast[ 2 ]       = { 0.0f, 0.0f };
+        };
+
         struct SState
         {
             SX11Config                                Config;
             SX11Display                               Display;
             std::unordered_map< xcb_window_t, SX11* > mWindows;
+            std::unordered_map< uint16_t, SPointerAxes > mPointerAxes;
+            InputEventArray                           vInputEvents;
+            uint32_t                                  focusedCount = 0;
             std::mutex                                Mutex;
             uint32_t                                  refCount = 0;
         };
@@ -90,6 +111,21 @@ namespace VKE::Platform::Backend
         static const SX11Display& GetDisplay()
         {
             return _GetState().Display;
+        }
+
+        // Moves all queued input events into pOut (pOut is cleared first). Thread safe.
+        static void ConsumeInputEvents( InputEventArray* pOut )
+        {
+            SState&                       State = _GetState();
+            std::lock_guard< std::mutex > l( State.Mutex );
+            pOut->Clear();
+            pOut->Append( State.vInputEvents );
+            State.vInputEvents.Clear();
+        }
+
+        static bool HasXI2()
+        {
+            return _GetState().Display.hasXI2;
         }
 
         static const SX11* FindWindow( xcb_window_t windowId )
@@ -138,6 +174,8 @@ namespace VKE::Platform::Backend
                     xcb_disconnect( State.Display.pConnection );
                     State.Display = {};
                     State.mWindows.clear();
+                    State.vInputEvents.Clear();
+                    State.focusedCount = 0;
                 }
             }
             X11Info.pDisplay = nullptr;
@@ -221,6 +259,18 @@ namespace VKE::Platform::Backend
                     }
                     SetWindowTitle( X11Info, WindowDesc.pTitle );
                     {
+                        // WM_CLASS is "instance\0class\0": used by taskbars/docks to group windows and pick the icon
+                        static constexpr char aWmClass[] = "vke\0VKE";
+                        xcb_change_property( pConn,
+                                             XCB_PROP_MODE_REPLACE,
+                                             windowId,
+                                             XCB_ATOM_WM_CLASS,
+                                             XCB_ATOM_STRING,
+                                             8,
+                                             sizeof( aWmClass ),
+                                             aWmClass );
+                    }
+                    {
                         SState&                       State = _GetState();
                         std::lock_guard< std::mutex > l( State.Mutex );
                         State.mWindows[ windowId ] = &X11Info;
@@ -244,6 +294,10 @@ namespace VKE::Platform::Backend
                     SState&                       State = _GetState();
                     std::lock_guard< std::mutex > l( State.Mutex );
                     State.mWindows.erase( X11Info.windowId );
+                    if( X11Info.Events.focused && State.focusedCount > 0 )
+                    {
+                        --State.focusedCount;
+                    }
                 }
                 xcb_destroy_window( X11Info.pDisplay->pConnection, X11Info.windowId );
                 xcb_flush( X11Info.pDisplay->pConnection );
@@ -280,6 +334,48 @@ namespace VKE::Platform::Backend
                 }
                 xcb_flush( Display.pConnection );
                 ret = VKE_OK;
+            }
+            return ret;
+        }
+
+        // Confines and hides the pointer for mouse-look. Under Xwayland raw motion keeps arriving while grabbed.
+        static Result GrabPointer( SX11& X11Info, bool isGrab )
+        {
+            Result ret = VKE_FAIL;
+            if( X11Info.IsValid() )
+            {
+                xcb_connection_t* pConn = X11Info.pDisplay->pConnection;
+                if( isGrab )
+                {
+                    xcb_grab_pointer_reply_t* pReply = xcb_grab_pointer_reply(
+                        pConn,
+                        xcb_grab_pointer( pConn,
+                                          1,
+                                          X11Info.windowId,
+                                          XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+                                              XCB_EVENT_MASK_POINTER_MOTION,
+                                          XCB_GRAB_MODE_ASYNC,
+                                          XCB_GRAB_MODE_ASYNC,
+                                          X11Info.windowId,
+                                          XCB_NONE,
+                                          XCB_CURRENT_TIME ),
+                        nullptr );
+                    if( pReply != nullptr && pReply->status == XCB_GRAB_STATUS_SUCCESS )
+                    {
+                        ret = VKE_OK;
+                    }
+                    else
+                    {
+                        VKE_LOG_WARN( "xcb_grab_pointer() failed." );
+                    }
+                    free( pReply );
+                }
+                else
+                {
+                    xcb_ungrab_pointer( pConn, XCB_CURRENT_TIME );
+                    xcb_flush( pConn );
+                    ret = VKE_OK;
+                }
             }
             return ret;
         }
@@ -408,6 +504,7 @@ namespace VKE::Platform::Backend
                     Display.visualId     = Itr.data->root_visual;
                     Display.screenIndex  = screenIndex;
                     _InternAtoms( &Display );
+                    _InitXI2( &Display );
                     ret = VKE_OK;
                 }
                 else
@@ -418,7 +515,10 @@ namespace VKE::Platform::Backend
             }
             else
             {
-                VKE_LOG_ERR( "xcb_connect() failed with error: " << error );
+                cstr_t pDisplayName = State.Config.pDisplayName != nullptr ? State.Config.pDisplayName : getenv( "DISPLAY" );
+                VKE_LOG_ERR( "X11 display not available (DISPLAY="
+                             << ( pDisplayName != nullptr ? pDisplayName : "unset" ) << ", xcb error: " << error
+                             << "). X11 or Xwayland is required." );
                 // xcb_connect never returns nullptr; an error connection must still be released
                 xcb_disconnect( pConn );
             }
@@ -453,12 +553,191 @@ namespace VKE::Platform::Backend
             }
         }
 
+        static void _InitXI2( SX11Display* pDisplay )
+        {
+            xcb_connection_t*                pConn = pDisplay->pConnection;
+            const xcb_query_extension_reply_t* pExt  = xcb_get_extension_data( pConn, &xcb_input_id );
+            if( pExt != nullptr && pExt->present )
+            {
+                // 2.1+ is required to receive raw events during grabs (incl. the implicit grab of a button press)
+                xcb_input_xi_query_version_reply_t* pVer =
+                    xcb_input_xi_query_version_reply( pConn, xcb_input_xi_query_version( pConn, 2, 2 ), nullptr );
+                if( pVer != nullptr && ( pVer->major_version > 2 || ( pVer->major_version == 2 && pVer->minor_version >= 1 ) ) )
+                {
+                    struct
+                    {
+                        xcb_input_event_mask_t Head;
+                        uint32_t               mask;
+                    } Mask;
+                    Mask.Head.deviceid = XCB_INPUT_DEVICE_ALL_MASTER;
+                    Mask.Head.mask_len = 1;
+                    Mask.mask = XCB_INPUT_XI_EVENT_MASK_RAW_KEY_PRESS | XCB_INPUT_XI_EVENT_MASK_RAW_KEY_RELEASE |
+                                XCB_INPUT_XI_EVENT_MASK_RAW_BUTTON_PRESS | XCB_INPUT_XI_EVENT_MASK_RAW_BUTTON_RELEASE |
+                                XCB_INPUT_XI_EVENT_MASK_RAW_MOTION;
+                    const xcb_void_cookie_t Cookie =
+                        xcb_input_xi_select_events_checked( pConn, pDisplay->pScreen->root, 1, &Mask.Head );
+                    if( _CheckError( "xcb_input_xi_select_events", pConn, Cookie ) )
+                    {
+                        pDisplay->xiOpcode = pExt->major_opcode;
+                        pDisplay->hasXI2   = true;
+                        _QueryPointerAxes( pConn );
+                    }
+                }
+                else
+                {
+                    VKE_LOG_WARN( "XInput 2.1 not supported by the X server. Input disabled." );
+                }
+                free( pVer );
+            }
+            else
+            {
+                VKE_LOG_WARN( "XInputExtension not present. Input disabled." );
+            }
+        }
+
+        static void _QueryPointerAxes( xcb_connection_t* pConn )
+        {
+            SState&                            State  = _GetState();
+            xcb_input_xi_query_device_reply_t* pReply = xcb_input_xi_query_device_reply(
+                pConn, xcb_input_xi_query_device( pConn, XCB_INPUT_DEVICE_ALL ), nullptr );
+            if( pReply != nullptr )
+            {
+                State.mPointerAxes.clear();
+                xcb_input_xi_device_info_iterator_t Itr = xcb_input_xi_query_device_infos_iterator( pReply );
+                for( ; Itr.rem > 0; xcb_input_xi_device_info_next( &Itr ) )
+                {
+                    SPointerAxes                      Axes;
+                    xcb_input_device_class_iterator_t ClassItr =
+                        xcb_input_xi_device_info_classes_iterator( Itr.data );
+                    for( ; ClassItr.rem > 0; xcb_input_device_class_next( &ClassItr ) )
+                    {
+                        if( ClassItr.data->type == XCB_INPUT_DEVICE_CLASS_TYPE_VALUATOR )
+                        {
+                            const auto* pVal = (const xcb_input_valuator_class_t*)ClassItr.data;
+                            if( pVal->number < 2 )
+                            {
+                                Axes.aIsAbsolute[ pVal->number ] = pVal->mode == XCB_INPUT_VALUATOR_MODE_ABSOLUTE;
+                            }
+                        }
+                    }
+                    State.mPointerAxes[ Itr.data->deviceid ] = Axes;
+                }
+                free( pReply );
+            }
+        }
+
+        static void _ResetPointerAxes( SState& State )
+        {
+            for( auto& Pair: State.mPointerAxes )
+            {
+                Pair.second.aHasLast[ 0 ] = false;
+                Pair.second.aHasLast[ 1 ] = false;
+            }
+        }
+
+        static float _FP3232ToFloat( const xcb_input_fp3232_t& Value )
+        {
+            return static_cast< float >( Value.integral ) + static_cast< float >( Value.frac ) / 4294967296.0f;
+        }
+
+        // Raw events are delivered from the root window regardless of focus: queue only while an engine window is focused
+        static void _DispatchXI2Event( SState& State, const xcb_ge_generic_event_t* pGeneric )
+        {
+            if( State.focusedCount > 0 )
+            {
+                SInputEvent Event;
+                bool        isValid = true;
+                switch( pGeneric->event_type )
+                {
+                    case XCB_INPUT_RAW_KEY_PRESS:
+                    case XCB_INPUT_RAW_KEY_RELEASE: {
+                        const auto* pRaw = (const xcb_input_raw_key_press_event_t*)pGeneric;
+                        Event.type       = pGeneric->event_type == XCB_INPUT_RAW_KEY_PRESS ? SInputEvent::KEY_DOWN
+                                                                                         : SInputEvent::KEY_UP;
+                        Event.deviceId   = pRaw->sourceid;
+                        Event.detail     = pRaw->detail;
+                    }
+                    break;
+                    case XCB_INPUT_RAW_BUTTON_PRESS:
+                    case XCB_INPUT_RAW_BUTTON_RELEASE: {
+                        const auto* pRaw = (const xcb_input_raw_button_press_event_t*)pGeneric;
+                        Event.type       = pGeneric->event_type == XCB_INPUT_RAW_BUTTON_PRESS
+                                               ? SInputEvent::BUTTON_DOWN
+                                               : SInputEvent::BUTTON_UP;
+                        Event.deviceId   = pRaw->sourceid;
+                        Event.detail     = pRaw->detail;
+                    }
+                    break;
+                    case XCB_INPUT_RAW_MOTION: {
+                        // Raw motion shares the raw_button_press layout
+                        auto*                      pRaw    = (xcb_input_raw_button_press_event_t*)pGeneric;
+                        const uint32_t*            pMask   = xcb_input_raw_button_press_valuator_mask( pRaw );
+                        const xcb_input_fp3232_t*  pValues = xcb_input_raw_button_press_axisvalues_raw( pRaw );
+                        const int                  maskLen = xcb_input_raw_button_press_valuator_mask_length( pRaw );
+                        uint32_t                   valueIdx = 0;
+                        SPointerAxes&              Axes     = State.mPointerAxes[ pRaw->sourceid ];
+                        float                      aDelta[ 2 ] = { 0.0f, 0.0f };
+                        Event.type                          = SInputEvent::RAW_MOTION;
+                        Event.deviceId                      = pRaw->sourceid;
+                        // Valuators 0 and 1 are X/Y; values are packed only for set mask bits
+                        for( uint32_t axis = 0; axis < 2 && maskLen > 0; ++axis )
+                        {
+                            if( pMask[ 0 ] & ( 1u << axis ) )
+                            {
+                                const float v = _FP3232ToFloat( pValues[ valueIdx++ ] );
+                                if( Axes.aIsAbsolute[ axis ] )
+                                {
+                                    aDelta[ axis ]        = Axes.aHasLast[ axis ] ? v - Axes.aLast[ axis ] : 0.0f;
+                                    Axes.aLast[ axis ]    = v;
+                                    Axes.aHasLast[ axis ] = true;
+                                }
+                                else
+                                {
+                                    aDelta[ axis ] = v;
+                                }
+                            }
+                        }
+                        Event.dx = aDelta[ 0 ];
+                        Event.dy = aDelta[ 1 ];
+                    }
+                    break;
+                    default:
+                        isValid = false;
+                        break;
+                }
+                if( isValid )
+                {
+                    State.vInputEvents.PushBack( Event );
+                }
+            }
+        }
+
         static void _DispatchEvent( SState& State, const xcb_generic_event_t* pEvent )
         {
             const uint8_t type   = pEvent->response_type & 0x7F;
             xcb_window_t  window = XCB_WINDOW_NONE;
             switch( type )
             {
+                case XCB_GE_GENERIC: {
+                    const auto* pGeneric = (const xcb_ge_generic_event_t*)pEvent;
+                    if( State.Display.hasXI2 && pGeneric->extension == State.Display.xiOpcode )
+                    {
+                        _DispatchXI2Event( State, pGeneric );
+                    }
+                }
+                break;
+                case XCB_MOTION_NOTIFY: {
+                    const auto* pMotion = (const xcb_motion_notify_event_t*)pEvent;
+                    if( State.mWindows.find( pMotion->event ) != State.mWindows.end() )
+                    {
+                        SInputEvent Event;
+                        Event.type = SInputEvent::POSITION;
+                        Event.x    = pMotion->event_x;
+                        Event.y    = pMotion->event_y;
+                        State.vInputEvents.PushBack( Event );
+                    }
+                }
+                break;
                 case XCB_CLIENT_MESSAGE:
                     window = ( (const xcb_client_message_event_t*)pEvent )->window;
                     break;
@@ -514,9 +793,25 @@ namespace VKE::Platform::Backend
                         X11.Events.mapped = false;
                         break;
                     case XCB_FOCUS_IN:
+                        if( !X11.Events.focused )
+                        {
+                            ++State.focusedCount;
+                            _ResetPointerAxes( State );
+                        }
                         X11.Events.focused = true;
                         break;
                     case XCB_FOCUS_OUT:
+                        if( X11.Events.focused && State.focusedCount > 0 )
+                        {
+                            --State.focusedCount;
+                            if( State.focusedCount == 0 )
+                            {
+                                // Releases outside a focused window are filtered: reset input state to avoid stuck keys
+                                SInputEvent Event;
+                                Event.type = SInputEvent::RESET;
+                                State.vInputEvents.PushBack( Event );
+                            }
+                        }
                         X11.Events.focused = false;
                         break;
                     case XCB_DESTROY_NOTIFY:
@@ -543,4 +838,7 @@ namespace VKE::Platform::Backend
             return ret;
         }
     };
-} // namespace VKE::Platform::Backend
+
+    // Typed engine-wide access to native window data. Returns nullptr if the window is not created.
+    const SX11* GetX11( const CWindow* pWindow );
+} // namespace VKE::Platform::Linux
