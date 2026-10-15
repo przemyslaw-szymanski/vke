@@ -161,12 +161,31 @@ endif()
 
 include(LinkSettings.cmake NO_POLICY_SCOPE)
 
-# Set Vulkan layer path for Visual Studio debugging
 if(VKE_COMPILE_VULKAN_RHI)
-    set(VULKAN_LAYER_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
-    set_target_properties(vkEngine PROPERTIES
-        VS_DEBUGGER_ENVIRONMENT "VK_ADD_LAYER_PATH=${VULKAN_LAYER_PATH}"
-    )
+    # Setup vulkan layer from vcpkg for debugging.
+    if(VKE_WINDOWS)
+        set(VULKAN_LAYER_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin")
+        set_target_properties(vkEngine PROPERTIES
+            VS_DEBUGGER_ENVIRONMENT "VK_ADD_LAYER_PATH=${VULKAN_LAYER_PATH}"
+        )
+    elseif(VKE_LINUX)
+        # Linux: vcpkg's layer manifest uses a bare library name the loader can't resolve, so generate a per-config
+        # manifest with an absolute path and bake its directory into the RHI, which sets VK_ADD_LAYER_PATH (unless
+        # already set) before loading libvulkan. Works from any debugger or terminal.
+        set(_vk_vcpkg_dir "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+        set(_vk_manifest "${_vk_vcpkg_dir}/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json")
+        if(EXISTS "${_vk_manifest}")
+            file(READ "${_vk_manifest}" _vk_manifest_content)
+            string(REPLACE "\"libVkLayer_khronos_validation.so\""
+                           "\"${_vk_vcpkg_dir}/$<IF:$<CONFIG:Debug>,debug/lib,lib>/libVkLayer_khronos_validation.so\""
+                           _vk_manifest_content "${_vk_manifest_content}")
+            set(_vk_layer_dir "${CMAKE_BINARY_DIR}/vulkan_layers/$<CONFIG>")
+            file(GENERATE OUTPUT "${_vk_layer_dir}/VkLayer_khronos_validation.json" CONTENT "${_vk_manifest_content}")
+            target_compile_definitions(vkEngineRHI_Vulkan PRIVATE VKE_VULKAN_LAYER_PATH="${_vk_layer_dir}")
+        else()
+            message(WARNING "Vulkan validation layer manifest not found at ${_vk_manifest}")
+        endif()
+    endif()
 endif()
 
 # CMake can't find a library search order (RPATH) that's right for every library the program loads at runtime.

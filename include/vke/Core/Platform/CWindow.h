@@ -164,7 +164,7 @@ namespace VKE
             return m_ClientSize;
         }
 
-        uint64_t GetNativeHandle();
+        uint64_t GetNativeHandle() const;
 
         void WaitForClose();
 
@@ -190,7 +190,7 @@ namespace VKE
         ImageSize                      m_NewSize;
         ImageSize                      m_ClientSize;
         uint16_t                       m_checkSizeUpdateCount = 0;
-        Threads::SyncObject            m_SyncObj;
+        mutable Threads::SyncObject    m_SyncObj;
         Threads::SyncObject            m_MsgQueueSyncObj;
         Input::EventListeners::IInput* m_pInputListener = nullptr;
         vke_string                     m_strText;

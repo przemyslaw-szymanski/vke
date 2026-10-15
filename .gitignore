@@ -4,6 +4,7 @@ src/ThirdParty/dxc
 src/ThirdParty/DirectXShaderCompiler
 vcpkg_installed/
 bin/*.*
+bin/data/Assets/*
 bin/D3D12
 lib/*.*
 .vs/

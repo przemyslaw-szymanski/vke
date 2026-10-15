@@ -35,11 +35,11 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
             VKE::RenderSystem::SCreateShaderDesc VsDesc, PsDesc;
             VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
             VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-            VsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.vs.hlsl";
+            VsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.vs.hlsl";
             VsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
             PsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
             PsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-            PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps.hlsl";
+            PsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.ps.hlsl";
             PsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::PIXEL;
             pVS = pResMgr->LoadShader( VsDesc );
             pPS = pResMgr->LoadShader( PsDesc );
@@ -81,12 +81,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
 
                     VsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
                     VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-                    VsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.vs.hlsl";
+                    VsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.vs.hlsl";
                     VsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::VERTEX;
 
                     PsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
                     PsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-                    PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps.hlsl";
+                    PsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.ps.hlsl";
                     PsDesc.Shader.type = VKE::RenderSystem::ShaderTypes::PIXEL;
 
                     pVS = pDevice->CreateShader( VsDesc );

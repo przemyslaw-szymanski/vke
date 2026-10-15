@@ -23,4 +23,11 @@ add_library(vkEngineCore STATIC
 target_include_directories(vkEngineCore PRIVATE ${CORE_INC_DIR})
 target_link_libraries(vkEngineCore PUBLIC ${THIRD_PARTY_LIBS})
 
+# XCB is a system library: link it dynamically so the process shares one libxcb with the Vulkan WSI driver.
+if(VKE_LINUX)
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(XCB REQUIRED IMPORTED_TARGET xcb)
+	target_link_libraries(vkEngineCore PUBLIC PkgConfig::XCB)
+endif()
+
 include(../../../LinkSettings.cmake NO_POLICY_SCOPE)

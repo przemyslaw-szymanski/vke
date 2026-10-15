@@ -28,9 +28,9 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VKE::RenderSystem::SCreateShaderDesc TsDesc, MsDesc;
         TsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
         TsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-        TsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.ts";
+        TsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.ts";
         MsDesc = TsDesc;
-        MsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ms";
+        MsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.ms";
         //pCtx->CreateShader( TsDesc );
         //pCtx->CreateShader( MsDesc );
         auto pFrameGraph = pCtx->GetRenderSystem()->GetFrameGraph();
@@ -42,12 +42,12 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
                     VKE::RenderSystem::SCreateShaderDesc TsDesc, MsDesc, PsDesc;
                     TsDesc.Create.flags = VKE::Core::CreateResourceFlags::DEFAULT;
                     TsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
-                    TsDesc.Shader.FileInfo.FileName = "Data/Samples/Shaders/simple.ts.hlsl";
+                    TsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.ts.hlsl";
                     MsDesc = TsDesc;
-                    MsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ms.hlsl";
+                    MsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.ms.hlsl";
                     PsDesc = TsDesc;
-                    PsDesc.Shader.FileInfo.FileName = "Data/Samples/shaders/simple.ps.hlsl";
-                    pTs = pDevice->CreateShader( TsDesc );
+                    PsDesc.Shader.FileInfo.FileName = "data/samples/shaders/simple.ps.hlsl";
+                    // pTs = pDevice->CreateShader( TsDesc );
                     pMs = pDevice->CreateShader( MsDesc );
                     pPs = pDevice->CreateShader( PsDesc );
                     return VKE::Threads::TaskResults::OK;

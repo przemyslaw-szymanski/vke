@@ -299,7 +299,7 @@ namespace VKE::Platform
 
     void Debug::PrintOutput( const cstr_t msg )
     {
-        ::fputs( msg, stderr );
+        // ::fputs( msg, stderr );
     }
 
     void Debug::PrintStallstack()
@@ -649,6 +649,7 @@ namespace VKE::Platform
         {
             LogError( "::close failed" );
         }
+        *phFile = INVALID_HANDLE;
     }
 
     void File::Flush( handle_t hFile )
@@ -670,7 +671,7 @@ namespace VKE::Platform
         static const int ascMap[ SEEK_MODE::_MAX_COUNT ] = { SEEK_SET, SEEK_CUR, SEEK_END };
 
         bool res = true;
-        if( lseek( static_cast< int >( hFile ) - 1, (off_t)offset, ascMap[ mode ] ) == (off_t)-1 )
+        if( lseek( Internal::HandleToFileDescriptor( hFile ), (off_t)offset, ascMap[ mode ] == (off_t)-1 ) )
         {
             LogError( "::lseek failed" );
             res = false;

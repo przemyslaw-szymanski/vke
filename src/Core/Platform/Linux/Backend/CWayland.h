@@ -1,35 +1,83 @@
 #pragma once
 
-#include <wayland-client.h>
+#include "Core/Platform/Common.h"
+#include "Core/Platform/Linux/Backend/SWindowEvents.h"
 
-// #include <xdg-shell-client-protocol.h>
-// #include <vulkan/vulkan_wayland.h>
+#include <wayland-client.h>
 
 namespace VKE::Platform::Backend
 {
+    struct SWaylandDisplay
+    {
+        wl_display* pDisplay = nullptr;
+
+        bool IsValid() const
+        {
+            return pDisplay != nullptr;
+        }
+    };
+
+    struct SWayland
+    {
+        const SWaylandDisplay* pDisplay = nullptr;
+        wl_surface*            pSurface = nullptr;
+        SWindowEvents          Events;
+
+        bool IsValid() const
+        {
+            return pDisplay != nullptr && pDisplay->IsValid() && pSurface != nullptr;
+        }
+    };
+
+    // Stub. Same static interface as CX11.
     class CWayland
     {
     public:
         static bool IsSupported()
         {
-            const char* pSessionType = getenv( "XDG_SESSION_TYPE" );
-            return ( pSessionType && strcmp( pSessionType, "wayland" ) == 0 );
-        }
-
-        static bool CheckRequiredVulkanExtension()
-        {
+            // const char* pSessionType = getenv( "XDG_SESSION_TYPE" );
+            // return ( pSessionType && strcmp( pSessionType, "wayland" ) == 0 );
             return false;
         }
 
-        static bool Load()
+        static const SWaylandDisplay& GetDisplay()
         {
-            static cstr_t scLibrary[] = { "libwayland-client.so" };
-            return false;
+            static SWaylandDisplay sDisplay;
+            return sDisplay;
         }
 
-        static Result Create( const SWindowDesc& Info )
+        static Result Load( SWayland& )
+        {
+            return VKE_FAIL;
+        }
+
+        static void Unload( SWayland& WaylandInfo )
+        {
+            WaylandInfo.pDisplay = nullptr;
+        }
+
+        static Result Create( SWayland&, const SWindowDesc& )
+        {
+            return VKE_FAIL;
+        }
+
+        static Result Destroy( SWayland& )
         {
             return VKE_OK;
+        }
+
+        static Result SetWindowTitle( SWayland&, cstr_t )
+        {
+            return VKE_FAIL;
+        }
+
+        static void IsVisible( SWayland&, bool )
+        {
+        }
+
+        static bool PumpEvents()
+        {
+            return false;
         }
 
     protected:

@@ -517,7 +517,7 @@ namespace VKE
         return hasFocus;
     }
 
-    uint64_t CWindow::GetNativeHandle()
+    uint64_t CWindow::GetNativeHandle() const
     {
         uint64_t            ret = 0;
         Threads::ScopedLock l( m_SyncObj );

@@ -48,13 +48,26 @@ namespace VKE::RenderSystem
                         return ret;
                     } );
 
+                    TEXTURE_FORMAT backBufferFormat = Formats::R8G8B8A8_UNORM;
+                    {
+                        auto pGeneralCtx = m_Desc.apContexts[ ContextTypes::GENERAL ];
+                        if( pGeneralCtx != nullptr )
+                        {
+                            auto pSwpChain = pGeneralCtx->Reinterpret< CGraphicsContext >()->GetSwapChain();
+                            if( pSwpChain != nullptr )
+                            {
+                                backBufferFormat = pSwpChain->GetFormat();
+                            }
+                        }
+                    }
+
                     auto pRenderFramePass = CreatePass( [&]( CFrameGraphNode** ppNode )
                     { 
                         SFrameGraphNodeDesc Desc;
                         Desc.pName      = "RenderFrame";
                         Desc.Flags          = FrameGraphNodeFlags::RENDER_OPAQUE | FrameGraphNodeFlags::RENDER_DEPTH;
                         Desc.vRenderTargets = { { .pName     = "Diffuse",
-                                                  .format    = Formats::R8G8B8A8_UNORM,
+                                                  .format    = backBufferFormat,
                                                   .operation = FrameGraphPassOperations::RENDER_PASS_OVERWRITE },
                                                 { .pName      = "Depth",
                                                   .format     = Formats::D32_SFLOAT,

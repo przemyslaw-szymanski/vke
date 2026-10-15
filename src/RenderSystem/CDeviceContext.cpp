@@ -321,8 +321,17 @@ namespace VKE
             CTransferContext* pCtx = nullptr;
             if( VKE_SUCCEEDED( Memory::CreateObject( &HeapAllocator, &pCtx, this ) ) )
             {
-                // Get next free graphics queue
+                // Prefer a dedicated transfer (DMA) queue. Graphics and compute queues implicitly
+                // support transfer operations (Vulkan spec), so fall back to them if none exists.
                 QueueRefPtr pQueue = _AcquireQueue( QueueTypes::TRANSFER, pCtx );
+                if( pQueue == nullptr )
+                {
+                    pQueue = _AcquireQueue( QueueTypes::COMPUTE, pCtx );
+                }
+                if( pQueue == nullptr )
+                {
+                    pQueue = _AcquireQueue( QueueTypes::GENERAL, pCtx );
+                }
                 if( pQueue == nullptr )
                 {
                     VKE_LOG_ERR( "This GPU does not support transfer/copy queue." );
@@ -402,6 +411,7 @@ namespace VKE
 
             if( VKE_FAILED( pCtx->Create( CtxDesc ) ) )
             {
+                VKE_LOG_ERR( "Create graphics context failed." );
                 Memory::DestroyObject( &HeapAllocator, &pCtx );
             }
 

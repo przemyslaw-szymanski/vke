@@ -131,6 +131,11 @@ namespace VKE
                 return m_Desc;
             }
 
+            TEXTURE_FORMAT GetFormat() const
+            {
+                return m_RHISwapChain.Format.format;
+            }
+
             WindowPtr GetWindow()
             {
                 return m_Desc.pWindow;

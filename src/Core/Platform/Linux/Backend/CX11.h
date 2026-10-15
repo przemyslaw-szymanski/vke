@@ -1,126 +1,546 @@
-#pragma once
+﻿#pragma once
 
-// #include <X11/Xlib-xcb.h>
+#include "Core/Platform/Common.h"
+#include "Core/Platform/Linux/Backend/SWindowEvents.h"
+#include "Core/Utils/CLogger.h"
+
 #include <xcb/xcb.h>
-// #include <vulkan/vulkan_xcb.h>
 
 namespace VKE::Platform::Backend
 {
+    struct SX11Config
+    {
+        // Defaults - nullptr uses DISPLAY:0, -1 is default screen
+        cstr_t pDisplayName = nullptr;
+        int    screenIndex  = -1;
+    };
+
+    struct SX11Display
+    {
+        xcb_connection_t* pConnection = nullptr;
+        xcb_screen_t*     pScreen     = nullptr;
+        xcb_visualid_t    visualId    = 0;
+        int               screenIndex = 0;
+
+        xcb_atom_t wmProtocols          = XCB_ATOM_NONE;
+        xcb_atom_t wmDeleteWindow       = XCB_ATOM_NONE;
+        xcb_atom_t netWmName            = XCB_ATOM_NONE;
+        xcb_atom_t utf8String           = XCB_ATOM_NONE;
+        xcb_atom_t netWmState           = XCB_ATOM_NONE;
+        xcb_atom_t netWmStateFullscreen = XCB_ATOM_NONE;
+
+        bool IsValid() const
+        {
+            return pConnection != nullptr && pScreen != nullptr;
+        }
+    };
+
+    struct SX11
+    {
+        const SX11Display* pDisplay = nullptr;
+        xcb_window_t       windowId = XCB_WINDOW_NONE;
+        SWindowEvents      Events;
+
+        bool IsValid() const
+        {
+            return pDisplay != nullptr && pDisplay->IsValid() && windowId != XCB_WINDOW_NONE;
+        }
+    };
+
     class CX11
     {
+        struct SState
+        {
+            SX11Config                                Config;
+            SX11Display                               Display;
+            std::unordered_map< xcb_window_t, SX11* > mWindows;
+            std::mutex                                Mutex;
+            uint32_t                                  refCount = 0;
+        };
+
+        static SState& _GetState()
+        {
+            static SState sState;
+            return sState;
+        }
+
     public:
         static bool IsSupported()
         {
             return true;
         }
 
-        static bool CheckRequiredVulkanExtension()
+        // Optional. Effective only before the connection is opened.
+        static void SetConfig( const SX11Config& Config )
         {
-            return false;
+            SState& State = _GetState();
+
+            std::lock_guard< std::mutex > l( State.Mutex );
+            if( State.refCount == 0 )
+            {
+                State.Config = Config;
+            }
+            else
+            {
+                VKE_LOG_WARN( "X11 connection already opened. Config change ignored." );
+            }
         }
 
-        static bool Load()
+        // Shared display. Valid between the first Load() and the last Unload().
+        static const SX11Display& GetDisplay()
         {
-            static cstr_t scLibrary[] = { "libX11.so", "libX11-xcb.so" };
-            return false;
+            return _GetState().Display;
         }
 
-        static Result Create( const SWindowDesc& Info )
+        static const SX11* FindWindow( xcb_window_t windowId )
         {
-            // auto& XCB                  = m_pPrivate->XCB;
-            // int   scr                  = -1;
-            // m_pPrivate->pXcbConnection = xcb_connect( nullptr, &scr );
-            // if( !XCB.pConnection )
-            //{
-            //     VKE_LOG_ERR( "Unable to create xcb connection." );
-            //     return VKE_FAIL;
-            // }
+            const SX11*                   pRet  = nullptr;
+            SState&                       State = _GetState();
+            std::lock_guard< std::mutex > l( State.Mutex );
+            const auto                    Itr = State.mWindows.find( windowId );
+            if( Itr != State.mWindows.end() )
+            {
+                pRet = Itr->second;
+            }
+            return pRet;
+        }
 
-            // XCB.pSetup                = xcb_get_setup( XCB.pConnection );
-            // xcb_screen_iterator_t itr = xcb_setup_roots_iterator( XCB.pSetup );
+        // Opens the shared connection on first call, otherwise only increments the reference count.
+        static Result Load( SX11& X11Info )
+        {
+            Result                        ret   = VKE_OK;
+            SState&                       State = _GetState();
+            std::lock_guard< std::mutex > l( State.Mutex );
+            if( X11Info.pDisplay == nullptr )
+            {
+                if( State.refCount == 0 )
+                {
+                    ret = _Connect( State );
+                }
+                if( VKE_SUCCEEDED( ret ) )
+                {
+                    ++State.refCount;
+                    X11Info.pDisplay = &State.Display;
+                }
+            }
+            return ret;
+        }
 
-            // while( scr-- > 0 )
-            //{
-            //     xcb_screen_next( &itr );
-            // }
-            // xcb_screen_t* pXcbScreen = itr.data;
-            // XCB.windowId             = xcb_generate_id( XCB.pConnection );
+        static void Unload( SX11& X11Info )
+        {
+            SState&                       State = _GetState();
+            std::lock_guard< std::mutex > l( State.Mutex );
+            if( X11Info.pDisplay != nullptr && State.refCount > 0 )
+            {
+                --State.refCount;
+                if( State.refCount == 0 )
+                {
+                    xcb_disconnect( State.Display.pConnection );
+                    State.Display = {};
+                    State.mWindows.clear();
+                }
+            }
+            X11Info.pDisplay = nullptr;
+        }
 
-            // uint32_t aValues[ 2 ];
-            // aValues[ 0 ] = pXcbScreen->black_pixel;
-            // aValues[ 1 ] = XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+        static Result Create( SX11& X11Info, const SWindowDesc& WindowDesc )
+        {
+            Result ret = VKE_FAIL;
+            if( X11Info.pDisplay != nullptr && X11Info.pDisplay->IsValid() )
+            {
+                const SX11Display& Display = *X11Info.pDisplay;
+                xcb_connection_t*  pConn   = Display.pConnection;
+                xcb_screen_t*      pScreen = Display.pScreen;
 
-            // XCB.visualId = pXcbScreen->root_visual;
+                const bool     isFullscreen = WindowDesc.mode != WindowModes::WINDOW;
+                const uint16_t width        = isFullscreen ? pScreen->width_in_pixels : WindowDesc.Size.width;
+                const uint16_t height       = isFullscreen ? pScreen->height_in_pixels : WindowDesc.Size.height;
+                int16_t        x            = 0;
+                int16_t        y            = 0;
+                if( !isFullscreen )
+                {
+                    x = WindowDesc.Position.x == UNDEFINED_U16
+                            ? static_cast< int16_t >( ( pScreen->width_in_pixels - width ) / 2 )
+                            : static_cast< int16_t >( WindowDesc.Position.x );
+                    y = WindowDesc.Position.y == UNDEFINED_U16
+                            ? static_cast< int16_t >( ( pScreen->height_in_pixels - height ) / 2 )
+                            : static_cast< int16_t >( WindowDesc.Position.y );
+                }
 
-            // xcb_create_window( XCB.pConnection,
-            //                    XCB_COPY_FROM_PARENT,
-            //                    XCB.windowId,
-            //                    pXcbScreen->root,
-            //                    0,
-            //                    0,
-            //                    m_Desc.Size.width,
-            //                    m_Desc.Size.height,
-            //                    0,
-            //                    XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            //                    XCB.visualId,
-            //                    XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK,
-            //                    aValues );
+                const uint32_t valueMask    = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+                const uint32_t aValues[ 2 ] = { pScreen->black_pixel,
+                                                XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
+                                                    XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+                                                    XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                                                    XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_EXPOSURE };
 
-            // xcb_intern_atom_cookie_t cookie       = xcb_intern_atom( XCB.pConnection, 1, 12, "WM_PROTOCOLS" );
-            // xcb_intern_atom_reply_t* pReply       = xcb_intern_atom_reply( XCB.pConnection, cookie, 0 );
-            // xcb_intern_atom_cookie_t cookie2      = xcb_intern_atom( XCB.pConnection, 0, 16, "WM_DELETE_WINDOW" );
-            // auto                     deleteWindow = xcb_intern_atom_reply( XCB.pConnection, cookie2, 0 );
+                const xcb_window_t      windowId = xcb_generate_id( pConn );
+                const xcb_void_cookie_t Cookie   = xcb_create_window_checked( pConn,
+                                                                              XCB_COPY_FROM_PARENT,
+                                                                              windowId,
+                                                                              pScreen->root,
+                                                                              x,
+                                                                              y,
+                                                                              width,
+                                                                              height,
+                                                                              0,
+                                                                              XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                                                                              Display.visualId,
+                                                                              valueMask,
+                                                                              aValues );
+                if( _CheckError( "xcb_create_window_checked", pConn, Cookie ) )
+                {
+                    X11Info.windowId      = windowId;
+                    X11Info.Events        = {};
+                    X11Info.Events.width  = width;
+                    X11Info.Events.height = height;
 
+                    // Handle the WM close button instead of being killed by the WM
+                    if( Display.wmProtocols != XCB_ATOM_NONE && Display.wmDeleteWindow != XCB_ATOM_NONE )
+                    {
+                        xcb_change_property( pConn,
+                                             XCB_PROP_MODE_REPLACE,
+                                             windowId,
+                                             Display.wmProtocols,
+                                             XCB_ATOM_ATOM,
+                                             32,
+                                             1,
+                                             &Display.wmDeleteWindow );
+                    }
+                    if( isFullscreen && Display.netWmState != XCB_ATOM_NONE )
+                    {
+                        // Set before mapping; the WM applies it on map
+                        xcb_change_property( pConn,
+                                             XCB_PROP_MODE_REPLACE,
+                                             windowId,
+                                             Display.netWmState,
+                                             XCB_ATOM_ATOM,
+                                             32,
+                                             1,
+                                             &Display.netWmStateFullscreen );
+                    }
+                    SetWindowTitle( X11Info, WindowDesc.pTitle );
+                    {
+                        SState&                       State = _GetState();
+                        std::lock_guard< std::mutex > l( State.Mutex );
+                        State.mWindows[ windowId ] = &X11Info;
+                    }
+                    xcb_flush( pConn );
+                    ret = VKE_OK;
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR( "X11 display is not loaded." );
+            }
+            return ret;
+        }
+
+        static Result Destroy( SX11& X11Info )
+        {
+            if( X11Info.IsValid() )
+            {
+                {
+                    SState&                       State = _GetState();
+                    std::lock_guard< std::mutex > l( State.Mutex );
+                    State.mWindows.erase( X11Info.windowId );
+                }
+                xcb_destroy_window( X11Info.pDisplay->pConnection, X11Info.windowId );
+                xcb_flush( X11Info.pDisplay->pConnection );
+                X11Info.windowId = XCB_WINDOW_NONE;
+            }
             return VKE_OK;
         }
 
-    protected:
-        void steps()
+        static Result SetWindowTitle( SX11& X11Info, cstr_t pTitle )
         {
-            /*
-            // Step A: Connect via X11-XCB
-            Display*          dpy        = XOpenDisplay( NULL );
-            xcb_connection_t* connection = XGetXCBConnection( dpy );
-            XSetEventQueueOwner( dpy, XCBOwn_ViaXCB ); // Hand event queue control to XCB
+            Result ret = VKE_FAIL;
+            if( X11Info.IsValid() && pTitle != nullptr )
+            {
+                const SX11Display& Display = *X11Info.pDisplay;
+                const uint32_t     len     = static_cast< uint32_t >( strlen( pTitle ) );
+                xcb_change_property( Display.pConnection,
+                                     XCB_PROP_MODE_REPLACE,
+                                     X11Info.windowId,
+                                     XCB_ATOM_WM_NAME,
+                                     XCB_ATOM_STRING,
+                                     8,
+                                     len,
+                                     pTitle );
+                if( Display.netWmName != XCB_ATOM_NONE && Display.utf8String != XCB_ATOM_NONE )
+                {
+                    xcb_change_property( Display.pConnection,
+                                         XCB_PROP_MODE_REPLACE,
+                                         X11Info.windowId,
+                                         Display.netWmName,
+                                         Display.utf8String,
+                                         8,
+                                         len,
+                                         pTitle );
+                }
+                xcb_flush( Display.pConnection );
+                ret = VKE_OK;
+            }
+            return ret;
+        }
 
-            // Step B: Create the XCB window
-            xcb_screen_t* screen = xcb_setup_roots_iterator( xcb_get_setup( connection ) ).data;
-            xcb_window_t  window = xcb_generate_id( connection );
+        static void IsVisible( SX11& X11Info, bool isVisible )
+        {
+            if( X11Info.IsValid() )
+            {
+                xcb_connection_t* pConn = X11Info.pDisplay->pConnection;
+                if( isVisible )
+                {
+                    xcb_map_window( pConn, X11Info.windowId );
+                }
+                else
+                {
+                    xcb_unmap_window( pConn, X11Info.windowId );
+                }
+                xcb_flush( pConn );
+            }
+        }
 
-            uint32_t value_mask      = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-            uint32_t value_list[ 2 ] = { screen->white_pixel,
-                                         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS |
-                                             XCB_EVENT_MASK_STRUCTURE_NOTIFY };
+        // Drains the shared connection queue and routes events to their windows.
+        // Returns false if the X server connection is lost.
+        static bool PumpEvents()
+        {
+            bool                          ret   = false;
+            SState&                       State = _GetState();
+            std::lock_guard< std::mutex > l( State.Mutex );
+            xcb_connection_t*             pConn = State.Display.pConnection;
+            if( pConn != nullptr && xcb_connection_has_error( pConn ) == 0 )
+            {
+                xcb_generic_event_t* pEvent = xcb_poll_for_event( pConn );
+                while( pEvent != nullptr )
+                {
+                    _DispatchEvent( State, pEvent );
+                    free( pEvent );
+                    pEvent = xcb_poll_for_event( pConn );
+                }
+                ret = xcb_connection_has_error( pConn ) == 0;
+            }
+            return ret;
+        }
 
-            // Performance Note: To avoid tearing on X11 without relying on the desktop window manager's compositor
-            // (which adds lag), you must use Vulkan's VK_PRESENT_MODE_FIFO_KHR or query for VK_PRESENT_MODE_MAILBOX_KHR
-            // (triple buffering) for tear-free, low-latency rendering.
+        static cstr_t GetXcbError( uint8_t errorCode )
+        {
+            cstr_t pRet = "Unknown or Extension Error";
+            switch( errorCode )
+            {
+                case XCB_REQUEST:
+                    pRet = "XCB_REQUEST";
+                    break;
+                case XCB_VALUE:
+                    pRet = "XCB_VALUE";
+                    break;
+                case XCB_WINDOW:
+                    pRet = "XCB_WINDOW";
+                    break;
+                case XCB_PIXMAP:
+                    pRet = "XCB_PIXMAP";
+                    break;
+                case XCB_ATOM:
+                    pRet = "XCB_ATOM";
+                    break;
+                case XCB_CURSOR:
+                    pRet = "XCB_CURSOR";
+                    break;
+                case XCB_FONT:
+                    pRet = "XCB_FONT";
+                    break;
+                case XCB_MATCH:
+                    pRet = "XCB_MATCH";
+                    break;
+                case XCB_DRAWABLE:
+                    pRet = "XCB_DRAWABLE";
+                    break;
+                case XCB_ACCESS:
+                    pRet = "XCB_ACCESS";
+                    break;
+                case XCB_ALLOC:
+                    pRet = "XCB_ALLOC";
+                    break;
+                case XCB_G_CONTEXT:
+                    pRet = "XCB_G_CONTEXT";
+                    break;
+                case XCB_ID_CHOICE:
+                    pRet = "XCB_ID_CHOICE";
+                    break;
+                case XCB_NAME:
+                    pRet = "XCB_NAME";
+                    break;
+                case XCB_LENGTH:
+                    pRet = "XCB_LENGTH";
+                    break;
+                case XCB_IMPLEMENTATION:
+                    pRet = "XCB_IMPLEMENTATION";
+                    break;
+                default:
+                    break;
+            }
+            return pRet;
+        }
 
-            xcb_create_window( connection,
-                               XCB_COPY_FROM_PARENT,
-                               window,
-                               screen->root,
-                               0,
-                               0,
-                               width,
-                               height,
-                               0,
-                               XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                               screen->root_visual,
-                               value_mask,
-                               value_list );
-            xcb_map_window( connection, window );
-            xcb_flush( connection );
+    protected:
+        static Result _Connect( SState& State )
+        {
+            Result            ret         = VKE_FAIL;
+            int               screenIndex = 0;
+            xcb_connection_t* pConn       = xcb_connect( State.Config.pDisplayName, &screenIndex );
+            const int         error       = xcb_connection_has_error( pConn );
+            if( error == 0 )
+            {
+                if( State.Config.screenIndex >= 0 )
+                {
+                    screenIndex = State.Config.screenIndex;
+                }
+                xcb_screen_iterator_t Itr = xcb_setup_roots_iterator( xcb_get_setup( pConn ) );
+                for( int i = 0; i < screenIndex && Itr.rem > 0; ++i )
+                {
+                    xcb_screen_next( &Itr );
+                }
+                if( Itr.rem > 0 && Itr.data != nullptr )
+                {
+                    SX11Display& Display = State.Display;
+                    Display.pConnection  = pConn;
+                    Display.pScreen      = Itr.data;
+                    Display.visualId     = Itr.data->root_visual;
+                    Display.screenIndex  = screenIndex;
+                    _InternAtoms( &Display );
+                    ret = VKE_OK;
+                }
+                else
+                {
+                    VKE_LOG_ERR( "X11 screen: " << screenIndex << " not found." );
+                    xcb_disconnect( pConn );
+                }
+            }
+            else
+            {
+                VKE_LOG_ERR( "xcb_connect() failed with error: " << error );
+                // xcb_connect never returns nullptr; an error connection must still be released
+                xcb_disconnect( pConn );
+            }
+            return ret;
+        }
 
-            // Step C: Hand over to Vulkan
-            VkXcbSurfaceCreateInfoKHR createInfo = {};
-            createInfo.sType                     = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-            createInfo.connection                = connection;
-            createInfo.window                    = window;
+        static void _InternAtoms( SX11Display* pDisplay )
+        {
+            static constexpr cstr_t  aNames[] = { "WM_PROTOCOLS", "WM_DELETE_WINDOW", "_NET_WM_NAME",
+                                                  "UTF8_STRING",  "_NET_WM_STATE",    "_NET_WM_STATE_FULLSCREEN" };
+            xcb_atom_t* const        aOut[]   = { &pDisplay->wmProtocols, &pDisplay->wmDeleteWindow,
+                                                  &pDisplay->netWmName,   &pDisplay->utf8String,
+                                                  &pDisplay->netWmState,  &pDisplay->netWmStateFullscreen };
+            constexpr uint32_t       count    = sizeof( aNames ) / sizeof( aNames[ 0 ] );
+            xcb_intern_atom_cookie_t aCookies[ count ];
 
-            VkSurfaceKHR surface;
-            vkCreateXcbSurfaceKHR( instance, &createInfo, NULL, &surface );
-            */
+            // Issue all requests first, then collect replies: one round-trip instead of N
+            for( uint32_t i = 0; i < count; ++i )
+            {
+                aCookies[ i ] = xcb_intern_atom(
+                    pDisplay->pConnection, 0, static_cast< uint16_t >( strlen( aNames[ i ] ) ), aNames[ i ] );
+            }
+            for( uint32_t i = 0; i < count; ++i )
+            {
+                xcb_intern_atom_reply_t* pReply =
+                    xcb_intern_atom_reply( pDisplay->pConnection, aCookies[ i ], nullptr );
+                if( pReply != nullptr )
+                {
+                    *aOut[ i ] = pReply->atom;
+                    free( pReply );
+                }
+            }
+        }
+
+        static void _DispatchEvent( SState& State, const xcb_generic_event_t* pEvent )
+        {
+            const uint8_t type   = pEvent->response_type & 0x7F;
+            xcb_window_t  window = XCB_WINDOW_NONE;
+            switch( type )
+            {
+                case XCB_CLIENT_MESSAGE:
+                    window = ( (const xcb_client_message_event_t*)pEvent )->window;
+                    break;
+                case XCB_CONFIGURE_NOTIFY:
+                    window = ( (const xcb_configure_notify_event_t*)pEvent )->window;
+                    break;
+                case XCB_MAP_NOTIFY:
+                    window = ( (const xcb_map_notify_event_t*)pEvent )->window;
+                    break;
+                case XCB_UNMAP_NOTIFY:
+                    window = ( (const xcb_unmap_notify_event_t*)pEvent )->window;
+                    break;
+                case XCB_FOCUS_IN:
+                case XCB_FOCUS_OUT:
+                    window = ( (const xcb_focus_in_event_t*)pEvent )->event;
+                    break;
+                case XCB_DESTROY_NOTIFY:
+                    window = ( (const xcb_destroy_notify_event_t*)pEvent )->window;
+                    break;
+                default:
+                    break;
+            }
+
+            const auto Itr = State.mWindows.find( window );
+            if( Itr != State.mWindows.end() )
+            {
+                SX11& X11 = *Itr->second;
+                switch( type )
+                {
+                    case XCB_CLIENT_MESSAGE: {
+                        const auto* pMsg = (const xcb_client_message_event_t*)pEvent;
+                        if( pMsg->type == State.Display.wmProtocols &&
+                            pMsg->data.data32[ 0 ] == State.Display.wmDeleteWindow )
+                        {
+                            X11.Events.closeRequested = true;
+                        }
+                    }
+                    break;
+                    case XCB_CONFIGURE_NOTIFY: {
+                        const auto* pCfg = (const xcb_configure_notify_event_t*)pEvent;
+                        if( pCfg->width != X11.Events.width || pCfg->height != X11.Events.height )
+                        {
+                            X11.Events.width   = pCfg->width;
+                            X11.Events.height  = pCfg->height;
+                            X11.Events.resized = true;
+                        }
+                    }
+                    break;
+                    case XCB_MAP_NOTIFY:
+                        X11.Events.mapped = true;
+                        break;
+                    case XCB_UNMAP_NOTIFY:
+                        X11.Events.mapped = false;
+                        break;
+                    case XCB_FOCUS_IN:
+                        X11.Events.focused = true;
+                        break;
+                    case XCB_FOCUS_OUT:
+                        X11.Events.focused = false;
+                        break;
+                    case XCB_DESTROY_NOTIFY:
+                        X11.Events.closeRequested = true;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        static bool _CheckError( cstr_t pFunc, xcb_connection_t* pConn, xcb_void_cookie_t Cookie )
+        {
+            bool                 ret    = true;
+            xcb_generic_error_t* pError = xcb_request_check( pConn, Cookie );
+            if( pError != nullptr )
+            {
+                VKE_LOG_ERR( pFunc << "() failed. Error: " << GetXcbError( pError->error_code ) << " code: "
+                                   << (uint32_t)pError->error_code << " major: " << (uint32_t)pError->major_code
+                                   << " minor: " << (uint32_t)pError->minor_code );
+                free( pError );
+                ret = false;
+            }
+            return ret;
         }
     };
-}; // namespace VKE::Platform::Backend
+} // namespace VKE::Platform::Backend

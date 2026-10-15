@@ -28,14 +28,14 @@ namespace VKE
                     _DestroyPool( &vpPools[ i ] );
                 }
                 vpPools.Clear();
-#if VKE_DUMP_CB
-                if( m_hFile != INVALID_HANDLE )
-                {
-                    Platform::File::FlushSync( m_hFile );
-                    Platform::File::Close( &m_hFile );
-                }
-#endif
             }
+#if VKE_DUMP_CB
+            if( m_hFile != INVALID_HANDLE )
+            {
+                Platform::File::FlushSync( m_hFile );
+                Platform::File::Close( &m_hFile );
+            }
+#endif
         }
 
         Result CCommandBufferManager::Create( const SCommandBufferManagerDesc& Desc )

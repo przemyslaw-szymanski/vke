@@ -41,23 +41,23 @@ struct SGfxContextListener : public VKE::RenderSystem::EventListeners::IGraphics
         VsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pVS;
-        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple.vs";
+        VsDesc.Shader.FileInfo.pFileName = "data/samples/shaders/simple.vs";
         pCtx->CreateShader( VsDesc );
 
         PsDesc = VsDesc;
         PsDesc.Create.pOutput = &pPS;
-        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple.ps";
+        PsDesc.Shader.FileInfo.pFileName = "data/samples/shaders/simple.ps";
         pCtx->CreateShader( PsDesc );
 
         VsDesc.Create.flags = Core::CreateResourceFlags::DEFAULT;
         VsDesc.Create.stages = VKE::Core::ResourceStages::FULL_LOAD;
         VsDesc.Create.pOutput = &pRtVS;
-        VsDesc.Shader.FileInfo.pFileName = "Data/Samples/Shaders/simple-fullscreen-quad.vs";
+        VsDesc.Shader.FileInfo.pFileName = "data/samples/shaders/simple-fullscreen-quad.vs";
         pCtx->CreateShader( VsDesc );
 
         PsDesc = VsDesc;
         PsDesc.Create.pOutput = &pRtPS;
-        PsDesc.Shader.FileInfo.pFileName = "Data/Samples/shaders/simple-copy.ps";
+        PsDesc.Shader.FileInfo.pFileName = "data/samples/shaders/simple-copy.ps";
         pCtx->CreateShader( PsDesc );
     }
 

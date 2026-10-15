@@ -3,6 +3,11 @@
 
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"
+
+#if VKE_LINUX
+#include "Core/Platform/Linux/Backend/Backend.h"
+#endif
+
 #include "RenderSystem/CContextBase.h"
 #include "RenderSystem/CGraphicsContext.h"
 #include "RenderSystem/Resources/CBuffer.h"
@@ -821,7 +826,7 @@ namespace VKE
                 }
 
                 char buff[ 128 ];
-                vke_sprintf( buff, sizeof(buff), "Cannot convert VkFormat: %d to Engine format.", vkFormat );
+                vke_sprintf( buff, sizeof( buff ), "Cannot convert VkFormat: %d to Engine format.", vkFormat );
                 VKE_ASSERT2( 0, buff );
                 return RenderSystem::Formats::UNDEFINED;
             }
@@ -2047,6 +2052,9 @@ namespace VKE
             auto& sGlobalICD = SImplementation::sGlobalICD;
             auto& shICD      = SImplementation::shICD;
 
+#if defined( VKE_VULKAN_LAYER_PATH )
+            ::setenv( "VK_ADD_LAYER_PATH", VKE_VULKAN_LAYER_PATH, 0 );
+#endif
             shICD = Platform::DynamicLibrary::Load( g_pVkLibName );
             if( shICD != 0 )
             {
@@ -2069,7 +2077,7 @@ namespace VKE
                         vRequiredLayers = {
                             // name,                            required,                   supported,  enabled
                             { "VK_LAYER_KHRONOS_validation", VKE_RENDER_SYSTEM_DEBUG, false, false },
-                            { "VK_LAYER_KHRONOS_profiles", VKE_RENDER_SYSTEM_DEBUG, false, false }
+                            { "VK_LAYER_KHRONOS_profiles", false, false, false }
                         };
                     }
 
@@ -2409,9 +2417,17 @@ namespace VKE
 #if VKE_USE_VULKAN_WINDOWS
                 isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceWin32PresentationSupportKHR( hAdapter, i );
 #elif VKE_USE_VULKAN_LINUX
-                //isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
-                //    hAdapter, i, xcb_connection, visual_id );
-                VKE_LOG_ERR( "Unimplemented" );
+                if( Platform::Backend::GetWindowSystem() == Platform::Backend::WindowSystems::X11 )
+                {
+                    // Shared connection is opened lazily; keep a reference only for the duration of the query
+                    Platform::Backend::SX11 X11Ref;
+                    if( VKE_SUCCEEDED( Platform::Backend::CX11::Load( X11Ref ) ) )
+                    {
+                        isPresent = SImplementation::sInstanceICD.vkGetPhysicalDeviceXcbPresentationSupportKHR(
+                            hAdapter, i, X11Ref.pDisplay->pConnection, X11Ref.pDisplay->visualId );
+                        Platform::Backend::CX11::Unload( X11Ref );
+                    }
+                }
 #elif VKE_USE_VULKAN_ANDROID
 #error "implement"
 #endif
@@ -3997,15 +4013,16 @@ namespace VKE
                 {
                     VKE_LOG_ERR( "TODO(szymansk): RHI should never call pCtx to create pipeline layout if not "
                                  "provided. The logic should be moved to render system." );
-                    //create = Desc.hLayout != INVALID_HANDLE;
-                    //if( create )
+                    // create = Desc.hLayout != INVALID_HANDLE;
+                    // if( create )
                     //{
-                    //    VkGraphicsInfo.layout = ToNative( m_pCtx->GetPipelineLayout( Desc.hLayout )->GetRHIObject() );
-                    //}
-                    //else
+                    //     VkGraphicsInfo.layout = ToNative( m_pCtx->GetPipelineLayout( Desc.hLayout )->GetRHIObject()
+                    //     );
+                    // }
+                    // else
                     //{
-                    //    VKE_LOG_WARN( "No valid pipeline layout handle provided. Pipeline will not be created." );
-                    //}
+                    //     VKE_LOG_WARN( "No valid pipeline layout handle provided. Pipeline will not be created." );
+                    // }
                 }
                 if( Desc.hRHIRenderPass != RHI::Null )
                 {
@@ -4200,7 +4217,7 @@ namespace VKE
                 {
                     VkDescriptorImageInfo VkInfo;
                     VkInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    VkInfo.imageView   = ToNative(Curr.ahHandles[ j ]);
+                    VkInfo.imageView   = ToNative( Curr.ahHandles[ j ] );
                     VkInfo.sampler     = NativeAPI::Null;
                     vvVkRenderTargetInfos[ i ].PushBack( VkInfo );
                 }
@@ -5012,6 +5029,8 @@ namespace VKE
             si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
             si.pNext = nullptr;
             SVulkanNext Next( si );
+            // Must outlive vkQueueSubmit as it is linked into si.pNext.
+            VkTimelineSemaphoreSubmitInfo TimelineInfo;
 
             if( Info.hWaitForFence != RHI::Null )
             {
@@ -5029,7 +5048,6 @@ namespace VKE
                 if( ToNative( Info.hSignalFence )->isNativeMonitored &&
                     ToNative( Info.hSignalFence )->isBinary == false )
                 {
-                    VkTimelineSemaphoreSubmitInfo TimelineInfo;
                     TimelineInfo.sType                     = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
                     TimelineInfo.pNext                     = nullptr;
                     TimelineInfo.waitSemaphoreValueCount   = waitForFenceCount;
@@ -5164,14 +5182,29 @@ namespace VKE
                 vkRes               = SImplementation::sInstanceICD.vkCreateWin32SurfaceKHR(
                     SImplementation::sVkInstance, &SurfaceCI, nullptr, &hSurface );
 #elif VKE_USE_VULKAN_LINUX
-                //VkXcbSurfaceCreateInfoKHR SurfaceCI;
-                //RHI::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR );
-                //SurfaceCI.flags      = 0;
-                //SurfaceCI.connection = reinterpret_cast< xcb_connection_t* >( m_Desc.hPlatform );
-                //SurfaceCI.window     = m_Desc.hWnd;
-                //EXPECT_SUCCESS( Vk.vkCreateXcbSurfaceKHR( s_instance, &SurfaceCI, NO_ALLOC_CALLBACK, &s_surface ) )
-                vkRes = VK_SUCCESS;
-                VKE_LOG_ERR( "Unimplemented" );
+                vkRes = VK_ERROR_INITIALIZATION_FAILED;
+                if( Platform::Backend::GetWindowSystem() == Platform::Backend::WindowSystems::WAYLAND )
+                {
+                    VKE_LOG_ERR( "Wayland surface is not implemented." );
+                }
+                else
+                {
+                    const Platform::Backend::SX11* pX11 = Platform::Backend::GetX11( Desc.pWindow.Get() );
+                    if( pX11 != nullptr && pX11->IsValid() )
+                    {
+                        VkXcbSurfaceCreateInfoKHR SurfaceCI;
+                        RHI::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR );
+                        SurfaceCI.flags      = 0;
+                        SurfaceCI.connection = pX11->pDisplay->pConnection;
+                        SurfaceCI.window     = pX11->windowId;
+                        vkRes                = SImplementation::sInstanceICD.vkCreateXcbSurfaceKHR(
+                            SImplementation::sVkInstance, &SurfaceCI, nullptr, &hSurface );
+                    }
+                    else
+                    {
+                        VKE_LOG_ERR( "Invalid X11 window for swapchain surface." );
+                    }
+                }
 #elif VKE_USE_VULKAN_ANDROID
                 VkAndroidSurfaceCreateInfoKHR SurfaceCI;
                 RHI::InitInfo( &SurfaceCI, VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR );
@@ -5190,15 +5223,25 @@ namespace VKE
                     if( !isSurfaceSupported )
                     {
                         VKE_LOG_ERR( "Queue index: " << queueIndex << " does not support the surface." );
-                        SImplementation::sInstanceICD.vkDestroySurfaceKHR(
-                            SImplementation::sVkInstance, ( hSurface ), nullptr );
+                        goto ERR;
                     }
+                }
+                else
+                {
+                    hSurface = NativeAPI::Null;
+                    goto ERR;
                 }
             }
             {
                 SPresentSurfaceCaps& Caps = pOut->Caps;
                 ret                       = QueryPresentSurfaceCaps( FromNative( hSurface ), &Caps );
-                Size                      = Caps.CurrentSize;
+                if( VKE_FAILED( ret ) )
+                {
+                    VKE_LOG_ERR( "Unable to query present surface capabilities." );
+                    goto ERR;
+                }
+                ret  = VKE_FAIL;
+                Size = Caps.CurrentSize;
                 if( !Caps.canBeUsedAsRenderTarget )
                 {
                     VKE_LOG_ERR( "Created present surface can't be used as render target." );
@@ -5250,11 +5293,17 @@ namespace VKE
                 pOut->hSurface = FromNative( hSurface );
                 if( Constants::_SOptimal::IsOptimal( elementCount ) )
                 {
-                    elementCount = std::min< uint16_t >( static_cast< uint16_t >( Caps.minImageCount ), 2u );
+                    // One more than minimum avoids waiting on the driver before acquiring the next image
+                    elementCount = static_cast< uint16_t >( Caps.minImageCount + 1u );
                 }
-                else
+                elementCount = std::clamp< uint16_t >( elementCount,
+                                                       static_cast< uint16_t >( Caps.minImageCount ),
+                                                       static_cast< uint16_t >( Caps.maxImageCount ) );
+                if( Size.width == 0 || Size.height == 0 )
                 {
-                    elementCount = std::min< uint16_t >( elementCount, static_cast< uint16_t >( Caps.maxImageCount ) );
+                    // Minimized window: swapchain can't be created now, caller must retry on resize
+                    VKE_LOG_WARN( "Present surface has zero extent." );
+                    goto ERR;
                 }
             }
             static const VkColorSpaceKHR aVkColorSpaces[] = { VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
@@ -5298,7 +5347,19 @@ namespace VKE
                     ci.presentMode           = aVkModes[ pOut->mode ];
                     ci.preTransform          = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
                     ci.surface               = ToNative( pOut->hSurface );
-                    res                      = m_pImplementation->m_ICD.vkCreateSwapchainKHR(
+                    {
+                        VkSurfaceCapabilitiesKHR vkCaps;
+                        if( SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+                                m_pImplementation->m_hAdapter, ci.surface, &vkCaps ) == VK_SUCCESS )
+                        {
+                            ci.preTransform = vkCaps.currentTransform;
+                            if( ( vkCaps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR ) == 0 )
+                            {
+                                ci.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+                            }
+                        }
+                    }
+                    res = m_pImplementation->m_ICD.vkCreateSwapchainKHR(
                         ( m_pImplementation->m_hDevice ), &ci, nullptr, &hSwapChain );
                 }
                 VK_ERR( res );
@@ -5491,9 +5552,14 @@ namespace VKE
             VkResult                  res;
             NativeAPI::PresentSurface hVkSurface = ToNative( hSurface );
             VkSurfaceCapabilitiesKHR  vkSurfaceCaps;
-            SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            // Caps may be reused on swapchain recreation
+            pOut->vFormats.Clear();
+            pOut->vModes.Clear();
+            res = SImplementation::sInstanceICD.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
                 m_pImplementation->m_hAdapter, hVkSurface, &vkSurfaceCaps );
-            auto hasColorAttachment = vkSurfaceCaps.supportedUsageFlags | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            VK_ERR( res );
+            const bool hasColorAttachment =
+                ( vkSurfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT ) != 0;
 
             // Select surface format
             Utils::TCDynamicArray< VkSurfaceFormatKHR > vSurfaceFormats;
@@ -5568,16 +5634,24 @@ namespace VKE
                     vkSurfaceCaps.maxImageCount = Constants::RenderSystem::MAX_SWAP_CHAIN_ELEMENTS;
                 }
 
-                pOut->MinSize.width           = static_cast< uint16_t >( vkSurfaceCaps.minImageExtent.width );
-                pOut->MinSize.height          = static_cast< uint16_t >( vkSurfaceCaps.minImageExtent.height );
-                pOut->MaxSize.width           = static_cast< uint16_t >( vkSurfaceCaps.maxImageExtent.width );
-                pOut->MaxSize.height          = static_cast< uint16_t >( vkSurfaceCaps.maxImageExtent.height );
+                pOut->MinSize.width  = static_cast< uint16_t >( vkSurfaceCaps.minImageExtent.width );
+                pOut->MinSize.height = static_cast< uint16_t >( vkSurfaceCaps.minImageExtent.height );
+                pOut->MaxSize.width =
+                    static_cast< uint16_t >( std::min( vkSurfaceCaps.maxImageExtent.width, 0xFFFFu ) );
+                pOut->MaxSize.height =
+                    static_cast< uint16_t >( std::min( vkSurfaceCaps.maxImageExtent.height, 0xFFFFu ) );
+                if( vkSurfaceCaps.currentExtent.width == UINT32_MAX )
+                {
+                    // Surface size is defined by the swapchain (e.g. Wayland): fall back to minimum, caller overrides
+                    vkSurfaceCaps.currentExtent = vkSurfaceCaps.minImageExtent;
+                }
                 pOut->CurrentSize.width       = static_cast< uint16_t >( vkSurfaceCaps.currentExtent.width );
                 pOut->CurrentSize.height      = static_cast< uint16_t >( vkSurfaceCaps.currentExtent.height );
                 pOut->minImageCount           = static_cast< uint16_t >( vkSurfaceCaps.minImageCount );
                 pOut->maxImageCount           = static_cast< uint16_t >( vkSurfaceCaps.maxImageCount );
                 pOut->canBeUsedAsRenderTarget = hasColorAttachment;
                 // pOut->transform = vkSurfaceCaps.currentTransform
+                ret = VKE_OK;
             }
             return ret;
         }
@@ -6122,7 +6196,9 @@ namespace VKE
             VKE_ASSERT2( 0, "Vulkan RHI: UnbindRenderPass is not implemented. Use EndRenderPass." );
         }
 
-        void CRHI::UpdateDesc( SBufferDesc* ) {}
+        void CRHI::UpdateDesc( SBufferDesc* )
+        {
+        }
 
     } // namespace RenderSystem::RHI
 } // namespace VKE

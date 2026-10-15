@@ -849,7 +849,7 @@ namespace VKE
             uint32_t       queueFamilyIndex = 0;
             TextureSize    Size             = { 800, 600 };
             COLOR_SPACE    colorSpace       = ColorSpaces::SRGB;
-            TEXTURE_FORMAT format           = Formats::R8G8B8A8_UNORM;
+            TEXTURE_FORMAT format           = Formats::B8G8R8A8_UNORM;
             uint16_t       backBufferCount  = Constants::OPTIMAL;
             bool           enableVSync      = true;
         };
