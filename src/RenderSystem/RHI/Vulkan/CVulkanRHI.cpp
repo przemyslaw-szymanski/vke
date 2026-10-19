@@ -4,8 +4,8 @@
 #include "Core/Managers/CFileManager.h"
 #include "Core/Platform/CWindow.h"
 
-#if VKE_LINUX
-#include "Core/Platform/Linux/CX11.h"
+#if VKE_WINDOW_SYSTEM_XCB
+#include "Core/Platform/Window/XCB/CX11.h"
 #endif
 
 #include "RenderSystem/CContextBase.h"
@@ -145,9 +145,9 @@ namespace VKE
             NativeAPI::NativeExtArray Ret = {
                 // name, required, supported, enabled
                 { VK_KHR_SURFACE_EXTENSION_NAME, true, false },
-#if VKE_WINDOWS
+#if VKE_WINDOW_SYSTEM_WINAPI
                 { VK_KHR_WIN32_SURFACE_EXTENSION_NAME, true, false },
-#elif VKE_LINUX
+#elif VKE_WINDOW_SYSTEM_XCB
                 { VK_KHR_XCB_SURFACE_EXTENSION_NAME, true, false },
 #elif VKE_ANDROID
                 { VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, true, false },

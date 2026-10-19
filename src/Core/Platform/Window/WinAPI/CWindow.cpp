@@ -1,7 +1,7 @@
 #include "Core/Platform/CWindow.h"
 #include "Core/Input/EventListeners.h"
 
-#if VKE_WINDOWS
+#if VKE_WINDOW_SYSTEM_WINAPI
 
 #include <windows.h>
 #include <windowsx.h>
@@ -875,4 +875,4 @@ namespace VKE
     }
 } // namespace VKE
 
-#endif // WINDOWS
+#endif // VKE_WINDOW_SYSTEM_WINAPI

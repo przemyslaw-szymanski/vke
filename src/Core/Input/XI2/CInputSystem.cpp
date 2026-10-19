@@ -1,9 +1,7 @@
-#if VKE_LINUX
-
 #include "Core/Input/CInputSystem.h"
 #include "Core/Memory/Memory.h"
 #include "Core/Platform/CPlatform.h"
-#include "Core/Platform/Linux/CX11.h"
+#include "Core/Platform/Window/XCB/CX11.h"
 #include "Core/Utils/CLogger.h"
 
 namespace VKE::Input
@@ -334,5 +332,3 @@ namespace VKE::Input
     // TODO: Gamepad/joystick support via an optional evdev path (/dev/input), enabled only when accessible.
     // Not available under WSL.
 }; // namespace VKE::Input
-
-#endif

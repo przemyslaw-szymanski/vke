@@ -1,12 +1,9 @@
 ﻿#pragma once
 
-#include "Core/Platform/Common.h"
-#include "Core/Platform/Linux/SWindowEvents.h"
-#include "Core/Platform/Linux/SInputEvents.h"
-#include "Core/Utils/CLogger.h"
-
 #include <xcb/xcb.h>
-#include <xcb/xinput.h>
+
+#include "Core/Platform/Common.h"
+#include "Core/Utils/CLogger.h"
 
 namespace VKE
 {
@@ -15,6 +12,43 @@ namespace VKE
 
 namespace VKE::Platform::Linux
 {
+    // Input record produced by the X11 event pump (XInput2 raw events + core pointer position),
+    // consumed by CInputSystem::Update().
+    struct SInputEvent
+    {
+        enum TYPE : uint8_t
+        {
+            KEY_DOWN,
+            KEY_UP,
+            BUTTON_DOWN,
+            BUTTON_UP,
+            RAW_MOTION,
+            POSITION,
+            RESET // focus lost: release everything held
+        };
+
+        TYPE     type     = KEY_DOWN;
+        uint16_t deviceId = 0;
+        uint32_t detail   = 0; // X keycode (evdev + 8) or X button number
+        float    dx       = 0.0f;
+        float    dy       = 0.0f;
+        int16_t  x        = 0;
+        int16_t  y        = 0;
+    };
+
+    using InputEventArray = Utils::TCDynamicArray< SInputEvent, 256 >;
+
+    // Window events collected by a backend event pump, consumed by the owning CWindow.
+    struct SWindowEvents
+    {
+        uint16_t width          = 0;
+        uint16_t height         = 0;
+        bool     closeRequested = false;
+        bool     resized        = false;
+        bool     mapped         = false;
+        bool     focused        = false;
+    };
+
     struct SX11Config
     {
         // Defaults - nullptr uses DISPLAY:0, -1 is default screen

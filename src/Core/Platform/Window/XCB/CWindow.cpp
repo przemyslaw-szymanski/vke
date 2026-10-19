@@ -1,10 +1,10 @@
-﻿#include "Core/Platform/CWindow.h"
+#include "Core/Platform/CWindow.h"
 
-#if VKE_LINUX
+#if VKE_WINDOW_SYSTEM_XCB
 #include "Core/Memory/Memory.h"
 #include "Core/Utils/CLogger.h"
 
-#include "Core/Platform/Linux/CX11.h"
+#include "Core/Platform/Window/XCB/CX11.h"
 #include "Core/Input/CInputSystem.h"
 
 namespace VKE
@@ -20,7 +20,7 @@ namespace VKE
 
     struct SWindowInternal
     {
-        Platform::Thread::ID osThreadId = 0;
+        Platform::Thread::ID  osThreadId = 0;
         Platform::Linux::SX11 X11;
 
         struct
@@ -389,4 +389,4 @@ namespace VKE
     } // namespace Platform::Linux
 
 } // namespace VKE
-#endif // VKE_LINUX
+#endif // VKE_WINDOW_SYSTEM_XCB

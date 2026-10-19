@@ -2,39 +2,33 @@
 
 #include "Common.h"
 
-namespace VKE
+namespace VKE::Input::EventListeners
 {
-    namespace Input
+    class IInput
     {
-        namespace EventListeners
+    public:
+        virtual ~IInput()
         {
-            class IInput
-            {
-            public:
-                virtual ~IInput()
-                {
-                }
+        }
 
-                virtual void OnKeyDown( const Input::SKeyboardState&, const Input::KEY& )
-                {
-                }
+        virtual void OnKeyDown( const Input::SKeyboardState&, const Input::KEY& )
+        {
+        }
 
-                virtual void OnKeyUp( const Input::SKeyboardState&, const Input::KEY& )
-                {
-                }
+        virtual void OnKeyUp( const Input::SKeyboardState&, const Input::KEY& )
+        {
+        }
 
-                virtual void OnMouseMove( const Input::SMouseState& )
-                {
-                }
+        virtual void OnMouseMove( const Input::SMouseState& )
+        {
+        }
 
-                virtual void OnMouseButtonDown( const Input::SMouseState& )
-                {
-                }
+        virtual void OnMouseButtonDown( const Input::SMouseState& )
+        {
+        }
 
-                virtual void OnMouseButtonUp( const Input::SMouseState& )
-                {
-                }
-            };
-        } // namespace EventListeners
-    } // namespace Input
-} // namespace VKE
+        virtual void OnMouseButtonUp( const Input::SMouseState& )
+        {
+        }
+    };
+} // namespace VKE::Input::EventListeners

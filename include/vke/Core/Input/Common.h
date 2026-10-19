@@ -3,9 +3,11 @@
 #include "Core/VKECommon.h"
 #include "Core/Utils/TCBitSetArray.h"
 
-#if VKE_WINDOWS
-#include <windows.h>
-#endif // VKE_WINDOWS
+#if VKE_INPUT_SYSTEM_WINAPI
+#include "Core/Input/WinAPI/WinAPI.h"
+#elif VKE_INPUT_SYSTEM_XI2
+#include "Core/Input/XI2/XI2.h"
+#endif
 
 namespace VKE::Input
 {
@@ -232,20 +234,6 @@ namespace VKE::Input
         ret                    = static_cast< MOUSE_BUTTON_STATE >( ( ret & ~ups ) | ( ups << 1 ) );
         return ret;
     }
-
-#if VKE_WINDOWS
-    using Keyboard     = ::RAWINPUTDEVICE;
-    using Mouse        = ::RAWINPUTDEVICE;
-    using GamePad      = ::RAWINPUTDEVICE;
-    using Joystick     = ::RAWINPUTDEVICE;
-    using DeviceHandle = ::HANDLE;
-#elif VKE_LINUX
-    using Keyboard     = void*;
-    using Mouse        = void*;
-    using GamePad      = void*;
-    using Joystick     = void*;
-    using DeviceHandle = void*;
-#endif // VKE_WINDOWS
 
     struct SMouseState
     {
