@@ -8,6 +8,7 @@
 #include "Core/Utils/CTimer.h"
 #include "Core/Threads/Common.h"
 #include "Core/VKEConfig.h"
+#include "Core/Platform/CPlatform.h"
 
 #include <fstream>
 
@@ -44,7 +45,7 @@ namespace VKE
 
             ~CLogger()
             {
-                m_File.close();
+                Platform::File::Close( &m_File );
             }
 
             static CLogger& GetInstance()
@@ -215,7 +216,7 @@ namespace VKE
             Threads::SyncObject    m_SyncObj;
             std::stringstream      m_Stream;
             Utils::CTimer          m_Timer;
-            std::ofstream          m_File;
+            handle_t               m_File = INVALID_HANDLE;
             BitsetU8               m_Mode       = BitsetU8( LoggerModeFlagBits::STDOUT );
             cstr_t                 m_pSeparator = "::";
             inline static CLogger* m_pInstance  = nullptr;
@@ -241,14 +242,18 @@ namespace VKE
                 }
                 if( m_Mode == LoggerModeFlagBits::FILE )
                 {
-                    if( !m_File.is_open() )
+                    if( m_File == INVALID_HANDLE )
                     {
-                        m_File.open( "./log.txt", std::ios::out );
+                        m_File = Platform::File::Open( "./log.txt", Platform::File::Modes::WRITE );
                     }
-                    if( m_File.is_open() )
+                    if( m_File != INVALID_HANDLE )
                     {
-                        m_File << str;
-                        m_File.flush();
+                        Platform::File::SWriteInfo info;
+                        info.pData = str.c_str();
+                        info.dataSize = str.size();
+
+                        Platform::File::Write( m_File, info );
+                        Platform::File::Flush( m_File );
                     }
                 }
                 m_Stream.str( "" );

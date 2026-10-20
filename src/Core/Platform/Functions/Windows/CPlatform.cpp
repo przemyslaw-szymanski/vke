@@ -491,7 +491,7 @@ namespace VKE::Platform
     handle_t File::Open( cstr_t pFileName, MODE mode )
     {
         ::DWORD dwAccess     = 0;
-        ::DWORD dwShare      = 0;
+        ::DWORD dwShare      = FILE_SHARE_READ;
         ::DWORD dwCreateDesc = 0;
         if( mode & Modes::READ )
         {
