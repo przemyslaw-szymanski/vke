@@ -8,4 +8,5 @@ bin/data/Assets/*
 bin/D3D12
 lib/*.*
 .vs/
+.idea/
 include/vke/RenderSystem/CommonEnumStrings.h
