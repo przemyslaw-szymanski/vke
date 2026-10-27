@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VKE DevTool</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>VKE DevTool</h1>
+  <span id="hostInfo"></span>
+  <span id="proxyInfo" class="pill"></span>
+  <button id="btnReload" title="Re-read CMakePresets.json, CompileOptions.cmake and samples">Reload</button>
+</header>
+<div id="banner" class="banner hidden"></div>
+
+<main>
+  <section id="presetGroups" class="groups"></section>
+
+  <section class="row">
+    <div class="box narrow">
+      <h2>Configurations</h2>
+      <div id="configs"></div>
+    </div>
+    <div class="box wide">
+      <h2>Samples <small>(none = build all)</small></h2>
+      <div id="samples" class="grid"></div>
+    </div>
+  </section>
+
+  <section class="actions">
+    <button id="btnSetup">Setup</button>
+    <button id="btnGenerate">Generate</button>
+    <button id="btnBuild">Build</button>
+  </section>
+
+  <section class="row">
+    <div class="box options">
+      <h2>CMake option overrides <small>(Default = not passed)</small></h2>
+      <input id="optFilter" placeholder="Filter options...">
+      <table id="options">
+        <thead><tr><th>Option</th><th>Description</th><th>Default</th><th>Value</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <h3>Extra -D variables</h3>
+      <div id="extra"></div>
+      <button id="btnAddExtra">Add variable</button>
+    </div>
+    <div class="box wide">
+      <h2>Tasks <button id="btnClear" class="small">Clear finished</button></h2>
+      <table id="tasks">
+        <colgroup><col class="c-id"><col><col class="c-state"><col class="c-elapsed"><col class="c-actions"></colgroup>
+        <thead><tr><th>#</th><th>Task</th><th>State</th><th>Elapsed</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<dialog id="setupDlg">
+  <h2>Setup</h2>
+  <div id="setupProxy"></div>
+  <div id="setupGroups"></div>
+  <table id="setupTable">
+    <thead><tr><th></th><th class="c-dep">Dependency</th><th class="c-grp">Group</th><th class="c-st">Status</th><th class="c-ver">Version</th><th>Detail</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p class="hint">Windows steps run in a single elevated terminal (one UAC prompt). Linux steps ask for sudo once.
+    If a restart or manual step is needed, Setup stops; run it again afterwards and completed steps are skipped.</p>
+  <div class="dlgButtons">
+    <button id="btnSetupRecheck">Re-check</button>
+    <button id="btnSetupGate" class="hidden">I created the Ubuntu user - Continue</button>
+    <button id="btnSetupRun">Install selected</button>
+    <button id="btnSetupClose">Close</button>
+  </div>
+</dialog>
+
+<dialog id="proxyDlg">
+  <h2>Network / proxy</h2>
+  <label>HTTP proxy <input id="pxHttp" placeholder="http://user:pass@host:port"></label>
+  <label>HTTPS proxy <input id="pxHttps" placeholder="(same as HTTP)"></label>
+  <label>No proxy <input id="pxNo" placeholder="localhost,127.0.0.1,.corp"></label>
+  <pre id="pxResults"></pre>
+  <div class="dlgButtons">
+    <button id="btnPxTest">Test connectivity</button>
+    <button id="btnPxSave">Apply</button>
+    <button id="btnPxClose">Close</button>
+  </div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

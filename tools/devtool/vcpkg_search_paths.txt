@@ -1,0 +1,13 @@
+# vcpkg root search locations, shared by CMakeLists.txt and tools/devtool (core/env.py).
+# Checked after VCPKG_ROOT and PATH. $ENV{NAME} is expanded; lines using an unset variable
+# and entries not existing on the host are ignored.
+$ENV{HOME}/vcpkg
+$ENV{HOME}/.vcpkg
+$ENV{USERPROFILE}/vcpkg
+/opt/vcpkg
+/usr/local/vcpkg
+C:/vcpkg
+C:/tools/vcpkg
+C:/src/vcpkg
+D:/vcpkg
+D:/tools/vcpkg

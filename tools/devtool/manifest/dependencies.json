@@ -1,0 +1,187 @@
+{
+  "$comment": "VKE DevTool dependency manifest. See tools/devtool/README.md for the schema.",
+  "version": 1,
+  "pins": {
+    "androidCmdlineTools": "11076708",
+    "androidPlatform": "platforms;android-34",
+    "androidBuildTools": "build-tools;34.0.0",
+    "androidNdk": "27.2.12479018",
+    "androidCMake": "3.31.6"
+  },
+  "dependencies": [
+    {
+      "id": "git", "name": "Git", "group": "windows", "elevate": true,
+      "check": { "cmd": "git --version", "regex": "git version (\\d+\\.\\d+\\.\\d+)", "minVersion": "2.40" },
+      "install": { "winget": "Git.Git" }
+    },
+    {
+      "id": "cmake", "name": "CMake", "group": "windows", "elevate": true,
+      "check": { "cmd": "cmake --version", "regex": "cmake version (\\d+\\.\\d+\\.\\d+)", "minVersion": "3.28" },
+      "install": { "winget": "Kitware.CMake" }
+    },
+    {
+      "id": "ninja", "name": "Ninja", "group": "windows", "elevate": true,
+      "check": { "cmd": "ninja --version", "regex": "(\\d+\\.\\d+\\.\\d+)", "minVersion": "1.11" },
+      "install": { "winget": "Ninja-build.Ninja" }
+    },
+    {
+      "id": "llvm", "name": "LLVM / Clang", "group": "windows", "elevate": true,
+      "check": { "cmd": "clang-cl --version", "regex": "clang version (\\d+\\.\\d+\\.\\d+)", "minVersion": "18.0",
+                 "paths": ["%ProgramFiles%\\LLVM\\bin"] },
+      "install": { "winget": "LLVM.LLVM",
+                   "ps": ["Add-ToPath -Dir \"$env:ProgramFiles\\LLVM\\bin\" -Scope Machine"] }
+    },
+    {
+      "id": "vulkan-sdk", "name": "Vulkan SDK", "group": "windows", "elevate": true,
+      "check": { "env": "VULKAN_SDK", "cmd": "if exist \"%VULKAN_SDK%\\Bin\\vulkaninfoSDK.exe\" (\"%VULKAN_SDK%\\Bin\\vulkaninfoSDK.exe\" --summary) else (\"%VULKAN_SDK%\\Bin\\vulkaninfo.exe\" --summary)", "regex": "Vulkan Instance Version: (\\d+\\.\\d+\\.\\d+)", "minVersion": "1.3" },
+      "install": { "winget": "KhronosGroup.VulkanSDK" },
+      "requiresRestart": false
+    },
+    {
+      "id": "visual-studio", "name": "Visual Studio (C++ workloads from vs.vsconfig)", "group": "windows", "elevate": true,
+      "check": { "type": "vs", "minVersion": "18.0" },
+      "install": { "type": "vs", "winget": "Microsoft.VisualStudio.Community" },
+      "requiresRestart": true
+    },
+    {
+      "id": "msys2", "name": "MSYS2", "group": "windows", "elevate": true,
+      "check": { "type": "path", "path": "{msys2}\\usr\\bin\\bash.exe" },
+      "install": { "winget": "MSYS2.MSYS2" }
+    },
+    {
+      "id": "mingw-toolchain", "name": "MinGW-w64 UCRT toolchain (gcc, cmake, ninja)", "group": "windows", "elevate": true,
+      "dependsOn": ["msys2"],
+      "check": { "cmd": "\"{msys2}\\ucrt64\\bin\\g++.exe\" --version", "regex": "(\\d+\\.\\d+\\.\\d+)", "minVersion": "13.0" },
+      "install": { "cmd": [
+        "\"{msys2}\\usr\\bin\\bash.exe\" -lc \"pacman -Syu --noconfirm\"",
+        "\"{msys2}\\usr\\bin\\bash.exe\" -lc \"pacman -Syu --noconfirm\"",
+        "\"{msys2}\\usr\\bin\\bash.exe\" -lc \"pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf\""
+      ], "ps": ["Add-ToPath -Dir '{msys2}\\ucrt64\\bin' -Scope User -Append"] }
+    },
+    {
+      "id": "wsl", "name": "WSL + Ubuntu", "group": "windows", "elevate": true,
+      "check": { "type": "wsl" },
+      "install": { "type": "wsl" },
+      "requiresRestart": true
+    },
+    {
+      "id": "wsl-user", "name": "Ubuntu user account (manual: open Ubuntu once and create your user)", "group": "windows",
+      "dependsOn": ["wsl"],
+      "check": { "type": "wslUser" },
+      "install": { "type": "gate" }
+    },
+    {
+      "id": "vcpkg", "name": "vcpkg (system-wide, VCPKG_ROOT)", "group": "windows", "elevate": false,
+      "dependsOn": ["git"],
+      "check": { "type": "path", "path": "{vcpkgRoot}\\vcpkg.exe" },
+      "install": { "ps": [
+        "$root = '{vcpkgRoot}'",
+        "if (-not (Test-Path (Join-Path $root '.git'))) { git clone https://github.com/microsoft/vcpkg.git $root; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }",
+        "& (Join-Path $root 'bootstrap-vcpkg.bat') -disableMetrics; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }",
+        "[Environment]::SetEnvironmentVariable('VCPKG_ROOT', $root, 'User')",
+        "Add-ToPath -Dir $root -Scope User -Append"
+      ] }
+    },
+    {
+      "id": "jdk", "name": "OpenJDK 17 (required by Android sdkmanager)", "group": "android", "elevate": true,
+      "check": { "cmd": "java -version", "regex": "version \"(\\d+[\\d.]*)", "minVersion": "17" },
+      "install": { "winget": "Microsoft.OpenJDK.17" }
+    },
+    {
+      "id": "android-cmdline-tools", "name": "Android SDK command-line tools (system-wide)", "group": "android", "elevate": true,
+      "dependsOn": ["jdk"],
+      "check": { "type": "path", "path": "{androidSdk}\\cmdline-tools\\latest\\bin\\sdkmanager.bat" },
+      "install": { "ps": [
+        "$sdk = '{androidSdk}'",
+        "$zip = Join-Path $env:TEMP 'vke-cmdline-tools.zip'",
+        "Get-Download -Url 'https://dl.google.com/android/repository/commandlinetools-win-{pin:androidCmdlineTools}_latest.zip' -OutFile $zip",
+        "$tmp = Join-Path $env:TEMP 'vke-cmdline-tools'; Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue",
+        "Expand-Archive -Path $zip -DestinationPath $tmp -Force",
+        "New-Item -ItemType Directory -Force -Path (Join-Path $sdk 'cmdline-tools') | Out-Null",
+        "Remove-Item (Join-Path $sdk 'cmdline-tools\\latest') -Recurse -Force -ErrorAction SilentlyContinue",
+        "Move-Item (Join-Path $tmp 'cmdline-tools') (Join-Path $sdk 'cmdline-tools\\latest')",
+        "[Environment]::SetEnvironmentVariable('ANDROID_HOME', $sdk, 'Machine')",
+        "[Environment]::SetEnvironmentVariable('ANDROID_SDK_ROOT', $sdk, 'Machine')"
+      ] }
+    },
+    {
+      "id": "android-sdk-packages", "name": "Android platform-tools, platform, build-tools, CMake", "group": "android", "elevate": true,
+      "dependsOn": ["android-cmdline-tools"],
+      "check": { "type": "path", "path": "{androidSdk}\\build-tools\\34.0.0" },
+      "install": { "ps": [
+        "$sdk = '{androidSdk}'",
+        "$sm = Join-Path $sdk 'cmdline-tools\\latest\\bin\\sdkmanager.bat'",
+        "1..50 | ForEach-Object { 'y' } | & $sm --sdk_root=$sdk {sdkProxy} --licenses | Out-Host",
+        "& $sm --sdk_root=$sdk {sdkProxy} 'platform-tools' '{pin:androidPlatform}' '{pin:androidBuildTools}' 'cmake;{pin:androidCMake}' | Out-Host",
+        "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }",
+        "Add-ToPath -Dir (Join-Path $sdk 'platform-tools') -Scope Machine -Append"
+      ] }
+    },
+    {
+      "id": "android-ndk", "name": "Android NDK (pinned)", "group": "android", "elevate": true,
+      "dependsOn": ["android-cmdline-tools"],
+      "check": { "type": "path", "path": "{androidSdk}\\ndk\\{pin:androidNdk}\\source.properties" },
+      "install": { "ps": [
+        "$sdk = '{androidSdk}'",
+        "$sm = Join-Path $sdk 'cmdline-tools\\latest\\bin\\sdkmanager.bat'",
+        "& $sm --sdk_root=$sdk {sdkProxy} 'ndk;{pin:androidNdk}' | Out-Host",
+        "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }",
+        "$ndk = Join-Path $sdk 'ndk\\{pin:androidNdk}'",
+        "[Environment]::SetEnvironmentVariable('ANDROID_NDK_HOME', $ndk, 'Machine')"
+      ] }
+    },
+
+    {
+      "id": "linux-gcc", "name": "GCC / build-essential", "group": "linux",
+      "check": { "cmd": "g++ --version", "regex": "(\\d+\\.\\d+\\.\\d+)", "minVersion": "13.0" },
+      "install": { "apt": ["build-essential", "g++"], "pacman": ["base-devel", "gcc"] }
+    },
+    {
+      "id": "linux-clang", "name": "Clang / LLD", "group": "linux",
+      "check": { "cmd": "clang++ --version", "regex": "version (\\d+\\.\\d+\\.\\d+)", "minVersion": "17.0" },
+      "install": { "apt": ["clang", "lld"], "pacman": ["clang", "lld"] }
+    },
+    {
+      "id": "linux-cmake", "name": "CMake", "group": "linux",
+      "check": { "cmd": "cmake --version", "regex": "cmake version (\\d+\\.\\d+\\.\\d+)", "minVersion": "3.28" },
+      "install": { "apt": ["cmake"], "pacman": ["cmake"] }
+    },
+    {
+      "id": "linux-ninja", "name": "Ninja", "group": "linux",
+      "check": { "cmd": "ninja --version", "regex": "(\\d+\\.\\d+\\.\\d+)", "minVersion": "1.11" },
+      "install": { "apt": ["ninja-build"], "pacman": ["ninja"] }
+    },
+    {
+      "id": "linux-tools", "name": "git, pkg-config, curl, zip, unzip, tar, python3, rsync", "group": "linux",
+      "check": { "cmd": "command -v git && command -v pkg-config && command -v curl && command -v zip && command -v unzip && command -v tar && command -v python3 && command -v rsync" },
+      "install": { "apt": ["git", "pkg-config", "curl", "zip", "unzip", "tar", "python3", "rsync"],
+                   "pacman": ["git", "pkgconf", "curl", "zip", "unzip", "tar", "python", "rsync"] }
+    },
+    {
+      "id": "linux-xcb", "name": "XCB development files", "group": "linux",
+      "check": { "cmd": "pkg-config --modversion xcb", "regex": "(\\d+\\.\\d+(?:\\.\\d+)?)", "minVersion": "1.14" },
+      "install": { "apt": ["libxcb1-dev"], "pacman": ["libxcb"] }
+    },
+    {
+      "id": "linux-xcb-xinput", "name": "XCB XInput2 development files", "group": "linux",
+      "check": { "cmd": "pkg-config --modversion xcb-xinput", "regex": "(\\d+\\.\\d+(?:\\.\\d+)?)", "minVersion": "1.14" },
+      "install": { "apt": ["libxcb-xinput-dev"], "pacman": ["libxcb"] }
+    },
+    {
+      "id": "linux-vulkan", "name": "Vulkan loader, headers, tools, Mesa drivers", "group": "linux",
+      "check": { "cmd": "pkg-config --modversion vulkan", "regex": "(\\d+\\.\\d+\\.\\d+)", "minVersion": "1.3" },
+      "install": { "apt": ["libvulkan-dev", "vulkan-tools", "mesa-vulkan-drivers"],
+                   "pacman": ["vulkan-icd-loader", "vulkan-headers", "vulkan-tools", "vulkan-swrast"] }
+    },
+    {
+      "id": "linux-vcpkg", "name": "vcpkg (system-wide, VCPKG_ROOT)", "group": "linux", "sudo": false,
+      "dependsOn": ["linux-tools", "linux-gcc"],
+      "check": { "cmd": "{vcpkgFind}", "regex": "VCPKG=(\\S+)" },
+      "install": { "sh": [
+        "[ -d \"$HOME/vcpkg/.git\" ] || git clone https://github.com/microsoft/vcpkg.git \"$HOME/vcpkg\"",
+        "\"$HOME/vcpkg/bootstrap-vcpkg.sh\" -disableMetrics",
+        "grep -q 'VCPKG_ROOT=' \"$HOME/.profile\" || printf '\\nexport VCPKG_ROOT=\"$HOME/vcpkg\"\\nexport PATH=\"$VCPKG_ROOT:$PATH\"\\n' >> \"$HOME/.profile\""
+      ] }
+    }
+  ]
+}

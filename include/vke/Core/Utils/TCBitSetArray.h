@@ -20,7 +20,7 @@ namespace VKE::Utils
         public:
             SReference& operator=( const bool value )
             {
-                const T mask_all = -static_cast< T >( value );
+                const T mask_all = static_cast< T >( T{ 0 } - static_cast< T >( value ) );
                 m_Data           = static_cast< T >( ( m_Data & ~m_mask ) | ( mask_all & m_mask ) );
                 return *this;
             }

@@ -1,0 +1,66 @@
+:root { --bg:#1e1e1e; --panel:#252526; --border:#3c3c3c; --fg:#d4d4d4; --accent:#0e639c; --ok:#4ec9b0; --bad:#f48771; --warn:#dcdcaa; --dim:#808080; }
+* { box-sizing: border-box; }
+body { margin:0; font:13px "Segoe UI",system-ui,sans-serif; background:var(--bg); color:var(--fg); }
+header { display:flex; gap:12px; align-items:center; padding:8px 16px; background:var(--panel); border-bottom:1px solid var(--border); }
+header h1 { font-size:16px; margin:0; }
+#hostInfo { color:var(--dim); flex:1; }
+header, main, .banner { max-width:1920px; margin:0 auto; }
+main { padding:12px 16px; display:flex; flex-direction:column; gap:12px; }
+.groups { display:flex; gap:12px; flex-wrap:wrap; }
+.box { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:10px; flex:1; min-width:260px; }
+.box h2 { font-size:14px; margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+.box h3 { font-size:13px; margin:10px 0 6px; }
+small { color:var(--dim); font-weight:normal; }
+.row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; }
+.box.narrow { flex:0 0 auto; min-width:140px; }
+.box.wide { flex:3; }
+.box.options { flex:2; max-width:760px; }
+#setupTable { table-layout:fixed; }
+#setupTable td { overflow-wrap:anywhere; }
+#setupTable th:first-child { width:28px; }
+#setupTable .c-st { width:80px; }
+#setupTable .c-dep { width:320px; }
+#setupTable .c-grp { width:80px; }
+#setupTable .c-ver { width:90px; }
+label.rhi { margin-top:6px; padding-top:6px; border-top:1px solid var(--border); display:block; }
+label.rhi select { display:block; margin-top:4px; }
+#tasks { table-layout:fixed; width:100%; }
+#tasks td { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#tasks .c-id { width:40px; }
+#tasks .c-state { width:110px; }
+#tasks .c-elapsed { width:70px; }
+#tasks .c-actions { width:190px; }
+#tasks td.actions a { margin-right:10px; cursor:pointer; }
+.def-on { color:var(--ok); font-weight:bold; }
+.def-off { color:var(--bad); font-weight:bold; }
+.grid { column-width:180px; column-gap:12px; }
+.grid label { break-inside:avoid; }
+label { display:flex; align-items:center; gap:6px; padding:2px 0; }
+label.disabled { color:var(--dim); }
+.badge { font-size:11px; padding:0 5px; border-radius:3px; background:var(--border); }
+.badge.ok { background:#1e4d3f; } .badge.stale { background:#5a4a1a; } .badge.fail { background:#5a1d1d; }
+.badge.link { background:#1f4e8c; color:#fff; cursor:pointer; margin-left:4px; text-decoration:none; }
+.badge.link:hover { background:#2a64b0; }
+button { background:var(--accent); color:#fff; border:0; padding:6px 14px; border-radius:3px; cursor:pointer; }
+button:disabled { background:var(--border); color:var(--dim); cursor:default; }
+button.small { padding:2px 8px; font-size:11px; }
+.actions { display:flex; gap:10px; }
+.actions button { font-size:14px; padding:8px 22px; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:3px 6px; border-bottom:1px solid var(--border); vertical-align:top; }
+th { color:var(--dim); font-weight:normal; }
+input, select { background:var(--bg); color:var(--fg); border:1px solid var(--border); padding:3px 6px; }
+#optFilter { width:100%; margin-bottom:6px; }
+.state-waiting { color:var(--dim); } .state-running { color:var(--warn); }
+.state-succeeded, .st-ok { color:var(--ok); } .state-failed, .st-failed, .st-missing, .st-outdated { color:var(--bad); }
+.state-cancelled, .st-blocked, .st-skipped { color:var(--dim); } .st-waiting, .st-restart, .st-installing { color:var(--warn); }
+pre { background:#111; padding:8px; max-height:400px; overflow:auto; white-space:pre-wrap; font:12px Consolas,monospace; }
+.banner { padding:8px 16px; background:#5a4a1a; }
+.banner.error { background:#5a1d1d; }
+.hidden { display:none !important; }
+.pill { cursor:pointer; padding:2px 8px; border-radius:10px; background:var(--border); font-size:11px; }
+dialog { background:var(--panel); color:var(--fg); border:1px solid var(--border); width:min(1000px,95vw); }
+dialog label input { flex:1; }
+.dlgButtons { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+.hint { color:var(--dim); }
+a { color:#3794ff; cursor:pointer; }

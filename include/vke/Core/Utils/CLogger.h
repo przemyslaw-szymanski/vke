@@ -250,7 +250,7 @@ namespace VKE
                     {
                         Platform::File::SWriteInfo info;
                         info.pData = str.c_str();
-                        info.dataSize = str.size();
+                        info.dataSize = static_cast<uint32_t>(str.size());
 
                         Platform::File::Write( m_File, info );
                         Platform::File::Flush( m_File );

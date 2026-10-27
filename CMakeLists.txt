@@ -1,33 +1,36 @@
 cmake_minimum_required(VERSION 3.20...3.31)
 
-# Try to find vcpkg in PATH if not already set.
-# This allows using a globally installed vcpkg instead of a submodule.
-# Submodule is easy to use for new users, but a global installation is often preferred for faster builds.
+# Locate a system-wide vcpkg. Search order (shared with tools/devtool):
+# VCPKG_ROOT env, PATH, then entries of tools/devtool/vcpkg_search_paths.txt.
 if(NOT VCPKG_EXECUTABLE)
-    find_program(VCPKG_EXECUTABLE vcpkg
-        HINTS
-            "$ENV{VCPKG_ROOT}"
-            "$ENV{HOME}/vcpkg"
-            "$ENV{HOME}/.vcpkg"
-            "$ENV{USERPROFILE}/vcpkg"
-    )
+    set(_vcpkg_hints "$ENV{VCPKG_ROOT}")
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/tools/devtool/vcpkg_search_paths.txt" _vcpkg_lines REGEX "^[^#].*")
+    foreach(_line IN LISTS _vcpkg_lines)
+        string(REGEX MATCHALL "\\$ENV\\{[A-Za-z0-9_]+\\}" _vars "${_line}")
+        set(_skip FALSE)
+        foreach(_var IN LISTS _vars)
+            string(REGEX REPLACE "^\\$ENV\\{(.+)\\}$" "\\1" _name "${_var}")
+            if("$ENV{${_name}}" STREQUAL "")
+                set(_skip TRUE)
+            endif()
+            string(REPLACE "${_var}" "$ENV{${_name}}" _line "${_line}")
+        endforeach()
+        string(STRIP "${_line}" _line)
+        if(NOT _skip AND _line AND IS_DIRECTORY "${_line}")
+            list(APPEND _vcpkg_hints "${_line}")
+        endif()
+    endforeach()
+    find_program(VCPKG_EXECUTABLE vcpkg HINTS ${_vcpkg_hints})
 endif()
 
 if(VCPKG_EXECUTABLE)
-    # Get the parent directory of the vcpkg executable
+    get_filename_component(VCPKG_EXECUTABLE "${VCPKG_EXECUTABLE}" REALPATH)
     get_filename_component(VCPKG_ROOT "${VCPKG_EXECUTABLE}" DIRECTORY)
     set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
     message(STATUS "[VCPKG]: Using available exe: ${VCPKG_EXECUTABLE}")
     message(STATUS "[VCPKG]: Root directory: ${VCPKG_ROOT}")
 else()
-    # Check if vcpkg submodule exists
-    if(EXISTS "${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg/scripts/buildsystems/vcpkg.cmake")
-        message(STATUS "[VCPKG]: Using submodule: ${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg")
-        set(VCPKG_ROOT "${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg")
-        set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/src/ThirdParty/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
-    else()
-        message(FATAL_ERROR "vcpkg not found. Please ensure vcpkg is in PATH or the submodule is initialized.")
-    endif()
+    message(FATAL_ERROR "vcpkg not found. Install it system-wide (run tools/devtool Setup) and set VCPKG_ROOT or add it to PATH.")
 endif()
 
 project(vkEngine C CXX)

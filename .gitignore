@@ -10,3 +10,4 @@ lib/*.*
 .vs/
 .idea/
 include/vke/RenderSystem/CommonEnumStrings.h
+**/__pycache__/
